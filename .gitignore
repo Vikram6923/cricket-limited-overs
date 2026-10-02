@@ -17,3 +17,6 @@ Thumbs.db
 
 # Local Claude Code settings (machine-specific permissions)
 .claude/settings.local.json
+
+# Generated tournament / series output
+results/

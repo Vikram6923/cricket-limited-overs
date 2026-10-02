@@ -107,15 +107,20 @@ class Innings:
         self.streak: dict[Player, int] = {}   # consecutive legal balls taking wickets, per bowler (hat-tricks)
 
     # ------------------------------------------------------------------ helpers
+    def ball_str(self) -> str:
+        """The ball just bowled, as scorers write it: the 6th ball of the 1st over is 0.6 (0.0 before any ball)."""
+        n = self.legal
+        return f"{(n - 1) // 6}.{(n - 1) % 6 + 1}" if n else "0.0"
+
     def over_str(self) -> str:
         return f"{self.legal // 6}.{self.legal % 6}"
 
     def score_str(self) -> str:
         return f"{self.runs}/{self.wkts}"
 
-    def event(self, text: str, kind: str = "info"):
-        self.events.append({"innings": self.number, "over": self.over_str(), "score": self.score_str(),
-                            "kind": kind, "text": text})
+    def event(self, text: str, kind: str = "info", **data):
+        self.events.append({"innings": self.number, "over": self.ball_str(), "score": self.score_str(),
+                            "kind": kind, "text": text, **data})
 
     def fig(self, p: Player) -> BowlFig:
         if p not in self.figs:
@@ -159,6 +164,10 @@ class Innings:
             if not self.done and self.legal % 6 == 0:
                 self.striker, self.non_striker = self.non_striker, self.striker
         self.done = True
+        left = [c for c in (self.striker, self.non_striker) if c.batted and not c.out]
+        self.event(f"End of innings: {self.runs}/{self.wkts} ({self.over_str()} ov)" +
+                   ("" if not left else " - " + ", ".join(f"{c.p.name} {c.runs}* ({c.balls}b)" for c in left)),
+                   "end_of_innings")
 
     def bowl_over(self, over: int, bowler: Player, ph: str, base: dict):
         f = self.fig(bowler)
@@ -174,10 +183,10 @@ class Innings:
             o = self.m.model.delivery(self.m.rng, base, self.striker.p, bowler, ph, btype, sit, self.free_hit)
             wp0 = self.m.wp_batting(self)
             striker = self.striker.p
-            self.apply(o, bowler, f, seq)
-            if o.legal:
+            if o.legal:                       # counted first so events carry the ball they happened on
                 balls_in_over += 1
                 self.legal += 1
+            self.apply(o, bowler, f, seq)
             self.free_hit = (o.extra == "nb") or (self.free_hit and o.extra == "w")
             if self.chase_won() or self.wkts >= self.max_wkts:
                 self.done = True
@@ -216,6 +225,16 @@ class Innings:
             s.sixes += 1
             f.sixes += 1
         self.pship["runs"] += total
+        if total and not self.super_over:
+            if (self.runs - total) // 50 < self.runs // 50:
+                a, b = self.striker, self.non_striker
+                self.event(f"{50 * (self.runs // 50)} up - {a.p.name} {a.runs}* ({a.balls}b), "
+                           f"{b.p.name} {b.runs}* ({b.balls}b)", "team_50", runs=50 * (self.runs // 50))
+            pr = self.pship["runs"]
+            if (pr - total) // 50 < pr // 50:
+                pa, pb = self.pship["a"].p.name, self.pship["b"].p.name
+                self.event(f"{50 * (pr // 50)} partnership between {pa} and {pb} ({self.pship['balls']}b)",
+                           "partnership", runs=50 * (pr // 50))
         if self.pship["a"] is s:
             self.pship["a_runs"] += o.bat_runs
         else:
@@ -243,7 +262,8 @@ class Innings:
         before = s.runs - o.bat_runs
         for mark in (50, 100, 150, 200):
             if before < mark <= s.runs:
-                self.event(f"{s.p.name} reaches {mark} ({s.balls}b, {s.fours}x4, {s.sixes}x6)", "milestone")
+                self.event(f"{s.p.name} reaches {mark} ({s.balls}b, {s.fours}x4, {s.sixes}x6)", "milestone",
+                           player_id=s.p.id, player=s.p.name, mark=mark, balls=s.balls)
         if o.ran % 2 == 1:
             self.striker, self.non_striker = self.non_striker, self.striker
         if o.legal:
@@ -282,28 +302,36 @@ class Innings:
                    "fielder": fielder.name if fielder else None, "fielder_id": fielder.id if fielder else None,
                    "text": dismissal_text(k, bowler, fielder)}
         self.wkts += 1
-        self.fow.append({"wkt": self.wkts, "runs": self.runs, "over": self.over_str_after(o), "batter": out.p.name})
+        self.fow.append({"wkt": self.wkts, "runs": self.runs, "over": self.ball_str(), "batter": out.p.name})
         p = self.pship
         self.partnerships.append({"wkt": self.wkts, "runs": p["runs"], "balls": p["balls"],
                                   "batters": [p["a"].p.name, p["b"].p.name], "split": [p["a_runs"], p["b_runs"]]})
-        self.event(f"{out.p.name} {out.how['text']} {out.runs} ({out.balls}b, {out.fours}x4, {out.sixes}x6)"
-                   f" - {self.runs}/{self.wkts}", "wicket")
+        new = None
         if self.wkts >= self.max_wkts or self.next_in >= len(self.cards):
             self.done = True
-            return
-        k = self.pick_next()
-        if k != self.next_in:                  # move the chosen batter up to the next slot
-            self.cards.insert(self.next_in, self.cards.pop(k))
-            for i, c in enumerate(self.cards):
-                c.pos = i + 1
-        new = self.cards[self.next_in]
-        new.batted = True
-        self.next_in += 1
-        if out is self.striker:
-            self.striker = new
         else:
-            self.non_striker = new
-        self.pship = {"runs": 0, "balls": 0, "a": self.striker, "b": self.non_striker, "a_runs": 0, "b_runs": 0}
+            j = self.pick_next()
+            if j != self.next_in:              # move the chosen batter up to the next slot
+                self.cards.insert(self.next_in, self.cards.pop(j))
+                for i, c in enumerate(self.cards):
+                    c.pos = i + 1
+            new = self.cards[self.next_in]
+            new.batted = True
+            self.next_in += 1
+            if out is self.striker:
+                self.striker = new
+            else:
+                self.non_striker = new
+            self.pship = {"runs": 0, "balls": 0, "a": self.striker, "b": self.non_striker, "a_runs": 0,
+                          "b_runs": 0}
+        text = (f"{out.p.name} {out.how['text']} {out.runs} ({out.balls}b) {out.fours}x4 {out.sixes}x6"
+                f" - partnership {p['runs']}" + (f" - new batter {new.p.name}" if new else ""))
+        self.event(text, "wicket", player_id=out.p.id, partnership=p["runs"],
+                   new_batter=new.p.name if new else None)
+        if k != "run_out" and f.wkts >= 5:
+            ov = f"{f.balls // 6}" + (f".{f.balls % 6}" if f.balls % 6 else "")
+            self.event(f"{bowler.name} {ov}-{f.maidens}-{f.runs}-{f.wkts}", "five_wickets",
+                       player_id=bowler.id, wickets=f.wkts)
 
     def pick_next(self) -> int:
         """Index of the next batter (design T1-7). Default: next in the order. Late in the innings with wickets
@@ -329,10 +357,6 @@ class Innings:
                 and b.p.bat_hand and b.p.bat_hand != stay.p.bat_hand:
             return i + 1
         return i
-
-    def over_str_after(self, o) -> str:
-        n = self.legal + (1 if o.legal else 0)
-        return f"{n // 6}.{n % 6}"
 
     def close_partnership(self):
         p = self.pship

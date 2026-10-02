@@ -255,4 +255,9 @@ balanced).
   spread within ~10%, phase rates within 2.5%); pitch of the day on for internationals only (it over-dispersed the
   IPL). Open, not being tuned: too many all-outs. Full table: `docs/engine_progress.md`.
   - Working rule: one feature, one calibration run, record the result, stop tuning once the gate is met.
-  - Next (build order step 4): series and league/tournament runners writing JSON scorecards and stats.
+- 2026-10-03: Project published on GitHub (user's account Vikram6923; public; MIT licence for code). README.md
+  describes the project. `results/`, `data/raw/`, `data/cache/` are git-ignored.
+- 2026-10-03: **Step 4 done: series and tournaments** (`engine/tournament.py`, `examples/`,
+  `tests/test_tournament.py`; details in `docs/engine_progress.md`). `python -m engine.tournament
+  examples/t20_world_cup_style.json --out results/wc` plays an 8-team, 2-group T20 World Cup-style event in ~2.5 s.
+  - Next (build order step 5): Flask server + UI (copy the style from `../cricket/webui/`).

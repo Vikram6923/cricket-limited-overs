@@ -1,0 +1,184 @@
+{
+ "type": "tournament",
+ "format": "t20",
+ "comp": "t20i_full",
+ "year": 2024,
+ "seed": 2024,
+ "groups": 2,
+ "rounds": 1,
+ "knockout": "semis",
+ "venues": [
+  "Kensington Oval, Bridgetown",
+  "Providence Stadium, Guyana",
+  "Daren Sammy National Cricket Stadium, Gros Islet, St Lucia",
+  "Sir Vivian Richards Stadium, North Sound, Antigua",
+  "Brian Lara Stadium, Tarouba, Trinidad",
+  "Arnos Vale Ground, Kingstown, St Vincent"
+ ],
+ "knockout_venues": [
+  "Providence Stadium, Guyana",
+  "Brian Lara Stadium, Tarouba, Trinidad",
+  "Kensington Oval, Bridgetown"
+ ],
+ "teams": [
+  {
+   "name": "India",
+   "squad": [
+    "Rohit Sharma",
+    "V Kohli",
+    "RR Pant",
+    "SA Yadav",
+    "SV Samson",
+    "HH Pandya",
+    "RA Jadeja",
+    "AR Patel",
+    "Kuldeep Yadav",
+    "JJ Bumrah",
+    "Arshdeep Singh",
+    "YS Chahal",
+    "Mohammed Siraj",
+    "S Dube",
+    "YBK Jaiswal"
+   ]
+  },
+  {
+   "name": "Australia",
+   "squad": [
+    "TM Head",
+    "DA Warner",
+    "MR Marsh",
+    "GJ Maxwell",
+    "MP Stoinis",
+    "TH David",
+    "MS Wade",
+    "PJ Cummins",
+    "MA Starc",
+    "A Zampa",
+    "JR Hazlewood",
+    "C Green",
+    "AC Agar",
+    "NT Ellis",
+    "JP Inglis"
+   ]
+  },
+  {
+   "name": "England",
+   "squad": [
+    "JC Buttler",
+    "PD Salt",
+    "WG Jacks",
+    "JM Bairstow",
+    "HC Brook",
+    "MM Ali",
+    "LS Livingstone",
+    "SM Curran",
+    "CJ Jordan",
+    "JC Archer",
+    "AU Rashid",
+    "RJW Topley",
+    "MA Wood",
+    "BM Duckett",
+    "TS Mills"
+   ]
+  },
+  {
+   "name": "South Africa",
+   "squad": [
+    "Q de Kock",
+    "RR Hendricks",
+    "AK Markram",
+    "H Klaasen",
+    "DA Miller",
+    "T Stubbs",
+    "M Jansen",
+    "K Rabada",
+    "KA Maharaj",
+    "A Nortje",
+    "T Shamsi",
+    "OEG Baartman",
+    "G Coetzee",
+    "RD Rickelton",
+    "BC Fortuin"
+   ]
+  },
+  {
+   "name": "Pakistan",
+   "squad": [
+    "Babar Azam",
+    "Mohammad Rizwan",
+    "Fakhar Zaman",
+    "Saim Ayub",
+    "Usman Khan",
+    "Iftikhar Ahmed",
+    "Shadab Khan",
+    "Imad Wasim",
+    "Shaheen Shah Afridi",
+    "Naseem Shah",
+    "Haris Rauf",
+    "Mohammad Amir",
+    "Abbas Afridi",
+    "Abrar Ahmed",
+    "Azam Khan"
+   ]
+  },
+  {
+   "name": "New Zealand",
+   "squad": [
+    "FH Allen",
+    "DP Conway",
+    "R Ravindra",
+    "KS Williamson",
+    "DJ Mitchell",
+    "GD Phillips",
+    "MS Chapman",
+    "JDS Neesham",
+    "MJ Santner",
+    "TA Boult",
+    "TG Southee",
+    "LH Ferguson",
+    "MJ Henry",
+    "IS Sodhi",
+    "MG Bracewell"
+   ]
+  },
+  {
+   "name": "West Indies",
+   "squad": [
+    "BA King",
+    "J Charles",
+    "N Pooran",
+    "R Powell",
+    "SE Rutherford",
+    "AD Russell",
+    "R Shepherd",
+    "AJ Hosein",
+    "G Motie",
+    "AS Joseph",
+    "OC McCoy",
+    "SO Hetmyer",
+    "SD Hope",
+    "RL Chase",
+    "JO Holder"
+   ]
+  },
+  {
+   "name": "Afghanistan",
+   "squad": [
+    "Rahmanullah Gurbaz",
+    "Ibrahim Zadran",
+    "Azmatullah Omarzai",
+    "Mohammad Nabi",
+    "Gulbadin Naib",
+    "Najibullah Zadran",
+    "Rashid Khan",
+    "Karim Janat",
+    "Noor Ahmad",
+    "Naveen-ul-Haq",
+    "Fazalhaq Farooqi",
+    "Mujeeb Ur Rahman",
+    "Nangeyalia Kharote",
+    "Mohammad Ishaq"
+   ]
+  }
+ ]
+}

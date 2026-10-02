@@ -9,8 +9,8 @@ The engine is a plain Python library: no prompts, no global state, and a seed ma
 is checked against reality by replaying ~1,500 real matches with their real line-ups (see
 [Does it look like real cricket?](#does-it-look-like-real-cricket)).
 
-> **Status:** the data pipeline, player ratings and match engine are built and calibrated. Series/tournament
-> runners and the browser UI are next. See [Roadmap](#roadmap).
+> **Status:** the data pipeline, player ratings, match engine (calibrated) and series/tournament runners are
+> built. The browser UI is next. See [Roadmap](#roadmap).
 
 ## Quick start
 
@@ -59,6 +59,39 @@ Useful options:
 
 Teams from different eras can meet. Ratings are relative to each player's own era, so the 2007 Australians can play
 the 2023 Indians under 2023 conditions, or under 2007 conditions.
+
+## Series and tournaments
+
+```bash
+python -m engine.tournament examples/t20_world_cup_style.json --out results/wc
+python -m engine.tournament examples/odi_series_india_australia.json --out results/series
+```
+
+This prints the points tables (with net run rate), knockout results, winner, player of the series and top performers.
+It writes `summary.json` (tables, knockouts, batting / bowling / fielding stats, records, MVP rankings) plus
+`matches/NNN.json` and `NNN.txt` (full and text scorecard) for every match. Players in the config can be given by
+name or Cricsheet ID, and a 12+ player `squad` lets the captain pick the XI.
+
+From Python:
+
+```python
+from engine.tournament import play_series, play_tournament, save
+res = play_tournament(teams, fmt="t20", comp="t20i_full", year=2024,
+                      groups=2, knockout="semis", seed=1)   # or knockout="ipl" / "final" / "none"
+save(res, "results/my_cup")
+```
+
+- **League stage:** single or double round robin (`rounds`), optionally in groups.
+- **Knockouts:** semi-finals (1v4, 2v3; with two groups A1vB2, B1vA2), IPL-style playoffs (Qualifier 1,
+  Eliminator, Qualifier 2, Final), a final, or none.
+- **Points table:** net run rate by the ICC method (a side bowled out is charged its full quota of overs; super
+  overs don't count).
+- **Records:** highest and lowest totals, top scores, best figures, fastest 50s and 100s, biggest and narrowest wins,
+  super overs.
+- **MVP rankings:**
+  - *official*: win probability added; it also picks the player of the match and of the series;
+  - *balanced*: runs + 25 per wicket + 5 per catch/stumping + 25 per team win, plus strike-rate and economy
+    bonuses.
 
 ## How it works
 
@@ -118,6 +151,7 @@ python -m engine.fit.fit_toss          # toss decisions
 python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 min: replays every real match)
 python -m engine.calibrate             # compare simulated v real
 python tests/test_engine.py            # laws and bookkeeping invariants
+python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 ```
 
 Optional checks: `python scripts/validate_ratings.py` (out-of-sample test of the ratings) and
@@ -133,13 +167,15 @@ engine/            match engine (library)
   situation.py     settling in, intent, par, matchups, win probability
   conditions.py    venue factor, pitch of the day
   render.py        text scorecard and match report
+  tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
   fit/             scripts that learn the engine's tables from Cricsheet
 scripts/           data pipeline: download, raw stats, Afghanistan, styles, ratings, validation
 data/              ratings_*.json, engine/*.json (fitted tables), raw_stats/ (derived);
                    raw/ and cache/ are rebuilt locally and not in git
 docs/              design document and calibration/progress log
-tests/             engine invariant tests
+examples/          tournament and series configs
+tests/             engine and tournament tests
 ```
 
 ## Roadmap
@@ -147,7 +183,7 @@ tests/             engine invariant tests
 - [x] Data pipeline, raw stats with phase splits, verification against real careers
 - [x] Ratings with opponent adjustment, shrinkage and era adjustment
 - [x] Match engine (Tier 0-2 of the design), calibrated against real matches
-- [ ] Series and league/tournament runners (points table with net run rate, knockouts, stats, records)
+- [x] Series and league/tournament runners (points table with net run rate, knockouts, stats, records, MVP)
 - [ ] Browser UI (Flask, works offline): single match, series, World Cup / IPL-style tournaments, historical
       teams, fantasy draft, team builder, worm and Manhattan charts, MVP race
 - [ ] Pre-2002 players from Wikipedia; ratings for a chosen year range (historical teams)

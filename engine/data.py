@@ -210,6 +210,19 @@ def competitions(fmt: str) -> list[str]:
     return sorted(ratings(fmt)["baselines"])
 
 
+def resolve(fmt: str, name_or_id: str) -> str:
+    """Cricsheet ID for a player given by ID or by exact name (case-insensitive; the most experienced player wins
+    if two share a name). Raises ValueError with suggestions if nothing matches."""
+    players = ratings(fmt)["players"]
+    if name_or_id in players:
+        return name_or_id
+    exact = [h for h in search(fmt, name_or_id, 50) if h[1].lower() == name_or_id.lower()]
+    if exact:
+        return exact[0][0]
+    close = [h[1] for h in search(fmt, name_or_id.split()[-1], 5)]
+    raise ValueError(f"no {fmt} player named {name_or_id!r}" + (f"; did you mean {close}?" if close else ""))
+
+
 def search(fmt: str, text: str, limit: int = 10) -> list[tuple[str, str, str]]:
     """(id, name, team) of rated players whose name contains `text` (case-insensitive)."""
     t = text.lower()

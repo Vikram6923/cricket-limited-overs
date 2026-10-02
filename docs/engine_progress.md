@@ -85,6 +85,36 @@ calibration of runs and wickets above is unaffected.
    no replay suite, so they follow the IPL decision.
 3. Hundreds: T20I -9%, IPL +13%, ODI -13% (small counts).
 
+## Step 4: series and tournaments (2026-10-03)
+
+`engine/tournament.py`, no ball-model change (so no calibration step):
+- **Formats:** `play_series` (bilateral, n matches) and `play_tournament` (round robin x `rounds`, optional groups,
+  then semis / IPL playoffs / final / none).
+- **Points table:** ICC net run rate (bowled-out side charged full overs; super overs excluded).
+- **Tables and records:** batting / bowling / fielding tables; records (highest/lowest totals, top scores, best
+  figures, fastest 50s/100s, biggest/narrowest wins, super overs).
+- **MVP rankings:** official = win probability added (also picks player of the series); balanced = runs + 25/wkt +
+  5/catch + 25/team win + strike-rate and economy bonuses.
+- **Output:** `save()` writes `summary.json` and `matches/NNN.json` / `.txt`.
+- **Command line:** `python -m engine.tournament <config> --out <dir>`; example configs in `examples/`.
+- **Engine change (output only):** milestone events now carry `player_id`, `mark` and `balls` for the
+  fastest-50/100 records.
+- **Helper:** `engine.data.resolve` turns player names into Cricsheet IDs.
+- **Tests:** `tests/test_tournament.py` (points and played totals, NRR recomputed by hand, a bowled-out side charged
+  full overs, stats summing to scorecards, knockout and IPL playoff structure, seed reproducibility).
+
+Follow-up (user request): saved `matches/NNN.txt` files now end with a **Match Report** paragraph, as in the Test sim
+(`engine.render.full_text`). The report is ported from the Test sim's `matchreport` / `innings.report` /
+`bowling.report` wording: captain at the toss, pitch, standout batters and bowlers, target, turning point,
+"In the end, X beat Y by ...", and player of the match with figures.
+
+Follow-up 2 (user request): an **innings log** like the Test sim's, written above each innings' card in the `.txt`
+files (`engine.render.innings_log`). Each line has over.ball, score and event. Events: wickets with the partnership
+and the new batter, every 50 up with both batters, 50 partnerships, batter 50/100, big overs, hat-tricks, 5-wicket
+hauls with figures, end of innings with the not-out batters. Event stamps were one ball early and are fixed. Stamps
+and fall of wickets now use the scorer's notation (6th ball of the 1st over = 0.6). Each XI is listed at the top.
+Dropped catches stay out (skipped by decision). No change to how matches play: the same seeds give the same results.
+
 ## Rebuild order
 
 `python -m engine.fit.fit_basics` -> `python -m engine.fit.fit_situation` -> `python -m engine.fit.fit_toss` ->

@@ -1,0 +1,57 @@
+{
+ "type": "series",
+ "format": "odi",
+ "comp": "odi_full",
+ "year": 2023,
+ "seed": 7,
+ "matches": 5,
+ "venues": [
+  "Punjab Cricket Association IS Bindra Stadium, Mohali",
+  "Holkar Cricket Stadium, Indore",
+  "Saurashtra Cricket Association Stadium, Rajkot",
+  "Wankhede Stadium, Mumbai",
+  "Eden Gardens, Kolkata"
+ ],
+ "teams": [
+  {
+   "name": "India",
+   "squad": [
+    "RG Sharma",
+    "Shubman Gill",
+    "V Kohli",
+    "SS Iyer",
+    "KL Rahul",
+    "HH Pandya",
+    "RA Jadeja",
+    "Kuldeep Yadav",
+    "JJ Bumrah",
+    "Mohammed Siraj",
+    "Mohammed Shami",
+    "AR Patel",
+    "Ishan Kishan",
+    "SA Yadav",
+    "R Ashwin"
+   ]
+  },
+  {
+   "name": "Australia",
+   "squad": [
+    "TM Head",
+    "DA Warner",
+    "MR Marsh",
+    "SPD Smith",
+    "M Labuschagne",
+    "JP Inglis",
+    "GJ Maxwell",
+    "C Green",
+    "MP Stoinis",
+    "PJ Cummins",
+    "MA Starc",
+    "A Zampa",
+    "JR Hazlewood",
+    "SA Abbott",
+    "AT Carey"
+   ]
+  }
+ ]
+}
