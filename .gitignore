@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Raw downloads and caches: rebuilt by the scripts (see README "Rebuilding the data")
+data/raw/
+data/cache/
+*.part
+
+# Local tool / editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings (machine-specific permissions)
+.claude/settings.local.json

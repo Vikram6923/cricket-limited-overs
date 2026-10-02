@@ -1,0 +1,431 @@
+[
+ {
+  "player": "Virat Kohli",
+  "format": "ODI",
+  "as_of": "28 September 2026",
+  "stats": {
+   "matches": {
+    "wikipedia": "315",
+    "cricsheet": "311"
+   },
+   "runs": {
+    "wikipedia": "15,080",
+    "cricsheet": "14819"
+   },
+   "bat_avg": {
+    "wikipedia": "59.13",
+    "cricsheet": "58.34"
+   },
+   "100s/50s": {
+    "wikipedia": "55/79",
+    "cricsheet": "54/77"
+   },
+   "hs": {
+    "wikipedia": "183",
+    "cricsheet": "183"
+   },
+   "balls": {
+    "wikipedia": "662",
+    "cricsheet": "662"
+   },
+   "wkts": {
+    "wikipedia": "5",
+    "cricsheet": "5"
+   },
+   "bowl_avg": {
+    "wikipedia": "136.00",
+    "cricsheet": "136.0"
+   },
+   "5w": {
+    "wikipedia": "0",
+    "cricsheet": "0"
+   },
+   "best": {
+    "wikipedia": "1/13",
+    "cricsheet": "1/13"
+   },
+   "ct/st": {
+    "wikipedia": "169/–",
+    "cricsheet": "166/0"
+   }
+  },
+  "sr": 93.89,
+  "econ": 6.16,
+  "team_listed_missing_in_span": 0
+ },
+ {
+  "player": "Virat Kohli",
+  "format": "T20I",
+  "as_of": "28 September 2026",
+  "stats": {
+   "matches": {
+    "wikipedia": "125",
+    "cricsheet": "118"
+   },
+   "runs": {
+    "wikipedia": "4,188",
+    "cricsheet": "3963"
+   },
+   "bat_avg": {
+    "wikipedia": "48.69",
+    "cricsheet": "48.33"
+   },
+   "100s/50s": {
+    "wikipedia": "1/38",
+    "cricsheet": "0/37"
+   },
+   "hs": {
+    "wikipedia": "122*",
+    "cricsheet": "94*"
+   },
+   "balls": {
+    "wikipedia": "152",
+    "cricsheet": "152"
+   },
+   "wkts": {
+    "wikipedia": "4",
+    "cricsheet": "4"
+   },
+   "bowl_avg": {
+    "wikipedia": "51.00",
+    "cricsheet": "51.0"
+   },
+   "5w": {
+    "wikipedia": "0",
+    "cricsheet": "0"
+   },
+   "best": {
+    "wikipedia": "1/13",
+    "cricsheet": "1/13"
+   },
+   "ct/st": {
+    "wikipedia": "54/–",
+    "cricsheet": "51/0"
+   }
+  },
+  "sr": 135.95,
+  "econ": 8.05,
+  "team_listed_missing_in_span": 0
+ },
+ {
+  "player": "Babar Azam",
+  "format": "ODI",
+  "as_of": "12 September 2026",
+  "stats": {
+   "matches": {
+    "wikipedia": "143",
+    "cricsheet": "137"
+   },
+   "runs": {
+    "wikipedia": "6,626",
+    "cricsheet": "6328"
+   },
+   "bat_avg": {
+    "wikipedia": "53.43",
+    "cricsheet": "53.63"
+   },
+   "100s/50s": {
+    "wikipedia": "20/38",
+    "cricsheet": "20/34"
+   },
+   "hs": {
+    "wikipedia": "158",
+    "cricsheet": "158"
+   },
+   "balls": {
+    "wikipedia": "–",
+    "cricsheet": "0"
+   },
+   "wkts": {
+    "wikipedia": "–",
+    "cricsheet": "0"
+   },
+   "bowl_avg": {
+    "wikipedia": "–",
+    "cricsheet": "-"
+   },
+   "5w": {
+    "wikipedia": "–",
+    "cricsheet": "0"
+   },
+   "best": {
+    "wikipedia": "–",
+    "cricsheet": "-"
+   },
+   "ct/st": {
+    "wikipedia": "63/–",
+    "cricsheet": "63/0"
+   }
+  },
+  "sr": 87.16,
+  "econ": null,
+  "team_listed_missing_in_span": 0
+ },
+ {
+  "player": "Babar Azam",
+  "format": "T20I",
+  "as_of": "12 September 2026",
+  "stats": {
+   "matches": {
+    "wikipedia": "145",
+    "cricsheet": "142"
+   },
+   "runs": {
+    "wikipedia": "4,596",
+    "cricsheet": "4545"
+   },
+   "bat_avg": {
+    "wikipedia": "38.94",
+    "cricsheet": "39.18"
+   },
+   "100s/50s": {
+    "wikipedia": "3/39",
+    "cricsheet": "3/38"
+   },
+   "hs": {
+    "wikipedia": "122",
+    "cricsheet": "122"
+   },
+   "balls": {
+    "wikipedia": "–",
+    "cricsheet": "0"
+   },
+   "wkts": {
+    "wikipedia": "–",
+    "cricsheet": "0"
+   },
+   "bowl_avg": {
+    "wikipedia": "–",
+    "cricsheet": "-"
+   },
+   "5w": {
+    "wikipedia": "–",
+    "cricsheet": "0"
+   },
+   "best": {
+    "wikipedia": "–",
+    "cricsheet": "-"
+   },
+   "ct/st": {
+    "wikipedia": "68/–",
+    "cricsheet": "66/0"
+   }
+  },
+  "sr": 128.32,
+  "econ": null,
+  "team_listed_missing_in_span": 0
+ },
+ {
+  "player": "Rashid Khan",
+  "format": "ODI",
+  "as_of": "15 August 2026",
+  "stats": {
+   "matches": {
+    "wikipedia": "123",
+    "cricsheet": ""
+   },
+   "runs": {
+    "wikipedia": "1,469",
+    "cricsheet": ""
+   },
+   "bat_avg": {
+    "wikipedia": "18.83",
+    "cricsheet": ""
+   },
+   "100s/50s": {
+    "wikipedia": "0/5",
+    "cricsheet": ""
+   },
+   "hs": {
+    "wikipedia": "60*",
+    "cricsheet": ""
+   },
+   "balls": {
+    "wikipedia": "6,174",
+    "cricsheet": ""
+   },
+   "wkts": {
+    "wikipedia": "226",
+    "cricsheet": ""
+   },
+   "bowl_avg": {
+    "wikipedia": "19.43",
+    "cricsheet": ""
+   },
+   "5w": {
+    "wikipedia": "7",
+    "cricsheet": ""
+   },
+   "best": {
+    "wikipedia": "7/18",
+    "cricsheet": ""
+   },
+   "ct/st": {
+    "wikipedia": "38/–",
+    "cricsheet": ""
+   }
+  }
+ },
+ {
+  "player": "Rashid Khan",
+  "format": "T20I",
+  "as_of": "15 August 2026",
+  "stats": {
+   "matches": {
+    "wikipedia": "115",
+    "cricsheet": "1"
+   },
+   "runs": {
+    "wikipedia": "622",
+    "cricsheet": "9"
+   },
+   "bat_avg": {
+    "wikipedia": "14.80",
+    "cricsheet": "9.0"
+   },
+   "100s/50s": {
+    "wikipedia": "0/0",
+    "cricsheet": "0/0"
+   },
+   "hs": {
+    "wikipedia": "48*",
+    "cricsheet": "9"
+   },
+   "balls": {
+    "wikipedia": "2,630",
+    "cricsheet": "24"
+   },
+   "wkts": {
+    "wikipedia": "193",
+    "cricsheet": "2"
+   },
+   "bowl_avg": {
+    "wikipedia": "13.73",
+    "cricsheet": "24.0"
+   },
+   "5w": {
+    "wikipedia": "2",
+    "cricsheet": "0"
+   },
+   "best": {
+    "wikipedia": "5/3",
+    "cricsheet": "2/48"
+   },
+   "ct/st": {
+    "wikipedia": "45/–",
+    "cricsheet": "0/0"
+   }
+  },
+  "sr": 128.57,
+  "econ": 12.0,
+  "team_listed_missing_in_span": 0
+ },
+ {
+  "player": "Jasprit Bumrah",
+  "format": "ODI",
+  "as_of": "4 August 2026",
+  "stats": {
+   "matches": {
+    "wikipedia": "91",
+    "cricsheet": "89"
+   },
+   "runs": {
+    "wikipedia": "111",
+    "cricsheet": "110"
+   },
+   "bat_avg": {
+    "wikipedia": "9.25",
+    "cricsheet": "9.17"
+   },
+   "100s/50s": {
+    "wikipedia": "0/0",
+    "cricsheet": "0/0"
+   },
+   "hs": {
+    "wikipedia": "20*",
+    "cricsheet": "20*"
+   },
+   "balls": {
+    "wikipedia": "4,694",
+    "cricsheet": "4574"
+   },
+   "wkts": {
+    "wikipedia": "151",
+    "cricsheet": "145"
+   },
+   "bowl_avg": {
+    "wikipedia": "23.74",
+    "cricsheet": "24.19"
+   },
+   "5w": {
+    "wikipedia": "2",
+    "cricsheet": "2"
+   },
+   "best": {
+    "wikipedia": "6/19",
+    "cricsheet": "6/19"
+   },
+   "ct/st": {
+    "wikipedia": "19/–",
+    "cricsheet": "18/0"
+   }
+  },
+  "sr": 64.33,
+  "econ": 4.6,
+  "team_listed_missing_in_span": 0
+ },
+ {
+  "player": "Jasprit Bumrah",
+  "format": "T20I",
+  "as_of": "4 August 2026",
+  "stats": {
+   "matches": {
+    "wikipedia": "95",
+    "cricsheet": "92"
+   },
+   "runs": {
+    "wikipedia": "12",
+    "cricsheet": "12"
+   },
+   "bat_avg": {
+    "wikipedia": "2.00",
+    "cricsheet": "2.0"
+   },
+   "100s/50s": {
+    "wikipedia": "0/0",
+    "cricsheet": "0/0"
+   },
+   "hs": {
+    "wikipedia": "7",
+    "cricsheet": "7"
+   },
+   "balls": {
+    "wikipedia": "2,014",
+    "cricsheet": "1966"
+   },
+   "wkts": {
+    "wikipedia": "121",
+    "cricsheet": "117"
+   },
+   "bowl_avg": {
+    "wikipedia": "18.08",
+    "cricsheet": "18.43"
+   },
+   "5w": {
+    "wikipedia": "0",
+    "cricsheet": "0"
+   },
+   "best": {
+    "wikipedia": "4/15",
+    "cricsheet": "4/15"
+   },
+   "ct/st": {
+    "wikipedia": "15/–",
+    "cricsheet": "15/0"
+   }
+  },
+  "sr": 66.67,
+  "econ": 6.58,
+  "team_listed_missing_in_span": 0
+ }
+]

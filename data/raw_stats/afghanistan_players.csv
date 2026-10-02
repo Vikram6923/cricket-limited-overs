@@ -1,0 +1,80 @@
+name,wiki_title,cricinfo_id,cricsheet_id,dob,batting_style,bowling_style,role,odi_mat,odi_runs,odi_bat_avg,odi_wkts,odi_bowl_avg,t20i_mat,t20i_runs,t20i_bat_avg,t20i_wkts,t20i_bowl_avg,league_mat,league_runs,league_sr,league_wkts,league_econ,leagues
+Mohammad Nabi,Mohammad Nabi,25913,62af8546,1985-01-01,Right-handed,Right-arm off spin,All-rounder,178,"3,792",27.47,177,32.80,152,"2,448",22.25,109,27.77,266,3324,131.49,229,6.81,ipl:24 bbl:42 psl:31 cpl:35 ilt:20 bpl:71 lpl:12 ntb:31
+Rahmat Shah,Rahmat Shah,533956,f9c29fcd,1993-07-06,Right-handed,Right-arm leg break,All-rounder,132,"4,300",35.83,15,35.46,1,3,3.00,–,–,,,,,,
+Rashid Khan,"Rashid Khan (cricketer, born 1998)",793463,5f547c8b,1998-09-20,Right-handed,Leg break googly,Bowling All-rounder,123,"1,469",18.83,226,19.43,115,622,14.80,193,13.73,368,1807,148.36,455,6.8,ipl:153 bbl:69 psl:28 cpl:27 sat:29 ilt:7 bpl:14 mlc:13 ntb:28
+Asghar Afghan,Asghar Afghan,320652,88679525,1987-02-22,Right-handed,Right-arm medium-fast,Middle order batsman,114,"2,424",24.73,3,30.33,75,"1,382",21.93,1,4.00,,,,,,
+Najibullah Zadran,Najibullah Zadran,524049,1212cbec,1993-02-18,Left-handed,Right-arm off break,Middle-order batter,92,"2,060",29.01,0,–,107,"1,830",29.51,–,–,76,1157,124.27,0,,psl:7 cpl:17 ilt:10 bpl:25 lpl:17
+Hashmatullah Shahidi,Hashmatullah Shahidi,440970,c2a46cb4,1994-11-04,Left-handed,Right arm off break,Top-order batter,96,"2,607",33.42,0,–,6,48,24.00,–,–,,,,,,
+Gulbadin Naib,Gulbadin Naib,352048,9f77963a,1991-06-14,Right-handed,Right-arm fast-medium,Batting all-rounder,89,"1,332",19.88,74,36.16,75,945,20.54,33,26.06,30,631,143.41,16,8.95,ipl:2 ilt:16 bpl:4 lpl:8
+Rahmanullah Gurbaz,Rahmanullah Gurbaz,974087,0bacade8,2001-11-28,Right-handed,,Wicket-keeper-batter,55,"2,036",37.70,0,,87,"2,280",26.20,,,141,3217,148.52,0,,ipl:18 psl:15 cpl:18 sat:6 ilt:30 bpl:11 lpl:43
+Samiullah Shenwari,Samiullah Shenwari,318339,61646132,1987-12-31,Right-handed,Leg break,All-rounder,84,"1,811",29.20,46,37.58,65,"1,013",22.02,28,24.57,15,117,121.88,7,8.24,bpl:9 lpl:6
+Mohammad Shahzad,Mohammad Shahzad,419873,d6dcb0c9,1991-07-15,Right-handed,,Wicket-keeper-batsman,84,"2,727",33.66,,,73,"2,048",29.25,,,33,841,127.81,0,,bpl:33
+Dawlat Zadran,Dawlat Zadran,516561,1fba2ae3,1988-03-19,Right-handed,Right-arm fast medium,Bowler,82,513,17.68,115,29.76,34,68,7.55,40,24.50,,,,,,
+Karim Janat,Karim Janat,793467,62175638,1998-08-11,Right-handed,Right-arm medium-fast,Batting all-rounder,3,32,10.66,0,–,75,759,16.86,42,27.64,35,420,150.0,21,9.12,ipl:1 sat:4 ilt:7 bpl:18 lpl:5
+Mujeeb Ur Rahman,Mujeeb Ur Rahman,974109,7d92277a,2001-03-28,Right-handed,Right-arm off break,Bowler,75,236,9.07,101,28.34,65,85,9.44,87,18.10,208,279,101.09,215,6.97,ipl:20 bbl:52 psl:11 cpl:26 sat:19 ilt:10 bpl:22 lpl:20 ntb:28
+Azmatullah Omarzai,Azmatullah Omarzai,819429,8f6dd463,2000-03-24,Right-handed,Right-arm fast-medium,All-rounder,44,"1,169",43.29,44,28.47,66,808,17.95,54,24.59,75,915,146.87,75,9.06,ipl:20 psl:6 sat:5 ilt:10 bpl:25 lpl:9
+Ibrahim Zadran,Ibrahim Zadran,921509,d4550956,2001-12-12,Right-handed,Right-arm medium-fast,Opening batter,42,"1,902",48.76,–,–,65,"1,869",33.30,–,–,25,481,113.44,0,,ilt:4 bpl:12 lpl:9
+Fazalhaq Farooqi,Fazalhaq Farooqi,974175,e9c7f0d0,2000-09-22,Right-handed,Left-arm fast,Bowler,42,21,3.50,52,33.50,54,17,4.25,66,20.16,84,27,67.5,114,8.1,ipl:12 bbl:4 psl:6 cpl:4 ilt:40 bpl:7 lpl:3 ntb:8
+Noor Ali Zadran,Noor Ali Zadran,318340,72e46d30,1988-07-10,Right-handed,Right-arm medium fast,Batter,51,"1,216",24.81,,,23,597,27.13,,,,,,,,
+Nawroz Mangal,Nawroz Mangal,318334,0503ae22,1984-11-28,Right-handed,Right-arm off break,Top order batsman,49,"1,139",27.11,8,29.37,32,505,18.03,4,20.00,,,,,,
+Naveen-ul-Haq,Naveen-ul-Haq,793447,c0c411cb,1999-09-23,Right-handed,Right-arm medium-fast,Bowler,15,37,7.40,22,32.18,48,44,4.88,67,18.73,156,299,104.91,190,8.66,ipl:18 bbl:2 psl:10 cpl:29 sat:16 ilt:11 bpl:10 lpl:18 mlc:9 ntb:33
+Javed Ahmadi,Javed Ahmadi,308235,0087a35d,1992-01-02,Right-handed,Right-arm off break,Top-order batter,47,"1,049",23.84,9,40.33,3,6,3.00,–,–,,,,,,
+Mirwais Ashraf,Mirwais Ashraf,387420,bdd985f2,1988-06-30,Right-handed,Right-arm fast-medium,,46,387,14.33,46,29.56,25,128,11.63,14,31.71,,,,,,
+Shafiqullah,Shafiqullah (cricketer),362603,ba4d600a,1989-08-07,Right-handed,,Wicketkeeper,24,430,22.63,,,46,494,16.46,,,3,18,94.74,0,,bpl:3
+Hazratullah Zazai,Hazratullah Zazai,793457,5ea51c25,1998-03-23,Left-handed,Slow left-arm orthodox,Opening batter,16,361,22.56,–,–,33,960,32.00,–,–,32,669,130.66,0,,psl:12 cpl:2 ilt:2 bpl:12 lpl:4
+Shapoor Zadran,Shapoor Zadran,319746,fccebff9,1987-07-08,Left-handed,Left-arm fast-medium,,43,67,6.70,43,35.88,32,27,3.85,31,24.54,8,1,9.09,10,6.3,bpl:8
+Hamid Hassan,Hamid Hassan,311427,093ae70b,1987-06-01,Right-handed,Right-arm fast,Bowler,38,107,6.68,59,22.54,25,50,16.66,35,16.57,4,4,50.0,7,5.94,bpl:4
+Fareed Ahmad,Fareed Ahmad (cricketer),568136,67b7bad4,1994-08-10,Left-handed,Left arm fast medium,Bowler,20,46,9.20,25,29.28,38,33,16.50,47,21.40,,,,,,
+Karim Sadiq,Karim Sadiq,319758,13e5908b,1984-02-28,Right-handed,Right-arm off break,{{ubl|Opening batsman|Occasional wicket-keeper}},24,475,23.75,6,33.50,36,538,14.94,14,34.42,,,,,,
+Usman Ghani,Usman Ghani,711559,e3829b2a,1996-11-20,Right-handed,Right-arm off break,Opening batter,17,435,25.58,1,34.00,33,764,26.34,–,–,9,227,117.62,0,,bpl:9
+Amir Hamza,Hamza Hotak,402245,dca1ac2e,1991-08-15,Right-handed,Slow left-arm orthodox,Bowling all-rounder,31,23,3.28,40,25.40,33,40,10.00,30,25.06,10,17,53.12,7,6.98,bpl:10
+Ikram Alikhil,Ikram Alikhil,935553,f67c958d,2000-09-20,Left-handed,,Wicket-keeper batter,32,386,21.44,,,,,,,,,,,,,
+Sediqullah Atal,Sediqullah Atal,1161050,3c28853f,2001-08-12,Left-handed,,Opening batter,14,419,32.23,,,29,621,23.00,,,13,253,124.63,0,,ipl:1 sat:3 ilt:7 lpl:2
+Darwish Rasooli,Darwish Rasooli,819441,3b2114a5,1999-12-12,Right-handed,Righ-arm off-break,Batsman,2,7,7.00,,,28,515,22.39,,,13,249,120.87,0,,bpl:13
+Aftab Alam,"Aftab Alam (cricketer, born 1992)",440963,2a3a3786,1992-11-30,Right-handed,Right-arm fast,All-rounder,27,80,11.42,41,25.19,12,2,1,11,29.45,4,1,16.67,4,7.67,bpl:3 lpl:1
+Noor Ahmad,Noor Ahmad,1182529,efc04be7,2005-01-03,Right-handed,Left-arm unorthodox spin,Bowler,13,46,9.20,10,64.40,14,41,6.83,7,37.71,152,184,94.36,183,7.46,ipl:51 bbl:6 psl:8 cpl:12 sat:22 ilt:15 lpl:23 mlc:15
+Sharafuddin Ashraf,Sharafuddin Ashraf,633362,7e678d00,1995-01-10,Right-handed,Slow left-arm orthodox,Bowler,20,70,8.75,13,50.15,23,63,10.50,12,36.66,,,,,,
+Afsar Zazai,Afsar Zazai,420402,50930025,1993-08-10,Right-handed,,Wicket-keeper,17,264,17.60,,,8,141,17.62,,,,,,,,
+Allah Mohammad Ghazanfar,Allah Mohammad Ghazanfar,1326798,9ca68676,2007-00-00,Right-handed,Right arm off spin,Bowler,17,61,7.62,24,20.75,5,7,2.33,2,48.00,47,68,107.94,53,7.9,ipl:11 cpl:6 ilt:16 ntb:14
+Nasir Jamal,Nasir Jamal,524048,b430ec8c,1993-12-21,Right-handed,Right-arm leg break,Middle-order batter,16,352,27.07,0,–,,,,,,,,,,,
+Ihsanullah,Ihsanullah,703323,5aeab54c,1997-12-28,Right-handed,,Batter,16,307,21.92,,,1,20,20.00,,,,,,,,
+Najeeb Tarakai,Najeeb Tarakai,533953,2683e28b,1991-02-02,Right-handed,Right-arm off break,Opening batsman,1,5,5.00,–,–,12,258,21.50,–,–,,,,,,
+Qais Ahmad,Qais Ahmad,914171,8d5d991e,2000-08-15,Right-handed,Right-arm leg spin,Bowler,3,12,6.00,6,22.16,12,33,6.60,17,14.17,113,424,125.44,124,7.68,bbl:28 psl:6 cpl:20 ilt:13 bpl:11 lpl:9 ntb:26
+Nangeyalia Kharote,Nangeyalia Kharote,1199434,75b8e198,2001-04-26,Left-handed,Slow left-arm orthodox,Bowler,11,70,11.66,17,18.52,7,30,15.00,5,15.60,,,,,,
+Shabir Noori,Shabir Noori,307653,5e71fa21,1992-02-23,Right-handed,Right-arm off break,,10,191,19.10,,,1,15,15.00,,,,,,,,
+Yamin Ahmadzai,Yamin Ahmadzai,440968,6e4588bc,1992-07-25,Right-handed,Right-arm medium-fast,Bowler,9,9,3.00,7,43.42,2,1,–,5,13.00,,,,,,
+Abdollah Ahmadzai,Abdollah Ahmadzai,1304665,345b7a1e,2003-06-26,Right-handed,Right arm medium-fast,Bowler,,,,,,7,6,–,11,18.63,,,,,,
+Raees Ahmadzai,Raees Ahmadzai,320284,cffce71d,1984-09-03,Right-handed,Right-arm off break,,5,88,29.33,0,–,8,91,30.33,–,–,,,,,,
+Mohammad Ishaq,Mohammad Ishaq (Afghan cricketer),1076579,32de4eae,2002-02-12,Right-handed,,"Batsman, Wicket-keeper",,,,,,5,76,19.00,,,,,,,,
+Shahidullah,Shahidullah (cricketer),633366,82b90140,1999-02-06,Left-handed,Left-arm orthodox,Batting all-rounder,3,39,13.00,0,–,7,104,26.00,1,31.00,,,,,,
+Riaz Hassan,Riaz Hassan (cricketer),1061090,33f8789e,2002-11-07,Right-handed,,Batter,7,165,27.50,–,–,,,,,,5,9,56.25,0,,bpl:5
+Khaliq Dad,Khaliq Dad,25905,8549aaf0,1984-01-01,Right-handed,Right-arm fast-medium,,6,40,13.33,9,16.66,,,,,,,,,,,
+Ziaur Rahman,Ziaur Rahman (Afghan cricketer),1015399,66272dc4,1998-10-17,Right-handed,Right-arm fast-medium,,2,5,5.00,1,60.00,6,–,–,7,31.85,6,4,133.33,7,9.33,bpl:6
+Izatullah Dawlatzai,Izatullah Dawlatzai,402247,f96933f0,1991-05-10,Right-handed,Right-arm medium-fast,,5,7,–,8,18.25,16,26,26.00,18,21.22,,,,,,
+Sayed Shirzad,Sayed Shirzad,524050,0ec1f412,1994-10-01,Right-handed,Left-arm medium,Bowler,2,25,25.00,1,56.00,4,1,1.00,7,16.57,,,,,,
+Zahir Khan,Zahir Khan (Afghan cricketer),712219,786b7fe8,1998-12-20,Left-handed,Left-arm unorthodox spin,Bowler,1,–,–,2,27.50,4,0,0.00,3,16.66,82,57,74.03,83,7.48,bbl:29 psl:4 cpl:14 sat:1 ilt:11 bpl:13 lpl:3 ntb:7
+Mohammad Saleem,Mohammad Saleem (cricketer),1174749,938bff19,2002-09-09,Right-handed,Right-arm fast,Bowler,4,10,10.00,1,181.00,1,–,–,0,–,,,,,,
+Naveed Zadran,Naveed Zadran,1276921,e6b6d352,2005-03-07,Right-handed,Right-arm medium,Bowler,4,10,10.00,3,26.33,,,,,,,,,,,
+Abdul Malik,Abdul Malik (cricketer),1059030,b3218c80,1998-03-11,Right-handed,Right arm off break,Opening batter,4,122,40.66,–,–,,,,,,,,,,,
+Zubaid Akbari,Zubaid Akbari,1015437,a18d14c7,2000-05-01,Left-handed,Slow left-arm orthodox,Batsman,,,,,,4,12,3.00,0,,4,55,83.33,0,7.5,bpl:4
+Ijaz Ahmad Ahmadzai,Ijaz Ahmad Ahmadzai,1276922,4d4dbd57,2003-01-01,Right-handed,Right-arm medium,All-rounder,,,,,,4,41,10.25,0,–,,,,,,
+Dawlat Ahmadzai,Dawlat Ahmadzai,25917,80f81038,1984-09-05,Right-handed,Right-arm fast-medium,,3,–,–,1,121.00,2,2,–,2,23.00,,,,,,
+Rokhan Barakzai,Rokhan Barakzai,793907,a35849be,1989-01-01,Left-handed,Slow left-arm orthodox,Bowler,1,0,0,2,22.50,3,0,0,6,12.50,,,,,,
+Abdul Rahman,"Abdul Rahman (Afghan cricketer, born 2001)",819507,5fd762d5,2001-01-01,Right-handed,Right-arm medium fast,Bowler,3,10,5.00,1,133.00,,,,,,,,,,,
+Bilal Sami,Bilal Sami,1174726,4fef092b,,Right-handed,Right arm medium,Bowler,3,2,–,5,29.60,1,–,–,1,31.00,3,1,20.0,2,9.5,bpl:3
+Nasim Baras,Nasim Baras,543633,cecfd092,1993-05-30,Left-handed,Slow left-arm orthodox,Bowler,,,,,,3,1,1.00,2,28.00,,,,,,
+Nijat Masood,Nijat Masood,913843,a1bf281e,1998-12-30,Right-handed,Right-arm medium,Bowler,,,,,,3,4,–,4,23.75,,,,,,
+Hasti Gul,Hasti Gul,320281,500759b6,1984-01-01,Right-handed,Right-arm medium,,2,23,–,3,24.33,,,,,,,,,,,
+Noor-ul-Haq,Noor-ul-Haq (cricketer),307652,2b46d4de,1992-04-02,Right-handed,Leg break,,2,12,6.00,&ndash;,&ndash;,,,,,,,,,,,
+Abdullah Mazari,Abdullah Mazari,390752,4846ef98,1987-03-07,Left-handed,Slow left-arm orthodox,All-rounder,2,3,3.00,2,24.50,,,,,,,,,,,
+Mohibullah Oryakhel,Mohibullah Oryakhel,524044,694dc2aa,1992-10-12,Right-handed,Right-arm medium fast,Batsman,2,&ndash;,,&ndash;,&ndash;,,,,,,,,,,,
+Bashir Ahmad,Bashir Ahmad,1364163,7a02494c,,,,,2,0,,0,,1,2,,0,,,,,,,
+Wafadar Momand,Wafadar Momand,973945,6b68d7b3,2000-02-01,Right-handed,Right-arm medium,Bowler,,,,,,2,–,–,0,–,,,,,,
+Wafiullah Tarakhil,Wafiullah Tarakhil,1364157,626d183d,,,,,,,,,,2,12,6.00,0,,,,,,,
+Ahmed Shah,Ahmed Shah (Afghan cricketer),318337,63500b26,1983-10-20,Left-handed,Slow left-arm orthodox,,1,2,2.00,0,&ndash;,,,,,,,,,,,
+Zakiullah Zaki,Zakiullah Zaki,307657,76a582b8,1990-07-15,Right-handed,Leg break,Batsman,1,3,&ndash;,&ndash;,&ndash;,,,,,,,,,,,
+Zia-ur-Rehman,Zia-ur-Rehman,633374,fda22a2e,1997-12-30,Right-handed,Left-arm orthodox,Bowling all-rounder,1,5,5.00,0,–,,,,,,1,0,,0,6.5,bpl:1
+Zamir Khan,Zamir Khan,542323,21d46f15,1992-03-16,Left-handed,Slow left-arm orthodox,,,,,,,1,,,1,26.00,,,,,,
+Fazal Niazai,Fazal Niazai,533949,0dd86d5f,1990-02-01,Right-handed,Right-arm medium,,,,,,,1,12,12.00,0,,,,,,,
+Farmanullah Safi,Farmanullah Safi,976429,3f607519,,,,,,,,,,1,12,12.00,2,9.50,7,44,88.0,5,9.63,bpl:7
+Imran Mir,Imran Mir,976445,d6c44098,2001-09-30,Right-handed,,,,,,,,1,5,5.00,,,,,,,,

@@ -1,0 +1,7504 @@
+[
+ {
+  "name": "Mohammad Nabi",
+  "wiki_title": "Mohammad Nabi",
+  "cricinfo_id": "25913",
+  "captain": true,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "7",
+    "first": "2009",
+    "last": "2026",
+    "matches": "178",
+    "runs": "3,792",
+    "hs": "136",
+    "bat_avg": "27.47",
+    "fifties": "18",
+    "hundreds": "2",
+    "balls": "8,054",
+    "wkts": "177",
+    "best": "5/17",
+    "bowl_avg": "32.80",
+    "five_w": "1",
+    "catches": "85",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "5",
+    "first": "2010",
+    "last": "2026",
+    "matches": "152",
+    "runs": "2,448",
+    "hs": "89",
+    "fifties": "7",
+    "hundreds": "0",
+    "bat_avg": "22.25",
+    "balls": "2,482",
+    "wkts": "109",
+    "best": "4/7",
+    "bowl_avg": "27.77",
+    "catches": "82",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "25913"
+   ],
+   "t20i_list": [
+    "25913"
+   ],
+   "wikidata": [
+    "25913"
+   ]
+  },
+  "wikidata": "Q1600257",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off spin",
+  "role": "All-rounder",
+  "infobox_as_of": "19 July",
+  "infobox": {
+   "odi": {
+    "matches": "178",
+    "runs": "3,792",
+    "bat_avg": "27.47",
+    "100s/50s": "2/18",
+    "hs": "136",
+    "balls": "8,054",
+    "wkts": "177",
+    "bowl_avg": "32.80",
+    "5w": "1",
+    "best": "5/17",
+    "ct/st": "85/–"
+   },
+   "t20i": {
+    "matches": "152",
+    "runs": "2,448",
+    "bat_avg": "22.25",
+    "100s/50s": "0/7",
+    "hs": "89",
+    "balls": "2,482",
+    "wkts": "109",
+    "bowl_avg": "27.77",
+    "5w": "0",
+    "best": "4/7",
+    "ct/st": "82/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1985-01-01",
+  "cricsheet_id": "62af8546",
+  "cricsheet_name": "Mohammad Nabi",
+  "league_t20": {
+   "matches": 266,
+   "first": "2013-01-18",
+   "last": "2026-09-08",
+   "runs": 3324,
+   "balls_faced": 2528,
+   "bat_avg": 20.15,
+   "bat_sr": 131.49,
+   "balls_bowled": 4889,
+   "wkts": 229,
+   "bowl_avg": 24.24,
+   "econ": 6.81,
+   "leagues": {
+    "ipl": 24,
+    "bbl": 42,
+    "psl": 31,
+    "cpl": 35,
+    "ilt": 20,
+    "bpl": 71,
+    "lpl": 12,
+    "ntb": 31
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Rahmat Shah",
+  "wiki_title": "Rahmat Shah",
+  "cricinfo_id": "533956",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "29",
+    "first": "2013",
+    "last": "2026",
+    "matches": "128",
+    "runs": "4,121",
+    "hs": "114",
+    "bat_avg": "35.22",
+    "fifties": "33",
+    "hundreds": "5",
+    "balls": "543",
+    "wkts": "15",
+    "best": "5/32",
+    "bowl_avg": "35.46",
+    "five_w": "1",
+    "catches": "29",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "54",
+    "first": "2024",
+    "last": "2024",
+    "matches": "1",
+    "runs": "3",
+    "hs": "3",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "3.00",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "533956"
+   ],
+   "t20i_list": [
+    "533956"
+   ],
+   "wikidata": [
+    "533956"
+   ]
+  },
+  "wikidata": "Q7283504",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm leg break",
+  "role": "All-rounder",
+  "infobox_as_of": "15 August",
+  "infobox": {
+   "odi": {
+    "matches": "132",
+    "runs": "4,300",
+    "bat_avg": "35.83",
+    "100s/50s": "6/33",
+    "hs": "143*",
+    "balls": "543",
+    "wkts": "15",
+    "bowl_avg": "35.46",
+    "5w": "1",
+    "best": "5/32",
+    "ct/st": "34/–"
+   },
+   "t20i": {
+    "matches": "1",
+    "runs": "3",
+    "bat_avg": "3.00",
+    "100s/50s": "0/0",
+    "hs": "3",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1993-07-06",
+  "cricsheet_id": "f9c29fcd",
+  "cricsheet_name": "Rahmat Shah",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Rashid Khan",
+  "wiki_title": "Rashid Khan (cricketer, born 1998)",
+  "cricinfo_id": "793463",
+  "captain": true,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "36",
+    "first": "2015",
+    "last": "2026",
+    "matches": "120",
+    "runs": "1,419",
+    "hs": "60*",
+    "bat_avg": "18.67",
+    "fifties": "5",
+    "hundreds": "0",
+    "balls": "6,008",
+    "wkts": "214",
+    "best": "7/18",
+    "bowl_avg": "19.92",
+    "five_w": "6",
+    "catches": "36",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "27",
+    "first": "2015",
+    "last": "2026",
+    "matches": "114",
+    "runs": "613",
+    "hs": "48*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "14.95",
+    "balls": "2,606",
+    "wkts": "191",
+    "best": "5/3",
+    "bowl_avg": "13.62",
+    "catches": "45",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "793463"
+   ],
+   "t20i_list": [
+    "524044"
+   ],
+   "wikidata": [
+    "793463"
+   ]
+  },
+  "wikidata": "Q21621685",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Leg break googly",
+  "role": "Bowling All-rounder",
+  "infobox_as_of": "15 August 2026",
+  "infobox": {
+   "odi": {
+    "matches": "123",
+    "runs": "1,469",
+    "bat_avg": "18.83",
+    "100s/50s": "0/5",
+    "hs": "60*",
+    "balls": "6,174",
+    "wkts": "226",
+    "bowl_avg": "19.43",
+    "5w": "7",
+    "best": "7/18",
+    "ct/st": "38/–"
+   },
+   "t20i": {
+    "matches": "115",
+    "runs": "622",
+    "bat_avg": "14.80",
+    "100s/50s": "0/0",
+    "hs": "48*",
+    "balls": "2,630",
+    "wkts": "193",
+    "bowl_avg": "13.73",
+    "5w": "2",
+    "best": "5/3",
+    "ct/st": "45/–"
+   },
+   "list_a": null,
+   "t20": {
+    "matches": "547",
+    "runs": "3,012",
+    "bat_avg": "13.94",
+    "100s/50s": "0/5",
+    "hs": "79*",
+    "balls": "12,391",
+    "wkts": "736",
+    "bowl_avg": "18.72",
+    "5w": "5",
+    "best": "6/17",
+    "ct/st": "194/–"
+   }
+  },
+  "id_conflict": true,
+  "dob": "1998-09-20",
+  "cricsheet_id": "5f547c8b",
+  "cricsheet_name": "Rashid Khan",
+  "league_t20": {
+   "matches": 368,
+   "first": "2016-11-13",
+   "last": "2026-05-31",
+   "runs": 1807,
+   "balls_faced": 1218,
+   "bat_avg": 13.39,
+   "bat_sr": 148.36,
+   "balls_bowled": 8440,
+   "wkts": 455,
+   "bowl_avg": 21.04,
+   "econ": 6.8,
+   "leagues": {
+    "ipl": 153,
+    "bbl": 69,
+    "psl": 28,
+    "cpl": 27,
+    "sat": 29,
+    "ilt": 7,
+    "bpl": 14,
+    "mlc": 13,
+    "ntb": 28
+   }
+  },
+  "cricsheet_t20i": {
+   "matches": 1,
+   "first": "2018-05-31",
+   "last": "2018-05-31",
+   "runs": 9,
+   "balls_faced": 7,
+   "bat_avg": 9.0,
+   "bat_sr": 128.57,
+   "balls_bowled": 24,
+   "wkts": 2,
+   "bowl_avg": 24.0,
+   "econ": 12.0,
+   "leagues": {}
+  },
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Asghar Afghan",
+  "wiki_title": "Asghar Afghan",
+  "cricinfo_id": "320652",
+  "captain": true,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "1",
+    "first": "2009",
+    "last": "2021",
+    "matches": "114",
+    "runs": "2,424",
+    "hs": "101",
+    "bat_avg": "24.73",
+    "fifties": "12",
+    "hundreds": "1",
+    "balls": "139",
+    "wkts": "3",
+    "best": "1/1",
+    "bowl_avg": "30.33",
+    "five_w": "0",
+    "catches": "24",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "1",
+    "first": "2010",
+    "last": "2021",
+    "matches": "75",
+    "runs": "1,382",
+    "hs": "62",
+    "fifties": "4",
+    "hundreds": "0",
+    "bat_avg": "21.93",
+    "balls": "4",
+    "wkts": "1",
+    "best": "1/4",
+    "bowl_avg": "4.00",
+    "catches": "20",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "320652"
+   ],
+   "t20i_list": [
+    "320652"
+   ],
+   "wikidata": [
+    "320652"
+   ]
+  },
+  "wikidata": "Q1636099",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium-fast",
+  "role": "Middle order batsman",
+  "infobox_as_of": "21 July 2022",
+  "infobox": {
+   "odi": {
+    "matches": "114",
+    "runs": "2,424",
+    "bat_avg": "24.73",
+    "100s/50s": "1/12",
+    "hs": "101",
+    "balls": "139",
+    "wkts": "3",
+    "bowl_avg": "30.33",
+    "5w": "0",
+    "best": "1/1",
+    "ct/st": "24/–"
+   },
+   "t20i": {
+    "matches": "75",
+    "runs": "1,382",
+    "bat_avg": "21.93",
+    "100s/50s": "0/4",
+    "hs": "62",
+    "balls": "4",
+    "wkts": "1",
+    "bowl_avg": "4.00",
+    "5w": "0",
+    "best": "1/4",
+    "ct/st": "20/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1987-02-22",
+  "cricsheet_id": "88679525",
+  "cricsheet_name": "Asghar Stanikzai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Najibullah Zadran",
+  "wiki_title": "Najibullah Zadran",
+  "cricinfo_id": "524049",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "27",
+    "first": "2012",
+    "last": "2023",
+    "matches": "92",
+    "runs": "2,060",
+    "hs": "104*",
+    "bat_avg": "29.01",
+    "fifties": "15",
+    "hundreds": "1",
+    "balls": "30",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "40",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "21",
+    "first": "2012",
+    "last": "2024",
+    "matches": "107",
+    "runs": "1,830",
+    "hs": "73",
+    "fifties": "8",
+    "hundreds": "0",
+    "bat_avg": "29.51",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "44",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "524049"
+   ],
+   "t20i_list": [
+    "524049"
+   ],
+   "wikidata": [
+    "524049"
+   ]
+  },
+  "wikidata": "Q6959994",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Right-arm off break",
+  "role": "Middle-order batter",
+  "infobox_as_of": "17 May 2025",
+  "infobox": {
+   "odi": {
+    "matches": "92",
+    "runs": "2,060",
+    "bat_avg": "29.01",
+    "100s/50s": "1/15",
+    "hs": "104*",
+    "balls": "30",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "40/–"
+   },
+   "t20i": {
+    "matches": "107",
+    "runs": "1,830",
+    "bat_avg": "29.51",
+    "100s/50s": "0/8",
+    "hs": "73",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "44/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1993-02-18",
+  "cricsheet_id": "1212cbec",
+  "cricsheet_name": "Najibullah Zadran",
+  "league_t20": {
+   "matches": 76,
+   "first": "2017-11-17",
+   "last": "2025-01-28",
+   "runs": 1157,
+   "balls_faced": 931,
+   "bat_avg": 19.95,
+   "bat_sr": 124.27,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "psl": 7,
+    "cpl": 17,
+    "ilt": 10,
+    "bpl": 25,
+    "lpl": 17
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Hashmatullah Shahidi",
+  "wiki_title": "Hashmatullah Shahidi",
+  "cricinfo_id": "440970",
+  "captain": true,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "30",
+    "first": "2013",
+    "last": "2026",
+    "matches": "96",
+    "runs": "2,607",
+    "hs": "102",
+    "bat_avg": "33.42",
+    "fifties": "22",
+    "hundreds": "1",
+    "balls": "48",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "20",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "23",
+    "first": "2013",
+    "last": "2022",
+    "matches": "6",
+    "runs": "48",
+    "hs": "36",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "24.00",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "1",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "440970"
+   ],
+   "t20i_list": [
+    "440970"
+   ],
+   "wikidata": [
+    "440970"
+   ]
+  },
+  "wikidata": "Q19517845",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Right arm off break",
+  "role": "Top-order batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "96",
+    "runs": "2,607",
+    "bat_avg": "33.42",
+    "100s/50s": "1/22",
+    "hs": "102",
+    "balls": "48",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "20/–"
+   },
+   "t20i": {
+    "matches": "6",
+    "runs": "48",
+    "bat_avg": "24.00",
+    "100s/50s": "0/0",
+    "hs": "36",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "1/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1994-11-04",
+  "cricsheet_id": "c2a46cb4",
+  "cricsheet_name": "Hashmatullah Shahidi",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Gulbadin Naib",
+  "wiki_title": "Gulbadin Naib",
+  "cricinfo_id": "352048",
+  "captain": true,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "24",
+    "first": "2011",
+    "last": "2025",
+    "matches": "89",
+    "runs": "1,332",
+    "hs": "82*",
+    "bat_avg": "19.88",
+    "fifties": "5",
+    "hundreds": "0",
+    "balls": "2,883",
+    "wkts": "74",
+    "best": "6/43",
+    "bowl_avg": "36.16",
+    "five_w": "1",
+    "catches": "28",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "15",
+    "first": "2012",
+    "last": "2026",
+    "matches": "85",
+    "runs": "1,070",
+    "hs": "63",
+    "fifties": "4",
+    "hundreds": "0",
+    "bat_avg": "20.57",
+    "balls": "697",
+    "wkts": "35",
+    "best": "4/20",
+    "bowl_avg": "26.42",
+    "catches": "31",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "352048"
+   ],
+   "t20i_list": [
+    "352048"
+   ],
+   "wikidata": [
+    "352048"
+   ]
+  },
+  "wikidata": "Q3232386",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast-medium",
+  "role": "Batting all-rounder",
+  "infobox_as_of": "17 May 2025",
+  "infobox": {
+   "odi": {
+    "matches": "89",
+    "runs": "1,332",
+    "bat_avg": "19.88",
+    "100s/50s": "0/5",
+    "hs": "82*",
+    "balls": "2,883",
+    "wkts": "74",
+    "bowl_avg": "36.16",
+    "5w": "1",
+    "best": "6/43",
+    "ct/st": "28/–"
+   },
+   "t20i": {
+    "matches": "75",
+    "runs": "945",
+    "bat_avg": "20.54",
+    "100s/50s": "0/3",
+    "hs": "57",
+    "balls": "649",
+    "wkts": "33",
+    "bowl_avg": "26.06",
+    "5w": "0",
+    "best": "4/20",
+    "ct/st": "30/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1991-06-14",
+  "cricsheet_id": "9f77963a",
+  "cricsheet_name": "Gulbadin Naib",
+  "league_t20": {
+   "matches": 30,
+   "first": "2023-02-08",
+   "last": "2026-08-02",
+   "runs": 631,
+   "balls_faced": 440,
+   "bat_avg": 28.68,
+   "bat_sr": 143.41,
+   "balls_bowled": 307,
+   "wkts": 16,
+   "bowl_avg": 28.62,
+   "econ": 8.95,
+   "leagues": {
+    "ipl": 2,
+    "ilt": 16,
+    "bpl": 4,
+    "lpl": 8
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Rahmanullah Gurbaz",
+  "wiki_title": "Rahmanullah Gurbaz",
+  "cricinfo_id": "974087",
+  "captain": false,
+  "keeper": true,
+  "lists": {
+   "odi": {
+    "cap": "50",
+    "first": "2021",
+    "last": "2026",
+    "matches": "55",
+    "runs": "2,036",
+    "hs": "151",
+    "bat_avg": "37.70",
+    "fifties": "7",
+    "hundreds": "9",
+    "balls": "0",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "28",
+    "stumpings": "4"
+   },
+   "t20i": {
+    "cap": "38",
+    "first": "2019",
+    "last": "2026",
+    "matches": "87",
+    "runs": "2,280",
+    "hs": "100",
+    "fifties": "13",
+    "hundreds": "1",
+    "bat_avg": "26.20",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "51",
+    "stumpings": "4"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "974087"
+   ],
+   "t20i_list": [
+    "974087"
+   ],
+   "wikidata": [
+    "974087"
+   ]
+  },
+  "wikidata": "Q28536845",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": null,
+  "role": "Wicket-keeper-batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "55",
+    "runs": "2,036",
+    "bat_avg": "37.70",
+    "100s/50s": "9/7",
+    "hs": "151",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "28/4"
+   },
+   "t20i": {
+    "matches": "87",
+    "runs": "2,280",
+    "bat_avg": "26.20",
+    "100s/50s": "1/13",
+    "hs": "100",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "51/4"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2001-11-28",
+  "cricsheet_id": "0bacade8",
+  "cricsheet_name": "Rahmanullah Gurbaz",
+  "league_t20": {
+   "matches": 141,
+   "first": "2019-12-12",
+   "last": "2026-09-08",
+   "runs": 3217,
+   "balls_faced": 2166,
+   "bat_avg": 23.48,
+   "bat_sr": 148.52,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "ipl": 18,
+    "psl": 15,
+    "cpl": 18,
+    "sat": 6,
+    "ilt": 30,
+    "bpl": 11,
+    "lpl": 43
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Samiullah Shenwari",
+  "wiki_title": "Samiullah Shenwari",
+  "cricinfo_id": "318339",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "11",
+    "first": "2009",
+    "last": "2019",
+    "matches": "84",
+    "runs": "1,811",
+    "hs": "96",
+    "bat_avg": "29.20",
+    "fifties": "11",
+    "hundreds": "0",
+    "balls": "2,111",
+    "wkts": "46",
+    "best": "4/31",
+    "bowl_avg": "37.58",
+    "five_w": "0",
+    "catches": "21",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "9",
+    "first": "2010",
+    "last": "2022",
+    "matches": "65",
+    "runs": "1,013",
+    "hs": "61",
+    "fifties": "2",
+    "hundreds": "0",
+    "bat_avg": "22.02",
+    "balls": "634",
+    "wkts": "28",
+    "best": "5/13",
+    "bowl_avg": "24.57",
+    "catches": "19",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "318339"
+   ],
+   "t20i_list": [
+    "320284"
+   ],
+   "wikidata": [
+    "318339"
+   ]
+  },
+  "wikidata": "Q3536686",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Leg break",
+  "role": "All-rounder",
+  "infobox_as_of": "24 September 2022",
+  "infobox": {
+   "odi": {
+    "matches": "84",
+    "runs": "1,811",
+    "bat_avg": "29.20",
+    "100s/50s": "0/11",
+    "hs": "96",
+    "balls": "2,111",
+    "wkts": "46",
+    "bowl_avg": "37.58",
+    "5w": "0",
+    "best": "4/31",
+    "ct/st": "21/–"
+   },
+   "t20i": {
+    "matches": "65",
+    "runs": "1,013",
+    "bat_avg": "22.02",
+    "100s/50s": "0/2",
+    "hs": "61",
+    "balls": "634",
+    "wkts": "28",
+    "bowl_avg": "24.57",
+    "5w": "1",
+    "best": "5/13",
+    "ct/st": "19/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": true,
+  "dob": "1987-12-31",
+  "cricsheet_id": "61646132",
+  "cricsheet_name": "Samiullah Shenwari",
+  "league_t20": {
+   "matches": 15,
+   "first": "2013-01-20",
+   "last": "2025-01-30",
+   "runs": 117,
+   "balls_faced": 96,
+   "bat_avg": 13.0,
+   "bat_sr": 121.88,
+   "balls_bowled": 150,
+   "wkts": 7,
+   "bowl_avg": 29.43,
+   "econ": 8.24,
+   "leagues": {
+    "bpl": 9,
+    "lpl": 6
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Mohammad Shahzad",
+  "wiki_title": "Mohammad Shahzad",
+  "cricinfo_id": "419873",
+  "captain": false,
+  "keeper": true,
+  "lists": {
+   "odi": {
+    "cap": "14",
+    "first": "2009",
+    "last": "2019",
+    "matches": "84",
+    "runs": "2,727",
+    "hs": "131*",
+    "bat_avg": "33.66",
+    "fifties": "14",
+    "hundreds": "6",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "64",
+    "stumpings": "25"
+   },
+   "t20i": {
+    "cap": "6",
+    "first": "2010",
+    "last": "2023",
+    "matches": "73",
+    "runs": "2,048",
+    "hs": "118*",
+    "fifties": "12",
+    "hundreds": "1",
+    "bat_avg": "29.95",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "33",
+    "stumpings": "28"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "419873"
+   ],
+   "t20i_list": [
+    "419873"
+   ],
+   "wikidata": [
+    "419873"
+   ]
+  },
+  "wikidata": "Q3535071",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": null,
+  "role": "Wicket-keeper-batsman",
+  "infobox_as_of": "1 February 2026",
+  "infobox": {
+   "odi": {
+    "matches": "84",
+    "runs": "2,727",
+    "bat_avg": "33.66",
+    "100s/50s": "6/14",
+    "hs": "131*",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "64/25"
+   },
+   "t20i": {
+    "matches": "73",
+    "runs": "2,048",
+    "bat_avg": "29.25",
+    "100s/50s": "1/12",
+    "hs": "118*",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "33/28"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1991-07-15",
+  "cricsheet_id": "d6dcb0c9",
+  "cricsheet_name": "Mohammad Shahzad",
+  "league_t20": {
+   "matches": 33,
+   "first": "2016-11-09",
+   "last": "2022-02-08",
+   "runs": 841,
+   "balls_faced": 658,
+   "bat_avg": 27.13,
+   "bat_sr": 127.81,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "bpl": 33
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Dawlat Zadran",
+  "wiki_title": "Dawlat Zadran",
+  "cricinfo_id": "516561",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "23",
+    "first": "2011",
+    "last": "2019",
+    "matches": "82",
+    "runs": "513",
+    "hs": "47*",
+    "bat_avg": "17.68",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "3,769",
+    "wkts": "115",
+    "best": "4/22",
+    "bowl_avg": "29.76",
+    "five_w": "0",
+    "catches": "16",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "14",
+    "first": "2012",
+    "last": "2019",
+    "matches": "34",
+    "runs": "68",
+    "hs": "13",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "7.55",
+    "balls": "741",
+    "wkts": "40",
+    "best": "4/44",
+    "bowl_avg": "24.50",
+    "catches": "7",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "516561"
+   ],
+   "t20i_list": [
+    "516561"
+   ],
+   "wikidata": [
+    "516561"
+   ]
+  },
+  "wikidata": "Q5242374",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast medium",
+  "role": "Bowler",
+  "infobox_as_of": "21 July 2022",
+  "infobox": {
+   "odi": {
+    "matches": "82",
+    "runs": "513",
+    "bat_avg": "17.68",
+    "100s/50s": "0/0",
+    "hs": "47*",
+    "balls": "3,769",
+    "wkts": "115",
+    "bowl_avg": "29.76",
+    "5w": "0",
+    "best": "4/22",
+    "ct/st": "16/–"
+   },
+   "t20i": {
+    "matches": "34",
+    "runs": "68",
+    "bat_avg": "7.55",
+    "100s/50s": "0/0",
+    "hs": "13",
+    "balls": "741",
+    "wkts": "40",
+    "bowl_avg": "24.50",
+    "5w": "0",
+    "best": "4/44",
+    "ct/st": "7/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1988-03-19",
+  "cricsheet_id": "1fba2ae3",
+  "cricsheet_name": "Dawlat Zadran",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Karim Janat",
+  "wiki_title": "Karim Janat",
+  "cricinfo_id": "793467",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "41",
+    "first": "2017",
+    "last": "2023",
+    "matches": "3",
+    "runs": "32",
+    "hs": "22",
+    "bat_avg": "10.66",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "78",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "34",
+    "first": "2016",
+    "last": "2025",
+    "matches": "75",
+    "runs": "759",
+    "hs": "56*",
+    "fifties": "4",
+    "hundreds": "0",
+    "bat_avg": "16.86",
+    "balls": "847",
+    "wkts": "42",
+    "best": "5/11",
+    "bowl_avg": "27.64",
+    "catches": "17",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "793467"
+   ],
+   "t20i_list": [
+    "793467"
+   ],
+   "wikidata": [
+    "793467"
+   ]
+  },
+  "wikidata": "Q25915989",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium-fast",
+  "role": "Batting all-rounder",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "3",
+    "runs": "32",
+    "bat_avg": "10.66",
+    "100s/50s": "0/0",
+    "hs": "22",
+    "balls": "78",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "t20i": {
+    "matches": "75",
+    "runs": "759",
+    "bat_avg": "16.86",
+    "100s/50s": "0/4",
+    "hs": "56*",
+    "balls": "847",
+    "wkts": "42",
+    "bowl_avg": "27.64",
+    "5w": "1",
+    "best": "5/11",
+    "ct/st": "17/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1998-08-11",
+  "cricsheet_id": "62175638",
+  "cricsheet_name": "Karim Janat",
+  "league_t20": {
+   "matches": 35,
+   "first": "2021-12-19",
+   "last": "2026-01-12",
+   "runs": 420,
+   "balls_faced": 280,
+   "bat_avg": 20.0,
+   "bat_sr": 150.0,
+   "balls_bowled": 390,
+   "wkts": 21,
+   "bowl_avg": 28.24,
+   "econ": 9.12,
+   "leagues": {
+    "ipl": 1,
+    "sat": 4,
+    "ilt": 7,
+    "bpl": 18,
+    "lpl": 5
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Mujeeb Ur Rahman",
+  "wiki_title": "Mujeeb Ur Rahman",
+  "cricinfo_id": "974109",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "43",
+    "first": "2017",
+    "last": "2023",
+    "matches": "75",
+    "runs": "236",
+    "hs": "64",
+    "bat_avg": "9.07",
+    "fifties": "1",
+    "hundreds": "0",
+    "balls": "3,968",
+    "wkts": "101",
+    "best": "5/50",
+    "bowl_avg": "28.34",
+    "five_w": "1",
+    "catches": "11",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "36",
+    "first": "2018",
+    "last": "2026",
+    "matches": "65",
+    "runs": "85",
+    "hs": "23*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "9.44",
+    "balls": "1,450",
+    "wkts": "87",
+    "best": "5/20",
+    "bowl_avg": "18.10",
+    "catches": "17",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "974109"
+   ],
+   "t20i_list": [
+    "974109"
+   ],
+   "wikidata": [
+    "974109"
+   ]
+  },
+  "wikidata": "Q35780586",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off break",
+  "role": "Bowler",
+  "infobox_as_of": "19 July",
+  "infobox": {
+   "odi": {
+    "matches": "75",
+    "runs": "236",
+    "bat_avg": "9.07",
+    "100s/50s": "0/1",
+    "hs": "64",
+    "balls": "3,968",
+    "wkts": "101",
+    "bowl_avg": "28.34",
+    "5w": "1",
+    "best": "5/50",
+    "ct/st": "11/–"
+   },
+   "t20i": {
+    "matches": "65",
+    "runs": "85",
+    "bat_avg": "9.44",
+    "100s/50s": "0/0",
+    "hs": "23*",
+    "balls": "1,450",
+    "wkts": "87",
+    "bowl_avg": "18.10",
+    "5w": "1",
+    "best": "5/20",
+    "ct/st": "17/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2001-03-28",
+  "cricsheet_id": "7d92277a",
+  "cricsheet_name": "Mujeeb Ur Rahman",
+  "league_t20": {
+   "matches": 208,
+   "first": "2017-12-02",
+   "last": "2026-09-06",
+   "runs": 279,
+   "balls_faced": 276,
+   "bat_avg": 7.54,
+   "bat_sr": 101.09,
+   "balls_bowled": 4792,
+   "wkts": 215,
+   "bowl_avg": 25.89,
+   "econ": 6.97,
+   "leagues": {
+    "ipl": 20,
+    "bbl": 52,
+    "psl": 11,
+    "cpl": 26,
+    "sat": 19,
+    "ilt": 10,
+    "bpl": 22,
+    "lpl": 20,
+    "ntb": 28
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Azmatullah Omarzai",
+  "wiki_title": "Azmatullah Omarzai",
+  "cricinfo_id": "819429",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "49",
+    "first": "2021",
+    "last": "2026",
+    "matches": "44",
+    "runs": "1,169",
+    "hs": "149*",
+    "bat_avg": "43.29",
+    "fifties": "9",
+    "hundreds": "1",
+    "balls": "1,371",
+    "wkts": "44",
+    "best": "5/58",
+    "bowl_avg": "28.47",
+    "five_w": "1",
+    "catches": "8",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "44",
+    "first": "2022",
+    "last": "2026",
+    "matches": "66",
+    "runs": "808",
+    "hs": "53",
+    "fifties": "1",
+    "hundreds": "0",
+    "bat_avg": "17.95",
+    "balls": "974",
+    "wkts": "54",
+    "best": "4/9",
+    "bowl_avg": "24.59",
+    "catches": "21",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "819429"
+   ],
+   "t20i_list": [
+    "819429"
+   ],
+   "wikidata": [
+    "819429"
+   ]
+  },
+  "wikidata": "Q35782848",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast-medium",
+  "role": "All-rounder",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "44",
+    "runs": "1,169",
+    "bat_avg": "43.29",
+    "100s/50s": "1/8",
+    "hs": "149*",
+    "balls": "1,371",
+    "wkts": "44",
+    "bowl_avg": "28.47",
+    "5w": "1",
+    "best": "5/58",
+    "ct/st": "8/–"
+   },
+   "t20i": {
+    "matches": "66",
+    "runs": "808",
+    "bat_avg": "17.95",
+    "100s/50s": "0/1",
+    "hs": "53",
+    "balls": "974",
+    "wkts": "54",
+    "bowl_avg": "24.59",
+    "5w": "0",
+    "best": "4/9",
+    "ct/st": "21/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2000-03-24",
+  "cricsheet_id": "8f6dd463",
+  "cricsheet_name": "Azmatullah Omarzai",
+  "league_t20": {
+   "matches": 75,
+   "first": "2022-02-09",
+   "last": "2026-05-23",
+   "runs": 915,
+   "balls_faced": 623,
+   "bat_avg": 22.32,
+   "bat_sr": 146.87,
+   "balls_bowled": 1360,
+   "wkts": 75,
+   "bowl_avg": 27.39,
+   "econ": 9.06,
+   "leagues": {
+    "ipl": 20,
+    "psl": 6,
+    "sat": 5,
+    "ilt": 10,
+    "bpl": 25,
+    "lpl": 9
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Ibrahim Zadran",
+  "wiki_title": "Ibrahim Zadran",
+  "cricinfo_id": "921509",
+  "captain": true,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "48",
+    "first": "2019",
+    "last": "2026",
+    "matches": "42",
+    "runs": "1,902",
+    "hs": "177",
+    "bat_avg": "48.76",
+    "fifties": "9",
+    "hundreds": "6",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "16",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "41",
+    "first": "2019",
+    "last": "2026",
+    "matches": "65",
+    "runs": "1,865",
+    "hs": "87*",
+    "fifties": "16",
+    "hundreds": "0",
+    "bat_avg": "33.30",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "30",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "921509"
+   ],
+   "t20i_list": [
+    "921509"
+   ],
+   "wikidata": [
+    "921509"
+   ]
+  },
+  "wikidata": "Q35952969",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium-fast",
+  "role": "Opening batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "42",
+    "runs": "1,902",
+    "bat_avg": "48.76",
+    "100s/50s": "6/9",
+    "hs": "177",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "16/–"
+   },
+   "t20i": {
+    "matches": "65",
+    "runs": "1,869",
+    "bat_avg": "33.30",
+    "100s/50s": "0/16",
+    "hs": "95*",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "30/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2001-12-12",
+  "cricsheet_id": "d4550956",
+  "cricsheet_name": "Ibrahim Zadran",
+  "league_t20": {
+   "matches": 25,
+   "first": "2023-01-10",
+   "last": "2026-07-30",
+   "runs": 481,
+   "balls_faced": 424,
+   "bat_avg": 20.04,
+   "bat_sr": 113.44,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "ilt": 4,
+    "bpl": 12,
+    "lpl": 9
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Fazalhaq Farooqi",
+  "wiki_title": "Fazalhaq Farooqi",
+  "cricinfo_id": "974175",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "52",
+    "first": "2022",
+    "last": "2025",
+    "matches": "42",
+    "runs": "21",
+    "hs": "6*",
+    "bat_avg": "3.50",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "1,776",
+    "wkts": "52",
+    "best": "4/34",
+    "bowl_avg": "33.50",
+    "five_w": "0",
+    "catches": "3",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "43",
+    "first": "2021",
+    "last": "2026",
+    "matches": "56",
+    "runs": "17",
+    "hs": "4*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "4.25",
+    "balls": "1,137",
+    "wkts": "66",
+    "best": "5/9",
+    "bowl_avg": "20.16",
+    "catches": "7",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "974175"
+   ],
+   "t20i_list": [
+    "974175"
+   ],
+   "wikidata": [
+    "974175"
+   ]
+  },
+  "wikidata": "Q43181870",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Left-arm fast",
+  "role": "Bowler",
+  "infobox_as_of": "6 July",
+  "infobox": {
+   "odi": {
+    "matches": "42",
+    "runs": "21",
+    "bat_avg": "3.50",
+    "100s/50s": "0/0",
+    "hs": "6*",
+    "balls": "1,776",
+    "wkts": "52",
+    "bowl_avg": "33.50",
+    "5w": "0",
+    "best": "4/34",
+    "ct/st": "3/–"
+   },
+   "t20i": {
+    "matches": "54",
+    "runs": "17",
+    "bat_avg": "4.25",
+    "100s/50s": "0/0",
+    "hs": "4*",
+    "balls": "1,137",
+    "wkts": "66",
+    "bowl_avg": "20.16",
+    "5w": "1",
+    "best": "5/9",
+    "ct/st": "7/–"
+   },
+   "list_a": null,
+   "t20": {
+    "matches": "159",
+    "runs": "52",
+    "bat_avg": "5.77",
+    "100s/50s": "0/0",
+    "hs": "16*",
+    "balls": "3,403",
+    "wkts": "200",
+    "bowl_avg": "21.40",
+    "5w": "4",
+    "best": "5/9",
+    "ct/st": "25/–"
+   }
+  },
+  "id_conflict": false,
+  "dob": "2000-09-22",
+  "cricsheet_id": "e9c7f0d0",
+  "cricsheet_name": "Fazalhaq Farooqi",
+  "league_t20": {
+   "matches": 84,
+   "first": "2022-02-08",
+   "last": "2026-07-25",
+   "runs": 27,
+   "balls_faced": 40,
+   "bat_avg": 5.4,
+   "bat_sr": 67.5,
+   "balls_bowled": 1867,
+   "wkts": 114,
+   "bowl_avg": 22.11,
+   "econ": 8.1,
+   "leagues": {
+    "ipl": 12,
+    "bbl": 4,
+    "psl": 6,
+    "cpl": 4,
+    "ilt": 40,
+    "bpl": 7,
+    "lpl": 3,
+    "ntb": 8
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Noor Ali Zadran",
+  "wiki_title": "Noor Ali Zadran",
+  "cricinfo_id": "318340",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "9",
+    "first": "2009",
+    "last": "2019",
+    "matches": "51",
+    "runs": "1,216",
+    "hs": "114",
+    "bat_avg": "24.81",
+    "fifties": "7",
+    "hundreds": "1",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "15",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "13",
+    "first": "2010",
+    "last": "2023",
+    "matches": "23",
+    "runs": "597",
+    "hs": "63",
+    "fifties": "4",
+    "hundreds": "0",
+    "bat_avg": "27.13",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "4",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "318340"
+   ],
+   "t20i_list": [
+    "318340"
+   ],
+   "wikidata": [
+    "318340"
+   ]
+  },
+  "wikidata": "Q3535079",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium fast",
+  "role": "Batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "51",
+    "runs": "1,216",
+    "bat_avg": "24.81",
+    "100s/50s": "1/7",
+    "hs": "114",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "15/–"
+   },
+   "t20i": {
+    "matches": "23",
+    "runs": "597",
+    "bat_avg": "27.13",
+    "100s/50s": "0/4",
+    "hs": "63",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "4/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1988-07-10",
+  "cricsheet_id": "72e46d30",
+  "cricsheet_name": "Noor Ali Zadran",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Nawroz Mangal",
+  "wiki_title": "Nawroz Mangal",
+  "cricinfo_id": "318334",
+  "captain": true,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "8",
+    "first": "2009",
+    "last": "2016",
+    "matches": "49",
+    "runs": "1,139",
+    "hs": "129",
+    "bat_avg": "27.11",
+    "fifties": "4",
+    "hundreds": "2",
+    "balls": "293",
+    "wkts": "8",
+    "best": "3/35",
+    "bowl_avg": "29.37",
+    "five_w": "0",
+    "catches": "19",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "7",
+    "first": "2010",
+    "last": "2015",
+    "matches": "32",
+    "runs": "505",
+    "hs": "65*",
+    "fifties": "2",
+    "hundreds": "0",
+    "bat_avg": "18.03",
+    "balls": "60",
+    "wkts": "4",
+    "best": "3/23",
+    "bowl_avg": "20.00",
+    "catches": "16",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "318334"
+   ],
+   "t20i_list": [
+    "318334"
+   ],
+   "wikidata": [
+    "318334"
+   ]
+  },
+  "wikidata": "Q2038586",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off break",
+  "role": "Top order batsman",
+  "infobox_as_of": "21 January",
+  "infobox": {
+   "odi": {
+    "matches": "49",
+    "runs": "1,139",
+    "bat_avg": "27.11",
+    "100s/50s": "2/4",
+    "hs": "129",
+    "balls": "293",
+    "wkts": "8",
+    "bowl_avg": "29.37",
+    "5w": "0",
+    "best": "3/37",
+    "ct/st": "19/–"
+   },
+   "t20i": {
+    "matches": "32",
+    "runs": "505",
+    "bat_avg": "18.03",
+    "100s/50s": "0/2",
+    "hs": "65*",
+    "balls": "60",
+    "wkts": "4",
+    "bowl_avg": "20.00",
+    "5w": "0",
+    "best": "3/23",
+    "ct/st": "16/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1984-11-28",
+  "cricsheet_id": "0503ae22",
+  "cricsheet_name": "Nawroz Mangal",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Naveen-ul-Haq",
+  "wiki_title": "Naveen-ul-Haq",
+  "cricinfo_id": "793447",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "39",
+    "first": "2016",
+    "last": "2023",
+    "matches": "15",
+    "runs": "37",
+    "hs": "10*",
+    "bat_avg": "7.40",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "691",
+    "wkts": "22",
+    "best": "4/42",
+    "bowl_avg": "32.18",
+    "five_w": "0",
+    "catches": "4",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "40",
+    "first": "2019",
+    "last": "2024",
+    "matches": "48",
+    "runs": "44",
+    "hs": "13",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "4.88",
+    "balls": "967",
+    "wkts": "67",
+    "best": "4/20",
+    "bowl_avg": "18.73",
+    "catches": "10",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "793447"
+   ],
+   "t20i_list": [
+    "793447"
+   ],
+   "wikidata": [
+    "793447"
+   ]
+  },
+  "wikidata": "Q27049259",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium-fast",
+  "role": "Bowler",
+  "infobox_as_of": "2 April 2024",
+  "infobox": {
+   "odi": {
+    "matches": "15",
+    "runs": "37",
+    "bat_avg": "7.40",
+    "100s/50s": "0/0",
+    "hs": "10*",
+    "balls": "691",
+    "wkts": "22",
+    "bowl_avg": "32.18",
+    "5w": "0",
+    "best": "4/42",
+    "ct/st": "4/–"
+   },
+   "t20i": {
+    "matches": "48",
+    "runs": "44",
+    "bat_avg": "4.88",
+    "100s/50s": "0/0",
+    "hs": "13",
+    "balls": "967",
+    "wkts": "67",
+    "bowl_avg": "18.73",
+    "5w": "0",
+    "best": "4/20",
+    "ct/st": "10/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1999-09-23",
+  "cricsheet_id": "c0c411cb",
+  "cricsheet_name": "Naveen-ul-Haq",
+  "league_t20": {
+   "matches": 156,
+   "first": "2019-12-11",
+   "last": "2025-12-17",
+   "runs": 299,
+   "balls_faced": 285,
+   "bat_avg": 10.31,
+   "bat_sr": 104.91,
+   "balls_bowled": 3323,
+   "wkts": 190,
+   "bowl_avg": 25.25,
+   "econ": 8.66,
+   "leagues": {
+    "ipl": 18,
+    "bbl": 2,
+    "psl": 10,
+    "cpl": 29,
+    "sat": 16,
+    "ilt": 11,
+    "bpl": 10,
+    "lpl": 18,
+    "mlc": 9,
+    "ntb": 33
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Javed Ahmadi",
+  "wiki_title": "Javed Ahmadi",
+  "cricinfo_id": "308235",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "19",
+    "first": "2010",
+    "last": "2021",
+    "matches": "47",
+    "runs": "1049",
+    "hs": "81",
+    "bat_avg": "23.84",
+    "fifties": "7",
+    "hundreds": "0",
+    "balls": "452",
+    "wkts": "9",
+    "best": "4/37",
+    "bowl_avg": "40.33",
+    "five_w": "0",
+    "catches": "11",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "17",
+    "first": "2012",
+    "last": "2017",
+    "matches": "3",
+    "runs": "6",
+    "hs": "6",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "3.00",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "308235"
+   ],
+   "t20i_list": [
+    "308235"
+   ],
+   "wikidata": [
+    "308235"
+   ]
+  },
+  "wikidata": "Q12982915",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off break",
+  "role": "Top-order batter",
+  "infobox_as_of": "22 September 2022",
+  "infobox": {
+   "odi": {
+    "matches": "47",
+    "runs": "1,049",
+    "bat_avg": "23.84",
+    "100s/50s": "0/7",
+    "hs": "81",
+    "balls": "452",
+    "wkts": "9",
+    "bowl_avg": "40.33",
+    "5w": "0",
+    "best": "4/37",
+    "ct/st": "11/–"
+   },
+   "t20i": {
+    "matches": "3",
+    "runs": "6",
+    "bat_avg": "3.00",
+    "100s/50s": "0/0",
+    "hs": "6",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1992-01-02",
+  "cricsheet_id": "0087a35d",
+  "cricsheet_name": "Javed Ahmadi",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Mirwais Ashraf",
+  "wiki_title": "Mirwais Ashraf",
+  "cricinfo_id": "387420",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "13",
+    "first": "2009",
+    "last": "2016",
+    "matches": "46",
+    "runs": "387",
+    "hs": "52*",
+    "bat_avg": "14.33",
+    "fifties": "1",
+    "hundreds": "0",
+    "balls": "2,009",
+    "wkts": "46",
+    "best": "4/35",
+    "bowl_avg": "29.56",
+    "five_w": "0",
+    "catches": "8",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "12",
+    "first": "2010",
+    "last": "2016",
+    "matches": "25",
+    "runs": "128",
+    "hs": "28*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "11.63",
+    "balls": "392",
+    "wkts": "14",
+    "best": "2/6",
+    "bowl_avg": "31.71",
+    "catches": "5",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "387420"
+   ],
+   "t20i_list": [
+    "387420"
+   ]
+  },
+  "wikidata": "Q3535091",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast-medium",
+  "role": null,
+  "infobox_as_of": "21 September",
+  "infobox": {
+   "odi": {
+    "matches": "46",
+    "runs": "387",
+    "bat_avg": "14.33",
+    "100s/50s": "0/1",
+    "hs": "52*",
+    "balls": "2,009",
+    "wkts": "46",
+    "bowl_avg": "29.56",
+    "5w": "0",
+    "best": "4/35",
+    "ct/st": "8/–"
+   },
+   "t20i": {
+    "matches": "25",
+    "runs": "128",
+    "bat_avg": "11.63",
+    "100s/50s": "0/1",
+    "hs": "28*",
+    "balls": "392",
+    "wkts": "14",
+    "bowl_avg": "31.71",
+    "5w": "0",
+    "best": "2/6",
+    "ct/st": "5/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1988-06-30",
+  "cricsheet_id": "bdd985f2",
+  "cricsheet_name": "Mirwais Ashraf",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Shafiqullah",
+  "wiki_title": "Shafiqullah (cricketer)",
+  "cricinfo_id": "362603",
+  "captain": false,
+  "keeper": true,
+  "lists": {
+   "odi": {
+    "cap": "16",
+    "first": "2009",
+    "last": "2018",
+    "matches": "24",
+    "runs": "430",
+    "hs": "56",
+    "bat_avg": "22.63",
+    "fifties": "2",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "11",
+    "stumpings": "3"
+   },
+   "t20i": {
+    "cap": "10",
+    "first": "2010",
+    "last": "2019",
+    "matches": "46",
+    "runs": "494",
+    "hs": "51*",
+    "fifties": "1",
+    "hundreds": "0",
+    "bat_avg": "16.46",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "14",
+    "stumpings": "2"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "362603"
+   ],
+   "t20i_list": [
+    "362603"
+   ],
+   "wikidata": [
+    "362603"
+   ]
+  },
+  "wikidata": "Q3532274",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": null,
+  "role": "Wicketkeeper",
+  "infobox_as_of": "10 May 2020",
+  "infobox": {
+   "odi": {
+    "matches": "24",
+    "runs": "430",
+    "bat_avg": "22.63",
+    "100s/50s": "0/2",
+    "hs": "56",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "11/3"
+   },
+   "t20i": {
+    "matches": "46",
+    "runs": "494",
+    "bat_avg": "16.46",
+    "100s/50s": "0/1",
+    "hs": "51*",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "14/2"
+   },
+   "list_a": null,
+   "t20": {
+    "matches": "79",
+    "runs": "801",
+    "bat_avg": "14.83",
+    "100s/50s": "0/2",
+    "hs": "60",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "29/3"
+   }
+  },
+  "id_conflict": false,
+  "dob": "1989-08-07",
+  "cricsheet_id": "ba4d600a",
+  "cricsheet_name": "Shafiqullah",
+  "league_t20": {
+   "matches": 3,
+   "first": "2019-12-14",
+   "last": "2020-01-03",
+   "runs": 18,
+   "balls_faced": 19,
+   "bat_avg": 6.0,
+   "bat_sr": 94.74,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "bpl": 3
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Hazratullah Zazai",
+  "wiki_title": "Hazratullah Zazai",
+  "cricinfo_id": "793457",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "44",
+    "first": "2018",
+    "last": "2019",
+    "matches": "16",
+    "runs": "361",
+    "hs": "67",
+    "bat_avg": "22.56",
+    "fifties": "9",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "3",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "35",
+    "first": "2016",
+    "last": "2024",
+    "matches": "45",
+    "runs": "1,160",
+    "hs": "162*",
+    "fifties": "3",
+    "hundreds": "1",
+    "bat_avg": "27.61",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "7",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "793457"
+   ],
+   "t20i_list": [
+    "793457"
+   ],
+   "wikidata": [
+    "793457"
+   ]
+  },
+  "wikidata": "Q28020300",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": "Opening batter",
+  "infobox_as_of": "18 February 2023",
+  "infobox": {
+   "odi": {
+    "matches": "16",
+    "runs": "361",
+    "bat_avg": "22.56",
+    "100s/50s": "0/2",
+    "hs": "67",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "3/–"
+   },
+   "t20i": {
+    "matches": "33",
+    "runs": "960",
+    "bat_avg": "32.00",
+    "100s/50s": "1/3",
+    "hs": "162*",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "5/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1998-03-23",
+  "cricsheet_id": "5ea51c25",
+  "cricsheet_name": "Hazratullah",
+  "league_t20": {
+   "matches": 32,
+   "first": "2019-01-05",
+   "last": "2026-01-04",
+   "runs": 669,
+   "balls_faced": 512,
+   "bat_avg": 21.58,
+   "bat_sr": 130.66,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "psl": 12,
+    "cpl": 2,
+    "ilt": 2,
+    "bpl": 12,
+    "lpl": 4
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Shapoor Zadran",
+  "wiki_title": "Shapoor Zadran",
+  "cricinfo_id": "319746",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "15",
+    "first": "2009",
+    "last": "2019",
+    "matches": "44",
+    "runs": "67",
+    "hs": "17",
+    "bat_avg": "6.70",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "1,983",
+    "wkts": "43",
+    "best": "4/24",
+    "bowl_avg": "36.95",
+    "five_w": "0",
+    "catches": "5",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "11",
+    "first": "2010",
+    "last": "2020",
+    "matches": "36",
+    "runs": "27",
+    "hs": "13",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "3.85",
+    "balls": "695",
+    "wkts": "37",
+    "best": "3/40",
+    "bowl_avg": "24.51",
+    "catches": "5",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "319746"
+   ],
+   "t20i_list": [
+    "319746"
+   ],
+   "wikidata": [
+    "319746"
+   ]
+  },
+  "wikidata": "Q1636093",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Left-arm fast-medium",
+  "role": null,
+  "infobox_as_of": "8 March 2020",
+  "infobox": {
+   "odi": {
+    "matches": "43",
+    "runs": "67",
+    "bat_avg": "6.70",
+    "100s/50s": "0/0",
+    "hs": "17",
+    "balls": "1,935",
+    "wkts": "43",
+    "bowl_avg": "35.88",
+    "5w": "0",
+    "best": "4/24",
+    "ct/st": "5/–"
+   },
+   "t20i": {
+    "matches": "32",
+    "runs": "27",
+    "bat_avg": "3.85",
+    "100s/50s": "0/0",
+    "hs": "13",
+    "balls": "599",
+    "wkts": "31",
+    "bowl_avg": "24.54",
+    "5w": "0",
+    "best": "2/9",
+    "ct/st": "4/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1987-07-08",
+  "cricsheet_id": "fccebff9",
+  "cricsheet_name": "Shapoor Zadran",
+  "league_t20": {
+   "matches": 8,
+   "first": "2013-01-20",
+   "last": "2013-02-11",
+   "runs": 1,
+   "balls_faced": 11,
+   "bat_avg": 1.0,
+   "bat_sr": 9.09,
+   "balls_bowled": 183,
+   "wkts": 10,
+   "bowl_avg": 19.2,
+   "econ": 6.3,
+   "leagues": {
+    "bpl": 8
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Hamid Hassan",
+  "wiki_title": "Hamid Hassan",
+  "cricinfo_id": "311427",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "3",
+    "first": "2009",
+    "last": "2019",
+    "matches": "38",
+    "runs": "107",
+    "hs": "17",
+    "bat_avg": "6.68",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "1,734",
+    "wkts": "59",
+    "best": "5/45",
+    "bowl_avg": "22.54",
+    "five_w": "1",
+    "catches": "5",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "3",
+    "first": "2010",
+    "last": "2021",
+    "matches": "25",
+    "runs": "50",
+    "hs": "22",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "16.66",
+    "balls": "544",
+    "wkts": "35",
+    "best": "4/22",
+    "bowl_avg": "16.57",
+    "catches": "3",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "311427"
+   ],
+   "t20i_list": [
+    "311427"
+   ],
+   "wikidata": [
+    "311427"
+   ]
+  },
+  "wikidata": "Q3535065",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast",
+  "role": "Bowler",
+  "infobox_as_of": "21 July 2022",
+  "infobox": {
+   "odi": {
+    "matches": "38",
+    "runs": "107",
+    "bat_avg": "6.68",
+    "100s/50s": "0/0",
+    "hs": "17",
+    "balls": "1,734",
+    "wkts": "59",
+    "bowl_avg": "22.54",
+    "5w": "1",
+    "best": "5/45",
+    "ct/st": "5/–"
+   },
+   "t20i": {
+    "matches": "25",
+    "runs": "50",
+    "bat_avg": "16.66",
+    "100s/50s": "0/0",
+    "hs": "22",
+    "balls": "544",
+    "wkts": "35",
+    "bowl_avg": "16.57",
+    "5w": "0",
+    "best": "4/22",
+    "ct/st": "3/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1987-06-01",
+  "cricsheet_id": "093ae70b",
+  "cricsheet_name": "Hamid Hassan",
+  "league_t20": {
+   "matches": 4,
+   "first": "2013-02-09",
+   "last": "2013-02-14",
+   "runs": 4,
+   "balls_faced": 8,
+   "bat_avg": 2.0,
+   "bat_sr": 50.0,
+   "balls_bowled": 96,
+   "wkts": 7,
+   "bowl_avg": 13.57,
+   "econ": 5.94,
+   "leagues": {
+    "bpl": 4
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Fareed Ahmad",
+  "wiki_title": "Fareed Ahmad (cricketer)",
+  "cricinfo_id": "568136",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "35",
+    "first": "2014",
+    "last": "2026",
+    "matches": "20",
+    "runs": "46",
+    "hs": "17",
+    "bat_avg": "9.20",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "781",
+    "wkts": "25",
+    "best": "3/56",
+    "bowl_avg": "29.28",
+    "five_w": "0",
+    "catches": "3",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "33",
+    "first": "2016",
+    "last": "2025",
+    "matches": "38",
+    "runs": "33",
+    "hs": "24*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "16.50",
+    "balls": "697",
+    "wkts": "47",
+    "best": "3/14",
+    "bowl_avg": "21.40",
+    "catches": "6",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "524044"
+   ],
+   "t20i_list": [
+    "568136"
+   ],
+   "wikidata": [
+    "568136"
+   ]
+  },
+  "wikidata": "Q20630461",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Left arm fast medium",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "20",
+    "runs": "46",
+    "bat_avg": "9.20",
+    "100s/50s": "0/0",
+    "hs": "17",
+    "balls": "781",
+    "wkts": "25",
+    "bowl_avg": "29.28",
+    "5w": "0",
+    "best": "3/56",
+    "ct/st": "3/–"
+   },
+   "t20i": {
+    "matches": "38",
+    "runs": "33",
+    "bat_avg": "16.50",
+    "100s/50s": "0/0",
+    "hs": "24*",
+    "balls": "697",
+    "wkts": "47",
+    "bowl_avg": "21.40",
+    "5w": "0",
+    "best": "3/14",
+    "ct/st": "6/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": true,
+  "dob": "1994-08-10",
+  "cricsheet_id": "67b7bad4",
+  "cricsheet_name": "Fareed Ahmad",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Karim Sadiq",
+  "wiki_title": "Karim Sadiq",
+  "cricinfo_id": "319758",
+  "captain": true,
+  "keeper": true,
+  "lists": {
+   "odi": {
+    "cap": "5",
+    "first": "2009",
+    "last": "2016",
+    "matches": "24",
+    "runs": "475",
+    "hs": "114*",
+    "bat_avg": "23.75",
+    "fifties": "0",
+    "hundreds": "2",
+    "balls": "320",
+    "wkts": "6",
+    "best": "2/10",
+    "bowl_avg": "33.50",
+    "five_w": "0",
+    "catches": "6",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "4",
+    "first": "2010",
+    "last": "2018",
+    "matches": "36",
+    "runs": "538",
+    "hs": "72",
+    "fifties": "1",
+    "hundreds": "0",
+    "bat_avg": "14.94",
+    "balls": "420",
+    "wkts": "14",
+    "best": "3/17",
+    "bowl_avg": "34.42",
+    "catches": "6",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "319758"
+   ],
+   "t20i_list": [
+    "319758"
+   ],
+   "wikidata": [
+    "319758"
+   ]
+  },
+  "wikidata": "Q2851900",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off break",
+  "role": "{{ubl|Opening batsman|Occasional wicket-keeper}}",
+  "infobox_as_of": "9 January",
+  "infobox": {
+   "odi": {
+    "matches": "24",
+    "runs": "475",
+    "bat_avg": "23.75",
+    "100s/50s": "2/0",
+    "hs": "114*",
+    "balls": "320",
+    "wkts": "6",
+    "bowl_avg": "33.50",
+    "5w": "0",
+    "best": "2/10",
+    "ct/st": "6/0"
+   },
+   "t20i": {
+    "matches": "36",
+    "runs": "538",
+    "bat_avg": "14.94",
+    "100s/50s": "0/1",
+    "hs": "72",
+    "balls": "420",
+    "wkts": "14",
+    "bowl_avg": "34.42",
+    "5w": "0",
+    "best": "3/17",
+    "ct/st": "6/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1984-02-28",
+  "cricsheet_id": "13e5908b",
+  "cricsheet_name": "Karim Sadiq",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Usman Ghani",
+  "wiki_title": "Usman Ghani",
+  "cricinfo_id": "711559",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "31",
+    "first": "2014",
+    "last": "2022",
+    "matches": "17",
+    "runs": "435",
+    "hs": "118",
+    "bat_avg": "25.58",
+    "fifties": "2",
+    "hundreds": "1",
+    "balls": "38",
+    "wkts": "1",
+    "best": "1/21",
+    "bowl_avg": "34.00",
+    "five_w": "0",
+    "catches": "3",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "28",
+    "first": "2015",
+    "last": "2023",
+    "matches": "35",
+    "runs": "786",
+    "hs": "73",
+    "fifties": "4",
+    "hundreds": "0",
+    "bat_avg": "25.35",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "15",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "711559"
+   ],
+   "t20i_list": [
+    "711559"
+   ],
+   "wikidata": [
+    "711559"
+   ]
+  },
+  "wikidata": "Q17403345",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off break",
+  "role": "Opening batter",
+  "infobox_as_of": "4 November 2022",
+  "infobox": {
+   "odi": {
+    "matches": "17",
+    "runs": "435",
+    "bat_avg": "25.58",
+    "100s/50s": "1/2",
+    "hs": "118",
+    "balls": "38",
+    "wkts": "1",
+    "bowl_avg": "34.00",
+    "5w": "0",
+    "best": "1/21",
+    "ct/st": "3/–"
+   },
+   "t20i": {
+    "matches": "33",
+    "runs": "764",
+    "bat_avg": "26.34",
+    "100s/50s": "0/4",
+    "hs": "73",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "14/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1996-11-20",
+  "cricsheet_id": "e3829b2a",
+  "cricsheet_name": "Usman Ghani",
+  "league_t20": {
+   "matches": 9,
+   "first": "2023-01-07",
+   "last": "2023-01-31",
+   "runs": 227,
+   "balls_faced": 193,
+   "bat_avg": 32.43,
+   "bat_sr": 117.62,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "bpl": 9
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Amir Hamza",
+  "wiki_title": "Hamza Hotak",
+  "cricinfo_id": "402245",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "25",
+    "first": "2012",
+    "last": "2017",
+    "matches": "31",
+    "runs": "23",
+    "hs": "7",
+    "bat_avg": "3.28",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "1,552",
+    "wkts": "40",
+    "best": "4/17",
+    "bowl_avg": "25.40",
+    "five_w": "0",
+    "catches": "10",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "22",
+    "first": "2013",
+    "last": "2021",
+    "matches": "33",
+    "runs": "40",
+    "hs": "21",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "10.00",
+    "balls": "666",
+    "wkts": "30",
+    "best": "3/39",
+    "bowl_avg": "25.06",
+    "catches": "1",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "402245"
+   ],
+   "t20i_list": [
+    "402245"
+   ],
+   "wikidata": [
+    "402245"
+   ]
+  },
+  "wikidata": "Q5646506",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": "Bowling all-rounder",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "31",
+    "runs": "23",
+    "bat_avg": "3.28",
+    "100s/50s": "0/0",
+    "hs": "7",
+    "balls": "1,552",
+    "wkts": "40",
+    "bowl_avg": "25.40",
+    "5w": "0",
+    "best": "4/17",
+    "ct/st": "10/–"
+   },
+   "t20i": {
+    "matches": "33",
+    "runs": "40",
+    "bat_avg": "10.00",
+    "100s/50s": "0/0",
+    "hs": "21",
+    "balls": "666",
+    "wkts": "30",
+    "bowl_avg": "25.06",
+    "5w": "0",
+    "best": "3/39",
+    "ct/st": "1/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1991-08-15",
+  "cricsheet_id": "dca1ac2e",
+  "cricsheet_name": "Amir Hamza",
+  "league_t20": {
+   "matches": 10,
+   "first": "2023-01-14",
+   "last": "2025-01-07",
+   "runs": 17,
+   "balls_faced": 32,
+   "bat_avg": 3.4,
+   "bat_sr": 53.12,
+   "balls_bowled": 215,
+   "wkts": 7,
+   "bowl_avg": 35.71,
+   "econ": 6.98,
+   "leagues": {
+    "bpl": 10
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Ikram Alikhil",
+  "wiki_title": "Ikram Alikhil",
+  "cricinfo_id": "935553",
+  "captain": false,
+  "keeper": true,
+  "lists": {
+   "odi": {
+    "cap": "45",
+    "first": "2019",
+    "last": "2025",
+    "matches": "32",
+    "runs": "386",
+    "hs": "86",
+    "bat_avg": "21.44",
+    "fifties": "3",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "23",
+    "stumpings": "5"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "935553"
+   ],
+   "wikidata": [
+    "935553"
+   ]
+  },
+  "wikidata": "Q39721989",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": null,
+  "role": "Wicket-keeper batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "32",
+    "runs": "386",
+    "bat_avg": "21.44",
+    "100s/50s": "0/3",
+    "hs": "86",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "23/5"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2000-09-20",
+  "cricsheet_id": "f67c958d",
+  "cricsheet_name": "Ikram Alikhil",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Sediqullah Atal",
+  "wiki_title": "Sediqullah Atal",
+  "cricinfo_id": "1161050",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "63",
+    "first": "2024",
+    "last": "2026",
+    "matches": "14",
+    "runs": "419",
+    "hs": "104",
+    "bat_avg": "32.23",
+    "fifties": "2",
+    "hundreds": "1",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "5",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "50",
+    "first": "2023",
+    "last": "2026",
+    "matches": "29",
+    "runs": "621",
+    "hs": "73*",
+    "fifties": "4",
+    "hundreds": "0",
+    "bat_avg": "23.00",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "13",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1161050"
+   ],
+   "t20i_list": [
+    "1161050"
+   ],
+   "wikidata": [
+    "1161050"
+   ]
+  },
+  "wikidata": "Q98955964",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": null,
+  "role": "Opening batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "14",
+    "runs": "419",
+    "bat_avg": "32.23",
+    "100s/50s": "1/2",
+    "hs": "104",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "5/0"
+   },
+   "t20i": {
+    "matches": "29",
+    "runs": "621",
+    "bat_avg": "23.00",
+    "100s/50s": "0/4",
+    "hs": "73*",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "13/0"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2001-08-12",
+  "cricsheet_id": "3c28853f",
+  "cricsheet_name": "Sediqullah Atal",
+  "league_t20": {
+   "matches": 13,
+   "first": "2025-01-25",
+   "last": "2026-07-25",
+   "runs": 253,
+   "balls_faced": 203,
+   "bat_avg": 19.46,
+   "bat_sr": 124.63,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "ipl": 1,
+    "sat": 3,
+    "ilt": 7,
+    "lpl": 2
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Darwish Rasooli",
+  "wiki_title": "Darwish Rasooli",
+  "cricinfo_id": "819441",
+  "captain": true,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "67",
+    "first": "2026",
+    "last": "2026",
+    "matches": "2",
+    "runs": "7",
+    "hs": "6*",
+    "bat_avg": "7.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "1",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "45",
+    "first": "2022",
+    "last": "2026",
+    "matches": "28",
+    "runs": "515",
+    "hs": "84",
+    "fifties": "4",
+    "hundreds": "0",
+    "bat_avg": "22.39",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "9",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "819441"
+   ],
+   "t20i_list": [
+    "819441"
+   ],
+   "wikidata": [
+    "819441"
+   ]
+  },
+  "wikidata": "Q36288110",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Righ-arm off-break",
+  "role": "Batsman",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "2",
+    "runs": "7",
+    "bat_avg": "7.00",
+    "100s/50s": "0/0",
+    "hs": "6*",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "1/–"
+   },
+   "t20i": {
+    "matches": "28",
+    "runs": "515",
+    "bat_avg": "22.39",
+    "100s/50s": "0/4",
+    "hs": "84",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "9/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1999-12-12",
+  "cricsheet_id": "3b2114a5",
+  "cricsheet_name": "Darwish Rasooli",
+  "league_t20": {
+   "matches": 13,
+   "first": "2019-01-18",
+   "last": "2025-01-16",
+   "runs": 249,
+   "balls_faced": 206,
+   "bat_avg": 22.64,
+   "bat_sr": 120.87,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "bpl": 13
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Aftab Alam",
+  "wiki_title": "Aftab Alam (cricketer, born 1992)",
+  "cricinfo_id": "440963",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "17",
+    "first": "2010",
+    "last": "2019",
+    "matches": "27",
+    "runs": "80",
+    "hs": "16*",
+    "bat_avg": "11.42",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "1,257",
+    "wkts": "41",
+    "best": "4/25",
+    "bowl_avg": "25.19",
+    "five_w": "0",
+    "catches": "6",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "20",
+    "first": "2012",
+    "last": "2018",
+    "matches": "12",
+    "runs": "2",
+    "hs": "1*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "1.00",
+    "balls": "245",
+    "wkts": "11",
+    "best": "2/23",
+    "bowl_avg": "29.45",
+    "catches": "3",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "440963"
+   ],
+   "t20i_list": [
+    "440963"
+   ],
+   "wikidata": [
+    "440963"
+   ]
+  },
+  "wikidata": "Q4690411",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast",
+  "role": "All-rounder",
+  "infobox_as_of": "21 July 2022",
+  "infobox": {
+   "odi": {
+    "matches": "27",
+    "runs": "80",
+    "bat_avg": "11.42",
+    "100s/50s": "0/0",
+    "hs": "16*",
+    "balls": "1,257",
+    "wkts": "41",
+    "bowl_avg": "25.19",
+    "5w": "0",
+    "best": "4/25",
+    "ct/st": "6/–"
+   },
+   "t20i": {
+    "matches": "12",
+    "runs": "2",
+    "bat_avg": "1",
+    "100s/50s": "0/0",
+    "hs": "1*",
+    "balls": "245",
+    "wkts": "11",
+    "bowl_avg": "29.45",
+    "5w": "0",
+    "best": "2/23",
+    "ct/st": "3/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1992-11-30",
+  "cricsheet_id": "2a3a3786",
+  "cricsheet_name": "Aftab Alam",
+  "league_t20": {
+   "matches": 4,
+   "first": "2020-11-30",
+   "last": "2025-01-27",
+   "runs": 1,
+   "balls_faced": 6,
+   "bat_avg": null,
+   "bat_sr": 16.67,
+   "balls_bowled": 72,
+   "wkts": 4,
+   "bowl_avg": 23.0,
+   "econ": 7.67,
+   "leagues": {
+    "bpl": 3,
+    "lpl": 1
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Noor Ahmad",
+  "wiki_title": "Noor Ahmad",
+  "cricinfo_id": "1182529",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "55",
+    "first": "2022",
+    "last": "2025",
+    "matches": "13",
+    "runs": "46",
+    "hs": "26",
+    "bat_avg": "9.20",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "635",
+    "wkts": "10",
+    "best": "3/49",
+    "bowl_avg": "64.40",
+    "five_w": "0",
+    "catches": "1",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "48",
+    "first": "2022",
+    "last": "2026",
+    "matches": "26",
+    "runs": "85",
+    "hs": "15*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "9.44",
+    "balls": "480",
+    "wkts": "20",
+    "best": "4/10",
+    "bowl_avg": "29.85",
+    "catches": "5",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1182529"
+   ],
+   "t20i_list": [
+    "1182529"
+   ],
+   "wikidata": [
+    "1182529"
+   ]
+  },
+  "wikidata": "Q70442895",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Left-arm unorthodox spin",
+  "role": "Bowler",
+  "infobox_as_of": "9 April",
+  "infobox": {
+   "odi": {
+    "matches": "13",
+    "runs": "46",
+    "bat_avg": "9.20",
+    "100s/50s": "0/0",
+    "hs": "26",
+    "balls": "635",
+    "wkts": "10",
+    "bowl_avg": "64.40",
+    "5w": "0",
+    "best": "3/49",
+    "ct/st": "1/–"
+   },
+   "t20i": {
+    "matches": "14",
+    "runs": "41",
+    "bat_avg": "6.83",
+    "100s/50s": "0/0",
+    "hs": "12",
+    "balls": "228",
+    "wkts": "7",
+    "bowl_avg": "37.71",
+    "5w": "0",
+    "best": "4/10",
+    "ct/st": "5/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2005-01-03",
+  "cricsheet_id": "efc04be7",
+  "cricsheet_name": "Noor Ahmad",
+  "league_t20": {
+   "matches": 152,
+   "first": "2020-12-19",
+   "last": "2026-05-21",
+   "runs": 184,
+   "balls_faced": 195,
+   "bat_avg": 6.57,
+   "bat_sr": 94.36,
+   "balls_bowled": 3357,
+   "wkts": 183,
+   "bowl_avg": 22.81,
+   "econ": 7.46,
+   "leagues": {
+    "ipl": 51,
+    "bbl": 6,
+    "psl": 8,
+    "cpl": 12,
+    "sat": 22,
+    "ilt": 15,
+    "lpl": 23,
+    "mlc": 15
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Sharafuddin Ashraf",
+  "wiki_title": "Sharafuddin Ashraf",
+  "cricinfo_id": "633362",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "32",
+    "first": "2014",
+    "last": "2024",
+    "matches": "20",
+    "runs": "70",
+    "hs": "21",
+    "bat_avg": "8.75",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "884",
+    "wkts": "13",
+    "best": "3/29",
+    "bowl_avg": "50.153",
+    "five_w": "0",
+    "catches": "6",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "26",
+    "first": "2015",
+    "last": "2025",
+    "matches": "23",
+    "runs": "63",
+    "hs": "18",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "10.50",
+    "balls": "354",
+    "wkts": "12",
+    "best": "3/24",
+    "bowl_avg": "36.66",
+    "catches": "4",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "633362"
+   ],
+   "t20i_list": [
+    "633362"
+   ],
+   "wikidata": [
+    "633362"
+   ]
+  },
+  "wikidata": "Q17496331",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "20",
+    "runs": "70",
+    "bat_avg": "8.75",
+    "100s/50s": "0/0",
+    "hs": "21",
+    "balls": "884",
+    "wkts": "13",
+    "bowl_avg": "50.15",
+    "5w": "0",
+    "best": "3/29",
+    "ct/st": "6/–"
+   },
+   "t20i": {
+    "matches": "23",
+    "runs": "63",
+    "bat_avg": "10.50",
+    "100s/50s": "0/0",
+    "hs": "18",
+    "balls": "354",
+    "wkts": "12",
+    "bowl_avg": "36.66",
+    "5w": "0",
+    "best": "3/24",
+    "ct/st": "4/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1995-01-10",
+  "cricsheet_id": "7e678d00",
+  "cricsheet_name": "Sharafuddin Ashraf",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Afsar Zazai",
+  "wiki_title": "Afsar Zazai",
+  "cricinfo_id": "420402",
+  "captain": false,
+  "keeper": true,
+  "lists": {
+   "odi": {
+    "cap": "34",
+    "first": "2014",
+    "last": "2017",
+    "matches": "17",
+    "runs": "264",
+    "hs": "60",
+    "bat_avg": "17.60",
+    "fifties": "2",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "20",
+    "stumpings": "2"
+   },
+   "t20i": {
+    "cap": "24",
+    "first": "2013",
+    "last": "2023",
+    "matches": "8",
+    "runs": "141",
+    "hs": "48",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "17.62",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "2"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "420402"
+   ],
+   "t20i_list": [
+    "420402"
+   ],
+   "wikidata": [
+    "420402"
+   ]
+  },
+  "wikidata": "Q18129400",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": null,
+  "role": "Wicket-keeper",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "17",
+    "runs": "264",
+    "bat_avg": "17.60",
+    "100s/50s": "0/2",
+    "hs": "60",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "20/2"
+   },
+   "t20i": {
+    "matches": "8",
+    "runs": "141",
+    "bat_avg": "17.62",
+    "100s/50s": "0/0",
+    "hs": "48",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "0/2"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1993-08-10",
+  "cricsheet_id": "50930025",
+  "cricsheet_name": "Afsar Zazai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Allah Mohammad Ghazanfar",
+  "wiki_title": "Allah Mohammad Ghazanfar",
+  "cricinfo_id": "1326798",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "59",
+    "first": "2024",
+    "last": "2026",
+    "matches": "17",
+    "runs": "61",
+    "hs": "31*",
+    "bat_avg": "7.62",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "655",
+    "wkts": "24",
+    "best": "6/26",
+    "bowl_avg": "20.75",
+    "five_w": "0",
+    "catches": "1",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "59",
+    "first": "2025",
+    "last": "2025",
+    "matches": "5",
+    "runs": "7",
+    "hs": "7",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "2.33",
+    "balls": "96",
+    "wkts": "2",
+    "best": "1/9",
+    "bowl_avg": "48.00",
+    "catches": "2",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1326798"
+   ],
+   "t20i_list": [
+    "1326798"
+   ],
+   "wikidata": [
+    "1326798"
+   ]
+  },
+  "wikidata": "Q115733297",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right arm off spin",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "17",
+    "runs": "61",
+    "bat_avg": "7.62",
+    "100s/50s": "0/0",
+    "hs": "31*",
+    "balls": "655",
+    "wkts": "24",
+    "bowl_avg": "20.75",
+    "5w": "2",
+    "best": "6/26",
+    "ct/st": "1/–"
+   },
+   "t20i": {
+    "matches": "5",
+    "runs": "7",
+    "bat_avg": "2.33",
+    "100s/50s": "0/0",
+    "hs": "7",
+    "balls": "96",
+    "wkts": "2",
+    "bowl_avg": "48.00",
+    "5w": "0",
+    "best": "1/9",
+    "ct/st": "2/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2007-00-00",
+  "cricsheet_id": "9ca68676",
+  "cricsheet_name": "AM Ghazanfar",
+  "league_t20": {
+   "matches": 47,
+   "first": "2025-01-11",
+   "last": "2026-09-16",
+   "runs": 68,
+   "balls_faced": 63,
+   "bat_avg": 7.56,
+   "bat_sr": 107.94,
+   "balls_bowled": 1012,
+   "wkts": 53,
+   "bowl_avg": 25.13,
+   "econ": 7.9,
+   "leagues": {
+    "ipl": 11,
+    "cpl": 6,
+    "ilt": 16,
+    "ntb": 14
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Nasir Jamal",
+  "wiki_title": "Nasir Jamal",
+  "cricinfo_id": "524048",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "33",
+    "first": "2014",
+    "last": "2018",
+    "matches": "16",
+    "runs": "352",
+    "hs": "53",
+    "bat_avg": "27.07",
+    "fifties": "3",
+    "hundreds": "0",
+    "balls": "6",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "4",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "524048"
+   ],
+   "wikidata": [
+    "524048"
+   ]
+  },
+  "wikidata": "Q17496549",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm leg break",
+  "role": "Middle-order batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "16",
+    "runs": "352",
+    "bat_avg": "27.07",
+    "100s/50s": "0/3",
+    "hs": "53",
+    "balls": "6",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "4/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1993-12-21",
+  "cricsheet_id": "b430ec8c",
+  "cricsheet_name": "Nasir Jamal",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Ihsanullah",
+  "wiki_title": "Ihsanullah",
+  "cricinfo_id": "703323",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "40",
+    "first": "2017",
+    "last": "2018",
+    "matches": "16",
+    "runs": "307",
+    "hs": "57*",
+    "bat_avg": "21.92",
+    "fifties": "3",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "10",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "47",
+    "first": "2022",
+    "last": "2022",
+    "matches": "1",
+    "runs": "20",
+    "hs": "20",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "20.00",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "703323"
+   ],
+   "t20i_list": [
+    "703323"
+   ],
+   "wikidata": [
+    "703323"
+   ]
+  },
+  "wikidata": "Q25915993",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": null,
+  "role": "Batter",
+  "infobox_as_of": "30 December 2024",
+  "infobox": {
+   "odi": {
+    "matches": "16",
+    "runs": "307",
+    "bat_avg": "21.92",
+    "100s/50s": "0/3",
+    "hs": "57*",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "10/–"
+   },
+   "t20i": {
+    "matches": "1",
+    "runs": "20",
+    "bat_avg": "20.00",
+    "100s/50s": "0/0",
+    "hs": "20",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1997-12-28",
+  "cricsheet_id": "5aeab54c",
+  "cricsheet_name": "Ihsanullah",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Najeeb Tarakai",
+  "wiki_title": "Najeeb Tarakai",
+  "cricinfo_id": "533953",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "42",
+    "first": "2017",
+    "last": "2017",
+    "matches": "1",
+    "runs": "5",
+    "hs": "5",
+    "bat_avg": "5.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "0",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "25",
+    "first": "2014",
+    "last": "2019",
+    "matches": "12",
+    "runs": "258",
+    "hs": "90",
+    "fifties": "1",
+    "hundreds": "0",
+    "bat_avg": "21.50",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "3",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "533953"
+   ],
+   "t20i_list": [
+    "533953"
+   ],
+   "wikidata": [
+    "533953"
+   ]
+  },
+  "wikidata": "Q21623048",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off break",
+  "role": "Opening batsman",
+  "infobox_as_of": "6 October",
+  "infobox": {
+   "odi": {
+    "matches": "1",
+    "runs": "5",
+    "bat_avg": "5.00",
+    "100s/50s": "0/0",
+    "hs": "5",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "t20i": {
+    "matches": "12",
+    "runs": "258",
+    "bat_avg": "21.50",
+    "100s/50s": "0/1",
+    "hs": "90",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "3/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1991-02-02",
+  "cricsheet_id": "2683e28b",
+  "cricsheet_name": "Najeeb Tarakai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Qais Ahmad",
+  "wiki_title": "Qais Ahmad",
+  "cricinfo_id": "914171",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "53",
+    "first": "2022",
+    "last": "2024",
+    "matches": "3",
+    "runs": "12",
+    "hs": "11",
+    "bat_avg": "6.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "130",
+    "wkts": "6",
+    "best": "3/32",
+    "bowl_avg": "22.16",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "42",
+    "first": "2020",
+    "last": "2025",
+    "matches": "12",
+    "runs": "33",
+    "hs": "18",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "6.60",
+    "balls": "210",
+    "wkts": "17",
+    "best": "3/16",
+    "bowl_avg": "14.17",
+    "catches": "8",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "914171"
+   ],
+   "t20i_list": [
+    "914171"
+   ],
+   "wikidata": [
+    "914171"
+   ]
+  },
+  "wikidata": "Q44958349",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm leg spin",
+  "role": "Bowler",
+  "infobox_as_of": "19 July",
+  "infobox": {
+   "odi": {
+    "matches": "3",
+    "runs": "12",
+    "bat_avg": "6.00",
+    "100s/50s": "0/0",
+    "hs": "11",
+    "balls": "130",
+    "wkts": "6",
+    "bowl_avg": "22.16",
+    "5w": "0",
+    "best": "3/32",
+    "ct/st": "0/–"
+   },
+   "t20i": {
+    "matches": "12",
+    "runs": "33",
+    "bat_avg": "6.60",
+    "100s/50s": "0/0",
+    "hs": "18",
+    "balls": "210",
+    "wkts": "17",
+    "bowl_avg": "14.17",
+    "5w": "0",
+    "best": "3/16",
+    "ct/st": "8/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2000-08-15",
+  "cricsheet_id": "8d5d991e",
+  "cricsheet_name": "Qais Ahmad",
+  "league_t20": {
+   "matches": 113,
+   "first": "2018-08-08",
+   "last": "2025-12-26",
+   "runs": 424,
+   "balls_faced": 338,
+   "bat_avg": 11.16,
+   "bat_sr": 125.44,
+   "balls_bowled": 2413,
+   "wkts": 124,
+   "bowl_avg": 24.91,
+   "econ": 7.68,
+   "leagues": {
+    "bbl": 28,
+    "psl": 6,
+    "cpl": 20,
+    "ilt": 13,
+    "bpl": 11,
+    "lpl": 9,
+    "ntb": 26
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Nangeyalia Kharote",
+  "wiki_title": "Nangeyalia Kharote",
+  "cricinfo_id": "1199434",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "58",
+    "first": "2024",
+    "last": "2025",
+    "matches": "7",
+    "runs": "30",
+    "hs": "23*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "15.00",
+    "balls": "72",
+    "wkts": "5",
+    "best": "2/16",
+    "bowl_avg": "15.60",
+    "catches": "1",
+    "stumpings": "0"
+   },
+   "odi": {
+    "cap": "60",
+    "first": "2024",
+    "last": "2026",
+    "matches": "11",
+    "runs": "70",
+    "hs": "27*",
+    "bat_avg": "11.66",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "464",
+    "wkts": "17",
+    "best": "4/26",
+    "bowl_avg": "18.52",
+    "five_w": "0",
+    "catches": "2",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1199434"
+   ],
+   "wikidata": [
+    "1199434"
+   ]
+  },
+  "wikidata": "Q98955869",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "11",
+    "runs": "70",
+    "bat_avg": "11.66",
+    "100s/50s": "0/0",
+    "hs": "27*",
+    "balls": "464",
+    "wkts": "17",
+    "bowl_avg": "18.52",
+    "5w": "0",
+    "best": "4/26",
+    "ct/st": "2/–"
+   },
+   "t20i": {
+    "matches": "7",
+    "runs": "30",
+    "bat_avg": "15.00",
+    "100s/50s": "0/0",
+    "hs": "23*",
+    "balls": "72",
+    "wkts": "5",
+    "bowl_avg": "15.60",
+    "5w": "0",
+    "best": "2/16",
+    "ct/st": "1/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2001-04-26",
+  "aliases": [
+   "Nangialai Kharoti"
+  ],
+  "cricsheet_id": "75b8e198",
+  "cricsheet_name": "Nangeyalia Kharote",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Shabir Noori",
+  "wiki_title": "Shabir Noori",
+  "cricinfo_id": "307653",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "18",
+    "first": "2010",
+    "last": "2016",
+    "matches": "10",
+    "runs": "191",
+    "hs": "94",
+    "bat_avg": "19.10",
+    "fifties": "1",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "6",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "18",
+    "first": "2012",
+    "last": "2012",
+    "matches": "1",
+    "runs": "15",
+    "hs": "15",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "15.00",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "307653"
+   ],
+   "t20i_list": [
+    "307653"
+   ],
+   "wikidata": [
+    "307653"
+   ]
+  },
+  "wikidata": "Q3532282",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off break",
+  "role": null,
+  "infobox_as_of": "2 April",
+  "infobox": {
+   "odi": {
+    "matches": "10",
+    "runs": "191",
+    "bat_avg": "19.10",
+    "100s/50s": "0/1",
+    "hs": "94",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "6/–"
+   },
+   "t20i": {
+    "matches": "1",
+    "runs": "15",
+    "bat_avg": "15.00",
+    "100s/50s": "0/0",
+    "hs": "15",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1992-02-23",
+  "cricsheet_id": "5e71fa21",
+  "cricsheet_name": "Shabir Noori",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Yamin Ahmadzai",
+  "wiki_title": "Yamin Ahmadzai",
+  "cricinfo_id": "440968",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "37",
+    "first": "2015",
+    "last": "2022",
+    "matches": "9",
+    "runs": "9",
+    "hs": "5",
+    "bat_avg": "3.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "340",
+    "wkts": "7",
+    "best": "2/34",
+    "bowl_avg": "43.42",
+    "five_w": "0",
+    "catches": "4",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "32",
+    "first": "2015",
+    "last": "2015",
+    "matches": "2",
+    "runs": "1",
+    "hs": "1*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "",
+    "balls": "43",
+    "wkts": "5",
+    "best": "3/34",
+    "bowl_avg": "13.00",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "440968"
+   ],
+   "t20i_list": [
+    "440968"
+   ],
+   "wikidata": [
+    "440968"
+   ]
+  },
+  "wikidata": "Q8048060",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium-fast",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "9",
+    "runs": "9",
+    "bat_avg": "3.00",
+    "100s/50s": "0/0",
+    "hs": "5",
+    "balls": "340",
+    "wkts": "7",
+    "bowl_avg": "43.42",
+    "5w": "0",
+    "best": "2/34",
+    "ct/st": "4/–"
+   },
+   "t20i": {
+    "matches": "2",
+    "runs": "1",
+    "bat_avg": "–",
+    "100s/50s": "0/0",
+    "hs": "1*",
+    "balls": "43",
+    "wkts": "5",
+    "bowl_avg": "13.00",
+    "5w": "0",
+    "best": "3/34",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1992-07-25",
+  "cricsheet_id": "6e4588bc",
+  "cricsheet_name": "Yamin Ahmadzai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Abdollah Ahmadzai",
+  "wiki_title": "Abdollah Ahmadzai",
+  "cricinfo_id": "1304665",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "60",
+    "first": "2025",
+    "last": "2026",
+    "matches": "9",
+    "runs": "6",
+    "hs": "6*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "6.00",
+    "balls": "172",
+    "wkts": "13",
+    "best": "3/42",
+    "bowl_avg": "19.76",
+    "catches": "4",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "1304665"
+   ],
+   "wikidata": [
+    "1304665"
+   ]
+  },
+  "wikidata": "Q136143752",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right arm medium-fast",
+  "role": "Bowler",
+  "infobox_as_of": "18 September 2026",
+  "infobox": {
+   "odi": null,
+   "t20i": {
+    "matches": "7",
+    "runs": "6",
+    "bat_avg": "–",
+    "100s/50s": "0/0",
+    "hs": "6*",
+    "balls": "130",
+    "wkts": "11",
+    "bowl_avg": "18.63",
+    "5w": "0",
+    "best": "3/42",
+    "ct/st": "3/–"
+   },
+   "list_a": null,
+   "t20": {
+    "matches": "19",
+    "runs": "18",
+    "bat_avg": "6.00",
+    "100s/50s": "0/0",
+    "hs": "6*",
+    "balls": "355",
+    "wkts": "26",
+    "bowl_avg": "18.26",
+    "5w": "0",
+    "best": "4/7",
+    "ct/st": "4/–"
+   }
+  },
+  "id_conflict": false,
+  "dob": "2003-06-26",
+  "cricsheet_id": "345b7a1e",
+  "cricsheet_name": "Abdollah Ahmadzai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Raees Ahmadzai",
+  "wiki_title": "Raees Ahmadzai",
+  "cricinfo_id": "320284",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "10",
+    "first": "2009",
+    "last": "2010",
+    "matches": "5",
+    "runs": "88",
+    "hs": "39",
+    "bat_avg": "29.33",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "24",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "2",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "8",
+    "first": "2010",
+    "last": "2010",
+    "matches": "8",
+    "runs": "91",
+    "hs": "33*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "30.33",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "2",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "320284"
+   ],
+   "t20i_list": [
+    "320284"
+   ],
+   "wikidata": [
+    "320284"
+   ]
+  },
+  "wikidata": "Q3535085",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm off break",
+  "role": null,
+  "infobox_as_of": "26 January",
+  "infobox": {
+   "odi": {
+    "matches": "5",
+    "runs": "88",
+    "bat_avg": "29.33",
+    "100s/50s": "0/0",
+    "hs": "39",
+    "balls": "24",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "2/–"
+   },
+   "t20i": {
+    "matches": "8",
+    "runs": "91",
+    "bat_avg": "30.33",
+    "100s/50s": "0/0",
+    "hs": "33*",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "2/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1984-09-03",
+  "cricsheet_id": "cffce71d",
+  "cricsheet_name": "Raees Ahmadzai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Mohammad Ishaq",
+  "wiki_title": "Mohammad Ishaq (Afghan cricketer)",
+  "cricinfo_id": "1076579",
+  "captain": false,
+  "keeper": true,
+  "lists": {
+   "t20i": {
+    "cap": "56",
+    "first": "2024",
+    "last": "2025",
+    "matches": "8",
+    "runs": "104",
+    "hs": "32",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "14.85",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "4",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "1076579"
+   ],
+   "wikidata": [
+    "1076579"
+   ]
+  },
+  "wikidata": "Q53868628",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": null,
+  "role": "Batsman, Wicket-keeper",
+  "infobox_as_of": "24 March 2025",
+  "infobox": {
+   "odi": null,
+   "t20i": {
+    "matches": "5",
+    "runs": "76",
+    "bat_avg": "19.00",
+    "100s/50s": "0/0",
+    "hs": "32",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "2/–"
+   },
+   "list_a": null,
+   "t20": {
+    "matches": "30",
+    "runs": "343",
+    "bat_avg": "19.05",
+    "100s/50s": "0/0",
+    "hs": "47*",
+    "balls": "",
+    "wkts": "",
+    "bowl_avg": "",
+    "5w": "",
+    "best": "",
+    "ct/st": "9/3"
+   }
+  },
+  "id_conflict": false,
+  "dob": "2002-02-12",
+  "cricsheet_id": "32de4eae",
+  "cricsheet_name": "Mohammad Ishaq",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Shahidullah",
+  "wiki_title": "Shahidullah (cricketer)",
+  "cricinfo_id": "633366",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "51",
+    "first": "2022",
+    "last": "2023",
+    "matches": "3",
+    "runs": "39",
+    "hs": "37",
+    "bat_avg": "13.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "18",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "2",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "52",
+    "first": "2023",
+    "last": "2026",
+    "matches": "7",
+    "runs": "104",
+    "hs": "49*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "26.00",
+    "balls": "18",
+    "wkts": "1",
+    "best": "1/13",
+    "bowl_avg": "31.00",
+    "catches": "4",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "633366"
+   ],
+   "t20i_list": [
+    "633366"
+   ],
+   "wikidata": [
+    "633366"
+   ]
+  },
+  "wikidata": "Q28534267",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Left-arm orthodox",
+  "role": "Batting all-rounder",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "3",
+    "runs": "39",
+    "bat_avg": "13.00",
+    "100s/50s": "0/0",
+    "hs": "37",
+    "balls": "18",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "2/–"
+   },
+   "t20i": {
+    "matches": "7",
+    "runs": "104",
+    "bat_avg": "26.00",
+    "100s/50s": "0/0",
+    "hs": "49*",
+    "balls": "18",
+    "wkts": "1",
+    "bowl_avg": "31.00",
+    "5w": "0",
+    "best": "1/13",
+    "ct/st": "4/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1999-02-06",
+  "cricsheet_id": "82b90140",
+  "cricsheet_name": "Shahidullah",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Riaz Hassan",
+  "wiki_title": "Riaz Hassan (cricketer)",
+  "cricinfo_id": "1061090",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "54",
+    "first": "2022",
+    "last": "2024",
+    "matches": "7",
+    "runs": "165",
+    "hs": "50",
+    "bat_avg": "27.50",
+    "fifties": "1",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "3",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1061090"
+   ],
+   "wikidata": [
+    "1061090"
+   ]
+  },
+  "wikidata": "Q51751272",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": null,
+  "role": "Batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "7",
+    "runs": "165",
+    "bat_avg": "27.50",
+    "100s/50s": "0/1",
+    "hs": "50",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "3/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2002-11-07",
+  "cricsheet_id": "33f8789e",
+  "cricsheet_name": "Riaz Hassan",
+  "league_t20": {
+   "matches": 5,
+   "first": "2025-01-10",
+   "last": "2025-02-01",
+   "runs": 9,
+   "balls_faced": 16,
+   "bat_avg": 4.5,
+   "bat_sr": 56.25,
+   "balls_bowled": 0,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": null,
+   "leagues": {
+    "bpl": 5
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Khaliq Dad",
+  "wiki_title": "Khaliq Dad",
+  "cricinfo_id": "25905",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "6",
+    "first": "2009",
+    "last": "2010",
+    "matches": "6",
+    "runs": "40",
+    "hs": "20",
+    "bat_avg": "13.33",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "252",
+    "wkts": "9",
+    "best": "3/30",
+    "bowl_avg": "16.66",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "25905"
+   ]
+  },
+  "wikidata": "Q6399423",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast-medium",
+  "role": null,
+  "infobox_as_of": "5 October",
+  "infobox": {
+   "odi": {
+    "matches": "6",
+    "runs": "40",
+    "bat_avg": "13.33",
+    "100s/50s": "–/–",
+    "hs": "20",
+    "balls": "252",
+    "wkts": "9",
+    "bowl_avg": "16.66",
+    "5w": "–",
+    "best": "3/30",
+    "ct/st": "–/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1984-01-01",
+  "cricsheet_id": "8549aaf0",
+  "cricsheet_name": "Khaliq Dad",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Ziaur Rahman",
+  "wiki_title": "Ziaur Rahman (Afghan cricketer)",
+  "cricinfo_id": "1015399",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "66",
+    "first": "2026",
+    "last": "2026",
+    "matches": "2",
+    "runs": "5",
+    "hs": "4",
+    "bat_avg": "5.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "48",
+    "wkts": "1",
+    "best": "1/39",
+    "bowl_avg": "60.00",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "37",
+    "first": "2019",
+    "last": "2026",
+    "matches": "6",
+    "runs": "",
+    "hs": "",
+    "fifties": "",
+    "hundreds": "",
+    "bat_avg": "",
+    "balls": "132",
+    "wkts": "7",
+    "best": "3/36",
+    "bowl_avg": "31.85",
+    "catches": "4",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1015399"
+   ],
+   "t20i_list": [
+    "1015399"
+   ],
+   "wikidata": [
+    "1015399"
+   ]
+  },
+  "wikidata": "Q39073794",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast-medium",
+  "role": null,
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "2",
+    "runs": "5",
+    "bat_avg": "5.00",
+    "100s/50s": "0/0",
+    "hs": "4",
+    "balls": "48",
+    "wkts": "1",
+    "bowl_avg": "60.00",
+    "5w": "0",
+    "best": "1/39",
+    "ct/st": "0/–"
+   },
+   "t20i": {
+    "matches": "6",
+    "runs": "–",
+    "bat_avg": "–",
+    "100s/50s": "–/–",
+    "hs": "–",
+    "balls": "132",
+    "wkts": "7",
+    "bowl_avg": "31.85",
+    "5w": "0",
+    "best": "3/36",
+    "ct/st": "4/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1998-10-17",
+  "cricsheet_id": "66272dc4",
+  "cricsheet_name": "Ziaur Rahman (2)",
+  "league_t20": {
+   "matches": 6,
+   "first": "2025-12-27",
+   "last": "2026-01-12",
+   "runs": 4,
+   "balls_faced": 3,
+   "bat_avg": 4.0,
+   "bat_sr": 133.33,
+   "balls_bowled": 126,
+   "wkts": 7,
+   "bowl_avg": 28.0,
+   "econ": 9.33,
+   "leagues": {
+    "bpl": 6
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Izatullah Dawlatzai",
+  "wiki_title": "Izatullah Dawlatzai",
+  "cricinfo_id": "402247",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "22",
+    "first": "2010",
+    "last": "2015",
+    "matches": "5",
+    "runs": "7",
+    "hs": "6*",
+    "bat_avg": "3.50",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "210",
+    "wkts": "8",
+    "best": "4/38",
+    "bowl_avg": "18.25",
+    "five_w": "0",
+    "catches": "1",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "16",
+    "first": "2012",
+    "last": "2012",
+    "matches": "4",
+    "runs": "0",
+    "hs": "0*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "",
+    "balls": "72",
+    "wkts": "6",
+    "best": "3/33",
+    "bowl_avg": "22.33",
+    "catches": "1",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "402247"
+   ],
+   "t20i_list": [
+    "402247"
+   ],
+   "wikidata": [
+    "402247"
+   ]
+  },
+  "wikidata": "Q10974746",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium-fast",
+  "role": null,
+  "infobox_as_of": "8 March 2020",
+  "infobox": {
+   "odi": {
+    "matches": "5",
+    "runs": "7",
+    "bat_avg": "–",
+    "100s/50s": "0/0",
+    "hs": "6*",
+    "balls": "210",
+    "wkts": "8",
+    "bowl_avg": "18.25",
+    "5w": "0",
+    "best": "4/38",
+    "ct/st": "0/–"
+   },
+   "t20i": {
+    "matches": "16",
+    "runs": "26",
+    "bat_avg": "26.00",
+    "100s/50s": "0/0",
+    "hs": "24*",
+    "balls": "329",
+    "wkts": "18",
+    "bowl_avg": "21.22",
+    "5w": "0",
+    "best": "3/23",
+    "ct/st": "3/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1991-05-10",
+  "cricsheet_id": "f96933f0",
+  "cricsheet_name": "Izatullah Dawlatzai",
+  "league_t20": null,
+  "cricsheet_t20i": {
+   "matches": 7,
+   "first": "2019-05-25",
+   "last": "2020-03-08",
+   "runs": 24,
+   "balls_faced": 10,
+   "bat_avg": null,
+   "bat_sr": 240.0,
+   "balls_bowled": 145,
+   "wkts": 5,
+   "bowl_avg": 29.6,
+   "econ": 6.12,
+   "leagues": {}
+  },
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Sayed Shirzad",
+  "wiki_title": "Sayed Shirzad",
+  "cricinfo_id": "524050",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "46",
+    "first": "2019",
+    "last": "2019",
+    "matches": "2",
+    "runs": "25",
+    "hs": "25",
+    "bat_avg": "25.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "48",
+    "wkts": "1",
+    "best": "1/56",
+    "bowl_avg": "56.00",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "31",
+    "first": "2015",
+    "last": "2019",
+    "matches": "4",
+    "runs": "1",
+    "hs": "1",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "1.00",
+    "balls": "90",
+    "wkts": "7",
+    "best": "3/16",
+    "bowl_avg": "16.57",
+    "catches": "1",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "524050"
+   ],
+   "t20i_list": [
+    "524050"
+   ],
+   "wikidata": [
+    "524050"
+   ]
+  },
+  "wikidata": "Q7429186",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Left-arm medium",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "2",
+    "runs": "25",
+    "bat_avg": "25.00",
+    "100s/50s": "0/0",
+    "hs": "25",
+    "balls": "48",
+    "wkts": "1",
+    "bowl_avg": "56.00",
+    "5w": "0",
+    "best": "1/56",
+    "ct/st": "0/–"
+   },
+   "t20i": {
+    "matches": "4",
+    "runs": "1",
+    "bat_avg": "1.00",
+    "100s/50s": "0/0",
+    "hs": "1",
+    "balls": "90",
+    "wkts": "7",
+    "bowl_avg": "16.57",
+    "5w": "0",
+    "best": "3/16",
+    "ct/st": "1/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1994-10-01",
+  "cricsheet_id": "0ec1f412",
+  "cricsheet_name": "Sayed Shirzad",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Zahir Khan",
+  "wiki_title": "Zahir Khan (Afghan cricketer)",
+  "cricinfo_id": "712219",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "47",
+    "first": "2019",
+    "last": "2019",
+    "matches": "1",
+    "runs": "",
+    "hs": "",
+    "bat_avg": "",
+    "fifties": "",
+    "hundreds": "",
+    "balls": "60",
+    "wkts": "2",
+    "best": "2/55",
+    "bowl_avg": "27.50",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "49",
+    "first": "2023",
+    "last": "2023",
+    "matches": "4",
+    "runs": "0",
+    "hs": "0",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "0.00",
+    "balls": "48",
+    "wkts": "3",
+    "best": "2/20",
+    "bowl_avg": "16.66",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "712219"
+   ],
+   "t20i_list": [
+    "712219"
+   ],
+   "wikidata": [
+    "712219"
+   ]
+  },
+  "wikidata": "Q22278587",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Left-arm unorthodox spin",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "1",
+    "runs": "–",
+    "bat_avg": "–",
+    "100s/50s": "–/–",
+    "hs": "–",
+    "balls": "60",
+    "wkts": "2",
+    "bowl_avg": "27.50",
+    "5w": "0",
+    "best": "2/55",
+    "ct/st": "0/–"
+   },
+   "t20i": {
+    "matches": "4",
+    "runs": "0",
+    "bat_avg": "0.00",
+    "100s/50s": "0/0",
+    "hs": "0",
+    "balls": "48",
+    "wkts": "3",
+    "bowl_avg": "16.66",
+    "5w": "0",
+    "best": "2/20",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1998-12-20",
+  "cricsheet_id": "786b7fe8",
+  "cricsheet_name": "Zahir Khan",
+  "league_t20": {
+   "matches": 82,
+   "first": "2017-11-20",
+   "last": "2026-08-05",
+   "runs": 57,
+   "balls_faced": 77,
+   "bat_avg": 4.07,
+   "bat_sr": 74.03,
+   "balls_bowled": 1782,
+   "wkts": 83,
+   "bowl_avg": 26.77,
+   "econ": 7.48,
+   "leagues": {
+    "bbl": 29,
+    "psl": 4,
+    "cpl": 14,
+    "sat": 1,
+    "ilt": 11,
+    "bpl": 13,
+    "lpl": 3,
+    "ntb": 7
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Mohammad Saleem",
+  "wiki_title": "Mohammad Saleem (cricketer)",
+  "cricinfo_id": "1174749",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "56",
+    "first": "2023",
+    "last": "2026",
+    "matches": "4",
+    "runs": "10",
+    "hs": "9",
+    "bat_avg": "10.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "133",
+    "wkts": "1",
+    "best": "1/75",
+    "bowl_avg": "181.00",
+    "five_w": "0",
+    "catches": "2",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "55",
+    "first": "2024",
+    "last": "2024",
+    "matches": "1",
+    "runs": "",
+    "hs": "",
+    "fifties": "",
+    "hundreds": "",
+    "bat_avg": "",
+    "balls": "18",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1174749"
+   ],
+   "t20i_list": [
+    "533956"
+   ],
+   "wikidata": [
+    "1174749"
+   ]
+  },
+  "wikidata": "Q104839959",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "4",
+    "runs": "10",
+    "bat_avg": "10.00",
+    "100s/50s": "0/0",
+    "hs": "9",
+    "balls": "133",
+    "wkts": "1",
+    "bowl_avg": "181.00",
+    "5w": "0",
+    "best": "1/75",
+    "ct/st": "2/–"
+   },
+   "t20i": {
+    "matches": "1",
+    "runs": "–",
+    "bat_avg": "–",
+    "100s/50s": "–/–",
+    "hs": "–",
+    "balls": "18",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": true,
+  "dob": "2002-09-09",
+  "cricsheet_id": "938bff19",
+  "cricsheet_name": "Mohammad Saleem",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Naveed Zadran",
+  "wiki_title": "Naveed Zadran",
+  "cricinfo_id": "1276921",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "61",
+    "first": "2024",
+    "last": "2024",
+    "matches": "4",
+    "runs": "10",
+    "hs": "9*",
+    "bat_avg": "10.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "66",
+    "wkts": "3",
+    "best": "3/13",
+    "bowl_avg": "26.33",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1276921"
+   ],
+   "wikidata": [
+    "1276921"
+   ]
+  },
+  "wikidata": "Q124416924",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium",
+  "role": "Bowler",
+  "infobox_as_of": "19 July",
+  "infobox": {
+   "odi": {
+    "matches": "4",
+    "runs": "10",
+    "bat_avg": "10.00",
+    "100s/50s": "0/0",
+    "hs": "9*",
+    "balls": "66",
+    "wkts": "3",
+    "bowl_avg": "26.33",
+    "5w": "0",
+    "best": "3/13",
+    "ct/st": "0/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2005-03-07",
+  "cricsheet_id": "e6b6d352",
+  "cricsheet_name": "Naveed Zadran",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Abdul Malik",
+  "wiki_title": "Abdul Malik (cricketer)",
+  "cricinfo_id": "1059030",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "62",
+    "first": "2024",
+    "last": "2024",
+    "matches": "4",
+    "runs": "122",
+    "hs": "84",
+    "bat_avg": "40.66",
+    "fifties": "1",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1059030"
+   ],
+   "wikidata": [
+    "1059030"
+   ]
+  },
+  "wikidata": "Q42324541",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right arm off break",
+  "role": "Opening batter",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "4",
+    "runs": "122",
+    "bat_avg": "40.66",
+    "100s/50s": "0/1",
+    "hs": "84",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1998-03-11",
+  "cricsheet_id": "b3218c80",
+  "cricsheet_name": "Abdul Malik",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Zubaid Akbari",
+  "wiki_title": "Zubaid Akbari",
+  "cricinfo_id": "1015437",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "53",
+    "first": "2023",
+    "last": "2025",
+    "matches": "4",
+    "runs": "12",
+    "hs": "5",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "3.00",
+    "balls": "12",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "2",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "1015437"
+   ],
+   "wikidata": [
+    "1015437"
+   ]
+  },
+  "wikidata": "Q52156155",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": "Batsman",
+  "infobox_as_of": "17 October 2023",
+  "infobox": {
+   "odi": null,
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2000-05-01",
+  "cricsheet_id": "a18d14c7",
+  "cricsheet_name": "Zubaid Akbari",
+  "league_t20": {
+   "matches": 4,
+   "first": "2025-01-22",
+   "last": "2026-01-18",
+   "runs": 55,
+   "balls_faced": 66,
+   "bat_avg": 13.75,
+   "bat_sr": 83.33,
+   "balls_bowled": 12,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": 7.5,
+   "leagues": {
+    "bpl": 4
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Ijaz Ahmad Ahmadzai",
+  "wiki_title": "Ijaz Ahmad Ahmadzai",
+  "cricinfo_id": "1276922",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "57",
+    "first": "2024",
+    "last": "2025",
+    "matches": "4",
+    "runs": "41",
+    "hs": "16",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "10.25",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "1276922"
+   ],
+   "wikidata": [
+    "1276922"
+   ]
+  },
+  "wikidata": "Q124880075",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium",
+  "role": "All-rounder",
+  "infobox_as_of": "20 March 2025",
+  "infobox": {
+   "odi": null,
+   "t20i": {
+    "matches": "4",
+    "runs": "41",
+    "bat_avg": "10.25",
+    "100s/50s": "0/0",
+    "hs": "16",
+    "balls": "0",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "0",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": {
+    "matches": "55",
+    "runs": "914",
+    "bat_avg": "24.70",
+    "100s/50s": "0/3",
+    "hs": "83",
+    "balls": "12",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "0",
+    "best": "-",
+    "ct/st": "21/–"
+   }
+  },
+  "id_conflict": false,
+  "dob": "2003-01-01",
+  "cricsheet_id": "4d4dbd57",
+  "cricsheet_name": "Ijaz Ahmad Ahmadzai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Dawlat Ahmadzai",
+  "wiki_title": "Dawlat Ahmadzai",
+  "cricinfo_id": "25917",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "2",
+    "first": "2009",
+    "last": "2010",
+    "matches": "3",
+    "runs": "",
+    "hs": "",
+    "bat_avg": "",
+    "fifties": "",
+    "hundreds": "",
+    "balls": "112",
+    "wkts": "1",
+    "best": "1/40",
+    "bowl_avg": "121.00",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "2",
+    "first": "2010",
+    "last": "2010",
+    "matches": "2",
+    "runs": "2",
+    "hs": "2*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "",
+    "balls": "24",
+    "wkts": "2",
+    "best": "1/21",
+    "bowl_avg": "23.00",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "25917"
+   ],
+   "t20i_list": [
+    "25917"
+   ],
+   "wikidata": [
+    "25917"
+   ]
+  },
+  "wikidata": "Q1636072",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm fast-medium",
+  "role": null,
+  "infobox_as_of": "25 January",
+  "infobox": {
+   "odi": {
+    "matches": "3",
+    "runs": "–",
+    "bat_avg": "–",
+    "100s/50s": "–",
+    "hs": "–",
+    "balls": "112",
+    "wkts": "1",
+    "bowl_avg": "121.00",
+    "5w": "0",
+    "best": "1/40",
+    "ct/st": "0/–"
+   },
+   "t20i": {
+    "matches": "2",
+    "runs": "2",
+    "bat_avg": "–",
+    "100s/50s": "0/0",
+    "hs": "2*",
+    "balls": "24",
+    "wkts": "2",
+    "bowl_avg": "23.00",
+    "5w": "0",
+    "best": "1/21",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1984-09-05",
+  "cricsheet_id": "80f81038",
+  "cricsheet_name": "Dawlat Ahmadzai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Rokhan Barakzai",
+  "wiki_title": "Rokhan Barakzai",
+  "cricinfo_id": "793907",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "38",
+    "first": "2015",
+    "last": "2015",
+    "matches": "1",
+    "runs": "",
+    "hs": "",
+    "bat_avg": "",
+    "fifties": "",
+    "hundreds": "",
+    "balls": "60",
+    "wkts": "2",
+    "best": "2/45",
+    "bowl_avg": "22.50",
+    "five_w": "0",
+    "catches": "1",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "30",
+    "first": "2015",
+    "last": "2015",
+    "matches": "3",
+    "runs": "",
+    "hs": "",
+    "fifties": "",
+    "hundreds": "",
+    "bat_avg": "",
+    "balls": "60",
+    "wkts": "6",
+    "best": "2/21",
+    "bowl_avg": "12.50",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "793907"
+   ],
+   "t20i_list": [
+    "793907"
+   ],
+   "wikidata": [
+    "793907"
+   ]
+  },
+  "wikidata": "Q21642662",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": "Bowler",
+  "infobox_as_of": "19 August",
+  "infobox": {
+   "odi": {
+    "matches": "1",
+    "runs": "0",
+    "bat_avg": "0",
+    "100s/50s": "0/0",
+    "hs": "0",
+    "balls": "60",
+    "wkts": "2",
+    "bowl_avg": "22.50",
+    "5w": "0",
+    "best": "2/45",
+    "ct/st": "1/–"
+   },
+   "t20i": {
+    "matches": "3",
+    "runs": "0",
+    "bat_avg": "0",
+    "100s/50s": "0/0",
+    "hs": "0",
+    "balls": "60",
+    "wkts": "6",
+    "bowl_avg": "12.50",
+    "5w": "0",
+    "best": "2/21",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1989-01-01",
+  "cricsheet_id": "a35849be",
+  "cricsheet_name": "Rokhan Barakzai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Abdul Rahman",
+  "wiki_title": "Abdul Rahman (Afghan cricketer, born 2001)",
+  "cricinfo_id": "819507",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "57",
+    "first": "2023",
+    "last": "2023",
+    "matches": "3",
+    "runs": "10",
+    "hs": "4*",
+    "bat_avg": "5.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "104",
+    "wkts": "1",
+    "best": "1/83",
+    "bowl_avg": "133.00",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "819507"
+   ],
+   "wikidata": [
+    "819507"
+   ]
+  },
+  "wikidata": "Q74263217",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium fast",
+  "role": "Bowler",
+  "infobox_as_of": "20 March 2025",
+  "infobox": {
+   "odi": {
+    "matches": "3",
+    "runs": "10",
+    "bat_avg": "5.00",
+    "100s/50s": "0/0",
+    "hs": "4*",
+    "balls": "104",
+    "wkts": "1",
+    "bowl_avg": "133.00",
+    "5w": "0",
+    "best": "1/83",
+    "ct/st": "0/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": {
+    "matches": "27",
+    "runs": "106",
+    "bat_avg": "13.25",
+    "100s/50s": "0/0",
+    "hs": "31*",
+    "balls": "558",
+    "wkts": "28",
+    "bowl_avg": "26.82",
+    "5w": "0",
+    "best": "4/21",
+    "ct/st": "10/–"
+   }
+  },
+  "id_conflict": false,
+  "dob": "2001-01-01",
+  "cricsheet_id": "5fd762d5",
+  "cricsheet_name": "Abdul Rahman Rahmani",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Bilal Sami",
+  "wiki_title": "Bilal Sami",
+  "cricinfo_id": "1174726",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "64",
+    "first": "2024",
+    "last": "2026",
+    "matches": "3",
+    "runs": "2",
+    "hs": "2*",
+    "bat_avg": "",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "114",
+    "wkts": "5",
+    "best": "5/33",
+    "bowl_avg": "29.60",
+    "five_w": "1",
+    "catches": "2",
+    "stumpings": "0"
+   },
+   "t20i": {
+    "cap": "63",
+    "first": "2025",
+    "last": "2025",
+    "matches": "1",
+    "runs": "",
+    "hs": "",
+    "fifties": "",
+    "hundreds": "",
+    "bat_avg": "",
+    "balls": "24",
+    "wkts": "1",
+    "best": "1/31",
+    "bowl_avg": "31.00",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1174726"
+   ],
+   "t20i_list": [
+    "1174726"
+   ],
+   "wikidata": [
+    "1174726"
+   ]
+  },
+  "wikidata": "Q131528188",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right arm medium",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "3",
+    "runs": "2",
+    "bat_avg": "–",
+    "100s/50s": "0/0",
+    "hs": "2*",
+    "balls": "114",
+    "wkts": "5",
+    "bowl_avg": "29.60",
+    "5w": "1",
+    "best": "5/33",
+    "ct/st": "2/–"
+   },
+   "t20i": {
+    "matches": "1",
+    "runs": "–",
+    "bat_avg": "–",
+    "100s/50s": "–/–",
+    "hs": "–",
+    "balls": "24",
+    "wkts": "1",
+    "bowl_avg": "31.00",
+    "5w": "0",
+    "best": "1/31",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": null,
+  "cricsheet_id": "4fef092b",
+  "cricsheet_name": "Bilal Sami",
+  "league_t20": {
+   "matches": 3,
+   "first": "2025-12-29",
+   "last": "2026-01-09",
+   "runs": 1,
+   "balls_faced": 5,
+   "bat_avg": 0.5,
+   "bat_sr": 20.0,
+   "balls_bowled": 48,
+   "wkts": 2,
+   "bowl_avg": 38.0,
+   "econ": 9.5,
+   "leagues": {
+    "bpl": 3
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Nasim Baras",
+  "wiki_title": "Nasim Baras",
+  "cricinfo_id": "543633",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "29",
+    "first": "2015",
+    "last": "2015",
+    "matches": "3",
+    "runs": "1",
+    "hs": "1",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "1.00",
+    "balls": "48",
+    "wkts": "2",
+    "best": "1/11",
+    "bowl_avg": "28.00",
+    "catches": "3",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "543633"
+   ],
+   "wikidata": [
+    "543633"
+   ]
+  },
+  "wikidata": "Q6967088",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": "Bowler",
+  "infobox_as_of": "21 June",
+  "infobox": {
+   "odi": null,
+   "t20i": null,
+   "list_a": null,
+   "t20": {
+    "matches": "4",
+    "runs": "17",
+    "bat_avg": "8.50",
+    "100s/50s": "0/0",
+    "hs": "13",
+    "balls": "64",
+    "wkts": "3",
+    "bowl_avg": "28.00",
+    "5w": "0",
+    "best": "1/16",
+    "ct/st": "0/–"
+   }
+  },
+  "id_conflict": false,
+  "dob": "1993-05-30",
+  "cricsheet_id": "cecfd092",
+  "cricsheet_name": "M Nasim Baras",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Nijat Masood",
+  "wiki_title": "Nijat Masood",
+  "cricinfo_id": "913843",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "46",
+    "first": "2022",
+    "last": "2022",
+    "matches": "3",
+    "runs": "4",
+    "hs": "4*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "",
+    "balls": "66",
+    "wkts": "4",
+    "best": "3/39",
+    "bowl_avg": "23.75",
+    "catches": "1",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "913843"
+   ],
+   "wikidata": [
+    "913843"
+   ]
+  },
+  "wikidata": "Q35781720",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": null,
+   "t20i": {
+    "matches": "3",
+    "runs": "4",
+    "bat_avg": "–",
+    "100s/50s": "0/0",
+    "hs": "4*",
+    "balls": "66",
+    "wkts": "4",
+    "bowl_avg": "23.75",
+    "5w": "0",
+    "best": "3/39",
+    "ct/st": "1/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1998-12-30",
+  "cricsheet_id": "a1bf281e",
+  "cricsheet_name": "Nijat Masood",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Hasti Gul",
+  "wiki_title": "Hasti Gul",
+  "cricinfo_id": "320281",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "4",
+    "first": "2009",
+    "last": "2009",
+    "matches": "2",
+    "runs": "23",
+    "hs": "23*",
+    "bat_avg": "",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "114",
+    "wkts": "3",
+    "best": "2/48",
+    "bowl_avg": "24.33",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "320281"
+   ]
+  },
+  "wikidata": "Q3532340",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium",
+  "role": null,
+  "infobox_as_of": "17 April",
+  "infobox": {
+   "odi": {
+    "matches": "2",
+    "runs": "23",
+    "bat_avg": "–",
+    "100s/50s": "–/–",
+    "hs": "23*",
+    "balls": "114",
+    "wkts": "3",
+    "bowl_avg": "24.33",
+    "5w": "–",
+    "best": "2/48",
+    "ct/st": "–/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1984-01-01",
+  "cricsheet_id": "500759b6",
+  "cricsheet_name": "Hasti Gul",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Noor-ul-Haq",
+  "wiki_title": "Noor-ul-Haq (cricketer)",
+  "cricinfo_id": "307652",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "20",
+    "first": "2010",
+    "last": "2010",
+    "matches": "2",
+    "runs": "12",
+    "hs": "12",
+    "bat_avg": "6.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "1",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "307652"
+   ]
+  },
+  "wikidata": "Q12985290",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Leg break",
+  "role": null,
+  "infobox_as_of": "1 October",
+  "infobox": {
+   "odi": {
+    "matches": "2",
+    "runs": "12",
+    "bat_avg": "6.00",
+    "100s/50s": "&ndash;/&ndash;",
+    "hs": "12",
+    "balls": "&ndash;",
+    "wkts": "&ndash;",
+    "bowl_avg": "&ndash;",
+    "5w": "&ndash;",
+    "best": "&ndash;",
+    "ct/st": "1 /&ndash;"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1992-04-02",
+  "cricsheet_id": "2b46d4de",
+  "cricsheet_name": "Noor-ul-Haq",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Abdullah Mazari",
+  "wiki_title": "Abdullah Mazari",
+  "cricinfo_id": "390752",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "21",
+    "first": "2010",
+    "last": "2010",
+    "matches": "2",
+    "runs": "3",
+    "hs": "3",
+    "bat_avg": "3.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "96",
+    "wkts": "2",
+    "best": "1/18",
+    "bowl_avg": "24.50",
+    "five_w": "0",
+    "catches": "1",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "390752"
+   ],
+   "wikidata": [
+    "390752"
+   ]
+  },
+  "wikidata": "Q4666031",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": "All-rounder",
+  "infobox_as_of": "30 September",
+  "infobox": {
+   "odi": {
+    "matches": "2",
+    "runs": "3",
+    "bat_avg": "3.00",
+    "100s/50s": "0/0",
+    "hs": "3",
+    "balls": "16",
+    "wkts": "2",
+    "bowl_avg": "24.50",
+    "5w": "0",
+    "best": "1/18",
+    "ct/st": "1/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": {
+    "matches": "13",
+    "runs": "–",
+    "bat_avg": "–",
+    "100s/50s": "–",
+    "hs": "–",
+    "balls": "11",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   }
+  },
+  "id_conflict": false,
+  "dob": "1987-03-07",
+  "cricsheet_id": "4846ef98",
+  "cricsheet_name": "Abdullah Mazari",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Mohibullah Oryakhel",
+  "wiki_title": "Mohibullah Oryakhel",
+  "cricinfo_id": "524044",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "28",
+    "first": "2013",
+    "last": "2013",
+    "matches": "2",
+    "runs": "",
+    "hs": "",
+    "bat_avg": "",
+    "fifties": "",
+    "hundreds": "",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "",
+    "catches": "2",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "524044"
+   ],
+   "wikidata": [
+    "524044"
+   ]
+  },
+  "wikidata": "Q21063693",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium fast",
+  "role": "Batsman",
+  "infobox_as_of": "23 July 2016",
+  "infobox": {
+   "odi": {
+    "matches": "2",
+    "runs": "&ndash;",
+    "bat_avg": "",
+    "100s/50s": "/",
+    "hs": "",
+    "balls": "&ndash;",
+    "wkts": "&ndash;",
+    "bowl_avg": "&ndash;",
+    "5w": "&ndash;",
+    "best": "&ndash;",
+    "ct/st": "02/&ndash;"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1992-10-12",
+  "cricsheet_id": "694dc2aa",
+  "cricsheet_name": "Mohibullah Oryakhel",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Bashir Ahmad",
+  "wiki_title": "Bashir Ahmad",
+  "cricinfo_id": "1364163",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "62",
+    "first": "2025",
+    "last": "2025",
+    "matches": "1",
+    "runs": "2",
+    "hs": "2*",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "",
+    "balls": "18",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   },
+   "odi": {
+    "cap": "65",
+    "first": "2025",
+    "last": "2025",
+    "matches": "2",
+    "runs": "0",
+    "hs": "0*",
+    "bat_avg": "",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "36",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "2",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "1364163"
+   ]
+  },
+  "wikidata": "Q809970",
+  "full_name": null,
+  "batting_style": null,
+  "bowling_style": null,
+  "role": null,
+  "infobox_as_of": null,
+  "infobox": {
+   "odi": null,
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": null,
+  "aliases": [
+   "Bashir Ahmad (Afghan cricketer)"
+  ],
+  "cricsheet_id": "7a02494c",
+  "cricsheet_name": "Bashir Ahmad (2)",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Wafadar Momand",
+  "wiki_title": "Wafadar Momand",
+  "cricinfo_id": "973945",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "51",
+    "first": "2023",
+    "last": "2024",
+    "matches": "2",
+    "runs": "",
+    "hs": "",
+    "fifties": "",
+    "hundreds": "",
+    "bat_avg": "",
+    "balls": "31",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "973945"
+   ],
+   "wikidata": [
+    "973945"
+   ]
+  },
+  "wikidata": "Q35953048",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium",
+  "role": "Bowler",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": null,
+   "t20i": {
+    "matches": "2",
+    "runs": "–",
+    "bat_avg": "–",
+    "100s/50s": "–/–",
+    "hs": "–",
+    "balls": "31",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2000-02-01",
+  "cricsheet_id": "6b68d7b3",
+  "cricsheet_name": "Wafadar Momand",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Wafiullah Tarakhil",
+  "wiki_title": "Wafiullah Tarakhil",
+  "cricinfo_id": "1364157",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "61",
+    "first": "2025",
+    "last": "2025",
+    "matches": "2",
+    "runs": "12",
+    "hs": "11",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "6.00",
+    "balls": "18",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "1364157"
+   ]
+  },
+  "wikidata": null,
+  "full_name": null,
+  "batting_style": null,
+  "bowling_style": null,
+  "role": null,
+  "infobox_as_of": null,
+  "infobox": {
+   "odi": null,
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": null,
+  "cricsheet_id": "626d183d",
+  "cricsheet_name": "Wafiullah Tarakhil",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Ahmed Shah",
+  "wiki_title": "Ahmed Shah (Afghan cricketer)",
+  "cricinfo_id": "318337",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "12",
+    "first": "2009",
+    "last": "2009",
+    "matches": "1",
+    "runs": "2",
+    "hs": "2",
+    "bat_avg": "2.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "6",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "318337"
+   ],
+   "wikidata": [
+    "318337"
+   ]
+  },
+  "wikidata": "Q3532304",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": null,
+  "infobox_as_of": "11 September",
+  "infobox": {
+   "odi": {
+    "matches": "1",
+    "runs": "2",
+    "bat_avg": "2.00",
+    "100s/50s": "0/0",
+    "hs": "2",
+    "balls": "6",
+    "wkts": "0",
+    "bowl_avg": "&ndash;",
+    "5w": "&ndash;",
+    "best": "&ndash;",
+    "ct/st": "0/&ndash;"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1983-10-20",
+  "cricsheet_id": "63500b26",
+  "cricsheet_name": "Ahmed Shah",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Zakiullah Zaki",
+  "wiki_title": "Zakiullah Zaki",
+  "cricinfo_id": "307657",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "26",
+    "first": "2012",
+    "last": "2012",
+    "matches": "1",
+    "runs": "3",
+    "hs": "3*",
+    "bat_avg": "",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "24",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "307657"
+   ],
+   "wikidata": [
+    "307657"
+   ]
+  },
+  "wikidata": "Q23664890",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Leg break",
+  "role": "Batsman",
+  "infobox_as_of": null,
+  "infobox": {
+   "odi": {
+    "matches": "1",
+    "runs": "3",
+    "bat_avg": "&ndash;",
+    "100s/50s": "0/0",
+    "hs": "3",
+    "balls": "24",
+    "wkts": "&ndash;",
+    "bowl_avg": "&ndash;",
+    "5w": "&ndash;",
+    "best": "&ndash;",
+    "ct/st": "0/&ndash;"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1990-07-15",
+  "cricsheet_id": "76a582b8",
+  "cricsheet_name": "Zakiullah Zaki",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Zia-ur-Rehman",
+  "wiki_title": "Zia-ur-Rehman",
+  "cricinfo_id": "633374",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "odi": {
+    "cap": "58",
+    "first": "2023",
+    "last": "2023",
+    "matches": "1",
+    "runs": "5",
+    "hs": "5",
+    "bat_avg": "5.00",
+    "fifties": "0",
+    "hundreds": "0",
+    "balls": "21",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "five_w": "0",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "odi_list": [
+    "633374"
+   ],
+   "wikidata": [
+    "633374"
+   ]
+  },
+  "wikidata": "Q28536847",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Left-arm orthodox",
+  "role": "Bowling all-rounder",
+  "infobox_as_of": "19 July 2026",
+  "infobox": {
+   "odi": {
+    "matches": "1",
+    "runs": "5",
+    "bat_avg": "5.00",
+    "100s/50s": "0/0",
+    "hs": "5",
+    "balls": "21",
+    "wkts": "0",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   },
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1997-12-30",
+  "cricsheet_id": "fda22a2e",
+  "cricsheet_name": "Zia-ur-Rehman",
+  "league_t20": {
+   "matches": 1,
+   "first": "2023-01-14",
+   "last": "2023-01-14",
+   "runs": 0,
+   "balls_faced": 0,
+   "bat_avg": null,
+   "bat_sr": null,
+   "balls_bowled": 24,
+   "wkts": 0,
+   "bowl_avg": null,
+   "econ": 6.5,
+   "leagues": {
+    "bpl": 1
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Zamir Khan",
+  "wiki_title": "Zamir Khan",
+  "cricinfo_id": "542323",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "19",
+    "first": "2012",
+    "last": "2012",
+    "matches": "1",
+    "runs": "",
+    "hs": "",
+    "fifties": "",
+    "hundreds": "",
+    "bat_avg": "",
+    "balls": "24",
+    "wkts": "1",
+    "best": "1/26",
+    "bowl_avg": "26.00",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "542323"
+   ],
+   "wikidata": [
+    "542323"
+   ]
+  },
+  "wikidata": "Q8065876",
+  "full_name": null,
+  "batting_style": "Left-handed",
+  "bowling_style": "Slow left-arm orthodox",
+  "role": null,
+  "infobox_as_of": "16 March",
+  "infobox": {
+   "odi": null,
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "1992-03-16",
+  "cricsheet_id": "21d46f15",
+  "cricsheet_name": "Zamir Khan",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Fazal Niazai",
+  "wiki_title": "Fazal Niazai",
+  "cricinfo_id": "533949",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "39",
+    "first": "2019",
+    "last": "2019",
+    "matches": "1",
+    "runs": "12",
+    "hs": "12",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "12.00",
+    "balls": "6",
+    "wkts": "0",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "533949"
+   ],
+   "wikidata": [
+    "533949"
+   ]
+  },
+  "wikidata": "Q28549249",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": "Right-arm medium",
+  "role": null,
+  "infobox_as_of": "20 September 2019",
+  "infobox": {
+   "odi": null,
+   "t20i": null,
+   "list_a": {
+    "matches": "4",
+    "runs": "12",
+    "bat_avg": "4.00",
+    "100s/50s": "0/0",
+    "hs": "11",
+    "balls": "138",
+    "wkts": "6",
+    "bowl_avg": "16.33",
+    "5w": "0",
+    "best": "3/20",
+    "ct/st": "0/–"
+   },
+   "t20": {
+    "matches": "2",
+    "runs": "24",
+    "bat_avg": "24.00",
+    "100s/50s": "0/0",
+    "hs": "21",
+    "balls": "–",
+    "wkts": "–",
+    "bowl_avg": "–",
+    "5w": "–",
+    "best": "–",
+    "ct/st": "0/–"
+   }
+  },
+  "id_conflict": false,
+  "dob": "1990-02-01",
+  "cricsheet_id": "0dd86d5f",
+  "cricsheet_name": "Fazal Niazai",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Farmanullah Safi",
+  "wiki_title": "Farmanullah Safi",
+  "cricinfo_id": "976429",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "64",
+    "first": "2025",
+    "last": "2025",
+    "matches": "1",
+    "runs": "12",
+    "hs": "12",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "12.00",
+    "balls": "18",
+    "wkts": "2",
+    "best": "2/19",
+    "bowl_avg": "9.50",
+    "catches": "0",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "976429"
+   ]
+  },
+  "wikidata": null,
+  "full_name": null,
+  "batting_style": null,
+  "bowling_style": null,
+  "role": null,
+  "infobox_as_of": null,
+  "infobox": {
+   "odi": null,
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": null,
+  "cricsheet_id": "3f607519",
+  "cricsheet_name": "Farmanullah",
+  "league_t20": {
+   "matches": 7,
+   "first": "2024-12-30",
+   "last": "2025-02-01",
+   "runs": 44,
+   "balls_faced": 50,
+   "bat_avg": 14.67,
+   "bat_sr": 88.0,
+   "balls_bowled": 114,
+   "wkts": 5,
+   "bowl_avg": 36.6,
+   "econ": 9.63,
+   "leagues": {
+    "bpl": 7
+   }
+  },
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ },
+ {
+  "name": "Imran Mir",
+  "wiki_title": "Imran Mir",
+  "cricinfo_id": "976445",
+  "captain": false,
+  "keeper": false,
+  "lists": {
+   "t20i": {
+    "cap": "65",
+    "first": "2025",
+    "last": "2025",
+    "matches": "1",
+    "runs": "5",
+    "hs": "5",
+    "fifties": "0",
+    "hundreds": "0",
+    "bat_avg": "5.00",
+    "balls": "",
+    "wkts": "",
+    "best": "",
+    "bowl_avg": "",
+    "catches": "1",
+    "stumpings": "0"
+   }
+  },
+  "id_sources": {
+   "t20i_list": [
+    "976445"
+   ],
+   "wikidata": [
+    "976445"
+   ]
+  },
+  "wikidata": "Q43384685",
+  "full_name": null,
+  "batting_style": "Right-handed",
+  "bowling_style": null,
+  "role": null,
+  "infobox_as_of": "20 October 2017",
+  "infobox": {
+   "odi": null,
+   "t20i": null,
+   "list_a": null,
+   "t20": null
+  },
+  "id_conflict": false,
+  "dob": "2001-09-30",
+  "cricsheet_id": "d6c44098",
+  "cricsheet_name": "Imran Mir",
+  "league_t20": null,
+  "cricsheet_t20i": null,
+  "cricsheet_odi": null
+ }
+]
