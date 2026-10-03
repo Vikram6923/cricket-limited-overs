@@ -78,11 +78,15 @@ def make_team(spec: dict, fmt: str, ctx: dict | None = None) -> Team:
         # design T2-9: pick the XI from a larger squad
         squad = [player(fmt, x, years=yrs, years_mode=ym) if not isinstance(x, Player) else x
                  for x in spec["squad"]]
+        overseas = set(spec.get("overseas") or [])   # league overseas limit ("max_overseas", e.g. IPL 4)
+        for p in squad:
+            p.overseas = p.id in overseas
         # ctx (from Match): the selection's random stream, venue and the scoring level the captain sees
         ctx = ctx or {}
         ps = captain.select_xi(squad, fmt, ctx.get("base") or baseline(fmt, spec.get("comp") or FORMATS[fmt]["intl"],
                                                                        spec.get("year") or 2025),
-                               rng=ctx.get("rng"), venue=ctx.get("venue"), runs_factor=ctx.get("runs_factor", 1.0))
+                               rng=ctx.get("rng"), venue=ctx.get("venue"), runs_factor=ctx.get("runs_factor", 1.0),
+                               max_overseas=spec.get("max_overseas"))
     by_id = {p.id: p for p in ps}
     if spec.get("order"):
         order = [by_id[i] for i in spec["order"] if i in by_id]

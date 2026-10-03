@@ -196,8 +196,10 @@ class Rules:
     """Hard constraints as fast sums: a keeper (if the squad has one) and enough bowling for the overs (or as much
     as the squad can offer). cap[i] = overs player i can be expected to bowl (captain.player_capacity)."""
 
-    def __init__(self, squad: list[Player], fmt: str):
+    def __init__(self, squad: list[Player], fmt: str, max_overseas: int | None = None):
         from .captain import player_capacity
+        self.os = [p.overseas for p in squad]
+        self.max_os = max_overseas if max_overseas is not None else XI
         self.cap = [player_capacity(p, fmt) for p in squad]
         self.kp = [p.keeper for p in squad]
         self.has_keeper = any(self.kp)
@@ -206,24 +208,41 @@ class Rules:
 
     def ok(self, S) -> bool:
         return (not self.has_keeper or any(self.kp[i] for i in S)) and \
-            sum(self.cap[i] for i in S if not self.kp[i]) >= self.need
+            sum(self.cap[i] for i in S if not self.kp[i]) >= self.need and \
+            sum(1 for i in S if self.os[i]) <= self.max_os
 
     def best_balanced(self, u: list[float], bowler: list[bool], comp: dict) -> list[int]:
         """Exact best valid XI under sum(u) + comp[number of bowlers]: for each number j, the best j bowlers and the
         best 11 - j others (the best keeper always among the others), keep the best that meets the rules."""
-        bw = sorted((i for i in range(len(u)) if bowler[i]), key=lambda i: -u[i])
-        ot = sorted((i for i in range(len(u)) if not bowler[i]), key=lambda i: -u[i])
-        keeper = next((i for i in ot if self.kp[i]), None)
+        order = sorted(range(len(u)), key=lambda i: -u[i])
+        nbw = sum(1 for i in order if bowler[i])
         best, best_v = None, -1e18
         for j in range(0, XI + 1):
-            if str(j) not in comp or j > len(bw) or XI - j > len(ot):
+            if str(j) not in comp or j > nbw or XI - j > len(u) - nbw:
                 continue
-            others = ot[:XI - j]
-            if keeper is not None and keeper not in others:
-                if XI - j == 0:
+            # best keeper allowed first, then by utility within the quotas (j bowlers, 11 - j others) and the
+            # overseas limit
+            S, nb, no, os_ = [], 0, 0, 0
+            if self.has_keeper:
+                k = next((i for i in order if self.kp[i] and not bowler[i]), None)
+                if k is None or XI - j == 0:
                     continue
-                others = others[:-1] + [keeper]
-            S = bw[:j] + others
+                S, no, os_ = [k], 1, int(self.os[k])
+            for i in order:
+                if i in S:
+                    continue
+                if self.os[i] and os_ >= self.max_os:
+                    continue
+                if bowler[i] and nb < j:
+                    nb += 1
+                elif not bowler[i] and no < XI - j:
+                    no += 1
+                else:
+                    continue
+                S.append(i)
+                os_ += int(self.os[i])
+            if len(S) < XI:
+                continue
             if not self.ok(S):
                 continue
             v = sum(u[i] for i in S) + comp[str(j)]
@@ -241,7 +260,7 @@ class Rules:
         for i in order:
             if len(S) == XI:
                 break
-            if i in S:
+            if i in S or (self.os[i] and sum(1 for k in S if self.os[k]) >= self.max_os):
                 continue
             rest = sorted((self.cap[j] for j in order if j not in S and j != i and not self.kp[j]), reverse=True)
             have = sum(self.cap[j] for j in S if not self.kp[j]) + (0 if self.kp[i] else self.cap[i])
@@ -270,7 +289,7 @@ def weights(m: dict) -> list[float]:
 
 
 def choose(squad: list[Player], fmt: str, base: dict, rng: random.Random | None = None, venue: str | None = None,
-           runs_factor: float = 1.0) -> list[Player] | None:
+           runs_factor: float = 1.0, max_overseas: int | None = None) -> list[Player] | None:
     """The XI: the best valid XI under the learned utilities, with each player's ratings redrawn from their
     uncertainty when a random stream is given. None if no fitted model."""
     m = model(fmt)
@@ -283,5 +302,5 @@ def choose(squad: list[Player], fmt: str, base: dict, rng: random.Random | None 
         noise = [{k: rng.gauss(0.0, sd) for k, sd in posterior_sd(p, fmt).items()} for p in squad]
     rows = features(squad, fmt, base, venue_spin(fmt, venue), runs_factor, {p.id: p.caps for p in squad}, noise,
                     m["balls_by_slot"])
-    S = Rules(squad, fmt).best_balanced(utilities(rows, weights(m)), bowler_mask(squad, fmt), m["composition"])
+    S = Rules(squad, fmt, max_overseas).best_balanced(utilities(rows, weights(m)), bowler_mask(squad, fmt), m["composition"])
     return [squad[i] for i in S] if len(S) == XI else None

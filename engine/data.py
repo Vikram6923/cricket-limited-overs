@@ -58,6 +58,7 @@ class Player:
     bowl_overs_per_match: float = 0.0
     caps: int = 0                                          # matches played (to the end of the period, if any)
     bat_conf: float = 0.0                                  # rating confidence (shrinkage weight, 0..1)
+    overseas: bool = False                                 # counts toward a league's overseas limit
     bowl_conf: float = 0.0
     sel_opm: float | None = None                           # overs per match in the period (for XI selection)
     ref: dict = field(default_factory=dict)    # readable reference numbers from the ratings

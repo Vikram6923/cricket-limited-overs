@@ -280,6 +280,15 @@ article infobox. Players who carried on past 2002 keep a pre-Cricsheet part (Wik
   2002 (order from role); appearances per year are spread evenly over a career.
 - Rebuild: `build_pre2002.py` (after build_raw_stats) -> `build_ratings.py`.
 
+## League presets and overseas limit (2026-10-03)
+
+`scripts/build_league_presets.py` (default IPL 2026): a preset squad per franchise = every rated player who played
+for it that season (16-24 players). Overseas = played internationals for a country other than India. Teams carry
+`overseas` + `max_overseas` (4); the XI picker enforces it (`selection.Rules`). Check: a 10-team double round robin
++ IPL playoffs (94 matches, IPL 2026 conditions): never more than 4 overseas in an XI; 1st-innings mean 202.
+Not modelled: Impact Player; the real 14-match league schedule. Editing a preset in Team Builder drops the
+overseas list (saved teams store players only).
+
 ## Rebuild order
 
 `python -m engine.fit.fit_basics` -> `python -m engine.fit.fit_situation` -> `python -m engine.fit.fit_toss` ->

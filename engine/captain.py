@@ -68,7 +68,7 @@ def xi_ok(xi: list[Player], squad: list[Player], fmt: str) -> bool:
 
 
 def select_xi(squad: list[Player], fmt: str, base: dict, rng: random.Random | None = None, venue: str | None = None,
-              runs_factor: float = 1.0, learned: bool = True) -> list[Player]:
+              runs_factor: float = 1.0, learned: bool = True, max_overseas: int | None = None) -> list[Player]:
     """Pick the XI from a squad. With a fitted model (data/engine/selection_{fmt}.json, engine/selection.py) the
     choice follows real captains' selections: sampled with `rng` (close calls rotate; the venue's spin help and the
     ground/pitch scoring level shift it), or the most likely XI without one. Otherwise, or if no sampled XI meets
@@ -77,7 +77,7 @@ def select_xi(squad: list[Player], fmt: str, base: dict, rng: random.Random | No
         return list(squad)
     if learned:
         from . import selection
-        xi = selection.choose(squad, fmt, base, rng, venue, runs_factor)
+        xi = selection.choose(squad, fmt, base, rng, venue, runs_factor, max_overseas)
         if xi:
             return xi
     return rule_xi(squad, fmt, base)

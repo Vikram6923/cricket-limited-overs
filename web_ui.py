@@ -73,7 +73,11 @@ def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SI
     if not t:
         raise ValueError(f"no saved team called {entry!r}")
     ids = [p["id"] for p in t["players"]]
-    return {"name": t["name"], "squad" if len(ids) > 11 else "players": ids}
+    spec = {"name": t["name"], "squad" if len(ids) > 11 else "players": ids}
+    for k in ("overseas", "max_overseas"):   # league presets (e.g. IPL: at most 4 overseas players in the XI)
+        if t.get(k) is not None:
+            spec[k] = t[k]
+    return spec
 
 
 def check_entries(entries: list, fmt: str) -> str | None:
