@@ -10,7 +10,7 @@ is checked against reality by replaying ~1,500 real matches with their real line
 [Does it look like real cricket?](#does-it-look-like-real-cricket)).
 
 > **Status:** the data pipeline, player ratings, match engine (calibrated), series/tournament runners and a
-> browser UI are built. Historical teams, the fantasy draft and charts are next. See [Roadmap](#roadmap).
+> browser UI with historical teams, a fantasy draft and match charts are built. See [Roadmap](#roadmap).
 
 ## Quick start
 
@@ -27,18 +27,24 @@ python web_ui.py
 ```
 
 This opens **http://localhost:5070** (use `--port` to change it, `--no-browser` to not open a tab). It works
-offline. Three modes:
+offline. Modes:
 
 - **Match / Series:** two saved teams play one match or a series of up to 7.
 - **Tournament:** pick teams; single or double round robin, one league or two groups, then semi-finals, IPL-style
   playoffs, a final or none.
+- **Classic Series / Classic Tournament:** a nation over a range of years (ODIs from 2002, T20Is from 2005), e.g.
+  Australia 2003-07 v India 2021-24. The squad is the period's 20 most-capped players (15 / 25 / everyone also
+  offered), rated on those years, and batting where they batted then.
+- **Fantasy Draft:** you and computer teams draft 15-man squads in snake order from the player pool of chosen
+  years (full-member internationals, optionally franchise leagues), then play a league with knockouts.
 - **Team Builder:** search the ~6,500 rated players, pick 11-15 (with more than 11 the captain picks the XI for
   each match) and save the team. Ten preset national squads are included.
 
 For every run choose the format, the year and whose conditions to play in (full-member internationals or a league),
 optionally venues and a seed. The results page has a summary (points tables with net run rate, knockouts, top
-performers, records), every match (Previous / Next, match report, scorecard and innings log), sortable batting and
-bowling tables and the MVP race (official and balanced). Saved teams go in `data/teams.json` (not in git).
+performers, records), every match (Previous / Next, match report, run worm, Manhattan and win-probability
+charts, scorecard and innings log), sortable batting and bowling tables, the MVP race (official and balanced) and,
+after a draft, the draft board. Saved teams go in `data/teams.json` (not in git).
 
 ### From Python
 
@@ -78,6 +84,22 @@ Useful options:
 | `seed` | makes the match reproducible |
 | team `"squad": [ids]` | give 12+ players and let the captain pick a balanced XI |
 | team `"order"`, `"keeper"`, `"captain"` | override the batting order, keeper and captain |
+| team `"years": [2007, 2011]` | rate the players on those years only (and use their batting slots of then) |
+
+Historical teams and drafts from Python:
+
+```python
+from engine.history import historical_team
+from engine.draft import Draft
+
+aus = historical_team("odi", "Australia", 2003, 2007)    # {"name", "squad", "years"}
+ind = historical_team("odi", "India", 2011, 2011)
+card = simulate_match(aus, ind, fmt="odi", comp="odi_full", year=2011, seed=1)
+
+d = Draft("t20", 2015, 2025, ["London", "Mumbai", "Sydney", "Cape Town"], user=None, seed=1)
+d.run_cpu()                                              # computer drafts every team
+teams = d.team_specs()                                   # ready for play_tournament
+```
 
 Teams from different eras can meet. Ratings are relative to each player's own era, so the 2007 Australians can play
 the 2023 Indians under 2023 conditions, or under 2007 conditions.
@@ -188,6 +210,9 @@ engine/            match engine (library)
   captain.py       XI selection, batting order, bowling plan, toss
   situation.py     settling in, intent, par, matchups, win probability
   conditions.py    venue factor, pitch of the day
+  periods.py       ratings for a year range
+  history.py       historical (nation + years) teams
+  draft.py         fantasy draft
   render.py        text scorecard and match report
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
@@ -195,7 +220,7 @@ engine/            match engine (library)
 web_ui.py          Flask server for the browser UI
 webui/             the page: index.html, style.css, app.js (no external scripts)
 scripts/           data pipeline: download, raw stats, Afghanistan, styles, ratings, validation
-data/              ratings_*.json, engine/*.json (fitted tables), raw_stats/ (derived),
+data/              ratings_*.json (+ ratings_*_years.json for year ranges), engine/*.json (fitted tables), raw_stats/ (derived),
                    teams_default.json (preset squads);
                    raw/ and cache/ are rebuilt locally and not in git
 docs/              design document and calibration/progress log
@@ -211,8 +236,8 @@ tests/             engine and tournament tests
 - [x] Series and league/tournament runners (points table with net run rate, knockouts, stats, records, MVP)
 - [x] Browser UI (Flask, works offline): single match, series, World Cup / IPL-style tournaments, team builder,
       results pages with match reports, stats tables, records and MVP race
-- [ ] Historical teams, fantasy draft, worm and Manhattan charts
-- [ ] Pre-2002 players from Wikipedia; ratings for a chosen year range (historical teams)
+- [x] Historical teams (ratings for a year range), fantasy draft, worm / Manhattan / win-probability charts
+- [ ] Pre-2002 ODI players from Wikipedia career totals
 - [ ] Later: rain and DLS, Impact Player rule, player-v-player matchups
 
 ## Data, credits and licences

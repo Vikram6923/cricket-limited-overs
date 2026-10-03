@@ -428,11 +428,12 @@ def group_prior(A, E, groups, teams, teff):
 # ---------------------------------------------------------------------------------------------- fit
 
 def fit(fmt: str, until: int | None = None, iters: int = 25, opponent: bool = True, shrink: bool = True,
-        verbose: bool = True) -> dict:
+        verbose: bool = True, exclude: tuple = ()) -> dict:
+    """exclude: calendar years left out of the fit (held-out validation)."""
     data = merge_tiers(load_cells(fmt))
-    cells = {k: v for k, v in data["cells"].items() if until is None or k[3] <= until}
-    extras = {k: v for k, v in data["extras"].items() if until is None or k[2] <= until}
-    other = {k: v for k, v in data["other"].items() if until is None or k[2] <= until}
+    cells = {k: v for k, v in data["cells"].items() if (until is None or k[3] <= until) and k[3] not in exclude}
+    extras = {k: v for k, v in data["extras"].items() if (until is None or k[2] <= until) and k[2] not in exclude}
+    other = {k: v for k, v in data["other"].items() if (until is None or k[2] <= until) and k[2] not in exclude}
     base = baselines(cells, extras, other)
 
     bat_ids = sorted({k[0] for k in cells})
@@ -544,6 +545,7 @@ def fit(fmt: str, until: int | None = None, iters: int = 25, opponent: bool = Tr
             base[key][m] *= v
     base.update(full_member_baselines(fmt, {"bat_ids": bat_ids, "bowl_ids": bowl_ids, "bat": bat, "bowl": bowl},
                                       until))
+    years = year_stats(cb, cw, ckey, balls, A, e0, var_runs, bat, bowl, opponent)
 
     # phase indexes: overall index adjusted by the player's own phase record, shrunk toward the overall index
     phase = {"bat": {}, "bowl": {}}
@@ -612,7 +614,30 @@ def fit(fmt: str, until: int | None = None, iters: int = 25, opponent: bool = Tr
             "bat": bat, "bowl": bowl, "fits": fits, "phase": phase, "simple": simple,
             "bat_role": bat_role, "bowl_role": bowl_role, "bat_team": bat_team, "bowl_team": bowl_team,
             "bat_info": bat_info, "bowl_info": bowl_info, "names": data["names"],
-            "nb_balls": nb_balls, "nw_balls": nw_balls, "styles": styles, "team_levels": tl}
+            "nb_balls": nb_balls, "nw_balls": nw_balls, "styles": styles, "team_levels": tl, "years": years}
+
+
+YEAR_COLS = ("balls",) + tuple(f"{x}_{m}" for m in METRICS for x in ("A", "E")) + ("V_runs",)
+
+
+def year_stats(cb, cw, ckey, balls, A, e0, var_runs, bat, bowl, opponent=True) -> dict:
+    """Per player and calendar year, the sufficient statistics of the fit: actual (A) and expected (E) counts per
+    metric, where E already includes the fitted baseline and the opponents' final indexes, plus the runs variance.
+    The engine turns these into ratings for any year range (engine/periods.py) without refitting."""
+    out = {"bat": defaultdict(lambda: [0.0] * len(YEAR_COLS)), "bowl": defaultdict(lambda: [0.0] * len(YEAR_COLS))}
+    for k in range(len(cb)):
+        yr = ckey[k][1]
+        for side, i, opp in (("bat", cb[k], bowl), ("bowl", cw[k], bat)):
+            row = out[side][(i, yr)]
+            row[0] += balls[k]
+            o = cw[k] if side == "bat" else cb[k]
+            for n, m in enumerate(METRICS):
+                f = opp[m][o] if opponent else 1.0
+                row[1 + 2 * n] += A[m][k]
+                row[2 + 2 * n] += e0[m][k] * f
+                if m == "runs":
+                    row[-1] += var_runs[k] * f * f
+    return out
 
 
 def _load_json(path: Path, default):
@@ -1023,6 +1048,12 @@ def main(argv: list[str] | None = None) -> int:
         path = OUT / f"ratings_{fmt}{suffix}.json"
         path.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         write_csv(out, OUT / f"ratings_{fmt}{suffix}.csv")
+        yrs = {"cols": list(YEAR_COLS), "bat": {}, "bowl": {}}
+        for side, ids in (("bat", r["bat_ids"]), ("bowl", r["bowl_ids"])):
+            for (i, yr), row in sorted(r["years"][side].items()):
+                yrs[side].setdefault(ids[i], {})[str(yr)] = [int(row[0])] + [round(x, 3) for x in row[1:]]
+        (OUT / f"ratings_{fmt}_years{suffix}.json").write_text(
+            json.dumps(yrs, separators=(",", ":")), encoding="utf-8")
         m = out["meta"]
         print(f"  wrote {path.name}: {m['players']} players ({m['afghanistan_from_totals']} Afghanistan from Wikipedia totals only, "
               f"{m['afghanistan_blended_with_totals']} league ratings blended with Wikipedia totals; "

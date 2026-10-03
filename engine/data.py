@@ -93,8 +93,10 @@ def _prior(fmt: str, side: str, group: str, team: str) -> dict:
     return {ph: dict(out) for ph in PHASES}
 
 
-def player(fmt: str, pid: str, name: str | None = None, team: str | None = None) -> Player:
-    """Engine player from the ratings; unknown IDs get the role/team prior."""
+def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
+           years: tuple[int, int] | list | None = None) -> Player:
+    """Engine player from the ratings; unknown IDs get the role/team prior.
+    years = (first, last): rate him on those years only (engine/periods.py) and use his batting slots of then."""
     rec = ratings(fmt)["players"].get(pid)
     if rec is None:
         p = Player(id=pid, name=name or pid, team=team or "unknown", rated_bat=False, rated_bowl=False)
@@ -136,6 +138,9 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None)
     if not p.bowl_phase_share:
         p.bowl_phase_share = typical_phase_share(fmt, p.bowl_type)
     hist = _positions(fmt).get(pid)
+    if years:
+        _apply_period(p, fmt, int(years[0]), int(years[1]))
+        hist = period_positions(fmt, pid, int(years[0]), int(years[1])) or hist
     if hist:
         tot = sum(hist.values())
         p.opener_share = (hist.get(1, 0) + hist.get(2, 0)) / tot
@@ -157,6 +162,54 @@ def _positions(fmt: str) -> dict:
             for k, v in (r.get("positions") or {}).items():
                 h[int(k)] = h.get(int(k), 0) + v
     return out
+
+
+def _apply_period(p: Player, fmt: str, y1: int, y2: int) -> None:
+    """Scale the phase indexes by period / career index; the readable 'ref' numbers follow approximately."""
+    from .periods import period_ratios
+    ratios = period_ratios(fmt, y1, y2)
+    for side, rated in (("bat", p.rated_bat), ("bowl", p.rated_bowl)):
+        r = ratios[side].get(p.id)
+        if not rated or not r:
+            continue
+        idx = getattr(p, side)
+        setattr(p, side, {ph: {m: v * r.get(m, 1.0) for m, v in d.items()} for ph, d in idx.items()})
+        ref = dict(p.ref.get(side) or {})
+        ru, wk = r.get("runs", 1.0), r.get("wkt", 1.0) or 1.0
+        if side == "bat":
+            for k, f in (("avg", ru / wk), ("sr", ru)):
+                if ref.get(k) is not None:
+                    ref[k] = round(ref[k] * f, 1)
+        else:
+            for k, f in (("avg", ru / wk), ("econ", ru), ("sr", 1 / wk)):
+                if ref.get(k) is not None:
+                    ref[k] = round(ref[k] * f, 2)
+        ref["period"] = [y1, y2]
+        p.ref[side] = ref
+
+
+@lru_cache(maxsize=None)
+def year_records(fmt: str) -> dict:
+    """pid -> list of raw per-year records (T20: internationals and leagues), from data/raw_stats."""
+    files = ["players_odi.json"] if fmt == "odi" else ["players_t20.json", "players_t20_league.json"]
+    out: dict = {}
+    for f in files:
+        path = DATA / "raw_stats" / f
+        if path.exists():
+            for pid, r in json.loads(path.read_text(encoding="utf-8")).items():
+                out.setdefault(pid, []).append(r.get("by_year") or {})
+    return out
+
+
+def period_positions(fmt: str, pid: str, y1: int, y2: int) -> dict:
+    """Batting-position histogram over the given years (empty if he didn't bat then)."""
+    h: dict = {}
+    for by_year in year_records(fmt).get(pid, []):
+        for yr, rec in by_year.items():
+            if y1 <= int(yr) <= y2:
+                for k, v in (rec.get("pos") or {}).items():
+                    h[int(k)] = h.get(int(k), 0) + v
+    return h
 
 
 @lru_cache(maxsize=None)

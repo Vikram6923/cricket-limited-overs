@@ -81,13 +81,13 @@ async function init() {
   META = await api('/api/meta');
   document.querySelectorAll('.mode').forEach(b => b.onclick = () => setMode(b.dataset.mode));
   document.querySelectorAll('.tab').forEach(t => t.onclick = () => openTab(t.dataset.pane));
-  $('c-fmt').onchange = () => { fillConditions(); };
+  $('c-fmt').onchange = () => { fillConditions(); refreshClassic(); };
   $('c-comp').onchange = checkYear; $('c-year').oninput = checkYear;
   $('c-vsearch').oninput = filterVenues;
   fillSelect($('t-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
   ['t-rounds', 't-groups', 't-ko'].forEach(id => $(id).onchange = updateTournamentTotal);
   $('t-search').oninput = filterTeams;
-  fillConditions(); fillTeams(); initBuilder(); initMatchNav();
+  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initBuilder(); initMatchNav();
   $('go-btn').onclick = start;
   if (META.has_results) { $('last-btn').style.display = ''; $('home-note').textContent = 'Results from your last run are still available — click “View last results”.'; }
   if (META.job && META.job.status === 'running') poll();
@@ -156,17 +156,178 @@ function updateTournamentTotal() {
   $('t-total').textContent = k < 2 ? `${k} selected — pick at least 2` : `${k} teams · ${n} matches`;
 }
 
+/* classic (historical) teams: rows of from / to / nation */
+const NATIONS = {};
+async function nationsFor(y1, y2) {
+  const f = $('c-fmt').value, k = `${f}|${y1}|${y2}`;
+  if (!NATIONS[k]) NATIONS[k] = await api(`/api/nations?fmt=${f}&y1=${y1}&y2=${y2}`);
+  return NATIONS[k];
+}
+function classicRow(box, a, b, nation, removable) {
+  const row = document.createElement('div');
+  row.innerHTML = `<div class="hl-row"><input type="number" value="${a}" title="From"><input type="number" value="${b}" title="To"><select></select><button class="x" title="Remove"${removable ? '' : ' style="visibility:hidden"'}>✕</button></div><div class="err"></div>`;
+  const [ia, ib] = row.querySelectorAll('input'), sel = row.querySelector('select'), err = row.querySelector('.err');
+  let want = nation;
+  row.refresh = async () => {
+    const ya = +ia.value, yb = +ib.value;
+    if (ya > yb) { err.textContent = `Start year ${ya} is after end year ${yb}.`; return; }
+    const d = await nationsFor(ya, yb);
+    const names = d.nations.map(n => n.name).sort();
+    fillSelect(sel, names);
+    if (names.includes(want)) sel.value = want;
+    err.textContent = ya < d.first || yb > d.last ? `${$('c-fmt').value.toUpperCase()} data covers ${d.first}–${d.last}.`
+      : names.length ? '' : 'No nation has enough players in these years.';
+  };
+  ia.onchange = row.refresh; ib.onchange = row.refresh;
+  sel.onchange = () => { want = sel.value; };
+  row.querySelector('.x').onclick = () => { row.remove(); updateClassicTotal(); };
+  row.entry = () => ({nation: sel.value, y1: +ia.value, y2: +ib.value});
+  box.appendChild(row); row.refresh();
+  return row;
+}
+function initClassic() {
+  classicRow($('cs-r1'), 2021, 2024, 'India', false);
+  classicRow($('cs-r2'), 2007, 2012, 'Australia', false);
+  [[2012, 2016, 'West Indies'], [2021, 2024, 'India'], [2019, 2022, 'England'], [2007, 2012, 'Australia'],
+   [2007, 2010, 'Pakistan'], [2009, 2014, 'Sri Lanka']].forEach(([a, b, n]) => classicRow($('ct-rows'), a, b, n, true));
+  $('ct-add').onclick = () => { classicRow($('ct-rows'), 2015, 2019, 'New Zealand', true); updateClassicTotal(); };
+  fillSelect($('ct-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
+  ['ct-rounds', 'ct-groups', 'ct-ko'].forEach(id => $(id).onchange = updateClassicTotal);
+  document.querySelectorAll('.c-squad').forEach(sel => {
+    fillSelect(sel, [{v: '20', t: 'Most-capped 20 of the period (recommended)'}, {v: '15', t: 'Most-capped 15'},
+      {v: '25', t: 'Most-capped 25'}, {v: '', t: 'Everyone who played (one-series players too)'}]);
+    sel.onchange = () => document.querySelectorAll('.c-squad').forEach(o => o.value = sel.value);
+  });
+  updateClassicTotal();
+}
+function refreshClassic() { document.querySelectorAll('#f-classic .hl-row, #f-classic_t .hl-row').forEach(r => r.parentNode.refresh()); }
+function updateClassicTotal() {
+  const k = $('ct-rows').children.length;
+  const n = matchCount(k, +$('ct-rounds').value, +$('ct-groups').value, $('ct-ko').value);
+  $('ct-total').textContent = k < 2 ? 'Add at least 2 teams' : `${k} teams · ${n} matches`;
+}
+
+/* ───────────────────────── fantasy draft ───────────────────────── */
+function initDraftForm() {
+  const chk = () => {
+    const [lo, hi] = META.years[$('c-fmt').value], a = +$('d-ya').value, b = +$('d-yb').value;
+    $('d-e').textContent = a > b ? `Start year ${a} is after end year ${b}.` : a < lo || b > hi ? `${$('c-fmt').value.toUpperCase()} data covers ${lo}–${hi}.` : '';
+  };
+  $('d-ya').onchange = chk; $('d-yb').onchange = chk; $('c-fmt').addEventListener('change', chk);
+  $('d-k').oninput = buildDraftNames;
+  fillSelect($('d-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
+  ['d-rounds', 'd-ko'].forEach(id => $(id).onchange = updateDraftTotal);
+  buildDraftNames();
+}
+function buildDraftNames() {
+  const k = Math.max(2, Math.min(12, +$('d-k').value || 2));
+  const box = $('d-names'), old = [...box.querySelectorAll('input')].map(i => i.value);
+  box.innerHTML = '';
+  for (let i = 0; i < k; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.maxLength = 40; inp.style.marginBottom = '4px';
+    inp.value = old[i] !== undefined ? old[i] : (META.draft_teams[i] || `Team ${i + 1}`);
+    inp.oninput = refreshDraftUser; box.appendChild(inp);
+  }
+  refreshDraftUser(); updateDraftTotal();
+}
+function draftNames() { return [...$('d-names').querySelectorAll('input')].map(i => i.value.trim()); }
+function refreshDraftUser() {
+  const sel = $('d-user'), old = sel.value, first = !sel.options.length;
+  fillSelect(sel, [...draftNames().filter(Boolean).map(n => ({v: n, t: n})), {v: '', t: '— none: the computer drafts every team —'}]);
+  if (!first && [...sel.options].some(o => o.value === old)) sel.value = old;
+}
+function updateDraftTotal() {
+  const k = draftNames().length;
+  $('d-total').textContent = `${k} teams · ${15 * k} picks · then ${matchCount(k, +$('d-rounds').value, 1, $('d-ko').value)} matches`;
+}
+let DRAFT = null, DPOOL = null;
+async function startDraft() {
+  const d = await api('/api/draft/start', {fmt: $('c-fmt').value, y1: +$('d-ya').value, y2: +$('d-yb').value,
+    teams: draftNames(), user: $('d-user').value, source: $('d-src').value, seed: $('c-seed').value.trim()});
+  DPOOL = {list: d.pool, byId: new Map(d.pool.map(p => [p.id, p]))};
+  const roles = ['WK', 'Batter', 'All-rounder', 'Pace', 'Spin'];
+  fillSelect($('dp-role'), [{v: '', t: 'All roles'}, ...roles.map(r => ({v: r, t: r}))]);
+  fillSelect($('dp-team'), [{v: '', t: 'All teams'}, ...[...new Set(d.pool.map(p => p.team))].sort().map(t => ({v: t, t}))]);
+  ['dp-search', 'dp-role', 'dp-team'].forEach(id => $(id).oninput = drawDraftPool);
+  $('dr-auto').onclick = () => draftPick({auto: true});
+  $('dr-rest').onclick = () => draftPick({auto: 'rest'});
+  $('dr-play').onclick = playDraftLeague;
+  renderDraft(d.state);
+  if (d.state.done && !d.state.user) playDraftLeague();
+}
+async function draftPick(body) {
+  $('dr-msg').textContent = '';
+  try { const d = await api('/api/draft/pick', body); renderDraft(d.state); }
+  catch (e) { $('dr-msg').textContent = e.message; }
+}
+async function playDraftLeague() {
+  try {
+    await api('/api/run', {mode: 'draft', fmt: DRAFT.fmt, comp: $('c-comp').value, year: +$('c-year').value,
+      venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
+      rounds: +$('d-rounds').value, groups: 1, knockout: $('d-ko').value});
+    poll();
+  } catch (e) { $('dr-msg').textContent = e.message; toast(e.message, true); }
+}
+const NEED_LABEL = {keeper: 'WK', pace: 'Pace', spin: 'Spin', batter: 'Batters'};
+function renderDraft(st) {
+  DRAFT = st;
+  showView('v-draft'); $('go-btn').disabled = false;
+  const me = st.user, mine = me ? st.board[me] : [], yours = st.current && st.current === me;
+  $('dr-title').textContent = me ? `Drafting for ${me}` : 'Draft';
+  $('dr-turn').textContent = st.done ? 'Draft complete' : yours ? 'Your pick!' : `${st.current} to pick`;
+  $('dr-turn').className = 'turn' + (yours ? ' you' : '');
+  $('dr-progress').textContent = st.done ? `${st.total} picks · players rated on ${st.y1}–${st.y2}` : `Pick ${st.pick_no} of ${st.total} · round ${Math.ceil(st.pick_no / st.teams.length)} of ${st.squad}`;
+  $('dr-auto').style.display = st.done || !me ? 'none' : ''; $('dr-rest').style.display = st.done ? 'none' : '';
+  $('dr-play').style.display = st.done ? '' : 'none';
+  $('dr-sugs').innerHTML = st.suggestions.length ? st.suggestions.map(id => { const p = DPOOL.byId.get(id);
+    return `<button class="sug" data-id="${esc(id)}">${esc(p.name)}<small>${esc(p.role)}</small></button>`; }).join('')
+    : `<span class="muted small">${st.done ? 'All squads are complete. Press “Play the league”.' : 'Suggestions appear when it is your turn.'}</span>`;
+  $('dr-sugs').querySelectorAll('.sug').forEach(b => b.onclick = () => draftPick({id: b.dataset.id}));
+  if (me) {
+    const c = st.needs[me];
+    $('dr-squad-title').textContent = `Your squad (${mine.length}/${st.squad})`;
+    $('dr-roles').innerHTML = Object.entries(st.targets).map(([r, t]) => `<span class="role ${c[r] >= t ? 'ok' : ''}">${NEED_LABEL[r]} ${c[r]}/${t}+</span>`).join('');
+    $('dr-squad').innerHTML = mine.map(p => `<li>${esc(p.name)} <span>${esc((DPOOL.byId.get(p.id) || {}).team || '')} · ${esc(p.role)}</span></li>`).join('') || '<li class="muted">No players yet</li>';
+  } else { $('dr-squad-title').textContent = ''; $('dr-roles').innerHTML = ''; $('dr-squad').innerHTML = ''; }
+  drawBoard($('dr-board'), st.teams, st.board, me);
+  drawDraftPool();
+}
+function drawDraftPool() {
+  const st = DRAFT, taken = new Set(st.taken), yours = !st.done && st.user && st.current === st.user;
+  const q = $('dp-search').value.toLowerCase(), role = $('dp-role').value, team = $('dp-team').value;
+  const rows = DPOOL.list.filter(p => !taken.has(p.id) && (!q || p.name.toLowerCase().includes(q)) && (!role || p.role === role) && (!team || p.team === team));
+  table($('dp-table'), [
+    {k: 'pick', label: '', nosort: true, html: () => `<button class="pick" data-act="pick" ${yours ? '' : 'disabled'}>Pick</button>`},
+    {k: 'name', label: 'Player'}, {k: 'team', label: 'Team'}, {k: 'role', label: 'Role'}, {k: 'm', label: 'M', num: true},
+    {k: 'bat_avg', label: 'Bat avg', num: true, f: r => fmtNum(r.bat_avg, 1)}, {k: 'bat_sr', label: 'SR', num: true, f: r => fmtNum(r.bat_sr, 1)},
+    {k: 'econ', label: 'Econ', num: true, f: r => fmtNum(r.econ, 2)}, {k: 'bowl_avg', label: 'Bowl avg', num: true, f: r => fmtNum(r.bowl_avg, 1)},
+    {k: 'value', label: 'Value', num: true, f: r => fmtNum(r.value, 2)},
+  ], rows, {limit: 300, sort: {k: 'value', dir: -1}, onClick: r => { if (yours) draftPick({id: r.id}); }, empty: 'No players match'});
+}
+function drawBoard(el, teams, board, me) {
+  el.innerHTML = teams.map(t => `<div class="bcol ${t === me ? 'me' : ''}"><b>${esc(t)}${t === me ? ' (you)' : ''}</b><ol>${(board[t] || []).map(p => `<li>${esc(p.name)} <span class="muted">· ${esc(p.role)}</span></li>`).join('')}</ol></div>`).join('');
+}
+
 /* ───────────────────────── start / poll ───────────────────────── */
 function payload() {
   const base = {mode: MODE, fmt: $('c-fmt').value, comp: $('c-comp').value, year: +$('c-year').value,
     venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim()};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value};
+  if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
+    team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value};
+  if (MODE === 'classic_t') return {...base, mode: 'tournament', squad_size: document.querySelector('.c-squad').value,
+    teams: [...$('ct-rows').children].map(r => r.entry()),
+    rounds: +$('ct-rounds').value, groups: +$('ct-groups').value, knockout: $('ct-ko').value};
   return {...base, teams: [...document.querySelectorAll('#t-list input:checked')].map(i => i.value),
     rounds: +$('t-rounds').value, groups: +$('t-groups').value, knockout: $('t-ko').value};
 }
 async function start() {
   $('go-err').textContent = ''; $('go-btn').disabled = true;
-  try { await api('/api/run', payload()); poll(); }
+  try {
+    if (MODE === 'draft') { await startDraft(); return; }
+    await api('/api/run', payload()); poll();
+  }
   catch (e) { $('go-err').textContent = e.message; $('go-btn').disabled = false; }
 }
 let POLL_T = null;
@@ -205,6 +366,8 @@ async function showResults() {
   $('r-pos').style.display = pos ? '' : 'none';
   if (pos) $('r-pos').textContent = `Player of the series: ${pos.name} (${pos.team})`;
   CUR_MATCH = 0;
+  $('tab-board').style.display = R.draft ? '' : 'none';
+  if (R.draft) drawBoard($('r-board'), R.draft.teams, R.draft.board, R.draft.user);
   renderSummary(); renderMatchSelect(); renderStatsTables(); renderMVP();
   openTab('p-summary');
 }
@@ -307,7 +470,74 @@ async function showMatch(i) {
       <span>Pitch: <b>${esc(cond.report || '')}</b></span>
       ${pom.name ? `<span>Player of the match: <b>${esc(pom.name)}</b></span>` : ''}</div>
     <div class="report">${esc(d.report)}</div>
+    ${chartsHTML(c)}
     <h3>Scorecard and innings log</h3><pre class="sc">${esc(d.text)}</pre>`;
+}
+
+/* charts: run worm, Manhattan, win probability (inline SVG, data from each innings' overs_log) */
+const TEAM_COL = ['var(--blue)', 'var(--amber)'];
+function niceMax(v, steps = 5) {
+  const raw = Math.max(v, 1) / steps, mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
+  return {max: step * Math.ceil(Math.max(v, 1) / step), step};
+}
+function svgFrame(W, H, P, xmax, ymax, ystep, xlabel, ylabel, yfmt = v => v) {
+  const X = x => P.l + (W - P.l - P.r) * x / xmax, Y = y => H - P.b - (H - P.t - P.b) * y / ymax;
+  let g = '';
+  for (let y = 0; y <= ymax + 1e-9; y += ystep)
+    g += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(y)}" y2="${Y(y)}" class="grid"/><text x="${P.l - 6}" y="${Y(y) + 4}" text-anchor="end">${yfmt(y)}</text>`;
+  const xstep = xmax > 30 ? 10 : 5;
+  for (let x = 0; x <= xmax; x += xstep) g += `<text x="${X(x)}" y="${H - P.b + 15}" text-anchor="middle">${x}</text>`;
+  g += `<text x="${(P.l + W - P.r) / 2}" y="${H - 3}" text-anchor="middle" class="ax">${xlabel}</text>`;
+  g += `<text x="12" y="${(P.t + H - P.b) / 2}" text-anchor="middle" class="ax" transform="rotate(-90 12 ${(P.t + H - P.b) / 2})">${ylabel}</text>`;
+  return {X, Y, g};
+}
+function legend(inns) {
+  return `<div class="legend">${inns.map((inn, k) => `<span><i style="background:${TEAM_COL[k]}"></i>${esc(inn.team)}</span>`).join('')}<span><i class="wk"></i>wicket</span></div>`;
+}
+function chartsHTML(c) {
+  const inns = c.innings.filter(i => i.overs_log && i.overs_log.length).slice(0, 2);
+  if (!inns.length) return '';
+  const W = 560, H = 240, P = {l: 44, r: 12, t: 12, b: 34}, maxOv = inns[0].max_overs || c.overs || 20;
+  // worm
+  const top = niceMax(Math.max(...inns.map(i => i.runs)));
+  let f = svgFrame(W, H, P, maxOv, top.max, top.step, 'Overs', 'Runs');
+  let body = f.g;
+  inns.forEach((inn, k) => {
+    const pts = [[0, 0], ...inn.overs_log.map((o, j) => [j + 1 === inn.overs_log.length && inn.balls % 6 ? (inn.balls) / 6 : o.over, o.total])];
+    body += `<polyline fill="none" stroke="${TEAM_COL[k]}" stroke-width="2.2" points="${pts.map(([x, y]) => `${f.X(x).toFixed(1)},${f.Y(y).toFixed(1)}`).join(' ')}"/>`;
+    inn.overs_log.forEach((o, j) => { if (o.wkts) body += `<circle cx="${f.X(pts[j + 1][0])}" cy="${f.Y(o.total)}" r="${2.6 + 1.4 * (o.wkts - 1)}" fill="${TEAM_COL[k]}" class="wkt"><title>${esc(inn.team)} ${o.total}/${o.wickets} after ${o.over} ov (${o.wkts} wkt)</title></circle>`; });
+  });
+  if (inns[1] && inns[1].target) body += `<line x1="${P.l}" x2="${W - P.r}" y1="${f.Y(inns[1].target)}" y2="${f.Y(inns[1].target)}" class="target"/><text x="${W - P.r}" y="${f.Y(inns[1].target) - 4}" text-anchor="end" class="ax">target ${inns[1].target}</text>`;
+  const worm = `<svg viewBox="0 0 ${W} ${H}" class="chart">${body}</svg>`;
+  // Manhattan
+  const perOver = Math.max(...inns.flatMap(i => i.overs_log.map(o => o.runs)));
+  const mt = niceMax(perOver + 2, 4);
+  f = svgFrame(W, H, P, maxOv, mt.max, mt.step, 'Over', 'Runs in the over');
+  body = f.g;
+  const slot = (f.X(1) - f.X(0)), bw = Math.max(1, slot * 0.84 / inns.length);
+  inns.forEach((inn, k) => inn.overs_log.forEach(o => {
+    const x = f.X(o.over - 1) + slot * 0.08 + k * bw, y = f.Y(o.runs);
+    body += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(f.Y(0) - y).toFixed(1)}" fill="${TEAM_COL[k]}" opacity=".85"><title>${esc(inn.team)} over ${o.over}: ${o.runs} run${o.runs === 1 ? '' : 's'}${o.wkts ? `, ${o.wkts} wkt` : ''} (${esc(o.bowler)})</title></rect>`;
+    for (let w = 0; w < o.wkts; w++) body += `<circle cx="${(x + bw / 2).toFixed(1)}" cy="${(y - 5 - w * 7).toFixed(1)}" r="2.7" fill="${TEAM_COL[k]}" class="wkt"/>`;
+  }));
+  const manhattan = `<svg viewBox="0 0 ${W} ${H}" class="chart">${body}</svg>`;
+  // win probability of the side batting first, over by over through both innings
+  const seq = [];
+  inns.forEach((inn, k) => inn.overs_log.forEach(o => { if (o.win_prob !== null && o.win_prob !== undefined) seq.push({k, o, p: k === 0 ? o.win_prob : 1 - o.win_prob}); }));
+  let wp = '';
+  if (seq.length > 1) {
+    f = svgFrame(W, H, P, seq.length, 100, 25, `Overs (${esc(inns[0].team)} innings, then ${esc(inns[1] ? inns[1].team : '')})`, `% ${inns[0].team.length > 14 ? 'side batting first' : esc(inns[0].team)} wins`, v => v);
+    body = f.g + `<line x1="${P.l}" x2="${W - P.r}" y1="${f.Y(50)}" y2="${f.Y(50)}" class="target"/>`;
+    const n1 = inns[0].overs_log.length;
+    if (inns[1]) body += `<line x1="${f.X(n1)}" x2="${f.X(n1)}" y1="${P.t}" y2="${H - P.b}" class="grid" stroke-dasharray="3 3"/>`;
+    body += `<polyline fill="none" stroke="var(--green)" stroke-width="2.2" points="${seq.map((s, j) => `${f.X(j + 1).toFixed(1)},${f.Y(100 * s.p).toFixed(1)}`).join(' ')}"/>`;
+    seq.forEach((s, j) => { if (s.o.wkts) body += `<circle cx="${f.X(j + 1)}" cy="${f.Y(100 * s.p)}" r="2.8" fill="${TEAM_COL[s.k]}" class="wkt"><title>${esc(inns[s.k].team)} ${s.o.total}/${s.o.wickets} after ${s.o.over} ov: ${Math.round(100 * s.p)}%</title></circle>`; });
+    wp = `<div class="chart-box"><h4>Win probability</h4><svg viewBox="0 0 ${W} ${H}" class="chart">${body}</svg></div>`;
+  }
+  return `<div class="charts">${legend(inns)}<div class="chart-grid">
+    <div class="chart-box"><h4>Run worm</h4>${worm}</div>
+    <div class="chart-box"><h4>Manhattan</h4>${manhattan}</div>${wp}</div></div>`;
 }
 
 /* batting / bowling */

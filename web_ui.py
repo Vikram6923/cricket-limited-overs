@@ -4,7 +4,8 @@
     python web_ui.py --no-browser --port 5071
 
 Plain Flask, one background job at a time, the page polls /api/status (no websockets, no CDN scripts, works
-offline). The engine is called directly as a library. Modes: Match / Series, Tournament, Team Builder.
+offline). The engine is called directly as a library. Modes: Match / Series, Tournament, Classic Series and
+Classic Tournament (a nation over a year range, rated on those years), Team Builder.
 Saved teams live in data/teams.json (created from data/teams_default.json on first run); the last results are
 kept in results/last/ so they survive a restart.
 """
@@ -24,6 +25,8 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_from_directory
 
 from engine.conditions import venue_table
+from engine import history
+from engine.draft import DEFAULT_TEAMS, Draft
 from engine.data import ratings
 from engine.render import full_text, match_report
 from engine.tournament import match_count, play_series, play_tournament, save
@@ -60,12 +63,44 @@ def save_teams(teams: list[dict]) -> None:
     TEAMS.write_text(json.dumps(teams, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
-def team_spec(name: str) -> dict:
-    t = next((t for t in load_teams() if t["name"] == name), None)
+def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SIZE) -> dict:
+    """A saved team (by name) or a historical team ({"nation", "y1", "y2"}; squad = the most-capped squad_size,
+    None = everyone who played)."""
+    if isinstance(entry, dict):
+        return history.historical_team(fmt, entry["nation"], int(entry["y1"]), int(entry["y2"]), size=squad_size)
+    t = next((t for t in load_teams() if t["name"] == entry), None)
     if not t:
-        raise ValueError(f"no saved team called {name!r}")
+        raise ValueError(f"no saved team called {entry!r}")
     ids = [p["id"] for p in t["players"]]
     return {"name": t["name"], "squad" if len(ids) > 11 else "players": ids}
+
+
+def check_entries(entries: list, fmt: str) -> str | None:
+    """Error message for a list of team entries, or None. Historical entries need a nation that played then."""
+    names = {t["name"] for t in load_teams()}
+    lo, hi = history.first_year(fmt), history.last_year(fmt)
+    seen = set()
+    for e in entries:
+        if isinstance(e, dict):
+            try:
+                y1, y2 = int(e.get("y1")), int(e.get("y2"))
+            except (TypeError, ValueError):
+                return "Years must be numbers."
+            if y1 > y2:
+                return f"Start year {y1} is after end year {y2}."
+            if y1 < lo or y2 > hi:
+                return f"{fmt.upper()} data covers {lo}-{hi}."
+            if e.get("nation") not in dict(history.nations(fmt, y1, y2)):
+                return f"{e.get('nation')} has too few {fmt.upper()} players in {y1}-{y2}."
+            key = history.team_name(e["nation"], y1, y2)
+        else:
+            if e not in names:
+                return f"No saved team called {e!r}."
+            key = e
+        if key in seen:
+            return f"{key} is picked twice."
+        seen.add(key)
+    return None
 
 
 # ------------------------------------------------------------------------------------------------ reference data
@@ -146,6 +181,7 @@ class Job:
 
 JOB: Job | None = None
 LOCK = threading.Lock()
+DRAFT: Draft | None = None     # the draft in progress (or just finished, waiting for its league)
 
 
 def _augment(res: dict) -> None:
@@ -203,12 +239,24 @@ def _run(job: Job, params: dict) -> None:
         fmt, comp, year = params["fmt"], params["comp"], int(params["year"])
         seed = int(params["seed"]) if str(params.get("seed") or "").strip() else random.randrange(1 << 30)
         venues_ = params.get("venues") or None
-        if params["mode"] == "series":
-            res = play_series(team_spec(params["team1"]), team_spec(params["team2"]), n=int(params["matches"]),
+        size = history.SQUAD_SIZE          # Classic modes: most-capped N of the period ("" = everyone)
+        if "squad_size" in params:
+            size = int(params["squad_size"]) if params["squad_size"] else None
+        if params["mode"] == "draft":
+            groups = int(params.get("groups") or 1)
+            res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
+                                  rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
+                                  knockout=params.get("knockout") or "semis", venues=venues_, seed=seed,
+                                  on_match=on_match)
+            res["draft"] = {"teams": DRAFT.teams, "user": DRAFT.user,
+                            "board": DRAFT.state()["board"], "years": [DRAFT.y1, DRAFT.y2]}
+        elif params["mode"] == "series":
+            res = play_series(team_spec(params["team1"], fmt, size), team_spec(params["team2"], fmt, size),
+                              n=int(params["matches"]),
                               fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, on_match=on_match)
         else:
             groups = int(params.get("groups") or 1)
-            res = play_tournament([team_spec(t) for t in params["teams"]], fmt=fmt, comp=comp, year=year,
+            res = play_tournament([team_spec(t, fmt, size) for t in params["teams"]], fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, seed=seed,
                                   on_match=on_match)
@@ -244,6 +292,8 @@ def api_meta():
         "formats": {f: {"competitions": competitions(f), "venues": venues(f)} for f in ("t20", "odi")},
         # a list, not a dict: Flask sorts dict keys, which would put "final" first in the dropdown
         "knockouts": [{"id": k, "label": v} for k, v in KNOCKOUTS.items()],
+        "draft_teams": DEFAULT_TEAMS,
+        "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
         "teams": load_teams(), "has_results": (LAST / "summary.json").exists(),
         "job": JOB.to_dict() if JOB else None,
     })
@@ -255,6 +305,21 @@ def api_players():
     if fmt not in ("t20", "odi"):
         abort(400)
     return jsonify(players(fmt))
+
+
+@app.get("/api/nations")
+def api_nations():
+    """Nations with enough players in a format and year range (for the Classic modes)."""
+    fmt = request.args.get("fmt", "t20")
+    if fmt not in ("t20", "odi"):
+        abort(400)
+    lo, hi = history.first_year(fmt), history.last_year(fmt)
+    try:
+        y1, y2 = int(request.args.get("y1", lo)), int(request.args.get("y2", hi))
+    except ValueError:
+        return jsonify(error="Years must be numbers."), 400
+    return jsonify(first=lo, last=hi,
+                   nations=[{"name": n, "matches": m} for n, m in history.nations(fmt, max(y1, lo), min(y2, hi))])
 
 
 @app.get("/api/teams")
@@ -296,24 +361,45 @@ def api_run():
     with LOCK:
         if JOB and JOB.status == "running":
             return jsonify(error="A simulation is already running."), 409
-        names = {t["name"] for t in load_teams()}
-        if p.get("fmt") not in ("t20", "odi"):
+        fmt = p.get("fmt")
+        if fmt not in ("t20", "odi"):
             return jsonify(error="Choose T20 or ODI."), 400
+        label = lambda e: history.team_name(e["nation"], int(e["y1"]), int(e["y2"])) if isinstance(e, dict) else e
         if p.get("mode") == "series":
             a, b = p.get("team1"), p.get("team2")
-            if a not in names or b not in names:
-                return jsonify(error="Choose two saved teams."), 400
-            if a == b:
-                return jsonify(error="Choose two different teams."), 400
+            if not a or not b:
+                return jsonify(error="Choose two teams."), 400
+            err = check_entries([a, b], fmt)
+            if err:
+                return jsonify(error=err), 400
+            a, b = label(a), label(b)
             n = int(p.get("matches") or 1)
             if not 1 <= n <= 7:
                 return jsonify(error="A series has 1 to 7 matches."), 400
             title = f"{a} v {b}" + (f" - {n}-match series" if n > 1 else "")
             total = n
+        elif p.get("mode") == "draft":
+            if not DRAFT or not DRAFT.done:
+                return jsonify(error="Finish the draft first."), 400
+            if DRAFT.fmt != fmt:
+                return jsonify(error=f"The squads were drafted for {DRAFT.fmt.upper()}."), 400
+            teams = DRAFT.teams
+            groups = int(p.get("groups") or 1)
+            ko = p.get("knockout") or "semis"
+            if ko not in KNOCKOUTS:
+                return jsonify(error="Unknown knockout format."), 400
+            need = {"semis": 4, "ipl": 4, "final": 2, "none": 1}[ko]
+            if len(teams) < need or (groups > 1 and (ko == "ipl" or len(teams) < 4)):
+                return jsonify(error="Not enough teams for these knockouts / groups."), 400
+            total = match_count(len(teams), int(p.get("rounds") or 1), groups if groups > 1 else None, ko)
+            title = f"Fantasy draft league - {len(teams)} teams, players from {DRAFT.y1}-{DRAFT.y2}"
         elif p.get("mode") == "tournament":
             teams = p.get("teams") or []
-            if len(teams) < 2 or any(t not in names for t in teams):
-                return jsonify(error="Pick at least two saved teams."), 400
+            if len(teams) < 2:
+                return jsonify(error="Pick at least two teams."), 400
+            err = check_entries(teams, fmt)
+            if err:
+                return jsonify(error=err), 400
             groups = int(p.get("groups") or 1)
             ko = p.get("knockout") or "semis"
             if ko not in KNOCKOUTS:
@@ -332,6 +418,76 @@ def api_run():
         JOB = Job(title, total)
         threading.Thread(target=_run, args=(JOB, p), daemon=True).start()
     return jsonify(ok=True)
+
+
+# ------------------------------------------------------------------------------------------------ draft
+
+def _draft_state() -> dict:
+    return DRAFT.state() if DRAFT else {"current": None, "done": False, "teams": []}
+
+
+@app.post("/api/draft/start")
+def api_draft_start():
+    global DRAFT
+    d = request.get_json(force=True)
+    fmt = d.get("fmt")
+    if fmt not in ("t20", "odi"):
+        return jsonify(error="Choose T20 or ODI."), 400
+    if JOB and JOB.status == "running":
+        return jsonify(error="A simulation is running."), 409
+    try:
+        y1, y2 = int(d.get("y1")), int(d.get("y2"))
+    except (TypeError, ValueError):
+        return jsonify(error="Years must be numbers."), 400
+    lo, hi = history.first_year(fmt), history.last_year(fmt)
+    if y1 > y2 or y1 < lo or y2 > hi:
+        return jsonify(error=f"Choose years within {lo}-{hi}, start before end."), 400
+    names = [str(x).strip() for x in d.get("teams") or []]
+    if any(not n or len(n) > 40 for n in names):
+        return jsonify(error="Every team needs a name (up to 40 characters)."), 400
+    if not 2 <= len(names) <= 12:
+        return jsonify(error="A draft has 2 to 12 teams."), 400
+    source = d.get("source") or "full"
+    if source == "leagues" and fmt != "t20":
+        source = "full"
+    try:
+        seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
+        DRAFT = Draft(fmt, y1, y2, names, user=d.get("user") or None, source=source, seed=seed)
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    DRAFT.run_cpu()
+    pool = [p.row() for p in DRAFT.pool]
+    return jsonify(state=_draft_state(), pool=pool)
+
+
+@app.get("/api/draft")
+def api_draft():
+    if not DRAFT:
+        return jsonify(error="No draft."), 404
+    return jsonify(state=_draft_state(), pool=[p.row() for p in DRAFT.pool])
+
+
+@app.post("/api/draft/pick")
+def api_draft_pick():
+    if not DRAFT or DRAFT.done:
+        return jsonify(error="No draft in progress."), 400
+    d = request.get_json(force=True)
+    try:
+        if d.get("auto") == "rest":
+            while not DRAFT.done:
+                DRAFT.cpu_pick()
+        elif d.get("auto"):
+            if DRAFT.current() != DRAFT.user:
+                raise ValueError("It is not your pick.")
+            DRAFT.cpu_pick()
+        else:
+            if DRAFT.current() != DRAFT.user:
+                raise ValueError("It is not your pick.")
+            DRAFT.pick(d.get("id"))
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    DRAFT.run_cpu()
+    return jsonify(state=_draft_state())
 
 
 @app.get("/api/status")

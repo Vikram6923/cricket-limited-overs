@@ -181,3 +181,18 @@ select[multiple] option{padding:3px 6px;border-radius:4px}
 .q td:first-child{box-shadow:inset 3px 0 0 var(--green)}
 .seg2{display:flex;gap:6px}
 .seg2>*{flex:1}
+
+/* match charts */
+.charts{margin-bottom:14px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-bottom:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend i.wk{border-radius:50%;background:var(--text);width:8px;height:8px;vertical-align:0}
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px}
+.chart-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:10px 10px 4px}
+.chart-box h4{font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:4px}
+svg.chart{width:100%;height:auto;display:block}
+svg.chart text{fill:var(--muted);font-size:10px}
+svg.chart text.ax{font-size:10.5px}
+svg.chart .grid{stroke:var(--border);stroke-width:1}
+svg.chart .target{stroke:var(--muted);stroke-dasharray:5 4;stroke-width:1}
+svg.chart .wkt{stroke:var(--bg);stroke-width:1.2}

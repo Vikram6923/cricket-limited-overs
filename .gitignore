@@ -23,3 +23,7 @@ results/
 
 # User-saved teams from the UI (presets live in data/teams_default.json)
 data/teams.json
+
+# Claude Code files (kept locally, not published)
+CLAUDE.md
+.claude/

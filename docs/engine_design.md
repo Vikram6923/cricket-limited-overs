@@ -259,7 +259,7 @@ rate within ~3 points, and no regression on the previous gate's checks.
 | T2-5 toss AI | done | `fit_toss.py`: real bowl-first rate (T20 63%, ODI 59%) shifted by venue chasing advantage |
 | T2-8 era-neutral | done (inherent) | ratings are era-relative; pass the `comp`/`year` whose conditions you want |
 | T2-9 XI from squad | done | `captain.select_xi`: keeper, 4 specialist bowlers + best 5th option, best batters, bowling-capacity check |
-| T2-10 year-range ratings | open | with historical-team mode |
+| T2-10 year-range ratings | done (step 6) | `engine/periods.py`: period actual/expected shrunk toward the career index; shrinkage strength chosen by held-out-year validation (`scripts/validate_periods.py`); used by Classic modes and the draft |
 | Later items (T2-2, T3-5, T3-6) | not started | as approved |
 
 Lessons (keep): a greedy "best bowler for this phase" captain shifted phase run rates by 6-8%; real usage patterns

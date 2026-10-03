@@ -76,7 +76,7 @@ def new_player(pid: str, name: str, phases) -> dict:
         "positions": Counter(),
         "bat_phase": {p[0]: new_bat() for p in phases},
         "bowl_phase": {p[0]: new_bowl() for p in phases},
-        "by_year": defaultdict(lambda: {"m": 0, "bat": new_bat(), "bowl": new_bowl()}),
+        "by_year": defaultdict(lambda: {"m": 0, "teams": {}, "pos": {}, "bat": new_bat(), "bowl": new_bowl()}),
         "by_league": defaultdict(lambda: {"m": 0, "bat": new_bat(), "bowl": new_bowl()}),
     }
 
@@ -111,6 +111,7 @@ def process_match(m: dict, fmt: dict, players: dict, years: dict, comp: str) -> 
         p["matches"] += 1
         p["teams"][team] += 1
         p["by_year"][year]["m"] += 1
+        p["by_year"][year]["teams"][team] = p["by_year"][year]["teams"].get(team, 0) + 1
         p["by_league"][comp]["m"] += 1
         p["first"] = min(p["first"] or date, date)
         p["last"] = max(p["last"] or date, date)
@@ -236,6 +237,8 @@ def process_match(m: dict, fmt: dict, players: dict, years: dict, comp: str) -> 
             b = P(name)["bat"]
             b["inns"] += 1
             P(name)["positions"][pos] += 1
+            yp = P(name)["by_year"][year]["pos"]
+            yp[str(pos)] = yp.get(str(pos), 0) + 1
             if not st["out"]:
                 b["not_outs"] += 1
             r = st["runs"]

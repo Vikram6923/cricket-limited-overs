@@ -133,8 +133,88 @@ Scope chosen by the user: core UI + team builder. No engine change (so no calibr
 - **Noted, not changed:** with career-long ratings the captain leaves out e.g. Rohit Sharma from India's squad.
   Year-range ratings (design item T2-10) are planned for step 6.
 
+## Step 6a: year-range ratings and historical teams (2026-10-03)
+
+Scope chosen by the user for step 6: year-range ratings + historical teams, worm and Manhattan charts, fantasy
+draft (pre-2002 players from Wikipedia not now). Design item T2-10.
+
+**Method.** `build_ratings.py` now also writes `data/ratings_{fmt}_years.json`: per player and calendar year, the
+fit's sufficient statistics (actual and expected counts per metric; expected includes the era baseline and the
+opponents' final indexes). `engine/periods.py` rates a player on any year range without refitting: period actual /
+expected, shrunk toward his career index by empirical Bayes. Applied as a ratio to his phase indexes. Wides,
+no-balls and run-outs stay career-long. Batting slots come from the same years (`by_year.pos` in the raw stats).
+
+**Validation** (`scripts/validate_periods.py`), skill vs "everyone average" for players with >= 120 balls:
+1. First try: tau^2 estimated against the career index. It came out at the floor (the period is part of the
+   career), so period = career. Fixed: tau^2 from players with data both inside and outside the period.
+2. Forecast test (fit <= 2023, rate on the last 1-5 years, predict 2024+): with that tau^2, period ratings were
+   *worse* than career (ODI bat runs 24.6% -> 16-19%). Recent form doesn't predict the next seasons better than
+   the career level.
+3. Held-out year (the historical-team use case: drop year Y from the fit, rate on Y-w..Y+w, predict Y; Y = 2012,
+   2016, 2019, 2022). The raw tau^2 still lost to career, so the shrinkage strength was chosen by this test
+   (multiples of tau^2), window +-2:
+
+| | ODI bat runs | ODI bowl runs | T20 bat runs | T20 bowl runs |
+|---|---|---|---|---|
+| career | 41.7% | 41.3% | 33.5% | 32.1% |
+| tau^2 x 1.0 | 39.5% | 38.7% | 33.4% | 28.5% |
+| tau^2 x 0.2 | 42.4% | 41.2% | **35.6%** | 31.5% |
+| tau^2 x 0.1 | **42.5%** | **41.4%** | 35.3% | 31.9% |
+| tau^2 x 0.05 | 42.4% | 41.4% | 34.8% | **32.0%** |
+
+Chosen: ODI 0.1 / 0.1, T20 batting 0.2, T20 bowling 0.05 (`TAU_SCALE` in `engine/periods.py`). Gate met:
+batting better than career (+0.8 ODI, +2.1 T20), bowling no worse. Tuning stopped here.
+
+**Consequence (shown to the user):** period ratings move only modestly from the career level, because that is
+what predicts held-out years best. E.g. Rohit Sharma, ODIs 2007-11: average 50.9 -> 47.4, SR 98.8 -> 92.8 and
+batting at 5 (his real numbers then were far lower).
+
+**Historical teams** (`engine/history.py`): squad = the 20 most-capped players of the nation in those years (with
+a keeper); the captain picks the best XI from it, as in the Test sim. ODIs from 2002, T20Is from 2005. Why 20:
+- with everyone who played, one-series players rated near their career level got picked (Prithvi Shaw and Rajat
+  Patidar for India 2021-24 ODIs, Jayasuriya for Sri Lanka 2009-14, McGrath for Australia 2007-12);
+- with 15, regulars fell out where second-string sides played many games (Kohli, Jadeja in India's 2024 T20Is).
+The UI offers 15 / 20 / 25 / everyone.
+
+**UI:** Classic Series and Classic Tournament modes (rows of from / to / nation; nation list from `/api/nations`).
+
+**Noticed, not changed:** the XI picker (T2-9) values batters by average x strike rate, so from a big pool it can
+prefer Steve Smith to Travis Head in T20 and leave out Rohit / Hardik. Raised with the user.
+
+**Tests:** `tests/test_history.py`.
+
+## Step 6b: worm, Manhattan and win-probability charts (2026-10-03)
+
+Matches tab, above the scorecard: run worm (both innings, wicket dots, target line), Manhattan (runs per over
+side by side, a dot per wicket) and win probability of the side batting first through both innings (wicket dots,
+50% line). Inline SVG drawn from each innings' `overs_log` (runs, wickets, total, win probability per over), so no
+chart library and no engine change. Hover shows the over, bowler, score and probability.
+
+## Step 6c: fantasy draft (2026-10-03)
+
+`engine/draft.py` (library; the Test sim's draft read picks with `input()`), `/api/draft/*`, draft room in the UI.
+- **Pool:** players with 10+ matches in the chosen years, rated on those years (`engine/periods.py`). Sources:
+  full-member internationals (default), + franchise leagues (T20), or all internationals. Associates are off by
+  default: in an all-nations T20 pool an Austrian batter ranked 2nd of 1,982 and Uganda / Bermuda / Japan players
+  went early (associate ratings run high, a step-2 limitation). Afghanistan players only come in through the
+  leagues pool (Cricsheet withholds Afghanistan internationals).
+- **Order:** snake, random first order from the seed; 15 picks per team; 2-12 teams; the user drafts one team or
+  none (then the computer drafts all and the league starts at once).
+- **Computer teams** (game AI, as in the Test sim's draft): value = z-score of the captain's batting value or
+  bowling cost within the pool (+0.3 x the other skill for all-rounders), + a bonus while the squad lacks a role
+  (minimum 1 keeper, 3 pace, 2 spin, 6 batters), - a penalty when the role is full, + small noise. Suggestions
+  for the user use the same score (at most two per role).
+- **Then:** a league with the chosen rounds and knockouts (same runner as Tournament); the results page gets a
+  Draft board tab.
+- **Tests:** `tests/test_draft.py` (snake order, complete squads with the minimum make-up, no double picks,
+  turn checks, pool sources, reproducible with a seed, playable).
+
 ## Rebuild order
 
 `python -m engine.fit.fit_basics` -> `python -m engine.fit.fit_situation` -> `python -m engine.fit.fit_toss` ->
 `python -m engine.fit.fit_venues` (~25 min; caches replays in `data/cache/venue_rows_*.json`) ->
 `python -m engine.calibrate` -> `python tests/test_engine.py`.
+After a ratings rebuild (`scripts/build_raw_stats.py` -> `scripts/build_ratings.py`, which also writes
+`data/ratings_*_years.json`), `python scripts/validate_periods.py --holdout 2012 2016 2019 2022` (~15 min) checks
+the period-rating shrinkage. Tests: `tests/test_engine.py`, `test_tournament.py`, `test_history.py`,
+`test_draft.py`.

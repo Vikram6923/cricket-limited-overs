@@ -60,18 +60,20 @@ class BowlFig:
 
 def make_team(spec: dict, fmt: str) -> Team:
     """spec = {"name", "players": [id | Player | {"id", "name"}], "keeper"?: id, "captain"?: id,
-    "order"?: [ids] (explicit batting order; default: by usual position), "squad"?: [ids] (pick the XI)}."""
+    "order"?: [ids] (explicit batting order; default: by usual position), "squad"?: [ids] (pick the XI),
+    "years"?: [first, last] (rate the players on those years only, design T2-10)}."""
+    yrs = spec.get("years")
     ps = []
     for x in spec.get("players", []):
         if isinstance(x, Player):
             ps.append(x)
         elif isinstance(x, dict):
-            ps.append(player(fmt, x["id"], x.get("name"), spec.get("team_level_as") or None))
+            ps.append(player(fmt, x["id"], x.get("name"), spec.get("team_level_as") or None, years=yrs))
         else:
-            ps.append(player(fmt, x))
+            ps.append(player(fmt, x, years=yrs))
     if spec.get("squad"):
         # design T2-9: pick the XI from a larger squad
-        squad = [player(fmt, x) if not isinstance(x, Player) else x for x in spec["squad"]]
+        squad = [player(fmt, x, years=yrs) if not isinstance(x, Player) else x for x in spec["squad"]]
         ps = captain.select_xi(squad, fmt, baseline(fmt, spec.get("comp") or FORMATS[fmt]["intl"],
                                                      spec.get("year") or 2025))
     by_id = {p.id: p for p in ps}
