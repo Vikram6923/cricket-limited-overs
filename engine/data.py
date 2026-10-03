@@ -114,8 +114,12 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
                position=rec.get("position"), bat_role=rec.get("bat_role") or "middle",
                bowl_role=rec.get("bowl_role") or "part_unk", bat_hand=rec.get("bat_hand"),
                bowl_type=rec.get("bowl_type"), bowl_kind=rec.get("bowl_kind"),
-               keeper=pid in _keepers(fmt))
+               keeper=pid in _keepers(fmt) or bool(rec.get("keeper")))
     b, w = rec.get("bat"), rec.get("bowl")
+    pre = rec.get("pre2002")
+    early = bool(pre and years and int(years[1]) <= pre["last"])
+    if early:   # a year range before his Cricsheet record: his pre-2002 (Wikipedia totals) rating
+        b, w = pre.get("bat"), pre.get("bowl")
     if b:
         p.bat = {ph: {m: float(b["phase"][ph][m]) for m in METRICS} for ph in PHASES}
         p.other_out = float(b.get("other_out_idx") or 1.0)
@@ -153,10 +157,13 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
     car = rec.get("career") or {}
     p.caps = sum((c.get("m") or 0) for c in car.values() if isinstance(c, dict))
     hist = _positions(fmt).get(pid)
-    if years:
+    if years and not early and rec.get("source") != "wikipedia_pre2002":
         _apply_period(p, fmt, int(years[0]), int(years[1]), years_mode)
+    if years:
         hist = period_positions(fmt, pid, int(years[0]), int(years[1])) or hist
-        p.caps, p.sel_opm = period_usage(fmt, pid, int(years[0]), int(years[1]))
+        caps, opm = period_usage(fmt, pid, int(years[0]), int(years[1]))
+        if caps:   # no Cricsheet years (pre-2002 players): keep career caps and usage
+            p.caps, p.sel_opm = caps, opm
     if hist:
         tot = sum(hist.values())
         p.opener_share = (hist.get(1, 0) + hist.get(2, 0)) / tot

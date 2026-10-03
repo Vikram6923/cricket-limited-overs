@@ -897,6 +897,10 @@ def assemble(fmt: str, r: dict) -> dict:
         players[pid] = rec
 
     added = add_afghanistan(fmt, r, players, ref)
+    pre_new = pre_part = 0
+    if fmt == "odi" and r["until"] is None:
+        r["pre2002_years"] = pre2002_baselines(r)
+        pre_new, pre_part = add_pre2002(r, players, ref)
     meta = {
         "format": fmt, "data_until": r["until"], "players": len(players),
         "reference_era": {"competition": MODELS[fmt]["intl"] + "_full", "years": ref_years},
@@ -909,6 +913,7 @@ def assemble(fmt: str, r: dict) -> dict:
                             "bowl": {t: _r(v) for t, v in r["team_levels"][m][1].items()}} for m in METRICS},
         "domestic_prior": calib, "afghanistan_from_totals": added,
         "afghanistan_blended_with_totals": r.get("afghan_blended", 0),
+        "pre2002": {"new_players": pre_new, "with_pre2002_block": pre_part, "baseline_years": r.get("pre2002_years", [])},
         "notes": ("Indexes are relative to the player's own era after adjusting for opponents (1.0 = average). "
                   "Engine: expected rate = baselines[comp][year][phase][metric] x batter phase index x bowler "
                   "phase index. 'ref' = expected numbers in the reference era (modern internationals)."),
@@ -974,6 +979,83 @@ def add_afghanistan(fmt: str, r: dict, players: dict, ref: dict) -> int:
         n += 1
     r["afghan_blended"] = n_blend
     return n
+
+
+def pre2002_baselines(r: dict) -> list[int]:
+    """ODI baselines for 1971-2001 (before Cricsheet): the earliest Cricsheet year's baselines scaled by the
+    Wikipedia-derived era table (scripts/build_pre2002.py) relative to its 2001 row: runs, fours and sixes by the
+    run-rate ratio, wickets by the balls-per-wicket ratio; other rates unchanged."""
+    yt = _load_json(STATS / "years_odi_pre2002.json", {})
+    if "2001" not in yt:
+        return []
+    added = []
+    for comp in ("odi_full", "odi"):
+        cy = sorted(y for (c, y, ph) in r["base"] if c == comp)
+        if not cy:
+            continue
+        y0 = cy[0]
+        ref = yt["2001"]
+        for ys, row in yt.items():
+            y = int(ys)
+            if y >= y0 or not row.get("rpo") or not row.get("balls_per_wkt"):
+                continue
+            fr, fw = row["rpo"] / ref["rpo"], ref["balls_per_wkt"] / row["balls_per_wkt"]
+            for ph in PHASES:
+                b = dict(r["base"][(comp, y0, ph)])
+                for k in ("runs", "four", "six"):
+                    b[k] *= fr
+                b["runs_sq"] *= fr * fr
+                b["wkt"] *= fw
+                r["base"][(comp, y, ph)] = b
+            added.append(y)
+    return sorted(set(added))
+
+
+def add_pre2002(r: dict, players: dict, ref: dict) -> tuple[int, int]:
+    """ODI players from before Cricsheet (scripts/build_pre2002.py): rating from their pre-2002 career totals,
+    against their own era. New players get a record (source "wikipedia_pre2002"); players already rated from
+    Cricsheet get a "pre2002" block that the engine uses for year ranges before their Cricsheet record."""
+    shares = {ph: ref[ph]["share"] for ph in PHASES}
+    n_new = n_part = 0
+    for pid, q in _load_json(STATS / "pre2002_players.json", {}).items():
+        runs, outs, balls = q.get("runs"), q.get("outs"), q.get("balls")
+        if not q.get("matches") or not (runs or balls):
+            continue
+        tot = {"runs": runs, "bat_avg": (runs / outs) if runs and outs else None, "balls": balls,
+               "wkts": q.get("wkts"), "bowl_avg": (q["runs_conceded"] / q["wkts"]) if q.get("wkts") and q.get("runs_conceded") else None}
+        avg = tot["bat_avg"] or 0
+        bat_g = "middle" if q.get("keeper") else "top" if avg >= 30 else "middle" if avg >= 20 else "lower" if avg >= 12 else "tail"
+        typ = q.get("bowl_type") or "unk"
+        bowl_g = f"{'spec' if (balls or 0) / q['matches'] >= 30 else 'part'}_{typ}"
+        tr = totals_rating("odi", tot, q["first"], q["last"], r, bat_g, bowl_g)
+        block = {"bat": None, "bowl": None, "first": q["first"], "last": q["last"]}
+        if tr["bat"]:
+            ix = tr["bat"]["idx"]
+            block["bat"] = {"balls": tr["bat"]["balls_est"], "balls_estimated": True, "confidence": _r(tr["bat"]["w"], 2),
+                            "idx": {m: _r(v) for m, v in ix.items()}, "other_out_idx": 1.0,
+                            "phase": {ph: {m: _r(v) for m, v in ix.items()} for ph in PHASES},
+                            "ref": readable_bat({ph: dict(ix) for ph in PHASES}, 1.0, shares, ref)}
+        if tr["bowl"]:
+            ix = tr["bowl"]["idx"]
+            block["bowl"] = {"balls": tr["bowl"]["balls"], "confidence": _r(tr["bowl"]["w"], 2),
+                             "idx": {m: _r(v) for m, v in ix.items()}, "wide_idx": 1.0, "noball_idx": 1.0,
+                             "phase": {ph: {m: _r(v) for m, v in ix.items()} for ph in PHASES},
+                             "ref": readable_bowl({ph: dict(ix) for ph in PHASES}, 1.0, 1.0, shares, ref)}
+        career = {"odi_pre2002": {"m": q["matches"], "runs": runs, "bat_avg": tot["bat_avg"] and round(tot["bat_avg"], 2),
+                                  "wkts": q.get("wkts"), "bowl_avg": tot["bowl_avg"] and round(tot["bowl_avg"], 2),
+                                  "balls": balls, "first": str(q["first"]), "last": str(q["last"]), "team": q["nation"]}}
+        if pid in players:
+            players[pid]["pre2002"] = block
+            players[pid].setdefault("career", {}).update(career)
+            n_part += 1
+            continue
+        players[pid] = {"id": pid, "name": q["name"], "cricinfo_id": q.get("cricinfo_id"), "source": "wikipedia_pre2002",
+                        "team": q["nation"], "bat_hand": q.get("bat_hand"), "bowl_type": q.get("bowl_type"),
+                        "bowl_kind": q.get("bowl_kind"), "bowl_arm": q.get("bowl_arm"), "keeper": bool(q.get("keeper")),
+                        "position": None, "bat_role": bat_g, "bowl_role": bowl_g, "bat": block["bat"],
+                        "bowl": block["bowl"], "career": career}
+        n_new += 1
+    return n_new, n_part
 
 
 def blend_totals(fmt: str, r: dict, rec: dict, tot: dict, lst: dict, ref: dict) -> bool:

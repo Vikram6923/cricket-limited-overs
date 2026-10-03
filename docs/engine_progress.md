@@ -260,6 +260,26 @@ Cummins 8/11 v Johnson 11/11):
 - Tests: `tests/test_selection.py` (inclusion probabilities v brute force, sampling frequencies, valid and varied
   XIs, reproducible matches).
 
+## Step 8: pre-2002 ODI players (2026-10-03)
+
+`scripts/build_pre2002.py`: ODI career totals from Wikipedia's "List of <nation> ODI cricketers" (18 nations; a
+header-grid parser handles the different layouts; first Runs/Avg column = batting, second = bowling). 1,216 players
+who debuted before 2002, linked via Wikidata P2697 -> Cricsheet register (952 also in Cricsheet); styles from the
+article infobox. Players who carried on past 2002 keep a pre-Cricsheet part (Wikipedia total minus Cricsheet).
+- Era table (`years_odi_pre2002.json`): each player's totals spread over his years and summed per year: run rate
+  3.85 (1975) -> 4.67 (2001), balls per wicket 44 -> 41. ODI baselines 1971-2001 = earliest Cricsheet year scaled
+  by run-rate and balls-per-wicket ratios to 2001 (`build_ratings.pre2002_baselines`).
+- Ratings (`add_pre2002`): the Afghanistan totals method (average -> dismissal index; balls, wickets, bowling
+  average -> bowling indexes; **batting strike rate from the role prior**, lists don't have it; no opponent
+  adjustment). 983 new players; 227 Cricsheet-era players get a `pre2002` block, used for year ranges before
+  their Cricsheet record.
+- Engine: Classic modes and the draft go back to 1971 for ODIs. Check: West Indies 1983-87 XI = Richards,
+  Haynes, Greenidge, Lloyd, Richardson, Dujon, Logie, Hooper, Garner, Holding, Walsh; simulated 1st-innings mean
+  212 (1985 conditions), 238 (1996), brief's target for the 1990s 220-240.
+- Limits: strike rates are role priors (Richards' fast scoring isn't captured); batting positions unknown before
+  2002 (order from role); appearances per year are spread evenly over a career.
+- Rebuild: `build_pre2002.py` (after build_raw_stats) -> `build_ratings.py`.
+
 ## Rebuild order
 
 `python -m engine.fit.fit_basics` -> `python -m engine.fit.fit_situation` -> `python -m engine.fit.fit_toss` ->

@@ -30,6 +30,16 @@ def _intl_years(fmt: str) -> dict:
     out = {}
     for pid, r in json.loads(path.read_text(encoding="utf-8")).items():
         out[pid] = {int(y): rec.get("teams") or {} for y, rec in (r.get("by_year") or {}).items()}
+    if fmt == "odi":   # before Cricsheet: Wikipedia career totals, matches spread evenly over the years
+        pre = DATA / "raw_stats" / "pre2002_players.json"
+        for pid, q in (json.loads(pre.read_text(encoding="utf-8")) if pre.exists() else {}).items():
+            ys = range(q["first"], q["last"] + 1)
+            if not q.get("matches") or not ys:
+                continue
+            by = out.setdefault(pid, {})
+            for y in ys:
+                if y not in by:
+                    by[y] = {q["nation"]: q["matches"] / len(ys)}
     return out
 
 

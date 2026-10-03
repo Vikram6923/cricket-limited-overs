@@ -80,6 +80,14 @@ def _appearances(fmt: str, y1: int, y2: int, source: str) -> dict:
                     c = target.setdefault(pid, {})
                     for t, n in (rec.get("teams") or {}).items():
                         c[t] = c.get(t, 0) + n
+    if fmt == "odi":   # before Cricsheet (engine/history.py spreads Wikipedia totals over the years)
+        from .history import _intl_years
+        for pid, by in _intl_years(fmt).items():
+            for y, teams in by.items():
+                if y1 <= y <= y2 and y < 2002:
+                    c = intl.setdefault(pid, {})
+                    for t, n in teams.items():
+                        c[t] = c.get(t, 0) + n
     out = {}
     for pid in set(intl) | set(league):
         ci = {t: n for t, n in intl.get(pid, {}).items() if source == "intl" or t in FULL_MEMBERS}

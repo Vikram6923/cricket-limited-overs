@@ -32,7 +32,7 @@ offline. Modes:
 - **Match / Series:** two saved teams play one match or a series of up to 7.
 - **Tournament:** pick teams; single or double round robin, one league or two groups, then semi-finals, IPL-style
   playoffs, a final or none.
-- **Classic Series / Classic Tournament:** a nation over a range of years (ODIs from 2002, T20Is from 2005), e.g.
+- **Classic Series / Classic Tournament:** a nation over a range of years (ODIs from 1971, T20Is from 2005), e.g.
   Australia 2003-07 v India 2021-24. The squad is the period's 20 most-capped players (15 / 25 / everyone also
   offered), rated on those years, and batting where they batted then. Ratings for those years are either blended
   with the player's career (default; the most accurate) or based on those years only (closer to what he did then,
@@ -248,7 +248,7 @@ tests/             engine and tournament tests
 - [x] Browser UI (Flask, works offline): single match, series, World Cup / IPL-style tournaments, team builder,
       results pages with match reports, stats tables, records and MVP race
 - [x] Historical teams (ratings for a year range), fantasy draft, worm / Manhattan / win-probability charts
-- [ ] Pre-2002 ODI players from Wikipedia career totals
+- [x] Pre-2002 ODI players from Wikipedia career totals (ODI classic teams from 1971)
 - [ ] Later: rain and DLS, Impact Player rule, player-v-player matchups
 
 ## Data, credits and licences
