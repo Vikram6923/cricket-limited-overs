@@ -36,6 +36,11 @@ UI = ROOT / "webui"
 TEAMS = ROOT / "data" / "teams.json"
 TEAMS_DEFAULT = ROOT / "data" / "teams_default.json"
 LAST = ROOT / "results" / "last"
+SEASONS = ROOT / "data" / "league_seasons.json"   # latest IPL / BBL seasons (scripts/build_league_presets.py)
+
+
+def league_seasons() -> dict:
+    return json.loads(SEASONS.read_text(encoding="utf-8")) if SEASONS.exists() else {}
 
 COMP_LABELS = {
     "t20i_full": "T20 internationals (full members)", "t20i": "T20 internationals (all teams)",
@@ -248,7 +253,13 @@ def _run(job: Job, params: dict) -> None:
         if "squad_size" in params:
             size = int(params["squad_size"]) if params["squad_size"] else None
         ym = params.get("years_mode") if params.get("years_mode") in ("blend", "only") else "blend"
-        if params["mode"] == "draft":
+        if params["mode"] == "league":
+            s = league_seasons()[params["league"]]
+            specs = [{"name": t["name"], "squad": t["players"], "overseas": t["overseas"],
+                      "max_overseas": t["max_overseas"]} for t in s["teams"]]
+            res = play_tournament(specs, fmt="t20", comp=params["league"], year=s["year"], rounds=2, knockout="ipl",
+                                  venues=venues_, seed=seed, on_match=on_match)
+        elif params["mode"] == "draft":
             groups = int(params.get("groups") or 1)
             res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
@@ -299,6 +310,10 @@ def api_meta():
         # a list, not a dict: Flask sorts dict keys, which would put "final" first in the dropdown
         "knockouts": [{"id": k, "label": v} for k, v in KNOCKOUTS.items()],
         "draft_teams": DEFAULT_TEAMS,
+        "leagues": [{"id": k, "label": s["label"], "season": s["season"], "year": s["year"],
+                     "teams": [{"name": t["name"], "n": len(t["players"]), "overseas": len(t["overseas"])}
+                               for t in s["teams"]], "max_overseas": s["teams"][0]["max_overseas"] if s["teams"] else None}
+                    for k, s in league_seasons().items()],
         "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
         "teams": load_teams(), "has_results": (LAST / "summary.json").exists(),
         "job": JOB.to_dict() if JOB else None,
@@ -367,6 +382,8 @@ def api_run():
     with LOCK:
         if JOB and JOB.status == "running":
             return jsonify(error="A simulation is already running."), 409
+        if p.get("mode") == "league":
+            p["fmt"] = "t20"
         fmt = p.get("fmt")
         if fmt not in ("t20", "odi"):
             return jsonify(error="Choose T20 or ODI."), 400
@@ -384,6 +401,13 @@ def api_run():
                 return jsonify(error="A series has 1 to 7 matches."), 400
             title = f"{a} v {b}" + (f" - {n}-match series" if n > 1 else "")
             total = n
+        elif p.get("mode") == "league":
+            s = league_seasons().get(p.get("league"))
+            if not s:
+                return jsonify(error="Unknown league."), 400
+            p["comp"], p["year"] = p["league"], s["year"]
+            total = match_count(len(s["teams"]), 2, None, "ipl")
+            title = f"{s['label']} {s['season']} - {len(s['teams'])} teams, double round robin + playoffs"
         elif p.get("mode") == "draft":
             if not DRAFT or not DRAFT.done:
                 return jsonify(error="Finish the draft first."), 400

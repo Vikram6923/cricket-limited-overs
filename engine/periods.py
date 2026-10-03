@@ -61,6 +61,11 @@ def fit_tau2(pairs: list[tuple[float, float]]) -> float:
 
 
 def period_indexes(rows: dict, career: dict, y1: int, y2: int, tau_scale: float = 1.0) -> tuple[dict, dict, dict]:
+    """Ratings on the years y1..y2 (see split_indexes)."""
+    return split_indexes(rows, career, lambda k: y1 <= int(k) <= y2, tau_scale)
+
+
+def split_indexes(rows: dict, career: dict, is_in, tau_scale: float = 1.0) -> tuple[dict, dict, dict]:
     """rows: pid -> {year: [balls, A_runs, E_runs, A_wkt, E_wkt, ..., V_runs]}; career: pid -> {metric: idx}.
     Returns (pid -> {metric: period idx}, metric -> tau^2, pid -> balls in the period).
 
@@ -74,7 +79,7 @@ def period_indexes(rows: dict, career: dict, y1: int, y2: int, tau_scale: float 
             continue
         acc_in = acc_out = None
         for yr, row in by_year.items():
-            if y1 <= int(yr) <= y2:
+            if is_in(yr):
                 acc_in = list(row) if acc_in is None else [a + b for a, b in zip(acc_in, row)]
             else:
                 acc_out = list(row) if acc_out is None else [a + b for a, b in zip(acc_out, row)]
@@ -165,4 +170,35 @@ def period_ratios(fmt: str, y1: int, y2: int, mode: str = "blend") -> dict:
             idx, _, balls = period_indexes(years.get(side, {}), career, y1, y2, TAU_SCALE[fmt][side])
         out[side] = {pid: {**{m: v / career[pid][m] if career[pid][m] else 1.0 for m, v in d.items()},
                            "balls": balls[pid]} for pid, d in idx.items()}
+    return out
+
+
+# ---------------------------------------------------------------- league-specific ratings
+# Same estimator on competitions instead of years: a player's record in one league (actual / expected, so already
+# adjusted for that league's opposition and conditions), shrunk toward his overall T20 rating. LEAGUE_TAU_SCALE is
+# chosen by scripts/validate_leagues.py; None = the data didn't support it, league ratings stay off.
+LEAGUE_TAU_SCALE = {"t20": None}
+
+
+@lru_cache(maxsize=4)
+def load_comps(fmt: str) -> dict:
+    path = DATA / f"ratings_{fmt}_comps.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"bat": {}, "bowl": {}}
+
+
+@lru_cache(maxsize=32)
+def league_ratios(fmt: str, comp: str) -> dict:
+    """side -> pid -> {metric: league index / overall index} for players with a record in that competition."""
+    from .data import ratings
+    scale = LEAGUE_TAU_SCALE.get(fmt)
+    if scale is None:
+        return {"bat": {}, "bowl": {}}
+    players = ratings(fmt)["players"]
+    rows = load_comps(fmt)
+    out = {}
+    for side in ("bat", "bowl"):
+        career = {pid: p[side]["idx"] for pid, p in players.items() if p.get(side) and p[side].get("idx")}
+        idx, _, _ = split_indexes(rows.get(side, {}), career, lambda k: k == comp, scale)
+        out[side] = {pid: {m: v / career[pid][m] if career[pid][m] else 1.0 for m, v in d.items()}
+                     for pid, d in idx.items()}
     return out

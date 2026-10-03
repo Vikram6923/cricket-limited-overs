@@ -625,19 +625,27 @@ def year_stats(cb, cw, ckey, balls, A, e0, var_runs, bat, bowl, opponent=True) -
     metric, where E already includes the fitted baseline and the opponents' final indexes, plus the runs variance.
     The engine turns these into ratings for any year range (engine/periods.py) without refitting."""
     out = {"bat": defaultdict(lambda: [0.0] * len(YEAR_COLS)), "bowl": defaultdict(lambda: [0.0] * len(YEAR_COLS))}
+    by_comp = {"bat": defaultdict(lambda: [0.0] * len(YEAR_COLS)), "bowl": defaultdict(lambda: [0.0] * len(YEAR_COLS))}
     for k in range(len(cb)):
         yr = ckey[k][1]
         for side, i, opp in (("bat", cb[k], bowl), ("bowl", cw[k], bat)):
-            row = out[side][(i, yr)]
-            row[0] += balls[k]
-            o = cw[k] if side == "bat" else cb[k]
-            for n, m in enumerate(METRICS):
-                f = opp[m][o] if opponent else 1.0
-                row[1 + 2 * n] += A[m][k]
-                row[2 + 2 * n] += e0[m][k] * f
-                if m == "runs":
-                    row[-1] += var_runs[k] * f * f
+            for row in (out[side][(i, yr)], by_comp[side][(i, base_comp(ckey[k][0]))]):
+                _add_cell(row, k, side, cb, cw, A, e0, var_runs, bat, bowl, balls, opponent)
+    out["by_comp"] = by_comp
     return out
+
+
+def _add_cell(row, k, side, cb, cw, A, e0, var_runs, bat, bowl, balls, opponent):
+    """Add cell k to a player's row of sufficient statistics (see YEAR_COLS)."""
+    opp = bowl if side == "bat" else bat
+    o = cw[k] if side == "bat" else cb[k]
+    row[0] += balls[k]
+    for n, m in enumerate(METRICS):
+        f = opp[m][o] if opponent else 1.0
+        row[1 + 2 * n] += A[m][k]
+        row[2 + 2 * n] += e0[m][k] * f
+        if m == "runs":
+            row[-1] += var_runs[k] * f * f
 
 
 def _load_json(path: Path, default):
@@ -1136,6 +1144,12 @@ def main(argv: list[str] | None = None) -> int:
                 yrs[side].setdefault(ids[i], {})[str(yr)] = [int(row[0])] + [round(x, 3) for x in row[1:]]
         (OUT / f"ratings_{fmt}_years{suffix}.json").write_text(
             json.dumps(yrs, separators=(",", ":")), encoding="utf-8")
+        comps = {"cols": list(YEAR_COLS), "bat": {}, "bowl": {}}
+        for side, ids in (("bat", r["bat_ids"]), ("bowl", r["bowl_ids"])):
+            for (i, comp), row in sorted(r["years"]["by_comp"][side].items()):
+                comps[side].setdefault(ids[i], {})[comp] = [int(row[0])] + [round(x, 3) for x in row[1:]]
+        (OUT / f"ratings_{fmt}_comps{suffix}.json").write_text(
+            json.dumps(comps, separators=(",", ":")), encoding="utf-8")
         m = out["meta"]
         print(f"  wrote {path.name}: {m['players']} players ({m['afghanistan_from_totals']} Afghanistan from Wikipedia totals only, "
               f"{m['afghanistan_blended_with_totals']} league ratings blended with Wikipedia totals; "

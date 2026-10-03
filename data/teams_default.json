@@ -659,14 +659,6 @@
   "name": "Chennai Super Kings 2026",
   "players": [
    {
-    "id": "fcc21ace",
-    "name": "A Kamboj"
-   },
-   {
-    "id": "efc04be7",
-    "name": "Noor Ahmad"
-   },
-   {
     "id": "a4cc73aa",
     "name": "SV Samson"
    },
@@ -675,16 +667,24 @@
     "name": "RD Gaikwad"
    },
    {
+    "id": "efc04be7",
+    "name": "Noor Ahmad"
+   },
+   {
+    "id": "fcc21ace",
+    "name": "A Kamboj"
+   },
+   {
     "id": "a4e37e47",
     "name": "S Dube"
    },
    {
-    "id": "844e79d1",
-    "name": "D Brevis"
-   },
-   {
     "id": "7b679de5",
     "name": "Kartik Sharma"
+   },
+   {
+    "id": "844e79d1",
+    "name": "D Brevis"
    },
    {
     "id": "59559bc2",
@@ -703,52 +703,52 @@
     "name": "Mukesh Choudhary"
    },
    {
-    "id": "cf59b3f0",
-    "name": "Urvil Patel"
-   },
-   {
     "id": "4d7f517e",
     "name": "AJ Hosein"
    },
    {
-    "id": "e148e6bd",
-    "name": "PR Veer"
+    "id": "cf59b3f0",
+    "name": "Urvil Patel"
    },
    {
     "id": "b2b4f545",
     "name": "A Mhatre"
    },
    {
-    "id": "a2f46292",
-    "name": "KK Ahmed"
+    "id": "e148e6bd",
+    "name": "PR Veer"
    },
    {
-    "id": "e84ac20c",
-    "name": "MJ Henry"
+    "id": "a2f46292",
+    "name": "KK Ahmed"
    },
    {
     "id": "a90e53ec",
     "name": "MW Short"
    },
    {
+    "id": "e84ac20c",
+    "name": "MJ Henry"
+   },
+   {
     "id": "83c3e8e3",
     "name": "SH Johnson"
    },
    {
-    "id": "dee07622",
-    "name": "RS Ghosh"
-   },
-   {
     "id": "2ed569a0",
     "name": "RD Chahar"
+   },
+   {
+    "id": "dee07622",
+    "name": "RS Ghosh"
    }
   ],
   "overseas": [
    "844e79d1",
    "59559bc2",
    "4d7f517e",
-   "e84ac20c",
    "a90e53ec",
+   "e84ac20c",
    "83c3e8e3"
   ],
   "max_overseas": 4
@@ -761,12 +761,12 @@
     "name": "KL Rahul"
    },
    {
-    "id": "85b3fab2",
-    "name": "T Stubbs"
-   },
-   {
     "id": "2e171977",
     "name": "AR Patel"
+   },
+   {
+    "id": "85b3fab2",
+    "name": "T Stubbs"
    },
    {
     "id": "f834dcfc",
@@ -809,20 +809,20 @@
     "name": "MA Starc"
    },
    {
-    "id": "7c3c0337",
-    "name": "Auqib Nabi"
-   },
-   {
     "id": "5ffc0565",
     "name": "V Nigam"
    },
    {
-    "id": "ad3b6e95",
-    "name": "Abishek Porel"
+    "id": "7c3c0337",
+    "name": "Auqib Nabi"
    },
    {
     "id": "926c7443",
     "name": "SU Parakh"
+   },
+   {
+    "id": "ad3b6e95",
+    "name": "Abishek Porel"
    },
    {
     "id": "fb5f69e4",
@@ -837,12 +837,12 @@
     "name": "KA Jamieson"
    },
    {
-    "id": "51ec3919",
-    "name": "T Vijay"
-   },
-   {
     "id": "327b58d3",
     "name": "PVD Chameera"
+   },
+   {
+    "id": "51ec3919",
+    "name": "T Vijay"
    }
   ],
   "overseas": [
@@ -860,14 +860,6 @@
   "name": "Gujarat Titans 2026",
   "players": [
    {
-    "id": "f19ccfad",
-    "name": "Washington Sundar"
-   },
-   {
-    "id": "e62dd25d",
-    "name": "K Rabada"
-   },
-   {
     "id": "d5130a30",
     "name": "B Sai Sudharsan"
    },
@@ -876,8 +868,16 @@
     "name": "JC Buttler"
    },
    {
+    "id": "f19ccfad",
+    "name": "Washington Sundar"
+   },
+   {
     "id": "5f547c8b",
     "name": "Rashid Khan"
+   },
+   {
+    "id": "e62dd25d",
+    "name": "K Rabada"
    },
    {
     "id": "2f49c897",
@@ -904,12 +904,12 @@
     "name": "M Shahrukh Khan"
    },
    {
-    "id": "3cea23da",
-    "name": "N Sindhu"
-   },
-   {
     "id": "12314277",
     "name": "Arshad Khan"
+   },
+   {
+    "id": "3cea23da",
+    "name": "N Sindhu"
    },
    {
     "id": "9a46c4e5",
@@ -928,18 +928,18 @@
     "name": "R Sai Kishore"
    },
    {
-    "id": "fa2f1dde",
-    "name": "K Khejroliya"
-   },
-   {
     "id": "57ca01b3",
     "name": "Kumar Kushagra"
+   },
+   {
+    "id": "fa2f1dde",
+    "name": "K Khejroliya"
    }
   ],
   "overseas": [
-   "e62dd25d",
    "99b75528",
    "5f547c8b",
+   "e62dd25d",
    "0f721006",
    "9a46c4e5"
   ],
@@ -949,14 +949,6 @@
   "name": "Kolkata Knight Riders 2026",
   "players": [
    {
-    "id": "eaa76d3c",
-    "name": "C Green"
-   },
-   {
-    "id": "e4cdf230",
-    "name": "AS Roy"
-   },
-   {
     "id": "5d2eea49",
     "name": "Kartik Tyagi"
    },
@@ -965,8 +957,16 @@
     "name": "AM Rahane"
    },
    {
+    "id": "eaa76d3c",
+    "name": "C Green"
+   },
+   {
     "id": "0a509d6b",
     "name": "RK Singh"
+   },
+   {
+    "id": "e4cdf230",
+    "name": "AS Roy"
    },
    {
     "id": "d7017798",
@@ -981,16 +981,16 @@
     "name": "FH Allen"
    },
    {
+    "id": "5b7ab5a9",
+    "name": "CV Varun"
+   },
+   {
     "id": "7c3b3b78",
     "name": "VG Arora"
    },
    {
     "id": "650d5e49",
     "name": "R Powell"
-   },
-   {
-    "id": "5b7ab5a9",
-    "name": "CV Varun"
    },
    {
     "id": "be24ead0",
@@ -1009,16 +1009,16 @@
     "name": "TL Seifert"
    },
    {
-    "id": "f12fe2a1",
-    "name": "T Dahiya"
-   },
-   {
     "id": "449f4e3c",
     "name": "B Muzarabani"
    },
    {
     "id": "21d4e29b",
     "name": "Navdeep Saini"
+   },
+   {
+    "id": "f12fe2a1",
+    "name": "T Dahiya"
    },
    {
     "id": "64839cb3",
@@ -1044,20 +1044,20 @@
     "name": "RR Pant"
    },
    {
-    "id": "80b2fb19",
-    "name": "Prince Yadav"
-   },
-   {
     "id": "3241e3fd",
     "name": "N Pooran"
    },
    {
-    "id": "8cf9814c",
-    "name": "Mohammed Shami"
+    "id": "80b2fb19",
+    "name": "Prince Yadav"
    },
    {
     "id": "3d8feaf8",
     "name": "MR Marsh"
+   },
+   {
+    "id": "8cf9814c",
+    "name": "Mohammed Shami"
    },
    {
     "id": "6a26221c",
@@ -1080,12 +1080,12 @@
     "name": "Abdul Samad"
    },
    {
-    "id": "eef2536f",
-    "name": "Avesh Khan"
-   },
-   {
     "id": "c33d8116",
     "name": "Mohsin Khan"
+   },
+   {
+    "id": "eef2536f",
+    "name": "Avesh Khan"
    },
    {
     "id": "ebcfef83",
@@ -1116,12 +1116,12 @@
     "name": "Akshat Raghuwanshi"
    },
    {
-    "id": "b483905d",
-    "name": "Akash Singh"
-   },
-   {
     "id": "2d140b79",
     "name": "AA Kulkarni"
+   },
+   {
+    "id": "b483905d",
+    "name": "Akash Singh"
    },
    {
     "id": "acdc62f5",
@@ -1146,12 +1146,12 @@
   "name": "Mumbai Indians 2026",
   "players": [
    {
-    "id": "fffa744b",
-    "name": "Naman Dhir"
-   },
-   {
     "id": "b0482a1d",
     "name": "Tilak Varma"
+   },
+   {
+    "id": "fffa744b",
+    "name": "Naman Dhir"
    },
    {
     "id": "462411b3",
@@ -1194,12 +1194,12 @@
     "name": "WG Jacks"
    },
    {
-    "id": "5b615e7c",
-    "name": "Raghu Sharma"
-   },
-   {
     "id": "172dff15",
     "name": "C Bosch"
+   },
+   {
+    "id": "5b615e7c",
+    "name": "Raghu Sharma"
    },
    {
     "id": "a818c1be",
@@ -1208,6 +1208,14 @@
    {
     "id": "e4a0deae",
     "name": "MJ Santner"
+   },
+   {
+    "id": "a9fd84fb",
+    "name": "M Markande"
+   },
+   {
+    "id": "372455c4",
+    "name": "Q de Kock"
    },
    {
     "id": "e48a4814",
@@ -1222,20 +1230,12 @@
     "name": "RA Bawa"
    },
    {
-    "id": "a9fd84fb",
-    "name": "M Markande"
-   },
-   {
-    "id": "372455c4",
-    "name": "Q de Kock"
+    "id": "9e6032fa",
+    "name": "DV Malewar"
    },
    {
     "id": "bafd0398",
     "name": "R Minz"
-   },
-   {
-    "id": "9e6032fa",
-    "name": "DV Malewar"
    }
   ],
   "overseas": [
@@ -1253,32 +1253,32 @@
   "name": "Punjab Kings 2026",
   "players": [
    {
-    "id": "fe366f34",
-    "name": "C Connolly"
+    "id": "57ee1fde",
+    "name": "YS Chahal"
    },
    {
     "id": "9418198b",
     "name": "P Simran Singh"
    },
    {
-    "id": "85ec8e33",
-    "name": "SS Iyer"
+    "id": "fe366f34",
+    "name": "C Connolly"
    },
    {
-    "id": "57ee1fde",
-    "name": "YS Chahal"
+    "id": "85ec8e33",
+    "name": "SS Iyer"
    },
    {
     "id": "244048f6",
     "name": "Arshdeep Singh"
    },
    {
-    "id": "d9273ee7",
-    "name": "MP Stoinis"
-   },
-   {
     "id": "b5797845",
     "name": "Priyansh Arya"
+   },
+   {
+    "id": "d9273ee7",
+    "name": "MP Stoinis"
    },
    {
     "id": "81c36ee9",
@@ -1305,24 +1305,24 @@
     "name": "Suryansh Shedge"
    },
    {
-    "id": "8f6dd463",
-    "name": "Azmatullah Omarzai"
-   },
-   {
     "id": "2f9d0389",
     "name": "LH Ferguson"
+   },
+   {
+    "id": "8f6dd463",
+    "name": "Azmatullah Omarzai"
    },
    {
     "id": "c05edf8e",
     "name": "Harpreet Brar"
    },
    {
-    "id": "e1b9f3a9",
-    "name": "BJ Dwarshuis"
-   },
-   {
     "id": "4b31f3a3",
     "name": "Yash Thakur"
+   },
+   {
+    "id": "e1b9f3a9",
+    "name": "BJ Dwarshuis"
    },
    {
     "id": "0494fa6e",
@@ -1343,32 +1343,32 @@
   "name": "Rajasthan Royals 2026",
   "players": [
    {
-    "id": "bcf325d2",
-    "name": "Dhruv Jurel"
-   },
-   {
     "id": "6c19c6e5",
     "name": "YBK Jaiswal"
-   },
-   {
-    "id": "5574750c",
-    "name": "JC Archer"
    },
    {
     "id": "470f446b",
     "name": "V Suryavanshi"
    },
    {
+    "id": "bcf325d2",
+    "name": "Dhruv Jurel"
+   },
+   {
+    "id": "5574750c",
+    "name": "JC Archer"
+   },
+   {
     "id": "f0af99a7",
     "name": "D Ferreira"
    },
    {
-    "id": "fe93fd9d",
-    "name": "RA Jadeja"
-   },
-   {
     "id": "04a418e8",
     "name": "R Parag"
+   },
+   {
+    "id": "fe93fd9d",
+    "name": "RA Jadeja"
    },
    {
     "id": "465aa633",
@@ -1391,12 +1391,12 @@
     "name": "Yash Raj Punja"
    },
    {
-    "id": "6b2ff18f",
-    "name": "SB Dubey"
-   },
-   {
     "id": "46a9bea1",
     "name": "TU Deshpande"
+   },
+   {
+    "id": "6b2ff18f",
+    "name": "SB Dubey"
    },
    {
     "id": "3ff033bb",
@@ -1407,12 +1407,12 @@
     "name": "Sandeep Sharma"
    },
    {
-    "id": "92500ad5",
-    "name": "SS Mishra"
-   },
-   {
     "id": "60aa2db3",
     "name": "LG Pretorius"
+   },
+   {
+    "id": "92500ad5",
+    "name": "SS Mishra"
    },
    {
     "id": "548516a6",
@@ -1438,16 +1438,20 @@
   "name": "Royal Challengers Bengaluru 2026",
   "players": [
    {
-    "id": "f1f99156",
-    "name": "TH David"
-   },
-   {
     "id": "ba607b88",
     "name": "V Kohli"
    },
    {
+    "id": "2c25d4f5",
+    "name": "D Padikkal"
+   },
+   {
     "id": "800d2d97",
     "name": "JM Sharma"
+   },
+   {
+    "id": "f1f99156",
+    "name": "TH David"
    },
    {
     "id": "5b8c830e",
@@ -1456,10 +1460,6 @@
    {
     "id": "2e81a32d",
     "name": "B Kumar"
-   },
-   {
-    "id": "2c25d4f5",
-    "name": "D Padikkal"
    },
    {
     "id": "c740ea83",
@@ -1474,12 +1474,12 @@
     "name": "JR Hazlewood"
    },
    {
-    "id": "b8527c3d",
-    "name": "Rasikh Salam"
-   },
-   {
     "id": "9440ef41",
     "name": "Suyash Sharma"
+   },
+   {
+    "id": "b8527c3d",
+    "name": "Rasikh Salam"
    },
    {
     "id": "a24be938",
@@ -1516,6 +1516,10 @@
   "name": "Sunrisers Hyderabad 2026",
   "players": [
    {
+    "id": "12b610c2",
+    "name": "TM Head"
+   },
+   {
     "id": "f29185a1",
     "name": "Abhishek Sharma"
    },
@@ -1524,24 +1528,20 @@
     "name": "Ishan Kishan"
    },
    {
-    "id": "5750bcb4",
-    "name": "E Malinga"
-   },
-   {
     "id": "235c2bb6",
     "name": "H Klaasen"
    },
    {
-    "id": "12b610c2",
-    "name": "TM Head"
-   },
-   {
-    "id": "d7423da1",
-    "name": "S Arora"
+    "id": "5750bcb4",
+    "name": "E Malinga"
    },
    {
     "id": "aad0c365",
     "name": "Nithish Kumar Reddy"
+   },
+   {
+    "id": "d7423da1",
+    "name": "S Arora"
    },
    {
     "id": "7b44eb3e",
@@ -1556,12 +1556,12 @@
     "name": "Aniket Verma"
    },
    {
-    "id": "ded9240e",
-    "name": "PJ Cummins"
-   },
-   {
     "id": "25228673",
     "name": "Harsh Dubey"
+   },
+   {
+    "id": "ded9240e",
+    "name": "PJ Cummins"
    },
    {
     "id": "ece7b6b3",
@@ -1593,9 +1593,9 @@
    }
   ],
   "overseas": [
-   "5750bcb4",
-   "235c2bb6",
    "12b610c2",
+   "235c2bb6",
+   "5750bcb4",
    "ded9240e",
    "6c79c098",
    "50c6bc2b",

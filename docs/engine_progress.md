@@ -289,6 +289,32 @@ for it that season (16-24 players). Overseas = played internationals for a count
 Not modelled: Impact Player; the real 14-match league schedule. Editing a preset in Team Builder drops the
 overseas list (saved teams store players only).
 
+## League-specific ratings: tested, kept off (2026-10-03)
+
+Question (user): Steve Smith's BBL record (avg 47.9, SR 152) is far better than his T20I record (25.4, 126); should
+a BBL simulation use a BBL-specific rating? `build_ratings.py` now also writes `ratings_t20_comps.json` (per
+player and competition, actual / expected, i.e. already adjusted for that league's opposition and conditions);
+`engine/periods.league_ratios` shrinks a player's league record toward his overall rating.
+`scripts/validate_leagues.py` (fit <= 2023, predict each league's 2024+ balls) - skill vs flat, all 11 leagues:
+
+| | bat runs | bat dot | bowl runs | bowl dot |
+|---|---|---|---|---|
+| overall rating | 1.6% | 22.0% | 28.4% | 28.0% |
+| league rating, tau^2 x 0.1 | 0.3% | 21.1% | 28.2% | 27.5% |
+| x 0.5 | -4.4% | 18.3% | 26.4% | 25.2% |
+| x 2.0 | -14.8% | 12.2% | 21.3% | 20.4% |
+
+Every setting is worse, so the gate fails and league ratings stay **off** (`LEAGUE_TAU_SCALE = None`). Players'
+league-to-league differences are opposition and conditions (already modelled: in BBL conditions against BBL
+attacks Smith already scores more than in T20Is) plus luck.
+
+## League Season mode (2026-10-03)
+
+`scripts/build_league_presets.py` -> `data/league_seasons.json`: the latest IPL (2026) and BBL (2025-26, seasons
+run July-June) squads from Cricsheet (everyone who played for each team that season, rated players only), with
+overseas lists (limit IPL 4, BBL 3). UI mode "League Season": pick IPL or BBL; double round robin + IPL-style
+playoffs in that league's latest conditions. IPL squads are also saved-team presets.
+
 ## Rebuild order
 
 `python -m engine.fit.fit_basics` -> `python -m engine.fit.fit_situation` -> `python -m engine.fit.fit_toss` ->

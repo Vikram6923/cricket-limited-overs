@@ -87,7 +87,7 @@ async function init() {
   fillSelect($('t-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
   ['t-rounds', 't-groups', 't-ko'].forEach(id => $(id).onchange = updateTournamentTotal);
   $('t-search').oninput = filterTeams;
-  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initBuilder(); initMatchNav();
+  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initLeague(); initBuilder(); initMatchNav();
   $('go-btn').onclick = start;
   if (META.has_results) { $('last-btn').style.display = ''; $('home-note').textContent = 'Results from your last run are still available — click “View last results”.'; }
   if (META.job && META.job.status === 'running') poll();
@@ -98,7 +98,7 @@ function setMode(m) {
   document.querySelectorAll('.mode').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   document.querySelectorAll('.form').forEach(f => f.classList.toggle('on', f.id === 'f-' + m));
   const b = m === 'builder';
-  $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b ? 'none' : '';
+  $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' ? 'none' : '';
   $('go-err').textContent = '';
   if (b) { showView('v-builder'); loadBuilderPool(); }
   else if ($('v-builder').classList.contains('on')) showView('v-home');
@@ -206,6 +206,18 @@ function updateClassicTotal() {
   const k = $('ct-rows').children.length;
   const n = matchCount(k, +$('ct-rounds').value, +$('ct-groups').value, $('ct-ko').value);
   $('ct-total').textContent = k < 2 ? 'Add at least 2 teams' : `${k} teams · ${n} matches`;
+}
+
+/* ───────────────────────── league season ───────────────────────── */
+function initLeague() {
+  fillSelect($('l-league'), META.leagues.map(l => ({v: l.id, t: `${l.label} ${l.season}`})));
+  const show = () => {
+    const l = META.leagues.find(x => x.id === $('l-league').value);
+    if (!l) { $('l-teams').textContent = 'No league data - run scripts/build_league_presets.py'; return; }
+    $('l-teams').innerHTML = l.teams.map(t => `${esc(t.name)} <span class="muted">(${t.n} players, ${t.overseas} overseas)</span>`).join('<br>');
+    $('l-total').textContent = `${l.teams.length} teams · ${matchCount(l.teams.length, 2, 1, 'ipl')} matches · ${l.label} ${l.year} conditions · max ${l.max_overseas} overseas per XI`;
+  };
+  $('l-league').onchange = show; show();
 }
 
 /* ───────────────────────── fantasy draft ───────────────────────── */
@@ -316,6 +328,7 @@ function payload() {
   const base = {mode: MODE, fmt: $('c-fmt').value, comp: $('c-comp').value, year: +$('c-year').value,
     venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim()};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value};
+  if (MODE === 'league') return {mode: 'league', league: $('l-league').value, seed: $('l-seed').value.trim(), venues: []};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
     team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value,
     years_mode: document.querySelector('.c-ymode').value};
