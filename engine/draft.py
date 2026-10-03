@@ -95,7 +95,8 @@ def _appearances(fmt: str, y1: int, y2: int, source: str) -> dict:
     return out
 
 
-def build_pool(fmt: str, y1: int, y2: int, source: str = "full", min_matches: int = 10) -> list[PoolPlayer]:
+def build_pool(fmt: str, y1: int, y2: int, source: str = "full", min_matches: int = 10,
+               years_mode: str = "blend") -> list[PoolPlayer]:
     if source not in SOURCES:
         raise ValueError(f"Unknown pool: {source}")
     apps = _appearances(fmt, y1, y2, source)
@@ -105,7 +106,7 @@ def build_pool(fmt: str, y1: int, y2: int, source: str = "full", min_matches: in
     for pid, (m, team) in apps.items():
         if m < min_matches:
             continue
-        p = player(fmt, pid, years=(y1, y2))
+        p = player(fmt, pid, years=(y1, y2), years_mode=years_mode)
         if not (p.rated_bat or p.rated_bowl):
             continue
         bowler = p.rated_bowl and p.bowl_overs_per_match >= spec_opm
@@ -144,7 +145,8 @@ def build_pool(fmt: str, y1: int, y2: int, source: str = "full", min_matches: in
 
 class Draft:
     def __init__(self, fmt: str, y1: int, y2: int, teams: list[str], user: str | None = None,
-                 source: str = "full", seed: int | None = None, squad: int = SQUAD, min_matches: int = 10):
+                 source: str = "full", seed: int | None = None, squad: int = SQUAD, min_matches: int = 10,
+                 years_mode: str = "blend"):
         if len(teams) < 2:
             raise ValueError("A draft needs at least 2 teams.")
         if len({t.lower() for t in teams}) != len(teams):
@@ -152,9 +154,10 @@ class Draft:
         if user is not None and user not in teams:
             raise ValueError("Your team must be one of the teams.")
         self.fmt, self.y1, self.y2, self.user, self.source, self.squad = fmt, y1, y2, user, source, squad
+        self.years_mode = years_mode
         self.seed = seed if seed is not None else random.randrange(1 << 30)
         self.rng = random.Random(self.seed)
-        self.pool = build_pool(fmt, y1, y2, source, min_matches)
+        self.pool = build_pool(fmt, y1, y2, source, min_matches, years_mode)
         if len(self.pool) < squad * len(teams):
             raise ValueError(f"Only {len(self.pool)} players in the pool for {y1}-{y2}: not enough for "
                              f"{len(teams)} squads of {squad}. Widen the years or use fewer teams.")
@@ -240,7 +243,8 @@ class Draft:
 
     # ---------------------------------------------------------------- output
     def team_specs(self) -> list[dict]:
-        return [{"name": t, "squad": list(self.picks[t]), "years": [self.y1, self.y2]} for t in self.teams]
+        return [{"name": t, "squad": list(self.picks[t]), "years": [self.y1, self.y2], "years_mode": self.years_mode}
+                for t in self.teams]
 
     def state(self) -> dict:
         cur = self.current()

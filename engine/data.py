@@ -52,9 +52,14 @@ class Player:
     bat_balls: int = 0
     bowl_balls: int = 0
     bowl_phase_share: dict = field(default_factory=dict)   # how this bowler was really used: phase -> share
+    bat_phase_share: dict = field(default_factory=dict)    # share of his balls faced in each phase
     opener_share: float = 0.0                              # share of his innings batting at 1 or 2
     usual_slot: int | None = None                          # most common batting position
     bowl_overs_per_match: float = 0.0
+    caps: int = 0                                          # matches played (to the end of the period, if any)
+    bat_conf: float = 0.0                                  # rating confidence (shrinkage weight, 0..1)
+    bowl_conf: float = 0.0
+    sel_opm: float | None = None                           # overs per match in the period (for XI selection)
     ref: dict = field(default_factory=dict)    # readable reference numbers from the ratings
 
     def __hash__(self):
@@ -94,9 +99,10 @@ def _prior(fmt: str, side: str, group: str, team: str) -> dict:
 
 
 def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
-           years: tuple[int, int] | list | None = None) -> Player:
+           years: tuple[int, int] | list | None = None, years_mode: str = "blend") -> Player:
     """Engine player from the ratings; unknown IDs get the role/team prior.
-    years = (first, last): rate him on those years only (engine/periods.py) and use his batting slots of then."""
+    years = (first, last): rate him on those years (engine/periods.py; years_mode "blend" = shrunk toward his
+    career, "only" = those years alone) and use his batting slots of then."""
     rec = ratings(fmt)["players"].get(pid)
     if rec is None:
         p = Player(id=pid, name=name or pid, team=team or "unknown", rated_bat=False, rated_bowl=False)
@@ -114,6 +120,12 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         p.bat = {ph: {m: float(b["phase"][ph][m]) for m in METRICS} for ph in PHASES}
         p.other_out = float(b.get("other_out_idx") or 1.0)
         p.bat_balls = int(b.get("balls") or 0)
+        p.bat_conf = float(b.get("confidence") or 0.0)
+        pb = b.get("phase_balls") or {}
+        tot = sum(pb.values())
+        ref = ratings(fmt).get("reference") or {}
+        typ = {ph: (ref.get(ph) or {}).get("share", 1 / 3) for ph in PHASES}
+        p.bat_phase_share = {ph: (pb.get(ph, 0) + 60 * typ[ph]) / (tot + 60) for ph in PHASES}
         p.ref["bat"] = b.get("ref")
     else:
         p.rated_bat = False
@@ -123,6 +135,7 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         p.wide = float(w.get("wide_idx") or 1.0)
         p.noball = float(w.get("noball_idx") or 1.0)
         p.bowl_balls = int(w.get("balls") or 0)
+        p.bowl_conf = float(w.get("confidence") or 0.0)
         p.ref["bowl"] = w.get("ref")
         pb = w.get("phase_balls") or {}
         tot = sum(pb.values())
@@ -137,10 +150,13 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         p.bowl = _prior(fmt, "bowl", p.bowl_role, p.team)
     if not p.bowl_phase_share:
         p.bowl_phase_share = typical_phase_share(fmt, p.bowl_type)
+    car = rec.get("career") or {}
+    p.caps = sum((c.get("m") or 0) for c in car.values() if isinstance(c, dict))
     hist = _positions(fmt).get(pid)
     if years:
-        _apply_period(p, fmt, int(years[0]), int(years[1]))
+        _apply_period(p, fmt, int(years[0]), int(years[1]), years_mode)
         hist = period_positions(fmt, pid, int(years[0]), int(years[1])) or hist
+        p.caps, p.sel_opm = period_usage(fmt, pid, int(years[0]), int(years[1]))
     if hist:
         tot = sum(hist.values())
         p.opener_share = (hist.get(1, 0) + hist.get(2, 0)) / tot
@@ -164,10 +180,10 @@ def _positions(fmt: str) -> dict:
     return out
 
 
-def _apply_period(p: Player, fmt: str, y1: int, y2: int) -> None:
+def _apply_period(p: Player, fmt: str, y1: int, y2: int, mode: str = "blend") -> None:
     """Scale the phase indexes by period / career index; the readable 'ref' numbers follow approximately."""
     from .periods import period_ratios
-    ratios = period_ratios(fmt, y1, y2)
+    ratios = period_ratios(fmt, y1, y2, mode)
     for side, rated in (("bat", p.rated_bat), ("bowl", p.rated_bowl)):
         r = ratios[side].get(p.id)
         if not rated or not r:
@@ -184,7 +200,7 @@ def _apply_period(p: Player, fmt: str, y1: int, y2: int) -> None:
             for k, f in (("avg", ru / wk), ("econ", ru), ("sr", 1 / wk)):
                 if ref.get(k) is not None:
                     ref[k] = round(ref[k] * f, 2)
-        ref["period"] = [y1, y2]
+        ref["period"] = [y1, y2, mode]
         p.ref[side] = ref
 
 
@@ -199,6 +215,19 @@ def year_records(fmt: str) -> dict:
             for pid, r in json.loads(path.read_text(encoding="utf-8")).items():
                 out.setdefault(pid, []).append(r.get("by_year") or {})
     return out
+
+
+def period_usage(fmt: str, pid: str, y1: int, y2: int) -> tuple[int, float | None]:
+    """(matches up to the end of the period, overs bowled per match within the period or None if no matches)."""
+    caps = m = balls = 0
+    for by_year in year_records(fmt).get(pid, []):
+        for yr, rec in by_year.items():
+            if int(yr) <= y2:
+                caps += rec.get("m", 0)
+            if y1 <= int(yr) <= y2:
+                m += rec.get("m", 0)
+                balls += (rec.get("bowl") or {}).get("balls", 0)
+    return caps, (balls / 6 / m if m else None)
 
 
 def period_positions(fmt: str, pid: str, y1: int, y2: int) -> dict:

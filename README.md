@@ -34,7 +34,9 @@ offline. Modes:
   playoffs, a final or none.
 - **Classic Series / Classic Tournament:** a nation over a range of years (ODIs from 2002, T20Is from 2005), e.g.
   Australia 2003-07 v India 2021-24. The squad is the period's 20 most-capped players (15 / 25 / everyone also
-  offered), rated on those years, and batting where they batted then.
+  offered), rated on those years, and batting where they batted then. Ratings for those years are either blended
+  with the player's career (default; the most accurate) or based on those years only (closer to what he did then,
+  noisier).
 - **Fantasy Draft:** you and computer teams draft 15-man squads in snake order from the player pool of chosen
   years (full-member internationals, optionally franchise leagues), then play a league with knockouts.
 - **Team Builder:** search the ~6,500 rated players, pick 11-15 (with more than 11 the captain picks the XI for
@@ -84,7 +86,15 @@ Useful options:
 | `seed` | makes the match reproducible |
 | team `"squad": [ids]` | give 12+ players and let the captain pick a balanced XI |
 | team `"order"`, `"keeper"`, `"captain"` | override the batting order, keeper and captain |
-| team `"years": [2007, 2011]` | rate the players on those years only (and use their batting slots of then) |
+| team `"years": [2007, 2011]` | rate the players on those years (and use their batting slots of then) |
+| team `"years_mode"` | `"blend"` (default: shrunk toward the career) or `"only"` (those years alone) |
+
+**Picking the XI from a squad.** With more than 11 players the captain picks the XI for each match. Skill is
+each player's expected runs value per match from his ratings (batting weighted by the balls his position faces,
+bowling by the overs he bowls); how selectors trade that against keeping, team balance (4-6 specialist bowlers),
+spin-friendly venues and experience is learned from every real full-member XI since 2003/2006
+(`engine/selection.py`, `python -m engine.fit.fit_selection`). Each match the ratings are redrawn within their
+uncertainty, so clear leaders always play and close calls rotate. Same seed, same XI.
 
 Historical teams and drafts from Python:
 
@@ -211,6 +221,7 @@ engine/            match engine (library)
   situation.py     settling in, intent, par, matchups, win probability
   conditions.py    venue factor, pitch of the day
   periods.py       ratings for a year range
+  selection.py     XI selection learned from real XIs
   history.py       historical (nation + years) teams
   draft.py         fantasy draft
   render.py        text scorecard and match report

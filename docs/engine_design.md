@@ -258,7 +258,7 @@ rate within ~3 points, and no regression on the previous gate's checks.
 | T2-4 pitch of the day | done, internationals only | per-match runs/wickets draw; spread = within-venue variance minus engine variance, per competition; off for leagues (over-dispersed IPL) |
 | T2-5 toss AI | done | `fit_toss.py`: real bowl-first rate (T20 63%, ODI 59%) shifted by venue chasing advantage |
 | T2-8 era-neutral | done (inherent) | ratings are era-relative; pass the `comp`/`year` whose conditions you want |
-| T2-9 XI from squad | done | `captain.select_xi`: keeper, 4 specialist bowlers + best 5th option, best batters, bowling-capacity check |
+| T2-9 XI from squad | done, replaced in step 7 | was a hand rule (keeper, 4 specialist bowlers + best 5th option, best batters); now learned from real XIs (`engine/selection.py`), drawn per match with realistic rotation; the rule stays as a fallback |
 | T2-10 year-range ratings | done (step 6) | `engine/periods.py`: period actual/expected shrunk toward the career index; shrinkage strength chosen by held-out-year validation (`scripts/validate_periods.py`); used by Classic modes and the draft |
 | Later items (T2-2, T3-5, T3-6) | not started | as approved |
 

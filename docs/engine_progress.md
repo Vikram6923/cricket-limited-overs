@@ -209,12 +209,64 @@ chart library and no engine change. Hover shows the over, bowler, score and prob
 - **Tests:** `tests/test_draft.py` (snake order, complete squads with the minimum make-up, no double picks,
   turn checks, pool sources, reproducible with a seed, playable).
 
+## Step 7: rating mode for year ranges, learned XI selection (2026-10-03)
+
+User's decisions: (1) offer both year-range rating modes, "blend" by default; (2) replace the hand XI rule with
+selection learned from real XIs; plus: the XI should depend on conditions and vary a little when players are close.
+
+**Rating mode "only"** (`engine/periods.py`): the same empirical-Bayes rating as the career fit (prior = role-group
+mean x team level, tau^2 = the career fit's) on the period's balls alone. Rohit Sharma ODI (modern-equivalent
+average / SR): career 50.9 / 98.8; 2007-11 blend 47.4 / 92.8, only 38.8 / 84.1; 2013-19 blend 53.0, only 61.6.
+UI: "Ratings for those years" in Classic Series / Tournament and the draft.
+
+**Learned XI selection** (`engine/selection.py`, `python -m engine.fit.fit_selection`, ~10 min). Final design
+(third version, after the user's review of a 2011-23 tournament: Bumrah 10/12, Smith 10/11, Starc 6/11,
+Cummins 8/11 v Johnson 11/11):
+- **Skill = runs value per match from the engine's own ratings**, over the phases the player really bats and bowls
+  in: batting = balls his batting position faces (measured from real matches; ODI 40, 40, 42, 39, 33, 25, 17, 12,
+  8, 5, 2 for positions 1-11) x runs per ball above average minus the runs-equivalent of extra dismissals;
+  bowling = balls he usually bowls x runs saved per ball plus the runs-equivalent of extra wickets.
+- **Learned from real XIs** (conditional logit; data: every full-member XI, ODI 2003+, T20I 2006+, candidates =
+  everyone who played for the team within 21 days): the weight of that value against the best keeper, spinners at
+  spin-friendly venues (+1.7 x venue spin advantage), ground scoring level (~0), experience (+0.33 per log-cap,
+  **used at half weight - the user's decision**), and the **team balance**: a term per number of genuine bowlers
+  (peaks at 5; 4 and 6 next; 3 and 7 rare). P(XI) ~ exp(sum u_i + c[bowlers]); exact likelihood via elementary
+  symmetric polynomials, gradient checked numerically.
+- **The pick** is the best valid XI (keeper; enough bowling for the overs) under that utility - exact: for each
+  number of bowlers, the best bowlers plus the best others. **Randomness only from rating uncertainty**: each
+  match every player's log indexes are redrawn from their posterior spread (sqrt((1 - confidence) x tau^2)), so a
+  clear leader always plays and players whose values overlap swap. Own random stream from the match seed.
+- Held-out test (fit <= 2018, test 2019+), real-XI players picked of 11 (engine's version, experience x0.5):
+  ODI 8.56, T20 8.34; old rule 8.40 / 8.25; caps only 8.51 / 8.28; random ~7.8 / 7.6. Genuine bowlers per XI:
+  learned 4.95 / 5.05, real 4.90 / 5.09.
+- Pick rates over 200 matches (neutral venue): India 2011-23 ODI: Kohli, Rohit, Dhawan, Dhoni 100%, Jadeja 98%,
+  Bumrah 92%. Australia 2011-23 ODI: Warner, Clarke, Watson, Haddin 100%, Head 90%, Starc 89%, Hazlewood 77%,
+  Johnson 76%, Smith 57%, Finch 50%, Cummins 42%. India T20 2024: Kohli, Samson, Suryakumar, Rohit, Jaiswal
+  100%, Bumrah 98%. India ODI 2023: Bumrah 98%. Australia 2003-07: Gilchrist, Ponting, Hayden 100%, McGrath 92%.
+  Changes per match: 1.1-2.3 (more in 13-year squads, which have more near-equal players).
+- Remaining close calls are close *in the ratings*: Smith v Finch ODI 2011-23 (Finch scores 16-19% faster, Smith
+  is out 25% less; at the engine's 22 runs per wicket they come out equal); Cummins v Johnson (same bowling:
+  economy 5.0 v 5.02, average 23.1 v 23.7; Johnson bats better and has more caps).
+- Dead ends (recorded so they aren't repeated): (1) sampling straight from a model of separate batting / bowling
+  index weights rotated far too much and ranked bowlers mostly by their batting (Bumrah below Axar, Johnson above
+  Starc); (2) forcing every squad to change ~1.7 players per match (the real rate) made clearly best players drop
+  out, because real changes are mostly injuries and rest, which the simulation doesn't have; (3) experience as
+  "caps to the end of the period" measured career length and dominated 13-year squads at full weight.
+- Own random stream, so the ball-by-ball stream is unchanged; engine calibration unaffected (replays use real XIs).
+- Tests: `tests/test_selection.py`.
+- **Bug found and fixed:** the "India T20 2024" preset had the wrong Rohit Sharma (an Indonesian namesake, 72 balls
+  in the data). That, not career ratings, kept him out of India's XIs since step 5. All 149 preset players were
+  checked against their nation; this was the only one. Now he plays 70% of matches (84% with 2024 ratings).
+- Tests: `tests/test_selection.py` (inclusion probabilities v brute force, sampling frequencies, valid and varied
+  XIs, reproducible matches).
+
 ## Rebuild order
 
 `python -m engine.fit.fit_basics` -> `python -m engine.fit.fit_situation` -> `python -m engine.fit.fit_toss` ->
 `python -m engine.fit.fit_venues` (~25 min; caches replays in `data/cache/venue_rows_*.json`) ->
 `python -m engine.calibrate` -> `python tests/test_engine.py`.
+XI selection: `python -m engine.fit.fit_selection` (after fit_venues; ~5 min).
 After a ratings rebuild (`scripts/build_raw_stats.py` -> `scripts/build_ratings.py`, which also writes
 `data/ratings_*_years.json`), `python scripts/validate_periods.py --holdout 2012 2016 2019 2022` (~15 min) checks
 the period-rating shrinkage. Tests: `tests/test_engine.py`, `test_tournament.py`, `test_history.py`,
-`test_draft.py`.
+`test_draft.py`, `test_selection.py`.

@@ -43,9 +43,49 @@ def batting_value(p: Player) -> float:
     return (b["runs"] / max(b["wkt"], 0.2)) * b["runs"]
 
 
-def select_xi(squad: list[Player], fmt: str, base: dict) -> list[Player]:
-    """Pick a balanced XI from a squad (design T2-9): a keeper, at least five genuine bowling options covering the
-    overs (part-timers allowed to fill), and the best batters for the rest."""
+def player_capacity(p: Player, fmt: str) -> float:
+    """Overs a player can be expected to bowl: a genuine bowler a full quota, others ~1.25x their usual overs."""
+    from .data import FORMATS
+    quota = FORMATS[fmt]["quota"]
+    return min(quota, max(p.bowl_overs_per_match * 1.25, quota if p.bowl_overs_per_match >= quota * 0.5 else 0))
+
+
+def bowling_capacity(team: list[Player], keeper: Player | None, fmt: str) -> float:
+    return sum(player_capacity(p, fmt) for p in team if p is not keeper)
+
+
+def xi_ok(xi: list[Player], squad: list[Player], fmt: str) -> bool:
+    """Hard constraints on any XI: a keeper if the squad has one, and enough bowling for the overs."""
+    from .data import FORMATS
+    keepers = [p for p in xi if p.keeper]
+    if any(p.keeper for p in squad) and not keepers:
+        return False
+    k = max(keepers, key=batting_value) if keepers else None
+    # enough bowling for the overs, or as much as this squad can possibly offer
+    best = sorted(squad, key=lambda p: -p.bowl_overs_per_match)[:11]
+    need = min(FORMATS[fmt]["overs"], bowling_capacity(best, None, fmt))
+    return bowling_capacity(xi, k, fmt) >= need - 1e-9
+
+
+def select_xi(squad: list[Player], fmt: str, base: dict, rng: random.Random | None = None, venue: str | None = None,
+              runs_factor: float = 1.0, learned: bool = True) -> list[Player]:
+    """Pick the XI from a squad. With a fitted model (data/engine/selection_{fmt}.json, engine/selection.py) the
+    choice follows real captains' selections: sampled with `rng` (close calls rotate; the venue's spin help and the
+    ground/pitch scoring level shift it), or the most likely XI without one. Otherwise, or if no sampled XI meets
+    the hard constraints, the rule below (design T2-9)."""
+    if len(squad) <= 11:
+        return list(squad)
+    if learned:
+        from . import selection
+        xi = selection.choose(squad, fmt, base, rng, venue, runs_factor)
+        if xi:
+            return xi
+    return rule_xi(squad, fmt, base)
+
+
+def rule_xi(squad: list[Player], fmt: str, base: dict) -> list[Player]:
+    """Hand rule (design T2-9): a keeper, at least five genuine bowling options covering the overs (part-timers
+    allowed to fill), and the best batters for the rest."""
     from .data import FORMATS
     if len(squad) <= 11:
         return list(squad)

@@ -8,6 +8,12 @@ a short or thin period stays close to the career rating and a long, well-measure
 
 The engine applies the result as a ratio (period / career) to the player's phase indexes, keeping the shape of
 his phase record. Wides, no-balls and run-outs stay career-long.
+
+Two modes (the user chose to offer both, "blend" by default):
+- "blend": shrink toward the career index (above). Most accurate: it predicts held-out years best.
+- "only": rate on those years alone, as if the rest of the career didn't exist: the same empirical-Bayes rating as
+  the career fit (prior = role-group mean x team level, tau^2 = the career fit's), but on the period's balls only.
+  Closer to what the player actually did then, but noisier: one great series counts for more.
 """
 from __future__ import annotations
 
@@ -108,16 +114,55 @@ def load_years(fmt: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def only_indexes(rows: dict, prior: dict, tau2: dict, y1: int, y2: int) -> tuple[dict, dict]:
+    """Mode "only": rate on the period's balls alone. prior: pid -> {metric: role/team prior}; tau2: metric -> the
+    career fit's spread of players around that prior. Returns (pid -> {metric: idx}, pid -> balls)."""
+    out, balls = {}, {}
+    for pid, by_year in rows.items():
+        if pid not in prior:
+            continue
+        acc = None
+        for yr, row in by_year.items():
+            if y1 <= int(yr) <= y2:
+                acc = list(row) if acc is None else [a + b for a, b in zip(acc, row)]
+        if not acc or acc[0] <= 0:
+            continue
+        d = {}
+        for k, m in enumerate(METRICS):
+            p, e = prior[pid][m], acc[2 + 2 * k]
+            if e <= 0:
+                d[m] = p
+                continue
+            v = _noise(m, acc, k, p)
+            d[m] = p + tau2[m] / (tau2[m] + v) * (acc[1 + 2 * k] / e - p)
+        out[pid], balls[pid] = d, acc[0]
+    return out, balls
+
+
+MODES = ("blend", "only")
+
+
 @lru_cache(maxsize=64)
-def period_ratios(fmt: str, y1: int, y2: int) -> dict:
+def period_ratios(fmt: str, y1: int, y2: int, mode: str = "blend") -> dict:
     """side -> pid -> {metric: period index / career index, "balls": balls in the period}."""
-    from .data import ratings
-    players = ratings(fmt)["players"]
+    from .data import _prior, ratings
+    if mode not in MODES:
+        raise ValueError(f"unknown period mode {mode!r}")
+    r = ratings(fmt)
+    players = r["players"]
     years = load_years(fmt)
     out = {}
     for side in ("bat", "bowl"):
         career = {pid: p[side]["idx"] for pid, p in players.items() if p.get(side) and p[side].get("idx")}
-        idx, _, balls = period_indexes(years.get(side, {}), career, y1, y2, TAU_SCALE[fmt][side])
+        if mode == "only":
+            role = "bat_role" if side == "bat" else "bowl_role"
+            default = "middle" if side == "bat" else "part_unk"
+            prior = {pid: _prior(fmt, side, players[pid].get(role) or default, players[pid].get("team") or "")["middle"]
+                     for pid in career}
+            tau2 = {m: r["meta"]["tau2"][m][side] for m in METRICS}
+            idx, balls = only_indexes(years.get(side, {}), prior, tau2, y1, y2)
+        else:
+            idx, _, balls = period_indexes(years.get(side, {}), career, y1, y2, TAU_SCALE[fmt][side])
         out[side] = {pid: {**{m: v / career[pid][m] if career[pid][m] else 1.0 for m, v in d.items()},
                            "balls": balls[pid]} for pid, d in idx.items()}
     return out

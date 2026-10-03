@@ -87,9 +87,10 @@ def team_name(nation: str, y1: int, y2: int) -> str:
 
 
 def historical_team(fmt: str, nation: str, y1: int, y2: int, size: int | None = SQUAD_SIZE,
-                    name: str | None = None) -> dict:
-    """Team spec for engine.match / engine.tournament: {"name", "squad", "years"}."""
+                    name: str | None = None, years_mode: str = "blend") -> dict:
+    """Team spec for engine.match / engine.tournament: {"name", "squad", "years", "years_mode"}."""
     ids = squad(fmt, nation, y1, y2, size)
     if len(ids) < 11:
         raise ValueError(f"Only {len(ids)} players played for {nation} in {fmt.upper()}s in {y1}-{y2}.")
-    return {"name": name or team_name(nation, y1, y2), "squad": ids, "years": [y1, y2], "nation": nation}
+    return {"name": name or team_name(nation, y1, y2), "squad": ids, "years": [y1, y2], "years_mode": years_mode,
+            "nation": nation}

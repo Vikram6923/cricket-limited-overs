@@ -54,6 +54,9 @@
     <div class="fg"><label>Team 2 (from, to, nation)</label><div id="cs-r2"></div></div>
     <div class="fg"><label>Matches</label><input type="number" id="cs-n" value="3" min="1" max="7"></div>
     <div class="fg"><label>Squad</label><select class="c-squad"></select></div>
+    <div class="fg"><label>Ratings for those years</label><select class="c-ymode">
+      <option value="blend">Blended with the career (most accurate)</option>
+      <option value="only">Those years only (closer to what they did then, noisier)</option></select></div>
   </div>
 
   <!-- Classic tournament -->
@@ -67,6 +70,9 @@
     </div>
     <div class="fg"><label>Knockouts</label><select id="ct-ko"></select></div>
     <div class="fg"><label>Squad</label><select class="c-squad"></select></div>
+    <div class="fg"><label>Ratings for those years</label><select class="c-ymode">
+      <option value="blend">Blended with the career (most accurate)</option>
+      <option value="only">Those years only (closer to what they did then, noisier)</option></select></div>
     <div class="total" id="ct-total"></div>
   </div>
 
@@ -80,6 +86,9 @@
       <option value="leagues">Full-member internationals + franchise leagues (T20)</option>
       <option value="intl">All internationals (associate ratings run high)</option></select>
       <div class="hint" style="margin:4px 0 0">Players with 10+ matches in those years.</div></div>
+    <div class="fg"><label>Ratings for those years</label><select class="c-ymode">
+      <option value="blend">Blended with the career (most accurate)</option>
+      <option value="only">Those years only (closer to what they did then, noisier)</option></select></div>
     <div class="fg"><label>Number of teams</label><input type="number" id="d-k" value="6" min="2" max="12"></div>
     <div class="fg"><label>Team names</label><div id="d-names"></div></div>
     <div class="fg"><label>You draft for</label><select id="d-user"></select></div>

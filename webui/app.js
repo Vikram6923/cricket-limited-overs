@@ -198,6 +198,7 @@ function initClassic() {
       {v: '25', t: 'Most-capped 25'}, {v: '', t: 'Everyone who played (one-series players too)'}]);
     sel.onchange = () => document.querySelectorAll('.c-squad').forEach(o => o.value = sel.value);
   });
+  document.querySelectorAll('.c-ymode').forEach(sel => sel.onchange = () => document.querySelectorAll('.c-ymode').forEach(o => o.value = sel.value));
   updateClassicTotal();
 }
 function refreshClassic() { document.querySelectorAll('#f-classic .hl-row, #f-classic_t .hl-row').forEach(r => r.parentNode.refresh()); }
@@ -244,7 +245,8 @@ function updateDraftTotal() {
 let DRAFT = null, DPOOL = null;
 async function startDraft() {
   const d = await api('/api/draft/start', {fmt: $('c-fmt').value, y1: +$('d-ya').value, y2: +$('d-yb').value,
-    teams: draftNames(), user: $('d-user').value, source: $('d-src').value, seed: $('c-seed').value.trim()});
+    teams: draftNames(), user: $('d-user').value, source: $('d-src').value, seed: $('c-seed').value.trim(),
+    years_mode: document.querySelector('.c-ymode').value});
   DPOOL = {list: d.pool, byId: new Map(d.pool.map(p => [p.id, p]))};
   const roles = ['WK', 'Batter', 'All-rounder', 'Pace', 'Spin'];
   fillSelect($('dp-role'), [{v: '', t: 'All roles'}, ...roles.map(r => ({v: r, t: r}))]);
@@ -315,8 +317,10 @@ function payload() {
     venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim()};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
-    team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value};
+    team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value,
+    years_mode: document.querySelector('.c-ymode').value};
   if (MODE === 'classic_t') return {...base, mode: 'tournament', squad_size: document.querySelector('.c-squad').value,
+    years_mode: document.querySelector('.c-ymode').value,
     teams: [...$('ct-rows').children].map(r => r.entry()),
     rounds: +$('ct-rounds').value, groups: +$('ct-groups').value, knockout: $('ct-ko').value};
   return {...base, teams: [...document.querySelectorAll('#t-list input:checked')].map(i => i.value),

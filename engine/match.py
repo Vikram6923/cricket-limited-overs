@@ -9,6 +9,7 @@ Returns a JSON-able scorecard dict. No printing, no files, no global state; `see
 from __future__ import annotations
 
 import random
+import zlib
 from dataclasses import dataclass, field
 
 from . import captain, conditions
@@ -58,24 +59,30 @@ class BowlFig:
     sixes: int = 0
 
 
-def make_team(spec: dict, fmt: str) -> Team:
+def make_team(spec: dict, fmt: str, ctx: dict | None = None) -> Team:
     """spec = {"name", "players": [id | Player | {"id", "name"}], "keeper"?: id, "captain"?: id,
     "order"?: [ids] (explicit batting order; default: by usual position), "squad"?: [ids] (pick the XI),
-    "years"?: [first, last] (rate the players on those years only, design T2-10)}."""
-    yrs = spec.get("years")
+    "years"?: [first, last] (rate the players on those years, design T2-10),
+    "years_mode"?: "blend" (default, shrunk toward the career) | "only" (those years alone)}."""
+    yrs, ym = spec.get("years"), spec.get("years_mode") or "blend"
     ps = []
     for x in spec.get("players", []):
         if isinstance(x, Player):
             ps.append(x)
         elif isinstance(x, dict):
-            ps.append(player(fmt, x["id"], x.get("name"), spec.get("team_level_as") or None, years=yrs))
+            ps.append(player(fmt, x["id"], x.get("name"), spec.get("team_level_as") or None, years=yrs,
+                             years_mode=ym))
         else:
-            ps.append(player(fmt, x, years=yrs))
+            ps.append(player(fmt, x, years=yrs, years_mode=ym))
     if spec.get("squad"):
         # design T2-9: pick the XI from a larger squad
-        squad = [player(fmt, x, years=yrs) if not isinstance(x, Player) else x for x in spec["squad"]]
-        ps = captain.select_xi(squad, fmt, baseline(fmt, spec.get("comp") or FORMATS[fmt]["intl"],
-                                                     spec.get("year") or 2025))
+        squad = [player(fmt, x, years=yrs, years_mode=ym) if not isinstance(x, Player) else x
+                 for x in spec["squad"]]
+        # ctx (from Match): the selection's random stream, venue and the scoring level the captain sees
+        ctx = ctx or {}
+        ps = captain.select_xi(squad, fmt, ctx.get("base") or baseline(fmt, spec.get("comp") or FORMATS[fmt]["intl"],
+                                                                       spec.get("year") or 2025),
+                               rng=ctx.get("rng"), venue=ctx.get("venue"), runs_factor=ctx.get("runs_factor", 1.0))
     by_id = {p.id: p for p in ps}
     if spec.get("order"):
         order = [by_id[i] for i in spec["order"] if i in by_id]
@@ -438,7 +445,11 @@ class Match:
         self.use_situation = use_situation
         self.use_plan = use_plan
         self.use_matchups = use_matchups
-        self.teams = [make_team(team_a, fmt), make_team(team_b, fmt)]
+        # XI selection from squads: its own random stream (so it doesn't shift the ball-by-ball stream), the venue,
+        # and the scoring level of ground x day's pitch that the captain can see
+        sel_rng = random.Random(zlib.crc32(f"xi|{self.seed}".encode()))
+        ctx = {"rng": sel_rng, "venue": venue, "runs_factor": cr, "base": baseline(fmt, self.comp, year)}
+        self.teams = [make_team(team_a, fmt, ctx), make_team(team_b, fmt, ctx)]
         self.overs = overs or FORMATS[fmt]["overs"]
         self.toss_spec, self.decision_spec = toss, decision
         self.innings: list[Innings] = []

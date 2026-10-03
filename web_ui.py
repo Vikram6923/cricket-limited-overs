@@ -63,11 +63,12 @@ def save_teams(teams: list[dict]) -> None:
     TEAMS.write_text(json.dumps(teams, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
-def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SIZE) -> dict:
+def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SIZE, years_mode: str = "blend") -> dict:
     """A saved team (by name) or a historical team ({"nation", "y1", "y2"}; squad = the most-capped squad_size,
-    None = everyone who played)."""
+    None = everyone who played; years_mode "blend" | "only", see engine/periods.py)."""
     if isinstance(entry, dict):
-        return history.historical_team(fmt, entry["nation"], int(entry["y1"]), int(entry["y2"]), size=squad_size)
+        return history.historical_team(fmt, entry["nation"], int(entry["y1"]), int(entry["y2"]), size=squad_size,
+                                       years_mode=years_mode)
     t = next((t for t in load_teams() if t["name"] == entry), None)
     if not t:
         raise ValueError(f"no saved team called {entry!r}")
@@ -242,6 +243,7 @@ def _run(job: Job, params: dict) -> None:
         size = history.SQUAD_SIZE          # Classic modes: most-capped N of the period ("" = everyone)
         if "squad_size" in params:
             size = int(params["squad_size"]) if params["squad_size"] else None
+        ym = params.get("years_mode") if params.get("years_mode") in ("blend", "only") else "blend"
         if params["mode"] == "draft":
             groups = int(params.get("groups") or 1)
             res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
@@ -251,12 +253,12 @@ def _run(job: Job, params: dict) -> None:
             res["draft"] = {"teams": DRAFT.teams, "user": DRAFT.user,
                             "board": DRAFT.state()["board"], "years": [DRAFT.y1, DRAFT.y2]}
         elif params["mode"] == "series":
-            res = play_series(team_spec(params["team1"], fmt, size), team_spec(params["team2"], fmt, size),
+            res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
                               n=int(params["matches"]),
                               fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, on_match=on_match)
         else:
             groups = int(params.get("groups") or 1)
-            res = play_tournament([team_spec(t, fmt, size) for t in params["teams"]], fmt=fmt, comp=comp, year=year,
+            res = play_tournament([team_spec(t, fmt, size, ym) for t in params["teams"]], fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, seed=seed,
                                   on_match=on_match)
@@ -452,7 +454,8 @@ def api_draft_start():
         source = "full"
     try:
         seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
-        DRAFT = Draft(fmt, y1, y2, names, user=d.get("user") or None, source=source, seed=seed)
+        ym = d.get("years_mode") if d.get("years_mode") in ("blend", "only") else "blend"
+        DRAFT = Draft(fmt, y1, y2, names, user=d.get("user") or None, source=source, seed=seed, years_mode=ym)
     except ValueError as e:
         return jsonify(error=str(e)), 400
     DRAFT.run_cpu()
