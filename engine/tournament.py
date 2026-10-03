@@ -60,6 +60,7 @@ class _Runner:
         self.home = dict(home_venues or {})
         self.ko_venues = list(knockout_venues or [])
         self.cards: list[dict] = []
+        self.on_match = None          # optional callback(card) after every match (progress / cancel)
 
     def venue_for(self, home: str, knockout: bool) -> str | None:
         n = len(self.cards)
@@ -78,6 +79,8 @@ class _Runner:
                               venue=self.venue_for(a["name"], knockout), seed=_seed(self.seed, no))
         card["match_no"], card["stage"], card["knockout"] = no, stage, knockout
         self.cards.append(card)
+        if self.on_match:
+            self.on_match(card)
         return card
 
 
@@ -317,10 +320,11 @@ def _summary_card(c: dict) -> dict:
 # ------------------------------------------------------------------------------------------------ series
 
 def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: str | None = None,
-                year: int = 2025, venues: list | None = None, seed: int | None = None) -> dict:
+                year: int = 2025, venues: list | None = None, seed: int | None = None, on_match=None) -> dict:
     """Bilateral series of n matches (all n are played)."""
     a, b = team_spec(fmt, team_a), team_spec(fmt, team_b)
     run = _Runner(fmt, comp, year, seed, venues, None, None)
+    run.on_match = on_match
     for i in range(n):
         run.play(a, b, f"Match {i + 1}")
     wins = _wins(run.cards)
@@ -341,7 +345,8 @@ def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: 
 def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None, year: int = 2025,
                     rounds: int = 1, groups: int | list | None = None, advance: int | None = None,
                     knockout: str = "semis", venues: list | None = None, home_venues: dict | None = None,
-                    knockout_venues: list | None = None, seed: int | None = None, win_points: int = 2) -> dict:
+                    knockout_venues: list | None = None, seed: int | None = None, win_points: int = 2,
+                    on_match=None) -> dict:
     """League stage (round robin, `rounds` times, optionally in groups) then knockouts.
 
     groups:   None/1 = one league; an int = that many groups, teams dealt in the order given (1st to group A,
@@ -363,6 +368,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
         group_lists = [list(g) for g in groups]
     labels = [chr(ord("A") + i) for i in range(len(group_lists))] if len(group_lists) > 1 else ["League"]
     run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues)
+    run.on_match = on_match
 
     # league stage: rounds of single round robins, alternating home side between rounds
     for rnd in range(rounds):
@@ -434,6 +440,18 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
 
 
 # ------------------------------------------------------------------------------------------------ output
+
+def match_count(n_teams: int, rounds: int = 1, groups: int | list | None = None, knockout: str = "semis") -> int:
+    """How many matches play_tournament will play (for progress bars)."""
+    if groups in (None, 1):
+        sizes = [n_teams]
+    elif isinstance(groups, int):
+        sizes = [len(range(g, n_teams, groups)) for g in range(groups)]
+    else:
+        sizes = [len(g) for g in groups]
+    league = rounds * sum(k * (k - 1) // 2 for k in sizes)
+    return league + {"semis": 3, "ipl": 4, "final": 1, "none": 0}[knockout]
+
 
 def save(result: dict, out_dir: str | Path) -> Path:
     """summary.json (everything except full scorecards), matches/NNN.json (full scorecard) and NNN.txt (text)."""

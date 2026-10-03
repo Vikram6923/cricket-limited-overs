@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Limited-Overs Cricket Simulator</title>
+<link rel="stylesheet" href="/ui/style.css">
+</head>
+<body>
+<header>
+  <span style="font-size:1.3rem">🏏</span><h1>Limited-Overs Cricket Simulator</h1>
+  <span class="muted small">ODI · T20</span>
+  <span class="spacer"></span>
+  <button class="btn sec" id="last-btn" style="display:none" onclick="showResults()">View last results</button>
+  <span class="pill" id="status-pill">Idle</span>
+</header>
+<div class="layout">
+<aside>
+  <div class="modes" id="modes">
+    <button class="mode on" data-mode="series"><b>Match / Series</b><span>Two teams, 1–7 matches</span></button>
+    <button class="mode" data-mode="tournament"><b>Tournament</b><span>League, groups, knockouts</span></button>
+    <button class="mode" data-mode="builder"><b>Team Builder</b><span>Create and edit teams</span></button>
+  </div>
+
+  <!-- Match / Series -->
+  <div class="form on" id="f-series">
+    <h2>Match or series</h2><p class="hint">Two saved teams play one match or a series.</p>
+    <div class="fg"><label>Team 1</label><select id="s-t1"></select><div class="roster" id="s-r1"></div></div>
+    <div class="fg"><label>Team 2</label><select id="s-t2"></select><div class="roster" id="s-r2"></div></div>
+    <div class="fg"><label>Matches</label><input type="number" id="s-n" value="3" min="1" max="7"></div>
+  </div>
+
+  <!-- Tournament -->
+  <div class="form" id="f-tournament">
+    <h2>Tournament</h2><p class="hint">Round robin (optionally in two groups), then knockouts. Pick the teams.</p>
+    <div class="fg"><label>Teams</label>
+      <input type="text" id="t-search" placeholder="Filter teams…" style="margin-bottom:6px">
+      <div class="checklist" id="t-list"></div></div>
+    <div class="seg2">
+      <div class="fg"><label>Rounds</label><select id="t-rounds"><option value="1">Single round robin</option><option value="2">Double (home and away)</option></select></div>
+      <div class="fg"><label>Groups</label><select id="t-groups"><option value="1">One league</option><option value="2">Two groups</option></select></div>
+    </div>
+    <div class="fg"><label>Knockouts</label><select id="t-ko"></select></div>
+    <div class="total" id="t-total"></div>
+  </div>
+
+  <!-- Team builder -->
+  <div class="form" id="f-builder">
+    <h2>Team builder</h2><p class="hint">Search the player database on the right and add 11–15 players (with more than 11, the captain picks the XI for each match). Teams are saved by player, so they work in both formats.</p>
+    <div class="fg"><label>Player ratings to show</label><select id="b-fmt"><option value="t20">T20 (internationals + leagues)</option><option value="odi">ODI</option></select></div>
+    <div class="fg"><label>Team name</label><input type="text" id="b-name" maxlength="40" placeholder="e.g. My T20 XI"></div>
+    <div class="total" id="b-count">0 players selected</div>
+    <div class="fg"><label>Saved teams</label><div class="checklist" id="b-teams" style="max-height:300px"></div></div>
+  </div>
+
+  <!-- conditions -->
+  <div class="box" id="cond">
+    <div class="lbl">Format and conditions</div>
+    <div class="seg2">
+      <div class="fg"><label>Format</label><select id="c-fmt"><option value="t20">T20</option><option value="odi">ODI</option></select></div>
+      <div class="fg"><label>Year</label><input type="number" id="c-year" value="2025"></div>
+    </div>
+    <div class="fg"><label>Conditions of</label><select id="c-comp"></select><div class="err" id="c-year-err"></div></div>
+    <div class="fg"><label>Venues (optional, used in turn)</label>
+      <input type="text" id="c-vsearch" placeholder="Filter venues…" style="margin-bottom:6px">
+      <select id="c-venues" multiple></select>
+      <div class="hint" style="margin:4px 0 0">None selected = neutral. Ctrl+click to pick several.</div></div>
+    <div class="fg"><label>Seed (optional, repeat a run exactly)</label><input type="text" id="c-seed" placeholder="random"></div>
+  </div>
+
+  <div style="margin-top:16px" id="go-wrap"><button class="btn go" id="go-btn">▶ Start</button><div class="err" id="go-err"></div></div>
+</aside>
+
+<main>
+  <!-- home -->
+  <section class="view on" id="v-home"><div class="hero">
+    <h2>Pick a mode on the left, then press Start.</h2>
+    <p>Ball-by-ball ODI and T20 cricket with players rated from real data. When a run finishes you get a results page with points tables, every match (with Previous / Next, match report and innings log), sortable batting and bowling tables, records and the MVP race.</p>
+    <div class="cards">
+      <div class="card"><b>Match / Series</b><span>Two saved teams play a single match or a series of up to 7, in the conditions of any competition and year.</span></div>
+      <div class="card"><b>Tournament</b><span>A World Cup or IPL-style event: round robin or two groups, then semi-finals, IPL playoffs or a final. Points tables with net run rate.</span></div>
+      <div class="card"><b>Team Builder</b><span>Hand-pick 11–15 players from about 6,500 rated players and save the team for series and tournaments.</span></div>
+    </div>
+    <p class="small muted" id="home-note"></p>
+  </div></section>
+
+  <!-- running -->
+  <section class="view" id="v-running"><div class="run-wrap">
+    <div class="spin"></div>
+    <h2 id="run-title" style="margin-top:16px">Simulating…</h2>
+    <div class="bar"><i id="run-bar"></i></div>
+    <div class="muted small" id="run-count"></div>
+    <div style="margin-top:22px"><button class="btn stop" onclick="stopJob()">■ Stop</button></div>
+  </div></section>
+
+  <!-- results -->
+  <section class="view" id="v-results">
+    <div class="res-head"><h2 id="r-title">Results</h2><span class="muted small" id="r-sub"></span><span class="mos" id="r-pos" style="display:none"></span></div>
+    <div class="tabs" id="r-tabs">
+      <button class="tab on" data-pane="p-summary">Summary</button>
+      <button class="tab" data-pane="p-matches">Matches</button>
+      <button class="tab" data-pane="p-bat">Batting</button>
+      <button class="tab" data-pane="p-bowl">Bowling</button>
+      <button class="tab" data-pane="p-mvp">MVP race</button>
+    </div>
+    <div class="pane on" id="p-summary"></div>
+    <div class="pane" id="p-matches">
+      <div class="mnav"><button class="btn sec" id="m-prev">◀ Previous</button><select id="m-sel"></select><button class="btn sec" id="m-next">Next ▶</button></div>
+      <div id="m-body"></div>
+    </div>
+    <div class="pane" id="p-bat"><div class="filters"><input type="text" id="bat-q" placeholder="Search player…"><select id="bat-team"></select></div><div class="tbl" id="bat-table"></div></div>
+    <div class="pane" id="p-bowl"><div class="filters"><input type="text" id="bowl-q" placeholder="Search player…"><select id="bowl-team"></select></div><div class="tbl" id="bowl-table"></div></div>
+    <div class="pane" id="p-mvp"></div>
+  </section>
+
+  <!-- team builder -->
+  <section class="view" id="v-builder">
+    <div class="builder">
+      <div>
+        <h3>Player database</h3>
+        <div class="filters">
+          <input type="text" id="bp-search" placeholder="Search name…">
+          <select id="bp-team"></select><select id="bp-role"></select>
+        </div>
+        <div class="tbl" id="bp-table" style="max-height:66vh"></div>
+      </div>
+      <div>
+        <h3>Your team</h3>
+        <div class="roles" id="b-roles"></div>
+        <ul class="squad" id="b-squad"></ul>
+        <div style="margin-top:14px"><button class="btn go" id="b-save">Save team</button><div class="err" id="b-err"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- error -->
+  <section class="view" id="v-error"><div class="hero">
+    <h2>The simulation stopped with an error</h2>
+    <div class="errbox" id="e-text"></div>
+    <button class="btn sec" onclick="showView('v-home')">Back</button>
+  </div></section>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<div id="popover"></div>
+<script src="/ui/app.js"></script>
+</body>
+</html>

@@ -20,3 +20,6 @@ Thumbs.db
 
 # Generated tournament / series output
 results/
+
+# User-saved teams from the UI (presets live in data/teams_default.json)
+data/teams.json

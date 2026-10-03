@@ -9,8 +9,8 @@ The engine is a plain Python library: no prompts, no global state, and a seed ma
 is checked against reality by replaying ~1,500 real matches with their real line-ups (see
 [Does it look like real cricket?](#does-it-look-like-real-cricket)).
 
-> **Status:** the data pipeline, player ratings, match engine (calibrated) and series/tournament runners are
-> built. The browser UI is next. See [Roadmap](#roadmap).
+> **Status:** the data pipeline, player ratings, match engine (calibrated), series/tournament runners and a
+> browser UI are built. Historical teams, the fantasy draft and charts are next. See [Roadmap](#roadmap).
 
 ## Quick start
 
@@ -19,6 +19,28 @@ Python 3.10+.
 ```bash
 pip install -r requirements.txt
 ```
+
+### In the browser
+
+```bash
+python web_ui.py
+```
+
+This opens **http://localhost:5070** (use `--port` to change it, `--no-browser` to not open a tab). It works
+offline. Three modes:
+
+- **Match / Series:** two saved teams play one match or a series of up to 7.
+- **Tournament:** pick teams; single or double round robin, one league or two groups, then semi-finals, IPL-style
+  playoffs, a final or none.
+- **Team Builder:** search the ~6,500 rated players, pick 11-15 (with more than 11 the captain picks the XI for
+  each match) and save the team. Ten preset national squads are included.
+
+For every run choose the format, the year and whose conditions to play in (full-member internationals or a league),
+optionally venues and a seed. The results page has a summary (points tables with net run rate, knockouts, top
+performers, records), every match (Previous / Next, match report, scorecard and innings log), sortable batting and
+bowling tables and the MVP race (official and balanced). Saved teams go in `data/teams.json` (not in git).
+
+### From Python
 
 ```python
 from engine import simulate_match, scorecard_text, match_report
@@ -170,8 +192,11 @@ engine/            match engine (library)
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
   fit/             scripts that learn the engine's tables from Cricsheet
+web_ui.py          Flask server for the browser UI
+webui/             the page: index.html, style.css, app.js (no external scripts)
 scripts/           data pipeline: download, raw stats, Afghanistan, styles, ratings, validation
-data/              ratings_*.json, engine/*.json (fitted tables), raw_stats/ (derived);
+data/              ratings_*.json, engine/*.json (fitted tables), raw_stats/ (derived),
+                   teams_default.json (preset squads);
                    raw/ and cache/ are rebuilt locally and not in git
 docs/              design document and calibration/progress log
 examples/          tournament and series configs
@@ -184,8 +209,9 @@ tests/             engine and tournament tests
 - [x] Ratings with opponent adjustment, shrinkage and era adjustment
 - [x] Match engine (Tier 0-2 of the design), calibrated against real matches
 - [x] Series and league/tournament runners (points table with net run rate, knockouts, stats, records, MVP)
-- [ ] Browser UI (Flask, works offline): single match, series, World Cup / IPL-style tournaments, historical
-      teams, fantasy draft, team builder, worm and Manhattan charts, MVP race
+- [x] Browser UI (Flask, works offline): single match, series, World Cup / IPL-style tournaments, team builder,
+      results pages with match reports, stats tables, records and MVP race
+- [ ] Historical teams, fantasy draft, worm and Manhattan charts
 - [ ] Pre-2002 players from Wikipedia; ratings for a chosen year range (historical teams)
 - [ ] Later: rain and DLS, Impact Player rule, player-v-player matchups
 

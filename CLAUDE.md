@@ -260,4 +260,11 @@ balanced).
 - 2026-10-03: **Step 4 done: series and tournaments** (`engine/tournament.py`, `examples/`,
   `tests/test_tournament.py`; details in `docs/engine_progress.md`). `python -m engine.tournament
   examples/t20_world_cup_style.json --out results/wc` plays an 8-team, 2-group T20 World Cup-style event in ~2.5 s.
-  - Next (build order step 5): Flask server + UI (copy the style from `../cricket/webui/`).
+- 2026-10-03: **Step 5 done: browser UI**: `python web_ui.py` -> http://localhost:5070 (5060 is blocked by
+  browsers). User chose scope "core UI + team builder". `web_ui.py` (Flask, one background job, polling, offline),
+  `webui/` (style copied from the Test sim). Modes: Match/Series, Tournament, Team Builder (teams stored by Cricsheet
+  ID in data/teams.json, presets in data/teams_default.json). Results tabs: Summary (points tables/NRR, knockouts,
+  top performers, records), Matches (report + innings log), Batting, Bowling, MVP (official/balanced).
+  Checked in the browser: series, tournament (fixed: knockout dropdown defaulted to "final" because Flask sorts
+  dict keys), builder save/edit. README and `docs/engine_progress.md` updated. Note for step 6: career-long
+  ratings rank e.g. Rohit Sharma below Jaiswal; year-range ratings (T2-10) would address that.

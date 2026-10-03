@@ -1,0 +1,658 @@
+[
+ {
+  "name": "India T20 2024",
+  "players": [
+   {
+    "id": "a1cbdeeb",
+    "name": "Rohit Sharma"
+   },
+   {
+    "id": "ba607b88",
+    "name": "V Kohli"
+   },
+   {
+    "id": "919a3be2",
+    "name": "RR Pant"
+   },
+   {
+    "id": "271f83cd",
+    "name": "SA Yadav"
+   },
+   {
+    "id": "a4cc73aa",
+    "name": "SV Samson"
+   },
+   {
+    "id": "dbe50b21",
+    "name": "HH Pandya"
+   },
+   {
+    "id": "fe93fd9d",
+    "name": "RA Jadeja"
+   },
+   {
+    "id": "2e171977",
+    "name": "AR Patel"
+   },
+   {
+    "id": "8d2c70ad",
+    "name": "Kuldeep Yadav"
+   },
+   {
+    "id": "462411b3",
+    "name": "JJ Bumrah"
+   },
+   {
+    "id": "244048f6",
+    "name": "Arshdeep Singh"
+   },
+   {
+    "id": "57ee1fde",
+    "name": "YS Chahal"
+   },
+   {
+    "id": "2f49c897",
+    "name": "Mohammed Siraj"
+   },
+   {
+    "id": "a4e37e47",
+    "name": "S Dube"
+   },
+   {
+    "id": "6c19c6e5",
+    "name": "YBK Jaiswal"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "Australia T20 2024",
+  "players": [
+   {
+    "id": "12b610c2",
+    "name": "TM Head"
+   },
+   {
+    "id": "dcce6f09",
+    "name": "DA Warner"
+   },
+   {
+    "id": "3d8feaf8",
+    "name": "MR Marsh"
+   },
+   {
+    "id": "b681e71e",
+    "name": "GJ Maxwell"
+   },
+   {
+    "id": "d9273ee7",
+    "name": "MP Stoinis"
+   },
+   {
+    "id": "f1f99156",
+    "name": "TH David"
+   },
+   {
+    "id": "afa7e784",
+    "name": "MS Wade"
+   },
+   {
+    "id": "ded9240e",
+    "name": "PJ Cummins"
+   },
+   {
+    "id": "3fb19989",
+    "name": "MA Starc"
+   },
+   {
+    "id": "14f96089",
+    "name": "A Zampa"
+   },
+   {
+    "id": "03806cf8",
+    "name": "JR Hazlewood"
+   },
+   {
+    "id": "eaa76d3c",
+    "name": "C Green"
+   },
+   {
+    "id": "a2421394",
+    "name": "AC Agar"
+   },
+   {
+    "id": "9eb1455b",
+    "name": "NT Ellis"
+   },
+   {
+    "id": "989889ff",
+    "name": "JP Inglis"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "England T20 2024",
+  "players": [
+   {
+    "id": "99b75528",
+    "name": "JC Buttler"
+   },
+   {
+    "id": "3d284ca3",
+    "name": "PD Salt"
+   },
+   {
+    "id": "9caf69a1",
+    "name": "WG Jacks"
+   },
+   {
+    "id": "abb83e27",
+    "name": "JM Bairstow"
+   },
+   {
+    "id": "4ae1755b",
+    "name": "HC Brook"
+   },
+   {
+    "id": "bb351c23",
+    "name": "MM Ali"
+   },
+   {
+    "id": "50c6bc2b",
+    "name": "LS Livingstone"
+   },
+   {
+    "id": "e94915e6",
+    "name": "SM Curran"
+   },
+   {
+    "id": "ffe699c0",
+    "name": "CJ Jordan"
+   },
+   {
+    "id": "5574750c",
+    "name": "JC Archer"
+   },
+   {
+    "id": "249d60c9",
+    "name": "AU Rashid"
+   },
+   {
+    "id": "8db7f47f",
+    "name": "RJW Topley"
+   },
+   {
+    "id": "8d92a2c3",
+    "name": "MA Wood"
+   },
+   {
+    "id": "5f26f677",
+    "name": "BM Duckett"
+   },
+   {
+    "id": "245c97cb",
+    "name": "TS Mills"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "South Africa T20 2024",
+  "players": [
+   {
+    "id": "372455c4",
+    "name": "Q de Kock"
+   },
+   {
+    "id": "b8cc58c9",
+    "name": "RR Hendricks"
+   },
+   {
+    "id": "6a26221c",
+    "name": "AK Markram"
+   },
+   {
+    "id": "235c2bb6",
+    "name": "H Klaasen"
+   },
+   {
+    "id": "d67d5f00",
+    "name": "DA Miller"
+   },
+   {
+    "id": "85b3fab2",
+    "name": "T Stubbs"
+   },
+   {
+    "id": "81c36ee9",
+    "name": "M Jansen"
+   },
+   {
+    "id": "e62dd25d",
+    "name": "K Rabada"
+   },
+   {
+    "id": "0b60eb09",
+    "name": "KA Maharaj"
+   },
+   {
+    "id": "acdc62f5",
+    "name": "A Nortje"
+   },
+   {
+    "id": "a03bba42",
+    "name": "T Shamsi"
+   },
+   {
+    "id": "6b9eb501",
+    "name": "OEG Baartman"
+   },
+   {
+    "id": "3204c99f",
+    "name": "G Coetzee"
+   },
+   {
+    "id": "e66732f8",
+    "name": "RD Rickelton"
+   },
+   {
+    "id": "9a2fc964",
+    "name": "BC Fortuin"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "Pakistan T20 2024",
+  "players": [
+   {
+    "id": "8a75e999",
+    "name": "Babar Azam"
+   },
+   {
+    "id": "2f26ac1a",
+    "name": "Mohammad Rizwan"
+   },
+   {
+    "id": "1777c020",
+    "name": "Fakhar Zaman"
+   },
+   {
+    "id": "33609a8c",
+    "name": "Saim Ayub"
+   },
+   {
+    "id": "bafb9238",
+    "name": "Usman Khan"
+   },
+   {
+    "id": "29e253dd",
+    "name": "Iftikhar Ahmed"
+   },
+   {
+    "id": "9de62878",
+    "name": "Shadab Khan"
+   },
+   {
+    "id": "9cb8d7a6",
+    "name": "Imad Wasim"
+   },
+   {
+    "id": "45a7e761",
+    "name": "Shaheen Shah Afridi"
+   },
+   {
+    "id": "9c9af282",
+    "name": "Naseem Shah"
+   },
+   {
+    "id": "24bb1c2f",
+    "name": "Haris Rauf"
+   },
+   {
+    "id": "e174dadd",
+    "name": "Mohammad Amir"
+   },
+   {
+    "id": "2cec2a92",
+    "name": "Abbas Afridi"
+   },
+   {
+    "id": "abb7c76c",
+    "name": "Abrar Ahmed"
+   },
+   {
+    "id": "ee8f1a6d",
+    "name": "Azam Khan"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "New Zealand T20 2024",
+  "players": [
+   {
+    "id": "bf74b130",
+    "name": "FH Allen"
+   },
+   {
+    "id": "df5a6881",
+    "name": "DP Conway"
+   },
+   {
+    "id": "ba5e1069",
+    "name": "R Ravindra"
+   },
+   {
+    "id": "d027ba9f",
+    "name": "KS Williamson"
+   },
+   {
+    "id": "eade4650",
+    "name": "DJ Mitchell"
+   },
+   {
+    "id": "9a46c4e5",
+    "name": "GD Phillips"
+   },
+   {
+    "id": "7fa12533",
+    "name": "MS Chapman"
+   },
+   {
+    "id": "9219eff0",
+    "name": "JDS Neesham"
+   },
+   {
+    "id": "e4a0deae",
+    "name": "MJ Santner"
+   },
+   {
+    "id": "a818c1be",
+    "name": "TA Boult"
+   },
+   {
+    "id": "13c35c9e",
+    "name": "TG Southee"
+   },
+   {
+    "id": "2f9d0389",
+    "name": "LH Ferguson"
+   },
+   {
+    "id": "e84ac20c",
+    "name": "MJ Henry"
+   },
+   {
+    "id": "641ac5ff",
+    "name": "IS Sodhi"
+   },
+   {
+    "id": "e38bce7a",
+    "name": "MG Bracewell"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "West Indies T20 2024",
+  "players": [
+   {
+    "id": "7fca84b7",
+    "name": "BA King"
+   },
+   {
+    "id": "09a9d073",
+    "name": "J Charles"
+   },
+   {
+    "id": "3241e3fd",
+    "name": "N Pooran"
+   },
+   {
+    "id": "650d5e49",
+    "name": "R Powell"
+   },
+   {
+    "id": "d014d5ac",
+    "name": "SE Rutherford"
+   },
+   {
+    "id": "bbd41817",
+    "name": "AD Russell"
+   },
+   {
+    "id": "c5aef772",
+    "name": "R Shepherd"
+   },
+   {
+    "id": "4d7f517e",
+    "name": "AJ Hosein"
+   },
+   {
+    "id": "97bdec3d",
+    "name": "G Motie"
+   },
+   {
+    "id": "b0946605",
+    "name": "AS Joseph"
+   },
+   {
+    "id": "529eb9e0",
+    "name": "OC McCoy"
+   },
+   {
+    "id": "48a1d7b7",
+    "name": "SO Hetmyer"
+   },
+   {
+    "id": "1fc6ef83",
+    "name": "SD Hope"
+   },
+   {
+    "id": "3feda4fa",
+    "name": "RL Chase"
+   },
+   {
+    "id": "0f721006",
+    "name": "JO Holder"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "Afghanistan T20 2024",
+  "players": [
+   {
+    "id": "0bacade8",
+    "name": "Rahmanullah Gurbaz"
+   },
+   {
+    "id": "d4550956",
+    "name": "Ibrahim Zadran"
+   },
+   {
+    "id": "8f6dd463",
+    "name": "Azmatullah Omarzai"
+   },
+   {
+    "id": "62af8546",
+    "name": "Mohammad Nabi"
+   },
+   {
+    "id": "9f77963a",
+    "name": "Gulbadin Naib"
+   },
+   {
+    "id": "1212cbec",
+    "name": "Najibullah Zadran"
+   },
+   {
+    "id": "5f547c8b",
+    "name": "Rashid Khan"
+   },
+   {
+    "id": "62175638",
+    "name": "Karim Janat"
+   },
+   {
+    "id": "efc04be7",
+    "name": "Noor Ahmad"
+   },
+   {
+    "id": "c0c411cb",
+    "name": "Naveen-ul-Haq"
+   },
+   {
+    "id": "e9c7f0d0",
+    "name": "Fazalhaq Farooqi"
+   },
+   {
+    "id": "7d92277a",
+    "name": "Mujeeb Ur Rahman"
+   },
+   {
+    "id": "75b8e198",
+    "name": "Nangeyalia Kharote"
+   },
+   {
+    "id": "32de4eae",
+    "name": "Mohammad Ishaq"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "India ODI 2023",
+  "players": [
+   {
+    "id": "740742ef",
+    "name": "RG Sharma"
+   },
+   {
+    "id": "b4b99816",
+    "name": "Shubman Gill"
+   },
+   {
+    "id": "ba607b88",
+    "name": "V Kohli"
+   },
+   {
+    "id": "85ec8e33",
+    "name": "SS Iyer"
+   },
+   {
+    "id": "b17e2f24",
+    "name": "KL Rahul"
+   },
+   {
+    "id": "dbe50b21",
+    "name": "HH Pandya"
+   },
+   {
+    "id": "fe93fd9d",
+    "name": "RA Jadeja"
+   },
+   {
+    "id": "8d2c70ad",
+    "name": "Kuldeep Yadav"
+   },
+   {
+    "id": "462411b3",
+    "name": "JJ Bumrah"
+   },
+   {
+    "id": "2f49c897",
+    "name": "Mohammed Siraj"
+   },
+   {
+    "id": "8cf9814c",
+    "name": "Mohammed Shami"
+   },
+   {
+    "id": "2e171977",
+    "name": "AR Patel"
+   },
+   {
+    "id": "752f7486",
+    "name": "Ishan Kishan"
+   },
+   {
+    "id": "271f83cd",
+    "name": "SA Yadav"
+   },
+   {
+    "id": "495d42a5",
+    "name": "R Ashwin"
+   }
+  ],
+  "preset": true
+ },
+ {
+  "name": "Australia ODI 2023",
+  "players": [
+   {
+    "id": "12b610c2",
+    "name": "TM Head"
+   },
+   {
+    "id": "dcce6f09",
+    "name": "DA Warner"
+   },
+   {
+    "id": "3d8feaf8",
+    "name": "MR Marsh"
+   },
+   {
+    "id": "30a45b23",
+    "name": "SPD Smith"
+   },
+   {
+    "id": "fa433be6",
+    "name": "M Labuschagne"
+   },
+   {
+    "id": "989889ff",
+    "name": "JP Inglis"
+   },
+   {
+    "id": "b681e71e",
+    "name": "GJ Maxwell"
+   },
+   {
+    "id": "eaa76d3c",
+    "name": "C Green"
+   },
+   {
+    "id": "d9273ee7",
+    "name": "MP Stoinis"
+   },
+   {
+    "id": "ded9240e",
+    "name": "PJ Cummins"
+   },
+   {
+    "id": "3fb19989",
+    "name": "MA Starc"
+   },
+   {
+    "id": "14f96089",
+    "name": "A Zampa"
+   },
+   {
+    "id": "03806cf8",
+    "name": "JR Hazlewood"
+   },
+   {
+    "id": "1a2676c5",
+    "name": "SA Abbott"
+   },
+   {
+    "id": "69d03465",
+    "name": "AT Carey"
+   }
+  ],
+  "preset": true
+ }
+]

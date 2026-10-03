@@ -115,6 +115,24 @@ hauls with figures, end of innings with the not-out batters. Event stamps were o
 and fall of wickets now use the scorer's notation (6th ball of the 1st over = 0.6). Each XI is listed at the top.
 Dropped catches stay out (skipped by decision). No change to how matches play: the same seeds give the same results.
 
+## Step 5: browser UI (2026-10-03)
+
+Scope chosen by the user: core UI + team builder. No engine change (so no calibration step).
+- **Server:** `web_ui.py` (Flask, port 5070; 5060/5061 are refused by browsers as SIP ports). One background job;
+  the page polls `/api/status`; Stop cancels between matches (`on_match` callback added to `play_series` /
+  `play_tournament`, plus `match_count` for the progress bar). Results are saved to `results/last/` with the
+  same `save()` as the command line.
+- **Page:** `webui/` (style copied from the Test sim; no external scripts, works offline). Modes: Match / Series,
+  Tournament, Team Builder. Results tabs: Summary (points tables with NRR, knockouts, top performers, records),
+  Matches (Previous / Next, report, scorecard, innings log), Batting, Bowling (sortable, searchable, team filter;
+  clickable HS / best figures / 50s / 100s open the match), MVP (official and balanced).
+- **Teams:** stored by Cricsheet ID in `data/teams.json` (git-ignored); 10 presets in `data/teams_default.json`
+  (8 T20 World Cup 2024 squads, India and Australia ODI 2023). 11-15 players; more than 11 lets the captain pick.
+- **Fixed while testing:** the knockout dropdown defaulted to "final" because Flask sorts dict keys (now a list);
+  "1 balls" plural.
+- **Noted, not changed:** with career-long ratings the captain leaves out e.g. Rohit Sharma from India's squad.
+  Year-range ratings (design item T2-10) are planned for step 6.
+
 ## Rebuild order
 
 `python -m engine.fit.fit_basics` -> `python -m engine.fit.fit_situation` -> `python -m engine.fit.fit_toss` ->
