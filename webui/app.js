@@ -557,7 +557,31 @@ function chartsHTML(c) {
   }
   return `<div class="charts">${legend(inns)}<div class="chart-grid">
     <div class="chart-box"><h4>Run worm</h4>${worm}</div>
-    <div class="chart-box"><h4>Manhattan</h4>${manhattan}</div>${wp}</div></div>`;
+    <div class="chart-box"><h4>Manhattan</h4>${manhattan}</div>${wp}
+    ${inns.map((inn, k) => partnershipChart(inn, k, inns)).join('')}</div></div>`;
+}
+
+/* partnerships: one row per wicket, first batter's runs to the left of centre, second's to the right */
+const ORD = n => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th');
+function partnershipChart(inn, k, inns) {
+  const ps = (inn.partnerships || []).filter(p => p.runs || p.balls);
+  if (!ps.length) return '';
+  const side = Math.max(10, ...inns.flatMap(i => (i.partnerships || []).flatMap(p => p.split)));
+  const W = 560, row = 22, top = 8, H = top + ps.length * row + 8, lab = 34, tot = 62, nameW = 112;
+  const cx = (lab + W - tot) / 2, half = (W - tot - lab) / 2 - nameW, X = v => half * v / side;
+  let g = `<line x1="${cx}" x2="${cx}" y1="${top - 2}" y2="${H - 6}" class="grid"/>`;
+  ps.forEach((p, j) => {
+    const y = top + j * row, [a, b] = p.split, [na, nb] = p.batters;
+    const tip = `${ORD(p.wkt)} wicket: ${p.runs} (${p.balls}b)${p.unbroken ? ' unbroken' : ''} - ${na} ${a}, ${nb} ${b}`;
+    g += `<g><title>${esc(tip)}</title>
+      <text x="4" y="${y + 14}" class="ax">${ORD(p.wkt)}</text>
+      <rect x="${(cx - X(a)).toFixed(1)}" y="${y + 3}" width="${X(a).toFixed(1)}" height="${row - 7}" fill="${TEAM_COL[k]}" opacity=".95"/>
+      <rect x="${cx}" y="${y + 3}" width="${X(b).toFixed(1)}" height="${row - 7}" fill="${TEAM_COL[k]}" opacity=".55"/>
+      <text x="${(cx - X(a) - 4).toFixed(1)}" y="${y + 14}" text-anchor="end">${esc(na)} ${a}</text>
+      <text x="${(cx + X(b) + 4).toFixed(1)}" y="${y + 14}">${b} ${esc(nb)}</text>
+      <text x="${W - 2}" y="${y + 14}" text-anchor="end" class="ax">${p.runs}${p.unbroken ? '*' : ''} (${p.balls})</text></g>`;
+  });
+  return `<div class="chart-box"><h4>Partnerships - ${esc(inn.team)}</h4><svg viewBox="0 0 ${W} ${H}" class="chart">${g}</svg></div>`;
 }
 
 /* batting / bowling */
