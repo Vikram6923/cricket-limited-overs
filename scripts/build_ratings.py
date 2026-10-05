@@ -798,7 +798,7 @@ def domestic_prior(fmt: str, r: dict, ref: dict) -> dict:
 
 
 def totals_rating(fmt: str, totals: dict, y0: int, y1: int, r: dict, bat_group: str, bowl_group: str,
-                  runs_idx: float | None = None) -> dict:
+                  runs_idx: float | None = None, set_runs: bool = False) -> dict:
     """Rating from career totals only (Wikipedia) for players with no ball-by-ball data in this format.
     Batting: balls faced are unknown, so the strike rate comes from the role prior and the average informs only
     the dismissal index. Bowling: balls, runs (wkts x avg) and wickets give economy and wicket indexes.
@@ -814,7 +814,10 @@ def totals_rating(fmt: str, totals: dict, y0: int, y1: int, r: dict, bat_group: 
         e_out = n_est * (eb["wkt"] + eb["other_out"])
         tau2 = r["fits"]["wkt"][0]["tau2"]
         w = tau2 / (tau2 + gm["wkt"] / e_out)
-        out["bat"] = {"idx": {**gm, "wkt": gm["wkt"] + w * (outs / e_out - gm["wkt"])},
+        idx = {**gm, "wkt": gm["wkt"] + w * (outs / e_out - gm["wkt"])}
+        if set_runs and runs_idx:
+            idx["runs"] = runs_idx                       # estimated strike rate (pre2002_strike_rates)
+        out["bat"] = {"idx": idx,
                       "balls_est": round(n_est), "w": w, "raw": {"wkt": (outs / e_out, gm["wkt"] / e_out)}}
     balls, wkts, bavg = num(totals.get("balls")), num(totals.get("wkts")), num(totals.get("bowl_avg"))
     if balls and balls >= 6:
@@ -921,7 +924,8 @@ def assemble(fmt: str, r: dict) -> dict:
                             "bowl": {t: _r(v) for t, v in r["team_levels"][m][1].items()}} for m in METRICS},
         "domestic_prior": calib, "afghanistan_from_totals": added,
         "afghanistan_blended_with_totals": r.get("afghan_blended", 0),
-        "pre2002": {"new_players": pre_new, "with_pre2002_block": pre_part, "baseline_years": r.get("pre2002_years", [])},
+        "pre2002": {"new_players": pre_new, "with_pre2002_block": pre_part, "baseline_years": r.get("pre2002_years", []),
+                    "strike_rates": r.get("pre2002_sr", {})},
         "notes": ("Indexes are relative to the player's own era after adjusting for opponents (1.0 = average). "
                   "Engine: expected rate = baselines[comp][year][phase][metric] x batter phase index x bowler "
                   "phase index. 'ref' = expected numbers in the reference era (modern internationals)."),
@@ -1019,13 +1023,71 @@ def pre2002_baselines(r: dict) -> list[int]:
     return sorted(set(added))
 
 
+def pre2002_strike_rates(r: dict, players: dict, pre: dict) -> tuple[dict, dict]:
+    """Batting runs index (era-relative strike rate) for pre-2002 ODI players from the top scorers' runs (balls)
+    in Wikipedia's match summaries (scripts/fetch_wiki_matches.py).
+
+    The sample is biased: a player's top-scoring innings are faster than his average one. The bias factor k and
+    the sampling noise c (variance x balls) are measured on 2003-12 summaries of players whose Cricsheet runs
+    index is known; then estimate = sample index / k, shrunk toward the role mean with variance c / balls.
+    Returns ({player id: {"idx", "balls", "w"}}, calibration info)."""
+    rows = _load_json(STATS / "wiki_odi_innings.json", [])
+    if not rows:
+        return {}, {}
+    by_title = {q["title"]: pid for pid, q in pre.items()}
+    comp = MODELS["odi"]["intl"] + "_full"
+    eb_year: dict = {}
+    agg: dict = {}                    # (pid, era) -> [runs, expected runs at era rate, balls]
+    for m in rows:
+        y = m["year"]
+        if y not in eb_year:
+            eb_year[y] = era_baseline(r["base"], comp, y, y)["runs"]
+        era = "pre" if y < 2003 else "cs"
+        for inn in m["innings"]:
+            for b in inn["bat"]:
+                pid = by_title.get(b["title"])
+                if pid and b["balls"] > 0:
+                    a = agg.setdefault((pid, era), [0.0, 0.0, 0])
+                    a[0] += b["runs"]
+                    a[1] += b["balls"] * eb_year[y]
+                    a[2] += b["balls"]
+    pairs = []
+    for (pid, era), (runs, exp, balls) in agg.items():
+        cs = (players.get(pid) or {}).get("bat") or {}
+        if era == "cs" and balls >= 60 and cs.get("balls", 0) >= 1000:
+            pairs.append((runs / exp, cs["idx"]["runs"], balls))
+    if len(pairs) < 20:
+        return {}, {"pairs": len(pairs)}
+    k = sum(o * b for o, t, b in pairs) / sum(t * b for o, t, b in pairs)
+    c = sum((o / k - t) ** 2 * b for o, t, b in pairs) / len(pairs)
+    tau2 = r["fits"]["runs"][0]["tau2"]
+    out = {}
+    for (pid, era), (runs, exp, balls) in agg.items():
+        if era != "pre":
+            continue
+        out[pid] = {"est": runs / exp / k, "balls": balls, "var": c / balls, "tau2": tau2}
+    n = len(pairs)
+    mt = sum(t for _, t, _ in pairs) / n
+    mo = sum(o / k for o, _, _ in pairs) / n
+    cov = sum((o / k - mo) * (t - mt) for o, t, _ in pairs) / n
+    vo = sum((o / k - mo) ** 2 for o, _, _ in pairs) / n
+    vt = sum((t - mt) ** 2 for _, t, _ in pairs) / n
+    info = {"pairs": n, "bias_k": round(k, 3), "noise_c": round(c, 2), "corr": round(cov / (vo * vt) ** 0.5, 2),
+            "players": len(out), "matches": len(rows)}
+    return out, info
+
+
 def add_pre2002(r: dict, players: dict, ref: dict) -> tuple[int, int]:
     """ODI players from before Cricsheet (scripts/build_pre2002.py): rating from their pre-2002 career totals,
     against their own era. New players get a record (source "wikipedia_pre2002"); players already rated from
     Cricsheet get a "pre2002" block that the engine uses for year ranges before their Cricsheet record."""
     shares = {ph: ref[ph]["share"] for ph in PHASES}
     n_new = n_part = 0
-    for pid, q in _load_json(STATS / "pre2002_players.json", {}).items():
+    pre = _load_json(STATS / "pre2002_players.json", {})
+    srs, info = pre2002_strike_rates(r, players, pre)
+    r.setdefault("pre2002_sr", info)
+    print(f"  pre-2002 strike rates from Wikipedia match summaries: {info}", flush=True)
+    for pid, q in pre.items():
         runs, outs, balls = q.get("runs"), q.get("outs"), q.get("balls")
         if not q.get("matches") or not (runs or balls):
             continue
@@ -1035,11 +1097,19 @@ def add_pre2002(r: dict, players: dict, ref: dict) -> tuple[int, int]:
         bat_g = "middle" if q.get("keeper") else "top" if avg >= 30 else "middle" if avg >= 20 else "lower" if avg >= 12 else "tail"
         typ = q.get("bowl_type") or "unk"
         bowl_g = f"{'spec' if (balls or 0) / q['matches'] >= 30 else 'part'}_{typ}"
-        tr = totals_rating("odi", tot, q["first"], q["last"], r, bat_g, bowl_g)
+        sr = srs.get(pid)
+        runs_idx = None
+        if sr:
+            fits = r["fits"]["runs"][0]["group_mean"]
+            g = fits.get(bat_g, 1.0)
+            wsr = sr["tau2"] / (sr["tau2"] + sr["var"])
+            runs_idx = g + wsr * (sr["est"] - g)
+        tr = totals_rating("odi", tot, q["first"], q["last"], r, bat_g, bowl_g, runs_idx=runs_idx, set_runs=True)
         block = {"bat": None, "bowl": None, "first": q["first"], "last": q["last"]}
         if tr["bat"]:
             ix = tr["bat"]["idx"]
             block["bat"] = {"balls": tr["bat"]["balls_est"], "balls_estimated": True, "confidence": _r(tr["bat"]["w"], 2),
+                            "sr_sample_balls": sr["balls"] if sr else 0,
                             "idx": {m: _r(v) for m, v in ix.items()}, "other_out_idx": 1.0,
                             "phase": {ph: {m: _r(v) for m, v in ix.items()} for ph in PHASES},
                             "ref": readable_bat({ph: dict(ix) for ph in PHASES}, 1.0, shares, ref)}

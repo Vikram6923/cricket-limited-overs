@@ -382,3 +382,22 @@ timelines 2023-26). No usage rates are fitted; every decision compares runs gain
   batter). First innings 198.7 (199.9 with the old rule), chasing side won 47%. ~75 ms per IPL match.
 - Approximations: the XI valuation uses the simpler "beat the break" rule in play; values are runs, not win
   probability; batters still to come are assumed out in order when valuing waiting.
+
+## Pre-2002 batting strike rates from Wikipedia match summaries (2026-10-06)
+
+Wikipedia's lists and infoboxes have no ODI strike rates (Cricbuzz's robots.txt disallows crawlers, Howstat is
+behind a bot check, ESPNcricinfo's robots.txt blocks AI crawlers, so none of those were used). But Wikipedia's
+tour / series / World Cup pages summarise most ODIs with the top scorers' runs (balls).
+- `scripts/fetch_wiki_matches.py`: pages from the "International cricket competitions from/in <period>"
+  categories + season pages (cached); templates {{Single-innings cricket match}}, {{Limited overs matches}},
+  {{Limited overs international}}; women's, A, U-19, T20 and associate-trophy pages dropped; the same match on two
+  pages merged (date + teams). 2,976 matches 1971-2012, about 1,600 of the ~1,800 ODIs before mid-2002.
+- `build_ratings.pre2002_strike_rates`: per player, runs in the sample / runs expected at his era's rate. Top
+  scorers' innings are faster than average: bias k = 1.053 and noise (variance x balls) = 14.5, measured on 66
+  players with 2003-12 summaries and a Cricsheet runs index (correlation 0.73). Estimate = sample / k, shrunk
+  toward the role mean (EB, tau2 of the runs fit). 455 pre-2002 players get one (`sr_sample_balls` in the block);
+  the rest keep the role prior.
+- Examples (strike rate in 2022-26 terms, before -> after): Richards 95 -> 121, Jayasuriya 95 -> 115, Tendulkar
+  95 -> 108, Zaheer Abbas 95 -> 113, Haynes 95 -> 92, Gavaskar 95 -> 91, Boycott 95 -> 87, Marsh 95 -> 83.
+  Runs-weighted mean index 1.041 -> 1.047 (era levels unchanged).
+- Only the runs index changes; dot / four / six indexes stay at the role mean.
