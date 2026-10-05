@@ -152,6 +152,19 @@ def points_table(cards: list[dict], teams: list[str], win_points: int = 2) -> li
 
 # ------------------------------------------------------------------------------------------------ stats
 
+def match_players(c: dict) -> dict[str, list[dict]]:
+    """Everyone who played in the match, per team: the XI plus the player an Impact Player replaced (the card's
+    XI lists the final side, with the substitute in place of the player he replaced)."""
+    out = {t: list(xi) for t, xi in c["xi"].items()}
+    for t, ip in (c.get("impact_player") or {}).items():
+        ids = {p["id"] for p in out.get(t, [])}
+        for pid, name in ((ip.get("out_id"), ip.get("out")), (ip.get("in_id"), ip.get("in"))):
+            if pid and pid not in ids:
+                out.setdefault(t, []).append({"id": pid, "name": name})
+                ids.add(pid)
+    return out
+
+
 def tournament_stats(cards: list[dict], team_wins: dict) -> dict:
     """Batting, bowling and fielding tables, records and MVP rankings over the given matches (super overs
     excluded from all player figures, as in official statistics)."""
@@ -159,7 +172,7 @@ def tournament_stats(cards: list[dict], team_wins: dict) -> dict:
     team_of, name_of = {}, {}
     apps = {}
     for c in cards:
-        for team, xi in c["xi"].items():
+        for team, xi in match_players(c).items():
             for p in xi:
                 apps[(p["id"], team)] = apps.get((p["id"], team), 0) + 1
                 team_of.setdefault(p["id"], team)
@@ -304,7 +317,7 @@ def mvp(cards: list[dict], batting: list, bowling: list, fielding: list, team_wi
         p["field_pts"] = 5 * p["catches"]
     team_of_id = {(pid, t) for (pid, t) in people}
     for c in cards:
-        teams = {p["id"]: t for t, xi in c["xi"].items() for p in xi}
+        teams = {p["id"]: t for t, xi in match_players(c).items() for p in xi}
         for pid, v in (c.get("impact") or {}).items():
             t = teams.get(pid)
             if t and (pid, t) in team_of_id:
