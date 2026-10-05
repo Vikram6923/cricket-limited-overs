@@ -32,9 +32,9 @@ ODI_B = ["TM Head", "MR Marsh", "SPD Smith", "M Labuschagne", "JP Inglis", "GJ M
          "MA Starc", "A Zampa", "JR Hazlewood"]
 
 
-def check_card(c: dict):
+def check_card(c: dict, rain: bool = False):
     fmt = c["format"]
-    quota = 4 if fmt == "t20" else 10
+    quota = -(-c["overs"] // 5)                # a fifth of the overs at the start (10 of 50, 4 of 20)
     for inn in c["innings"]:
         max_balls = inn["max_overs"] * 6
         assert inn["balls"] <= max_balls, "too many legal balls"
@@ -55,6 +55,8 @@ def check_card(c: dict):
         if inn["fall_of_wickets"]:
             runs = [f["runs"] for f in inn["fall_of_wickets"]]
             assert runs == sorted(runs), "fall of wickets out of order"
+    if rain:
+        return
     i1, i2 = c["innings"]
     r = c["result"]
     assert i2["target"] == i1["runs"] + 1
@@ -104,6 +106,26 @@ def test_unknown_players():
     b = {"name": "Australia", "players": _ids(T20_B, "t20")}
     for seed in range(20):
         check_card(simulate_match(a, b, fmt="t20", year=2024, seed=seed))
+
+
+def test_rain():
+    """Rain on: valid results, laws hold in shortened innings, and a dry match is the same as with rain off."""
+    a, b = {"name": "India", "players": _ids(ODI_A, "odi")}, {"name": "Australia", "players": _ids(ODI_B, "odi")}
+    kinds = set()
+    for seed in range(150):
+        c = simulate_match(a, b, fmt="odi", year=2024, seed=seed, venue="Lord's, London", rain_on=True)
+        check_card(c, rain=True)
+        r = c["result"]
+        kinds.add(r["type"] + ("_dls" if r.get("dls") else ""))
+        assert r["type"] in ("win", "tie", "no_result")
+        if not c["rain"]:
+            dry = simulate_match(a, b, fmt="odi", year=2024, seed=seed, venue="Lord's, London")
+            assert dry["result"] == r and dry["innings"][0]["runs"] == c["innings"][0]["runs"]
+        elif len(c["innings"]) == 2 and not r.get("par") and r["type"] == "win":
+            i2 = c["innings"][1]
+            assert (r["winner"] == i2["team"]) == (i2["runs"] >= i2["target"])
+        scorecard_text(c)
+    assert {"win", "win_dls", "no_result"} <= kinds, kinds
 
 
 if __name__ == "__main__":

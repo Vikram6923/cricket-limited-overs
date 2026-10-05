@@ -401,3 +401,28 @@ tour / series / World Cup pages summarise most ODIs with the top scorers' runs (
   95 -> 108, Zaheer Abbas 95 -> 113, Haynes 95 -> 92, Gavaskar 95 -> 91, Boycott 95 -> 87, Marsh 95 -> 83.
   Runs-weighted mean index 1.041 -> 1.047 (era levels unchanged).
 - Only the runs index changes; dot / four / six indexes stay at the role mean.
+
+## Rain and DLS (2026-10-06)
+
+The Test sim's rain (`../cricket/callcricketnew.py` `raincheck` / `conditions`) loses random overs with hand-set
+chances by country group and has no target revision. Here both parts come from data:
+- `python -m engine.fit.fit_rain` -> `data/engine/rain_{odi,t20}.json`: every Cricsheet match (ODIs; T20Is + the
+  11 leagues) gives a rain profile read off the scorecard (overs lost before the start, first innings ended early,
+  chase reduced, chase stopped for good, abandoned), as fractions of the scheduled overs; grouped by host country
+  (venue -> the full member that plays there most; leagues -> home country). Share of matches affected, ODI:
+  Sri Lanka 26%, West Indies 25%, Ireland 23%, England 20%, NZ 19%, SA 18%, Zimbabwe 14%, Bangladesh 14%,
+  Australia 8%, India 7%, Pakistan 6% (all 16%); T20: NZ 12%, WI 11%, England 10% ... India 4%, UAE 1.5% (all 7%).
+  Matches abandoned without a ball are not in Cricsheet, so washouts are slightly under-counted.
+- `engine/rain.py`: an affected match replays a real profile from its host country (own random stream, so a dry
+  match is identical with rain on or off). DLS Standard Edition formulas on the engine's learned resource table
+  (`situation.par_frac`; T20 close to published DLS - 5 overs left 35% vs ~33%; ODI gives more to the last overs,
+  as modern scoring does): par = S x R2/R1, or S + G x (R2 - R1) with G = average first-innings total in these
+  conditions; par at a stoppage; minimum 20 (ODI) / 5 (T20) overs for a result.
+- Match: `rain_on=True`; overs can be cut mid-innings; bowler quota = a fifth of the innings (rounded up), re-set
+  when overs are cut; phases scale with a shortened innings; the situation tables see balls left in the shortened
+  innings. Results "(DLS method)", par results, no result. Card: `rain` notes; innings `rain_stopped`.
+- Tournaments / series: `rain=True`; no result = 1 point each and left out of NRR; DLS matches count the side
+  batting first as the par score in the chase's overs (ICC); knockouts have a reserve day, then the higher-placed
+  side goes through. UI: "Rain (DLS)" checkbox (on by default) in the conditions panel and League Season.
+- Check: 400 ODIs at Lord's: 15% DLS / rain-reduced results, 5.5% no result; IPL season: 4 of 79 matches hit.
+  `tests/test_engine.py::test_rain`.

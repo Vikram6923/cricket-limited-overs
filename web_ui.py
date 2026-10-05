@@ -249,6 +249,7 @@ def _run(job: Job, params: dict) -> None:
         fmt, comp, year = params["fmt"], params["comp"], int(params["year"])
         seed = int(params["seed"]) if str(params.get("seed") or "").strip() else random.randrange(1 << 30)
         venues_ = params.get("venues") or None
+        rain_ = bool(params.get("rain"))
         size = history.SQUAD_SIZE          # Classic modes: most-capped N of the period ("" = everyone)
         if "squad_size" in params:
             size = int(params["squad_size"]) if params["squad_size"] else None
@@ -258,24 +259,24 @@ def _run(job: Job, params: dict) -> None:
             specs = [{"name": t["name"], "squad": t["players"], "overseas": t["overseas"],
                       "max_overseas": t["max_overseas"]} for t in s["teams"]]
             res = play_tournament(specs, fmt="t20", comp=params["league"], year=s["year"], rounds=2, knockout="ipl",
-                                  venues=venues_, seed=seed, on_match=on_match)
+                                  venues=venues_, seed=seed, rain=rain_, on_match=on_match)
         elif params["mode"] == "draft":
             groups = int(params.get("groups") or 1)
             res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
-                                  knockout=params.get("knockout") or "semis", venues=venues_, seed=seed,
+                                  knockout=params.get("knockout") or "semis", venues=venues_, seed=seed, rain=rain_,
                                   on_match=on_match)
             res["draft"] = {"teams": DRAFT.teams, "user": DRAFT.user,
                             "board": DRAFT.state()["board"], "years": [DRAFT.y1, DRAFT.y2]}
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
                               n=int(params["matches"]),
-                              fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, on_match=on_match)
+                              fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match)
         else:
             groups = int(params.get("groups") or 1)
             res = play_tournament([team_spec(t, fmt, size, ym) for t in params["teams"]], fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
-                                  knockout=params.get("knockout") or "semis", venues=venues_, seed=seed,
+                                  knockout=params.get("knockout") or "semis", venues=venues_, seed=seed, rain=rain_,
                                   on_match=on_match)
         res["title"] = job.title
         _augment(res)

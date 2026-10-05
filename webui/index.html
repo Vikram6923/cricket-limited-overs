@@ -83,6 +83,7 @@
     <div class="fg"><label>League</label><select id="l-league"></select></div>
     <div class="fg"><label>Teams</label><div class="roster" id="l-teams"></div></div>
     <div class="fg"><label>Seed (optional)</label><input type="text" id="l-seed" placeholder="random"></div>
+    <div class="fg"><label><input type="checkbox" id="l-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (the league's home country).</div></div>
     <div class="total" id="l-total"></div>
   </div>
 
@@ -131,6 +132,7 @@
       <select id="c-venues" multiple></select>
       <div class="hint" style="margin:4px 0 0">None selected = neutral. Ctrl+click to pick several.</div></div>
     <div class="fg"><label>Seed (optional, repeat a run exactly)</label><input type="text" id="c-seed" placeholder="random"></div>
+    <div class="fg"><label><input type="checkbox" id="c-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (from the venue; neutral = average).</div></div>
   </div>
 
   <div style="margin-top:16px" id="go-wrap"><button class="btn go" id="go-btn">▶ Start</button><div class="err" id="go-err"></div></div>

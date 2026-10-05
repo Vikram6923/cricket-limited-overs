@@ -53,8 +53,9 @@ class _Runner:
     """Plays matches with consistent numbering, seeds and venues."""
 
     def __init__(self, fmt: str, comp: str | None, year: int, seed: int | None, venues: list | None,
-                 home_venues: dict | None, knockout_venues: list | None):
+                 home_venues: dict | None, knockout_venues: list | None, rain: bool = False):
         self.fmt, self.comp, self.year = fmt, comp or FORMATS[fmt]["intl"], year
+        self.rain = rain
         self.seed = seed if seed is not None else random.randrange(1 << 30)
         self.venues = list(venues or [])
         self.home = dict(home_venues or {})
@@ -75,8 +76,18 @@ class _Runner:
 
     def play(self, a: dict, b: dict, stage: str, knockout: bool = False) -> dict:
         no = len(self.cards) + 1
-        card = simulate_match(a, b, fmt=self.fmt, comp=self.comp, year=self.year,
-                              venue=self.venue_for(a["name"], knockout), seed=_seed(self.seed, no))
+        venue = self.venue_for(a["name"], knockout)
+        card = simulate_match(a, b, fmt=self.fmt, comp=self.comp, year=self.year, venue=venue,
+                              seed=_seed(self.seed, no), rain_on=self.rain)
+        if knockout and card["result"]["type"] == "no_result":
+            # reserve day; if that is washed out too, the higher-placed side (named first) goes through
+            card = simulate_match(a, b, fmt=self.fmt, comp=self.comp, year=self.year, venue=venue,
+                                  seed=_seed(self.seed, no) + 7919, rain_on=self.rain)
+            card["rain"] = ["Washed out; played on the reserve day."] + card["rain"]
+            if card["result"]["type"] == "no_result":
+                card["result"] = {"type": "no_result", "winner": a["name"], "loser": b["name"], "by": "no_result",
+                                  "text": f"No result (reserve day washed out too) - {a['name']} go through "
+                                          "as the higher-placed side"}
         card["match_no"], card["stage"], card["knockout"] = no, stage, knockout
         self.cards.append(card)
         if self.on_match:
@@ -93,20 +104,31 @@ def points_table(cards: list[dict], teams: list[str], win_points: int = 2) -> li
     rows = {t: {"team": t, "played": 0, "won": 0, "lost": 0, "tied": 0, "no_result": 0, "points": 0,
                 "runs_for": 0, "balls_for": 0, "runs_against": 0, "balls_against": 0} for t in teams}
     for c in cards:
-        names = [i["team"] for i in c["innings"]]
+        names = list(c.get("teams") or [i["team"] for i in c["innings"]])
         if not all(n in rows for n in names):
             continue
-        for inn in c["innings"]:
-            balls = inn["max_overs"] * 6 if inn["wickets"] >= 10 else inn["balls"]
-            bat, bowl = rows[inn["team"]], rows[inn["bowling_team"]]
-            bat["runs_for"] += inn["runs"]
-            bat["balls_for"] += balls
-            bowl["runs_against"] += inn["runs"]
-            bowl["balls_against"] += balls
         res = c["result"]
+        nr = res.get("type") == "no_result"
+        for inn in ([] if nr else c["innings"]):        # abandoned matches don't count towards NRR
+            balls = inn["max_overs"] * 6 if inn["wickets"] >= 10 else inn["balls"]
+            runs = inn["runs"]
+            if inn is c["innings"][0] and res.get("dls"):
+                # DLS (ICC): the side batting first is credited with the par score in the chase's overs
+                i2 = c["innings"][1]
+                runs = res["par"] if "par" in res else i2["target"] - 1
+                balls = i2["balls"] if "par" in res else i2["max_overs"] * 6
+            bat, bowl = rows[inn["team"]], rows[inn["bowling_team"]]
+            bat["runs_for"] += runs
+            bat["balls_for"] += balls
+            bowl["runs_against"] += runs
+            bowl["balls_against"] += balls
         for n in set(names):
             rows[n]["played"] += 1
-        if res.get("winner"):
+        if nr:
+            for n in set(names):
+                rows[n]["no_result"] += 1
+                rows[n]["points"] += win_points // 2
+        elif res.get("winner"):
             rows[res["winner"]]["won"] += 1
             rows[res["winner"]]["points"] += win_points
             rows[res["loser"]]["lost"] += 1
@@ -320,10 +342,11 @@ def _summary_card(c: dict) -> dict:
 # ------------------------------------------------------------------------------------------------ series
 
 def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: str | None = None,
-                year: int = 2025, venues: list | None = None, seed: int | None = None, on_match=None) -> dict:
+                year: int = 2025, venues: list | None = None, seed: int | None = None, on_match=None,
+                rain: bool = False) -> dict:
     """Bilateral series of n matches (all n are played)."""
     a, b = team_spec(fmt, team_a), team_spec(fmt, team_b)
-    run = _Runner(fmt, comp, year, seed, venues, None, None)
+    run = _Runner(fmt, comp, year, seed, venues, None, None, rain)
     run.on_match = on_match
     for i in range(n):
         run.play(a, b, f"Match {i + 1}")
@@ -346,7 +369,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
                     rounds: int = 1, groups: int | list | None = None, advance: int | None = None,
                     knockout: str = "semis", venues: list | None = None, home_venues: dict | None = None,
                     knockout_venues: list | None = None, seed: int | None = None, win_points: int = 2,
-                    on_match=None) -> dict:
+                    on_match=None, rain: bool = False) -> dict:
     """League stage (round robin, `rounds` times, optionally in groups) then knockouts.
 
     groups:   None/1 = one league; an int = that many groups, teams dealt in the order given (1st to group A,
@@ -367,7 +390,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
     else:
         group_lists = [list(g) for g in groups]
     labels = [chr(ord("A") + i) for i in range(len(group_lists))] if len(group_lists) > 1 else ["League"]
-    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues)
+    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain)
     run.on_match = on_match
 
     # league stage: rounds of single round robins, alternating home side between rounds

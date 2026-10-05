@@ -36,6 +36,7 @@ def _header(card: dict) -> list[str]:
     for team, ip in (card.get("impact_player") or {}).items():
         out.append(f"Impact Player ({team}): {ip['in']} (↑ in) replaced {ip['out']} (↓ out) {_when(ip)} "
                    f"(to {'bowl' if ip['for'] == 'bowl' else 'bat'}).")
+    out += [f"Weather: {t}" for t in card.get("rain") or []]
     return out
 
 
@@ -172,6 +173,10 @@ def _bat_report(b: dict, rng: random.Random) -> str:
 def match_report(card: dict) -> str:
     """Narrative report in the style of the Test sim's matchreport."""
     rng = random.Random(card.get("seed", 0))
+    if len(card["innings"]) < 2:              # washed out before the chase
+        i1 = card["innings"][0]
+        return (f"{i1['team']} made {i1['runs']}/{i1['wickets']} in {i1['overs']} overs before rain ended the "
+                f"match. No result.")
     i1, i2 = card["innings"][0], card["innings"][1]
     s = []
     if card.get("venue"):

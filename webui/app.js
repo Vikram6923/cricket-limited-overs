@@ -279,7 +279,7 @@ async function playDraftLeague() {
   try {
     await api('/api/run', {mode: 'draft', fmt: DRAFT.fmt, comp: $('c-comp').value, year: +$('c-year').value,
       venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
-      rounds: +$('d-rounds').value, groups: 1, knockout: $('d-ko').value});
+      rain: $('c-rain').checked, rounds: +$('d-rounds').value, groups: 1, knockout: $('d-ko').value});
     poll();
   } catch (e) { $('dr-msg').textContent = e.message; toast(e.message, true); }
 }
@@ -326,9 +326,11 @@ function drawBoard(el, teams, board, me) {
 /* ───────────────────────── start / poll ───────────────────────── */
 function payload() {
   const base = {mode: MODE, fmt: $('c-fmt').value, comp: $('c-comp').value, year: +$('c-year').value,
-    venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim()};
+    venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
+    rain: $('c-rain').checked};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value};
-  if (MODE === 'league') return {mode: 'league', league: $('l-league').value, seed: $('l-seed').value.trim(), venues: []};
+  if (MODE === 'league') return {mode: 'league', league: $('l-league').value, seed: $('l-seed').value.trim(), venues: [],
+    rain: $('l-rain').checked};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
     team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value,
     years_mode: document.querySelector('.c-ymode').value};
@@ -486,6 +488,7 @@ async function showMatch(i) {
       <span>Toss: <b>${esc(c.toss.winner)}</b>, chose to ${esc(c.toss.decision)}</span>
       <span>Pitch: <b>${esc(cond.report || '')}</b></span>
       ${pom.name ? `<span>Player of the match: <b>${esc(pom.name)}</b></span>` : ''}</div>
+    ${(c.rain || []).length ? `<div class="meta">${c.rain.map(t => `<span>&#9730; ${esc(t)}</span>`).join('')}</div>` : ''}
     <div class="report">${esc(d.report)}</div>
     ${chartsHTML(c)}
     <h3>Scorecard and innings log</h3><pre class="sc">${esc(d.text)}</pre>`;

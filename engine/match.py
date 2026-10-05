@@ -12,6 +12,7 @@ import random
 import zlib
 from dataclasses import dataclass, field
 
+from . import rain
 from . import captain, conditions
 from .ballmodel import BallModel
 from .data import FORMATS, Player, baseline, basics, phase_of, player
@@ -122,9 +123,15 @@ class Innings:
         self.pship = {"runs": 0, "balls": 0, "a": self.striker, "b": self.non_striker, "a_runs": 0, "b_runs": 0}
         self.free_hit = False
         self.done = False
+        self.rain_stopped = False    # play could not resume (rain): the result goes by DLS par
         self.streak: dict[Player, int] = {}   # consecutive legal balls taking wickets, per bowler (hat-tricks)
 
     # ------------------------------------------------------------------ helpers
+    def offset(self) -> int:
+        """Balls to add so the situation tables (full-innings states) see the right balls left in a shortened
+        innings: resources depend on overs left and wickets, as in DLS."""
+        return 0 if self.super_over else (FORMATS[self.m.fmt]["overs"] - self.max_overs) * 6
+
     def ball_str(self) -> str:
         """The ball just bowled, as scorers write it: the 6th ball of the 1st over is 0.6 (0.0 before any ball)."""
         n = self.legal
@@ -152,17 +159,32 @@ class Innings:
     def play(self):
         fmt = self.m.fmt
         fielders = self.allowed_bowlers or self.bowl.players
-        quota = FORMATS[fmt]["quota"] if not self.super_over else 1
+        quota = rain.quota(self.max_overs) if not self.super_over else 1
         quota_left = {p: quota for p in fielders}
         last = None
         plan = None
         if not self.super_over and self.m.use_plan:
             plan = captain.BowlingPlan(fielders, self.bowl.keeper, fmt, self.m.base, self.max_overs, quota,
                                        self.m.rng)
-        for over in range(self.max_overs):
+        over = -1
+        while over + 1 < self.max_overs:
+            over += 1
             if self.done:
                 break
-            ph = phase_of(over, fmt) if not self.super_over else "death"
+            if self.m.rain_profile and not self.super_over:
+                cut = self.m.rain_check(self, over)
+                if cut == "stop":
+                    break
+                if cut:                       # overs reduced: new quota, the rest chosen over by over
+                    q2 = rain.quota(self.max_overs)
+                    for p in quota_left:
+                        quota_left[p] = max(0, quota_left[p] - (quota - q2))
+                    quota, plan = q2, None
+                    if over >= self.max_overs:
+                        break
+            # phases scale with a shortened innings (as powerplays do)
+            ph = (phase_of(over * FORMATS[fmt]["overs"] // self.max_overs, fmt)
+                  if not self.super_over else "death")
             base = self.m.base[ph]
             if self.allowed_bowlers and len(self.allowed_bowlers) == 1:
                 bowler = self.allowed_bowlers[0]
@@ -198,7 +220,7 @@ class Innings:
         btype = bowler.bowl_type or "unknown"
         seq = []
         while balls_in_over < 6 and not self.done:
-            sit = self.m.sit.multipliers(1 if self.target is None else 2, self.legal, self.wkts, self.runs,
+            sit = self.m.sit.multipliers(1 if self.target is None else 2, self.legal + self.offset(), self.wkts, self.runs,
                                          self.target, self.striker.balls) if self.m.use_situation else {}
             if self.m.use_matchups:
                 sit = self.m.sit.with_matchup(sit, self.striker.p.bat_hand, bowler.bowl_kind)
@@ -395,7 +417,7 @@ class Innings:
         return {
             "number": self.number, "team": self.bat.name, "bowling_team": self.bowl.name,
             "runs": self.runs, "wickets": self.wkts, "balls": self.legal, "overs": self.over_str(),
-            "target": self.target, "max_overs": self.max_overs, "extras": dict(self.extras),
+            "target": self.target, "max_overs": self.max_overs, "rain_stopped": self.rain_stopped, "extras": dict(self.extras),
             "batting": [{"id": c.p.id, "name": c.p.name, "position": c.pos, "runs": c.runs, "balls": c.balls,
                          "fours": c.fours, "sixes": c.sixes, "dots": c.dots, "out": c.out,
                          "dismissal": (c.how or {}).get("text", "not out") if c.batted else "did not bat",
@@ -435,7 +457,8 @@ class Match:
                  venue: str | None = None, seed: int | None = None, toss: str | None = None,
                  decision: str | None = None, overs: int | None = None, use_situation: bool = True,
                  use_plan: bool = True, use_venue: bool = True, pitch: dict | None = None,
-                 use_matchups: bool = True, use_pitch: bool = True, impact_player: bool | None = None):
+                 use_matchups: bool = True, use_pitch: bool = True, impact_player: bool | None = None,
+                 rain_on: bool = False):
         if fmt not in FORMATS:
             raise ValueError(f"format must be one of {sorted(FORMATS)}")
         self.fmt, self.year, self.venue = fmt, year, venue
@@ -466,6 +489,14 @@ class Match:
         ctx = {"rng": sel_rng, "venue": venue, "runs_factor": cr, "base": baseline(fmt, self.comp, year)}
         self.teams = [make_team(team_a, fmt, ctx), make_team(team_b, fmt, ctx)]
         self.overs = overs or FORMATS[fmt]["overs"]
+        # rain (engine/rain.py): a real match's interruption pattern for the host country, own random stream
+        self.rain_profile = rain.sample(fmt, venue, self.comp, self.seed) if rain_on and not overs else None
+        self.dls = rain.DLS(self.sit, fmt)
+        self.rain_log: list[str] = []
+        self.no_result = False
+        if self.rain_profile and "start" in self.rain_profile:
+            self.overs = max(rain.MIN_OVERS[fmt], round(self.rain_profile["start"] * FORMATS[fmt]["overs"]))
+            self.rain_log.append(f"Rain before the start: {self.overs} overs a side.")
         # IPL Impact Player rule (2023 onwards): one substitute per side, used at the innings break
         self.impact_player = impact_player if impact_player is not None else (self.comp == "ipl" and year >= 2023)
         self.toss_spec, self.decision_spec = toss, decision
@@ -475,17 +506,17 @@ class Match:
 
     def wp_first(self, inn: "Innings") -> float:
         """Win probability of the side batting first, at the current state of `inn` (design T1-8)."""
-        n = self.overs * 6
+        n, off = inn.max_overs * 6, inn.offset()
         if inn.number == 1:
             if inn.done or inn.wkts >= 10 or inn.legal >= n:
-                return self.sit.win_prob_first(n, 9, inn.runs)
-            return self.sit.win_prob_first(inn.legal, inn.wkts, inn.runs)
+                return self.sit.win_prob_first(n + off, 9, inn.runs)
+            return self.sit.win_prob_first(inn.legal + off, inn.wkts, inn.runs)
         need = inn.target - inn.runs
         if need <= 0:
             return 0.0
         if inn.wkts >= 10 or inn.legal >= n:
             return 0.5 if need == 1 else 1.0
-        return 1.0 - self.sit.win_prob_chase(inn.legal, inn.wkts, need)
+        return 1.0 - self.sit.win_prob_chase(inn.legal + off, inn.wkts, need)
 
     def wp_batting(self, inn: "Innings") -> float:
         if inn.super_over:
@@ -561,7 +592,7 @@ class Match:
         gain, out, new, need = pick
         self._apply_impact(team, out, new, need, f"after {inn_.ball_str()} overs", gain, inn_)
         team.order = [new if p is out else p for p in team.order]
-        quota_left[new] = FORMATS[self.fmt]["quota"]
+        quota_left[new] = rain.quota(inn_.max_overs)
         quota_left.pop(out, None)
         return True
 
@@ -578,15 +609,26 @@ class Match:
         i1 = Innings(self, first, second, 1, None, self.overs)
         i1.play()
         i1.close_partnership()
+        self.innings_first_runs = i1.runs
         if self.impact_player:
             self.impact_swap(first, "bowl")    # batted first: bring in the best bowler for the defence
             self.impact_swap(second, "bat")    # has bowled: bring in the best batter for the chase
-        i2 = Innings(self, second, first, 2, i1.runs + 1, self.overs)
-        i2.play()
-        i2.close_partnership()
-        self.innings = [i1, i2]
-        result = self.result(i1, i2)
-        if result["type"] == "tie":
+        p = self.rain_profile or {}
+        if "stop1" in p:                       # washed out during the first innings or at the break
+            self.no_result = True
+            self.rain_log.append("Rain: no further play possible.")
+            self.innings = [i1]
+            result = {"type": "no_result", "winner": None, "text": "No result"}
+        else:
+            m2 = self.chase_overs(i1)
+            i2 = Innings(self, second, first, 2, self.dls.target(i1.runs), m2)
+            if i2.target != i1.runs + 1:
+                self.rain_log.append(f"{second.name} need {i2.target} from {m2} overs (DLS).")
+            i2.play()
+            i2.close_partnership()
+            self.innings = [i1, i2]
+            result = self.result(i1, i2)
+        if result["type"] == "tie" and not result.get("no_super_over"):
             result = self.play_super_overs(first, second, result)
         card = {
             "format": self.fmt, "competition": self.comp, "year": self.year, "venue": self.venue, "seed": self.seed,
@@ -594,6 +636,7 @@ class Match:
             "xi": {t.name: [{"id": p.id, "name": p.name, "rated": p.rated_bat or p.rated_bowl} for p in t.order]
                    for t in self.teams},
             "impact_player": {t.name: t.impact for t in self.teams if t.impact},
+            "rain": self.rain_log,
             "toss": {"winner": toss_winner.name, "decision": decision}, "conditions": self.conditions,
             "innings": [i.to_dict() for i in self.innings],
             "super_overs": [i.to_dict() for i in self.super_overs],
@@ -609,18 +652,85 @@ class Match:
                                    "kind": "turning_point", "text": tp["text"]})
         return card
 
+    def chase_overs(self, i1: Innings) -> int:
+        """Overs for the chase and DLS resources after the first innings (engine/rain.py)."""
+        d, p, sched = self.dls, self.rain_profile or {}, FORMATS[self.fmt]["overs"]
+        m1 = i1.max_overs
+        d.r1 = d.res(m1 * 6, 0) - (d.res(*self._cut1) if getattr(self, "_cut1", None) else 0.0)
+        m2 = m1
+        if "o2" in p:
+            m2f = min(m1, max(rain.MIN_OVERS[self.fmt], round(p["o2"] * sched)))
+            self._m2_final = m2f
+            if "cut1" in p or int(p["u"] * m2f) == 0:
+                m2 = m2f                       # reduced before the chase starts
+                if m2 < m1:
+                    self.rain_log.append(f"Rain at the break: the chase is reduced to {m2} overs.")
+        d.r2 = d.res(m2 * 6, 0)
+        return m2
+
+    def rain_check(self, inn: Innings, over: int):
+        """At the start of an over: None, "stop" (no more play in this innings) or "reduce" (overs cut)."""
+        p, d, sched = self.rain_profile, self.dls, FORMATS[self.fmt]["overs"]
+        if inn.number == 1:
+            k = p.get("stop1", p.get("cut1"))
+            if k is not None and k < 1 and over == int(k * sched):
+                if "cut1" in p:
+                    self._cut1 = (inn.max_overs * 6 - inn.legal, inn.wkts)
+                    inn.event(f"Rain: the innings ends at {inn.score_str()} after {inn.over_str()} overs.", "rain")
+                else:
+                    inn.event(f"Rain stops play at {inn.score_str()} after {inn.over_str()} overs.", "rain")
+                return "stop"
+            return None
+        m2f = getattr(self, "_m2_final", inn.max_overs)
+        if "o2" in p and inn.max_overs > m2f and over == max(1, int(p["u"] * m2f)):
+            lost = d.res(inn.max_overs * 6 - inn.legal, inn.wkts) - d.res(m2f * 6 - inn.legal, inn.wkts)
+            d.r2 -= lost
+            inn.max_overs = m2f
+            inn.target = d.target(self.innings_first_runs)
+            msg = f"Rain: the chase is reduced to {m2f} overs; revised target {inn.target} (DLS)."
+            inn.event(msg, "rain")
+            self.rain_log.append(msg)
+            return "reduce"
+        if "stop2" in p:
+            k2 = max(int(p["stop2"] * m2f), max(1, int(p.get("u", 0) * m2f)) if "o2" in p else 0)
+            if over == k2:
+                inn.rain_stopped = True
+                inn.event(f"Rain stops play at {inn.score_str()} after {inn.over_str()} overs.", "rain")
+                self.rain_log.append(f"Rain stopped play in the chase at {inn.score_str()} ({inn.over_str()} ov).")
+                return "stop"
+        return None
+
     def result(self, i1: Innings, i2: Innings) -> dict:
+        dls = i2.target != i1.runs + 1 or i2.rain_stopped or bool(self.dls.r2 is not None and self.dls.r2 != self.dls.r1)
+        tag = " (DLS method)" if dls else ""
         if i2.runs >= i2.target:
             w = 10 - i2.wkts
-            left = self.overs * 6 - i2.legal
+            left = i2.max_overs * 6 - i2.legal
             return {"type": "win", "winner": i2.bat.name, "loser": i1.bat.name, "by": "wickets", "margin": w,
-                    "balls_left": left,
-                    "text": f"{i2.bat.name} won by {w} wicket{'s' if w != 1 else ''} ({left} ball{'s' if left != 1 else ''} left)"}
-        if i2.runs < i1.runs:
-            r = i1.runs - i2.runs
+                    "balls_left": left, "dls": dls,
+                    "text": f"{i2.bat.name} won by {w} wicket{'s' if w != 1 else ''} ({left} ball{'s' if left != 1 else ''} left){tag}"}
+        if i2.rain_stopped:
+            if i2.legal < rain.MIN_OVERS[self.fmt] * 6:
+                return {"type": "no_result", "winner": None, "text": "No result"}
+            used = self.dls.r2 - self.dls.res(i2.max_overs * 6 - i2.legal, i2.wkts)
+            par = int(self.dls.par(i1.runs, used))
+            self.rain_log.append(f"DLS par score at the stoppage: {par}.")
+            if i2.runs > par:
+                w = 10 - i2.wkts
+                return {"type": "win", "winner": i2.bat.name, "loser": i1.bat.name, "by": "wickets", "margin": w,
+                        "dls": True, "par": par,
+                        "text": f"{i2.bat.name} won by {w} wicket{'s' if w != 1 else ''} (DLS method, par {par})"}
+            if i2.runs == par:
+                return {"type": "tie", "winner": None, "no_super_over": True, "dls": True, "par": par,
+                        "text": f"Match tied (DLS method, par {par})"}
+            r = par - i2.runs
             return {"type": "win", "winner": i1.bat.name, "loser": i2.bat.name, "by": "runs", "margin": r,
-                    "text": f"{i1.bat.name} won by {r} run{'s' if r != 1 else ''}"}
-        return {"type": "tie", "winner": None, "text": "Match tied"}
+                    "dls": True, "par": par, "text": f"{i1.bat.name} won by {r} run{'s' if r != 1 else ''} (DLS method)"}
+        r = i2.target - 1 - i2.runs
+        if r > 0:
+            return {"type": "win", "winner": i1.bat.name, "loser": i2.bat.name, "by": "runs", "margin": r,
+                    "dls": dls, "text": f"{i1.bat.name} won by {r} run{'s' if r != 1 else ''}{tag}"}
+        return {"type": "tie", "winner": None, "dls": dls, "text": "Match tied" + tag}
 
     def play_super_overs(self, first: Team, second: Team, result: dict) -> dict:
         """Super overs until there is a winner; the side that batted second bats first in the super over."""
