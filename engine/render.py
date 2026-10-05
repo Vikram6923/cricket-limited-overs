@@ -5,6 +5,16 @@ from __future__ import annotations
 import random
 
 
+
+def _when(ip: dict) -> str:
+    """When the Impact Player came in: 'at the innings break' or 'after 5.4 overs of the first innings (45/2)'."""
+    when = ip.get("when", "at the innings break")
+    if when == "innings break":
+        return "at the innings break"
+    if "innings" in ip:
+        return f"{when} of the {'first' if ip['innings'] == 1 else 'second'} innings ({ip['score']})"
+    return when
+
 def scorecard_text(card: dict) -> str:
     out = _header(card)
     for inn in card["innings"] + card.get("super_overs", []):
@@ -24,7 +34,7 @@ def _header(card: dict) -> list[str]:
     out.append(f"Toss: {card['toss']['winner']}, chose to {card['toss']['decision']}. "
                f"Pitch: {card.get('conditions', {}).get('report', 'n/a')}.")
     for team, ip in (card.get("impact_player") or {}).items():
-        out.append(f"Impact Player ({team}): {ip['in']} (↑ in) replaced {ip['out']} (↓ out) {ip.get('when', 'at the innings break')} "
+        out.append(f"Impact Player ({team}): {ip['in']} (↑ in) replaced {ip['out']} (↓ out) {_when(ip)} "
                    f"(to {'bowl' if ip['for'] == 'bowl' else 'bat'}).")
     return out
 
@@ -192,7 +202,7 @@ def match_report(card: dict) -> str:
             for team, ip in (card.get("impact_player") or {}).items():
                 what = ("bowling" if ip["for"] == "bowl" else "chase" if team == i2["team"] else "batting")
                 s.append(f"{team} brought in {ip['in']} as their Impact Player in place of {ip['out']}"
-                         f" {ip.get('when', 'at the innings break')} to strengthen their {what}.")
+                         f" {_when(ip)} to strengthen their {what}.")
     tp = card.get("turning_point")
     if tp:
         what = (f"{tp['wickets']} wicket{'s' if tp['wickets'] != 1 else ''} for {tp['runs']}" if tp["wickets"]

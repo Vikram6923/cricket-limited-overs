@@ -354,3 +354,31 @@ After a ratings rebuild (`scripts/build_raw_stats.py` -> `scripts/build_ratings.
 `data/ratings_*_years.json`), `python scripts/validate_periods.py --holdout 2012 2016 2019 2022` (~15 min) checks
 the period-rating shrinkage. Tests: `tests/test_engine.py`, `test_tournament.py`, `test_history.py`,
 `test_draft.py`, `test_selection.py`.
+
+- Mid-innings Impact Player refit (after the batting-first XI change): with an extra batter already in the XI the
+  old scale (0.2) left mid-innings swaps at 1%. Real IPL 2023-26: 25% of sides batting first swap during their
+  innings, almost all at 6-8 wickets down in overs 13-19. Refit `MID_GAIN_SCALE` = 2.0 (240 IPL 2026 matches):
+  25%, at 6-8 down in overs 13-19; first-innings average unchanged (199.9 at 0.2, 201.1 at 2.0).
+  **Superseded by the rational model below** (user: teams don't use the rule rationally, so don't copy them).
+
+### Impact Player - rational model (replaces the fitted usage)
+
+`engine/impact.py`, tables from `python -m engine.fit.fit_impact` -> `data/engine/impact_t20.json` (balls each
+batter still to come faces after the w-th wicket with n overs left, IPL 2015-26; real first-innings wicket
+timelines 2023-26). No usage rates are fitted; every decision compares runs gained now with runs kept by waiting.
+- XI after the toss (+ 5 named substitutes): the selected XI, an extra-batter XI or an extra-bowler XI, each
+  valued with the substitute plan it leaves (batting first: over 80 real wicket timelines).
+- Batting, at each wicket: a batter (or any sub) in for a dismissed player if the gain beats the value of
+  waiting = over real innings that were at the same wickets/ball, the later wicket where a sub beats the bowler at
+  the break, else the bowler at the break (option value of a collapse).
+- Bowling first, end of each over: a bowler / all-rounder in (usually for a bowler who has bowled out) if the
+  better remaining overs plus his batting beat the batter the side could bring in for the chase. The rest of that
+  innings is then bowled by the over-by-over chooser.
+- Break: as before. Card records innings and score at the swap.
+- 240 IPL 2026 matches: batting first, 142 batters in play (at 1-7 down, spread through the innings), 78 bowlers
+  in play (mostly late, so they can still bat), 20 bowlers at the break; bowling first, 192 batters at the break,
+  48 all-rounders/bowlers in play (many after over 15 for a bowled-out bowler). XI changed after the toss in about
+  half the sides (batting first: 74 extra batter, 57 extra bowler; bowling first: 94 extra bowler, 38 extra
+  batter). First innings 198.7 (199.9 with the old rule), chasing side won 47%. ~75 ms per IPL match.
+- Approximations: the XI valuation uses the simpler "beat the break" rule in play; values are runs, not win
+  probability; batters still to come are assumed out in order when valuing waiting.

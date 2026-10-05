@@ -181,6 +181,10 @@ class Innings:
             last = bowler
             if not self.done and self.legal % 6 == 0:
                 self.striker, self.non_striker = self.non_striker, self.striker
+            if (not self.done and self.number == 1 and self.m.impact_player and not self.super_over
+                    and self.m.impact_mid_bowling(self, quota_left)):
+                fielders = self.bowl.players   # a bowler came in: the rest of the innings is chosen over by over
+                plan = None
         self.done = True
         left = [c for c in (self.striker, self.non_striker) if c.batted and not c.out]
         self.event(f"End of innings: {self.runs}/{self.wkts} ({self.over_str()} ov)" +
@@ -328,7 +332,7 @@ class Innings:
         if self.wkts >= self.max_wkts or self.next_in >= len(self.cards):
             self.done = True
         else:
-            if self.number == 1 and self.m.impact_player and not self.super_over:
+            if self.m.impact_player and not self.super_over:
                 self.m.impact_mid_innings(self)
             j = self.pick_next()
             if j != self.next_in:              # move the chosen batter up to the next slot
@@ -493,11 +497,14 @@ class Match:
         from .selection import model
         return (model(self.fmt) or {}).get("balls_by_slot") or [20.0] * 11
 
-    def _apply_impact(self, team: Team, out: Player, inn: Player, need: str, when: str, gain: float) -> None:
+    def _apply_impact(self, team: Team, out: Player, inn: Player, need: str, when: str, gain: float,
+                      inn_: "Innings | None" = None) -> None:
         team.players = [inn if p is out else p for p in team.players]
         team.bench = [out if p is inn else p for p in team.bench]
         team.impact = {"in": inn.name, "in_id": inn.id, "out": out.name, "out_id": out.id, "for": need,
                        "when": when, "gain": round(gain, 1)}
+        if inn_ is not None:
+            team.impact.update(innings=inn_.number, score=f"{inn_.runs}/{inn_.wkts}")
 
     def impact_swap(self, team: Team, need: str) -> None:
         """Impact Player at the innings break (engine/impact.py): the biggest team-value gain in the discipline
@@ -516,22 +523,47 @@ class Match:
             team.order = [inn if p is out else p for p in team.order]
 
     def impact_mid_innings(self, inn_: "Innings") -> None:
-        """First innings, at the fall of a wicket: bring in a batter now if that beats the bowler the side could
-        bring in at the break (engine/impact.py). He comes in next."""
+        """Batting side, at the fall of a wicket: bring in a batter now if the runs he adds beat what waiting is
+        worth (first innings: the bowler the side could bring in at the break) - engine/impact.py rule 2."""
         from . import impact
         team = inn_.bat
         if team.impact or not team.bench:
             return
-        pick = impact.mid_innings_swap(team, inn_.cards, inn_.next_in, inn_.max_overs * 6 - inn_.legal,
-                                       self.fmt, self.base, self._slot_balls())
+        brk = None
+        if inn_.number == 1:
+            b = impact.best_break_swap(team, "bowl", self.fmt, self.base, self._slot_balls())
+            brk = b[0] if b else 0.0
+        pick = impact.batting_swap(team, inn_.cards, inn_.next_in, inn_.wkts,
+                                   inn_.legal + (FORMATS[self.fmt]["overs"] - inn_.max_overs) * 6, self.fmt,
+                                   self.base, brk)
         if not pick:
             return
-        out, new = pick
-        self._apply_impact(team, out, new, "bat", f"after {inn_.ball_str()} overs", 0.0)
+        gain, out, new, i, need = pick
+        self._apply_impact(team, out, new, need, f"after {inn_.ball_str()} overs", gain, inn_)
         team.order = [new if p is out else p for p in team.order]
-        inn_.cards.insert(inn_.next_in, BatInns(new, inn_.next_in + 1))
-        for i, c in enumerate(inn_.cards):
-            c.pos = i + 1
+        inn_.cards = [c for k, c in enumerate(inn_.cards) if k < inn_.next_in or c.p is not out]
+        inn_.cards.insert(inn_.next_in + i, BatInns(new, 0))
+        for k, c in enumerate(inn_.cards):
+            c.pos = k + 1
+
+    def impact_mid_bowling(self, inn_: "Innings", quota_left: dict) -> bool:
+        """Bowling first, at the end of an over: bring in a bowler now if the better remaining overs beat the
+        batter the side could bring in for the chase (engine/impact.py rule 3)."""
+        from . import impact
+        team = inn_.bowl
+        if team.impact or not team.bench:
+            return False
+        brk = impact.best_break_swap(team, "bat", self.fmt, self.base, self._slot_balls())
+        pick = impact.bowling_swap(team, quota_left, inn_.max_overs - inn_.legal // 6, self.fmt, self.base,
+                                   self._slot_balls(), brk[0] if brk else 0.0)
+        if not pick:
+            return False
+        gain, out, new, need = pick
+        self._apply_impact(team, out, new, need, f"after {inn_.ball_str()} overs", gain, inn_)
+        team.order = [new if p is out else p for p in team.order]
+        quota_left[new] = FORMATS[self.fmt]["quota"]
+        quota_left.pop(out, None)
+        return True
 
     def play(self) -> dict:
         a, b = self.teams
@@ -539,9 +571,10 @@ class Match:
         decision = self.decision_spec or captain.toss_decision(self.fmt, self.rng, self.venue)
         first = toss_winner if decision == "bat" else (b if toss_winner is a else a)
         second = b if first is a else a
-        if self.impact_player:
-            from .impact import batting_first_xi
-            batting_first_xi(first, self.fmt, self.base, self._slot_balls())
+        if self.impact_player:                 # XI and substitutes are named after the toss
+            from .impact import choose_xi
+            choose_xi(first, True, self.fmt, self.base, self._slot_balls())
+            choose_xi(second, False, self.fmt, self.base, self._slot_balls())
         i1 = Innings(self, first, second, 1, None, self.overs)
         i1.play()
         i1.close_partnership()
