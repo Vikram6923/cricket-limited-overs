@@ -1,16 +1,18 @@
 # Limited-overs cricket simulator (ODI + T20)
 
 A ball-by-ball simulator for **One-Day Internationals (50 overs)** and **Twenty20 (20 overs)**, with players rated
-from real ball-by-ball data. Pick any XIs from about 6,500 rated players (internationals since ~2002 and eleven
-franchise leagues). Play them in any era's conditions and get a full scorecard, a match report, a win-probability
-worm and a player of the match.
+from real ball-by-ball data. Pick any XIs from about 7,800 rated players (internationals since ~2002, ODI players back
+to 1971, and eleven franchise leagues). Play them in any era's conditions and get a full scorecard, a match report,
+charts (run worm, Manhattan, win probability, partnerships) and a player of the match. Rain with DLS targets and
+the IPL Impact Player rule are modelled.
 
 The engine is a plain Python library: no prompts, no global state, and a seed makes every match reproducible. It
 is checked against reality by replaying ~1,500 real matches with their real line-ups (see
 [Does it look like real cricket?](#does-it-look-like-real-cricket)).
 
 > **Status:** the data pipeline, player ratings, match engine (calibrated), series/tournament runners and a
-> browser UI with historical teams, a fantasy draft and match charts are built. See [Roadmap](#roadmap).
+> browser UI with historical teams, league seasons, a fantasy draft, rain/DLS and the Impact Player rule are built.
+> See [Roadmap](#roadmap).
 
 ## Quick start
 
@@ -37,15 +39,18 @@ offline. Modes:
   offered), rated on those years, and batting where they batted then. Ratings for those years are either blended
   with the player's career (default; the most accurate) or based on those years only (closer to what he did then,
   noisier).
+- **League Season:** the latest IPL or BBL season with the real squads (everyone who played for each franchise
+  that season), the league's overseas limit (IPL 4, BBL 3), a double round robin and IPL-style playoffs. IPL games
+  use the Impact Player rule.
 - **Fantasy Draft:** you and computer teams draft 15-man squads in snake order from the player pool of chosen
   years (full-member internationals, optionally franchise leagues), then play a league with knockouts.
-- **Team Builder:** search the ~6,500 rated players, pick 11-15 (with more than 11 the captain picks the XI for
+- **Team Builder:** search the ~7,800 rated players, pick 11-15 (with more than 11 the captain picks the XI for
   each match) and save the team. Ten preset national squads are included.
 
 For every run choose the format, the year and whose conditions to play in (full-member internationals or a league),
-optionally venues and a seed. The results page has a summary (points tables with net run rate, knockouts, top
-performers, records), every match (Previous / Next, match report, run worm, Manhattan and win-probability
-charts, scorecard and innings log), sortable batting and bowling tables, the MVP race (official and balanced) and,
+optionally venues, a seed and whether rain can interrupt play (on by default). The results page has a summary
+(points tables with net run rate, knockouts, top performers, records), every match (Previous / Next, match report,
+rain notes, run worm, Manhattan, win-probability and partnership charts, scorecard and innings log), sortable batting and bowling tables, the MVP race (official and balanced) and,
 after a draft, the draft board. Saved teams go in `data/teams.json` (not in git).
 
 ### From Python
@@ -88,6 +93,9 @@ Useful options:
 | team `"order"`, `"keeper"`, `"captain"` | override the batting order, keeper and captain |
 | team `"years": [2007, 2011]` | rate the players on those years (and use their batting slots of then) |
 | team `"years_mode"` | `"blend"` (default: shrunk toward the career) or `"only"` (those years alone) |
+| team `"overseas"`, `"max_overseas"` | league overseas players and the limit per XI (IPL 4, BBL 3) |
+| `rain_on` | rain interruptions for the host country, with DLS targets (default off in the library) |
+| `impact_player` | IPL Impact Player rule (default: on for IPL from 2023) |
 
 **Picking the XI from a squad.** With more than 11 players the captain picks the XI for each match. Skill is
 each player's expected runs value per match from his ratings (batting weighted by the balls his position faces,
@@ -95,6 +103,21 @@ bowling by the overs he bowls); how selectors trade that against keeping, team b
 spin-friendly venues and experience is learned from every real full-member XI since 2003/2006
 (`engine/selection.py`, `python -m engine.fit.fit_selection`). Each match the ratings are redrawn within their
 uncertainty, so clear leaders always play and close calls rotate. Same seed, same XI.
+
+**Impact Player (IPL 2023 onwards).** The engine uses the substitute *rationally* instead of copying how teams
+use it (`engine/impact.py`). Every decision compares, in runs, what the side gains by using it now with what waiting
+is worth. The XI is chosen after the toss with the substitute plan in mind (for example, start with an extra bowler
+and bring in a batter only if wickets fall early). A batter can come in at any wicket, valued against the chance of
+a later collapse taken from real innings in the same position; a bowler or all-rounder can come in at the end of
+any over (often for a bowler who has bowled out); otherwise the swap is made at the innings break. The scorecard
+marks the two players with ↑ in and ↓ out, and both are credited with the appearance.
+
+**Rain and DLS.** With rain on, a match is interrupted as often as real matches in the host country are (from
+Cricsheet: about a quarter of ODIs in Sri Lanka and the West Indies, a fifth in England, under a tenth in India,
+Pakistan and Australia), replaying a real match's pattern: overs lost before the start, the first innings ended
+early, the chase reduced, or play stopped for good. Targets and par scores use the DLS Standard Edition formulas on
+the engine's own resource table (learned from real innings); a chase needs 20 overs (ODI) or 5 (T20) for a result.
+Bowler quotas and phases shrink with the innings (`engine/rain.py`).
 
 Historical teams and drafts from Python:
 
@@ -139,7 +162,9 @@ save(res, "results/my_cup")
 - **Knockouts:** semi-finals (1v4, 2v3; with two groups A1vB2, B1vA2), IPL-style playoffs (Qualifier 1,
   Eliminator, Qualifier 2, Final), a final, or none.
 - **Points table:** net run rate by the ICC method (a side bowled out is charged its full quota of overs; super
-  overs don't count).
+  overs don't count; in a DLS match the side batting first is credited with the par score in the chase's overs;
+  no-results earn a point each and are left out). With `rain=True`, knockouts get a reserve day, after which the
+  higher-placed side goes through.
 - **Records:** highest and lowest totals, top scores, best figures, fastest 50s and 100s, biggest and narrowest wins,
   super overs.
 - **MVP rankings:**
@@ -150,8 +175,10 @@ save(res, "results/my_cup")
 ## How it works
 
 1. **Data**: [Cricsheet](https://cricsheet.org) ball-by-ball files for ODIs, T20Is and eleven T20 leagues, plus
-   Wikipedia/Wikidata for batting hand, bowling type, and the career totals of Afghanistan players (Cricsheet
-   withholds Afghanistan matches).
+   Wikipedia/Wikidata for batting hand, bowling type, and career totals of Afghanistan players (Cricsheet withholds
+   Afghanistan matches) and of ODI players from before Cricsheet (1971-2002). Pre-2002 strike rates come from
+   Wikipedia's match summaries (top scorers' runs and balls in about 1,600 pre-2002 ODIs), corrected for the
+   top-scorer bias measured on 2003-12 matches where Cricsheet has the truth.
 2. **Ratings**: every player gets batting and bowling indexes for runs, dismissals, dots, fours and sixes, overall
    and by phase (powerplay / middle / death). They are fitted with three things:
    - **opponent adjustment**: runs against weak attacks count for less;
@@ -166,8 +193,9 @@ save(res, "results/my_cup")
    - batting hand v bowling type;
    - venue, and the day's pitch (internationals).
 
-   Captains plan the whole bowling innings from each bowler's real usage, pick XIs from squads, choose batting
-   orders from position history, and make toss decisions at real rates. Ties go to super overs.
+   Captains plan the whole bowling innings from each bowler's real usage, pick XIs from squads (learned from real
+   selections), choose batting orders from position history, and make toss decisions at real rates. Ties go to
+   super overs. Rain, DLS and the Impact Player are described above.
 
 Design and decisions: [`docs/engine_design.md`](docs/engine_design.md). Calibration log:
 [`docs/engine_progress.md`](docs/engine_progress.md).
@@ -198,14 +226,21 @@ python scripts/fetch_cricsheet.py      # downloads Cricsheet zips into data/raw/
 python scripts/build_raw_stats.py      # per-player raw stats with phase splits
 python scripts/build_afghanistan.py    # Afghanistan players from Wikipedia (Cricsheet withholds their matches)
 python scripts/fetch_styles.py         # batting hand / bowling type from Wikipedia (cached, ~10 min first time)
-python scripts/build_ratings.py        # player ratings -> data/ratings_{odi,t20}.json
+python scripts/build_pre2002.py        # pre-2002 ODI players' career totals from Wikipedia lists
+python scripts/fetch_wiki_matches.py   # ODI match summaries (top scorers' runs and balls), cached
+python scripts/build_ratings.py        # player ratings -> data/ratings_{odi,t20}.json (+ _years, _comps)
+python scripts/build_league_presets.py # latest IPL / BBL squads -> data/league_seasons.json
 python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free hit
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
 python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 min: replays every real match)
+python -m engine.fit.fit_selection     # XI selection model
+python -m engine.fit.fit_impact        # Impact Player tables (balls still to come, real wicket timelines)
+python -m engine.fit.fit_rain          # rain profiles by host country
 python -m engine.calibrate             # compare simulated v real
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
+python tests/test_selection.py         # also test_history.py, test_draft.py
 ```
 
 Optional checks: `python scripts/validate_ratings.py` (out-of-sample test of the ratings) and
@@ -222,6 +257,8 @@ engine/            match engine (library)
   conditions.py    venue factor, pitch of the day
   periods.py       ratings for a year range
   selection.py     XI selection learned from real XIs
+  impact.py        IPL Impact Player decisions
+  rain.py          rain interruptions and DLS
   history.py       historical (nation + years) teams
   draft.py         fantasy draft
   render.py        text scorecard and match report
@@ -230,7 +267,8 @@ engine/            match engine (library)
   fit/             scripts that learn the engine's tables from Cricsheet
 web_ui.py          Flask server for the browser UI
 webui/             the page: index.html, style.css, app.js (no external scripts)
-scripts/           data pipeline: download, raw stats, Afghanistan, styles, ratings, validation
+scripts/           data pipeline: download, raw stats, Afghanistan, pre-2002 players, styles, ratings,
+                   league presets, validation
 data/              ratings_*.json (+ ratings_*_years.json for year ranges), engine/*.json (fitted tables), raw_stats/ (derived),
                    teams_default.json (preset squads);
                    raw/ and cache/ are rebuilt locally and not in git
@@ -248,8 +286,11 @@ tests/             engine and tournament tests
 - [x] Browser UI (Flask, works offline): single match, series, World Cup / IPL-style tournaments, team builder,
       results pages with match reports, stats tables, records and MVP race
 - [x] Historical teams (ratings for a year range), fantasy draft, worm / Manhattan / win-probability charts
-- [x] Pre-2002 ODI players from Wikipedia career totals (ODI classic teams from 1971)
-- [ ] Later: rain and DLS, Impact Player rule, player-v-player matchups
+- [x] Pre-2002 ODI players from Wikipedia career totals (ODI classic teams from 1971); strike rates from match
+      summaries
+- [x] League seasons (IPL, BBL) with overseas limits; IPL Impact Player rule
+- [x] Rain interruptions and DLS; partnership charts
+- [ ] Later: match settings panel (overs, toss, pitch), pace v spin pitches, player-v-player matchups
 
 ## Data, credits and licences
 
@@ -257,8 +298,8 @@ tests/             engine and tournament tests
   Commons Attribution License; check cricsheet.org for the current terms. Thanks to Cricsheet for an outstanding
   free resource. Cricsheet currently withholds matches involving the Afghanistan men's team; those players are
   rated from franchise-league data and Wikipedia career totals.
-- Player attributes and Afghanistan career totals: [Wikipedia](https://en.wikipedia.org) (CC BY-SA) and
-  [Wikidata](https://www.wikidata.org) (CC0).
+- Player attributes, Afghanistan and pre-2002 career totals, and pre-2002 match summaries:
+  [Wikipedia](https://en.wikipedia.org) (CC BY-SA) and [Wikidata](https://www.wikidata.org) (CC0).
 - Inspired by an earlier Test-match simulator by the same author.
 
 Code licence: [MIT](LICENSE). Data keeps the licences of its sources above.
