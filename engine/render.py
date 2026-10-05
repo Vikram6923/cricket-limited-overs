@@ -8,7 +8,7 @@ import random
 def scorecard_text(card: dict) -> str:
     out = _header(card)
     for inn in card["innings"] + card.get("super_overs", []):
-        out += _innings_card(inn)
+        out += _innings_card(inn, _marks(card))
     out += _footer(card)
     return "\n".join(out)
 
@@ -19,9 +19,13 @@ def _header(card: dict) -> list[str]:
     out = [f"{t[0]} v {t[1]}{venue} - {card['format'].upper()}, {card['competition']} {card['year']} "
            f"(seed {card['seed']})"]
     for team, xi in (card.get("xi") or {}).items():
-        out.append(f"{team}: " + ", ".join(f"{i} {p['name']}" for i, p in enumerate(xi, 1)))
+        mk = _marks(card)
+        out.append(f"{team}: " + ", ".join(f"{i} {p['name']}{mk.get(p['id'], '')}" for i, p in enumerate(xi, 1)))
     out.append(f"Toss: {card['toss']['winner']}, chose to {card['toss']['decision']}. "
                f"Pitch: {card.get('conditions', {}).get('report', 'n/a')}.")
+    for team, ip in (card.get("impact_player") or {}).items():
+        out.append(f"Impact Player ({team}): {ip['in']} (↑ in) replaced {ip['out']} (↓ out) {ip.get('when', 'at the innings break')} "
+                   f"(to {'bowl' if ip['for'] == 'bowl' else 'bat'}).")
     return out
 
 
@@ -35,7 +39,16 @@ def innings_log(card: dict, inn: dict) -> list[str]:
     return out
 
 
-def _innings_card(inn: dict) -> list[str]:
+def _marks(card: dict) -> dict:
+    """Impact Player markers by player id: ↑ came in, ↓ went out."""
+    m = {}
+    for ip in (card.get("impact_player") or {}).values():
+        m[ip["in_id"]], m[ip["out_id"]] = "↑", "↓"
+    return m
+
+
+def _innings_card(inn: dict, marks: dict | None = None) -> list[str]:
+    marks = marks or {}
     out = [""]
     head = inn["team"] + (f"  (target {inn['target']})" if inn.get("target") else "")
     if inn["number"] > 100:
@@ -44,7 +57,7 @@ def _innings_card(inn: dict) -> list[str]:
     for b in inn["batting"]:
         if not b["batted"]:
             continue
-        mark = ("*" if b.get("captain") else "") + ("†" if b.get("keeper") else "")
+        mark = ("*" if b.get("captain") else "") + ("†" if b.get("keeper") else "") + marks.get(b.get("id"), "")
         name = f"{b['name']} {mark}".strip()
         sr = f"{100 * b['runs'] / b['balls']:.1f}" if b["balls"] else "-"
         out.append(f"  {name:24} {b['dismissal']:38} {b['runs']:>4}{'' if b['out'] else '*':1} "
@@ -54,7 +67,7 @@ def _innings_card(inn: dict) -> list[str]:
     rr = 6 * inn["runs"] / inn["balls"] if inn["balls"] else 0
     wk = "all out" if inn["wickets"] >= 10 else f"{inn['wickets']} wkts"
     out.append(f"  {'TOTAL':24} ({wk}, {inn['overs']} ov, RR {rr:.2f}){inn['runs']:>27}")
-    dnb = [b["name"] for b in inn["batting"] if not b["batted"]]
+    dnb = [b["name"] + marks.get(b.get("id"), "") for b in inn["batting"] if not b["batted"]]
     if dnb:
         out.append(f"  Did not bat: {', '.join(dnb)}")
     if inn["fall_of_wickets"]:
@@ -64,7 +77,7 @@ def _innings_card(inn: dict) -> list[str]:
     for w in inn["bowling"]:
         e = f"{w['economy']:.2f}" if w["economy"] is not None else "-"
         xtra = ", ".join(x for x in (f"{w['wides']}w" if w["wides"] else "", f"{w['noballs']}nb" if w["noballs"] else "") if x)
-        out.append(f"  {w['name']:24} {w['overs']:>5} {w['maidens']:>3} {w['runs']:>4} {w['wickets']:>3} {e:>6}  "
+        out.append(f"  {w['name'] + marks.get(w.get('id'), ''):24} {w['overs']:>5} {w['maidens']:>3} {w['runs']:>4} {w['wickets']:>3} {e:>6}  "
                    f"{w['dots']:>3} {w['fours']:>3} {w['sixes']:>3}  {xtra}")
     return out
 
@@ -176,6 +189,10 @@ def match_report(card: dict) -> str:
             s.append("For " + inn["bowling_team"] + ", " + " and ".join(_bowl_line(w, rng) for w in bw[:2]) + ".")
         if inn is i1:
             s.append(f"That set a target of {i1['runs'] + 1}.")
+            for team, ip in (card.get("impact_player") or {}).items():
+                what = ("bowling" if ip["for"] == "bowl" else "chase" if team == i2["team"] else "batting")
+                s.append(f"{team} brought in {ip['in']} as their Impact Player in place of {ip['out']}"
+                         f" {ip.get('when', 'at the innings break')} to strengthen their {what}.")
     tp = card.get("turning_point")
     if tp:
         what = (f"{tp['wickets']} wicket{'s' if tp['wickets'] != 1 else ''} for {tp['runs']}" if tp["wickets"]
@@ -207,6 +224,6 @@ def full_text(card: dict) -> str:
     for inn in card["innings"] + card.get("super_overs", []):
         label = "Super over log" if inn["number"] > 100 else "Innings log"
         out += ["", f"{label}: {inn['team']}"] + innings_log(card, inn)
-        out += _innings_card(inn)
+        out += _innings_card(inn, _marks(card))
     out += _footer(card)
     return "\n".join(out) + "\n\nMatch Report: " + match_report(card) + "\n"

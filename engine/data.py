@@ -134,6 +134,8 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         p.ref["bat"] = b.get("ref")
     else:
         p.rated_bat = False
+        if not rec.get("bat_role") and w and (rec.get("bowl_role") or "").startswith("spec"):
+            p.bat_role = "tail"     # a specialist bowler with no batting record bats at the end, not at No. 5
         p.bat = _prior(fmt, "bat", p.bat_role, p.team)
     if w:
         p.bowl = {ph: {m: float(w["phase"][ph][m]) for m in METRICS} for ph in PHASES}

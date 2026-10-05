@@ -315,6 +315,35 @@ run July-June) squads from Cricsheet (everyone who played for each team that sea
 overseas lists (limit IPL 4, BBL 3). UI mode "League Season": pick IPL or BBL; double round robin + IPL-style
 playoffs in that league's latest conditions. IPL squads are also saved-team presets.
 
+## Impact Player (IPL 2023+) (2026-10-03)
+
+Real use (Cricsheet IPL 2023-26, 556 substitutions): batting first, 207 of 288 brought in a bowler at the start of
+their bowling innings (replacing a batter who had batted); chasing, 249 of 268 brought in a batter (182 during the
+chase, 67 in the last overs of the first innings once a bowler's overs were done). Expert comment (Aakash Chopra)
+is about effects - part-timers and "bits-and-pieces" all-rounders lose their place, batting goes deeper - not
+about misuse; the dominant real use is already the rational one.
+Engine (`engine/impact.py`, on for comp "ipl" from 2023, `impact_player=` to override). Second version after the
+user's review (Stoinis dropped for Ferguson; bowler-for-bowler swaps; break only): decisions on **team** value -
+attack = the best 20 overs the side can bowl (quota and usual capacity per bowler), batting = batters by quality x
+the balls their position faces. Innings break: biggest attack gain for the side that batted, batting gain for the
+chasers. First innings, at a wicket: bring in a batter for a dismissed batter if the expected gain beats the attack
+gain available at the break; that gain is weighted by MID_GAIN_SCALE = 0.2, fitted so sides batting first swap
+mid-innings 25% of the time as real sides do (the unweighted rule did it 53% of the time and pushed 1st-innings
+totals 2% above reality - double counting, since the IPL baselines already contain real use). Scorecards mark the
+players (↑ in, ↓ out).
+Check (IPL 2026 squads and conditions): 1st innings 197.0 v real 2026 195.8 (2025: 191).
+Tie-break (user saw Yash Thakur replace Chahal): a new bowler's overs push out the weakest bowler's whether that
+bowler is dropped or a batter who has batted is, so the gains tie; ties now go to dropping the player with the least
+bowling capacity (the batter). Bowling swaps then drop a batter 138 times in 146; the other 8 drop an overseas
+all-rounder because an overseas bowler comes in and the side is at its overseas limit.
+Two more fixes (user: Yash Thakur batting at 5; Punjab batting first with five bowlers): (1) a specialist bowler
+with no batting record now defaults to a tail-ender (he had the "middle" default role and prior); (2) in Impact
+Player matches the side batting first starts with an extra batter in place of a specialist bowler when a bench
+bowler can come in at the break (`impact.batting_first_xi`; XI selection, not the substitution). Check (240 IPL 2026
+matches): batting first, 237 bowling swaps at the break; chasing, 240 batting swaps; 1st innings 198.2 v real 195.8
+(+1.2%). Mid-innings batting swaps fell to 1% (real 25%): the extra batter now starts instead - left as is, totals
+are within the gate.
+
 ## Rebuild order
 
 `python -m engine.fit.fit_basics` -> `python -m engine.fit.fit_situation` -> `python -m engine.fit.fit_toss` ->

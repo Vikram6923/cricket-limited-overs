@@ -95,6 +95,18 @@ def runs_value(p: Player, fmt: str, base: dict, slot_balls: list[float], z: dict
     return _slot_balls(p, slot_balls) * bat + _share(p, fmt) * FORMATS[fmt]["quota"] * 6 * bowl
 
 
+def value_parts(p: Player, fmt: str, base: dict, slot_balls: list[float] | None = None) -> tuple[float, float]:
+    """(batting, bowling) runs value per match - the two parts of runs_value."""
+    sb = slot_balls or (model(fmt) or {}).get("balls_by_slot") or [20.0] * 11
+    total = runs_value(p, fmt, base, sb)
+    saved = p.bowl_overs_per_match
+    p.bowl_overs_per_match, p_sel = 0.0, p.sel_opm
+    p.sel_opm = 0.0
+    bat = runs_value(p, fmt, base, sb)
+    p.bowl_overs_per_match, p.sel_opm = saved, p_sel
+    return bat, total - bat
+
+
 def features(squad: list[Player], fmt: str, base: dict, venue_spin: float = 0.0, runs_factor: float = 1.0,
              caps: dict | None = None, noise: list[dict] | None = None,
              slot_balls: list[float] | None = None) -> list[list[float]]:
