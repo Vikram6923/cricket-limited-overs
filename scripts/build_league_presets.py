@@ -54,9 +54,12 @@ def league_seasons(key: str, rated: set, nation: dict) -> list[dict]:
     out = []
     for season, games in by.items():
         apps: dict = {}
+        grounds: dict = {}            # team -> Counter of venues played at (home ground = the most used)
         xi_os = Counter()             # overseas players on the field, per XI
         for i in games:
             reg = i["registry"]["people"]
+            for team in i["players"]:
+                grounds.setdefault(team, Counter())[i.get("venue", "")] += 1
             for team, names in i["players"].items():
                 c = apps.setdefault(team, Counter())
                 for n in names:
@@ -72,7 +75,8 @@ def league_seasons(key: str, rated: set, nation: dict) -> list[dict]:
             ids = [pid for pid, _ in apps[team].most_common()]
             if len(ids) < 11:
                 continue
-            teams.append({"name": f"{team} {season}", "franchise": team, "players": ids,
+            home_ground = next((v for v, _ in grounds[team].most_common() if v), None)
+            teams.append({"name": f"{team} {season}", "franchise": team, "home_venue": home_ground, "players": ids,
                           "overseas": [p for p in ids if nation.get(p) not in (None, home)], "max_overseas": max_os})
         if len(teams) >= MIN_TEAMS and len(games) >= MIN_MATCHES:
             out.append({"season": season, "year": int(max(i["dates"][-1] for i in games)[:4]), "teams": teams,
@@ -99,7 +103,7 @@ def main() -> int:
     # the latest IPL squads also as saved-team presets (Match / Series, Tournament)
     latest = out["ipl"]["seasons"][0]
     presets = [{"name": t["name"], "players": [{"id": p, "name": ratings[p]["name"]} for p in t["players"]],
-                "overseas": t["overseas"], "max_overseas": t["max_overseas"]} for t in latest["teams"]]
+                "overseas": t["overseas"], "max_overseas": t["max_overseas"], "home_venue": t["home_venue"]} for t in latest["teams"]]
     for path in (ROOT / "data" / "teams_default.json", ROOT / "data" / "teams.json"):
         if path.exists():
             teams = json.loads(path.read_text(encoding="utf-8"))

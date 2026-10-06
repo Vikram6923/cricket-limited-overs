@@ -751,7 +751,8 @@
    "e84ac20c",
    "83c3e8e3"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "MA Chidambaram Stadium, Chepauk, Chennai"
  },
  {
   "name": "Delhi Capitals 2026",
@@ -854,7 +855,8 @@
    "68c56d09",
    "327b58d3"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "Arun Jaitley Stadium, Delhi"
  },
  {
   "name": "Gujarat Titans 2026",
@@ -943,7 +945,8 @@
    "0f721006",
    "9a46c4e5"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "Narendra Modi Stadium, Ahmedabad"
  },
  {
   "name": "Kolkata Knight Riders 2026",
@@ -1034,7 +1037,8 @@
    "449f4e3c",
    "64839cb3"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "Eden Gardens, Kolkata"
  },
  {
   "name": "Lucknow Super Giants 2026",
@@ -1140,7 +1144,8 @@
    "e5437608",
    "acdc62f5"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "Bharat Ratna Shri Atal Bihari Vajpayee Ekana Cricket Stadium, Lucknow"
  },
  {
   "name": "Mumbai Indians 2026",
@@ -1247,7 +1252,8 @@
    "e4a0deae",
    "372455c4"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "Wankhede Stadium, Mumbai"
  },
  {
   "name": "Punjab Kings 2026",
@@ -1337,7 +1343,8 @@
    "2f9d0389",
    "e1b9f3a9"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "Maharaja Yadavindra Singh International Cricket Stadium, New Chandigarh"
  },
  {
   "name": "Rajasthan Royals 2026",
@@ -1432,7 +1439,8 @@
    "60aa2db3",
    "350bb1b1"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "Sawai Mansingh Stadium, Jaipur"
  },
  {
   "name": "Royal Challengers Bengaluru 2026",
@@ -1510,7 +1518,8 @@
    "dadbdb68",
    "3d284ca3"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "M Chinnaswamy Stadium, Bengaluru"
  },
  {
   "name": "Sunrisers Hyderabad 2026",
@@ -1601,6 +1610,7 @@
    "50c6bc2b",
    "de7d833e"
   ],
-  "max_overseas": 4
+  "max_overseas": 4,
+  "home_venue": "Rajiv Gandhi International Stadium, Uppal, Hyderabad"
  }
 ]

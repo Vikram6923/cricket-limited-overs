@@ -406,12 +406,12 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
     run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain)
     run.on_match = on_match
 
-    # league stage: rounds of single round robins, alternating home side between rounds
+    # league stage: rounds of single round robins. Within a round each side is at home in about half its games
+    # (pair i, j: the first at home when i + j is odd); the next round swaps every pairing.
     for rnd in range(rounds):
         for label, names in zip(labels, group_lists):
-            pairs = list(itertools.combinations(names, 2))
-            for x, y in pairs:
-                home, away = (x, y) if rnd % 2 == 0 else (y, x)
+            for (i, x), (j, y) in itertools.combinations(enumerate(names), 2):
+                home, away = (x, y) if ((i + j) % 2 == 1) == (rnd % 2 == 0) else (y, x)
                 stage = "League" if label == "League" else f"Group {label}"
                 run.play(by_name[home], by_name[away], stage)
     league_cards = list(run.cards)

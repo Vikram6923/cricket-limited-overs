@@ -19,6 +19,7 @@ import threading
 import time
 import traceback
 import webbrowser
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 
@@ -75,6 +76,30 @@ def load_teams() -> list[dict]:
 
 def save_teams(teams: list[dict]) -> None:
     TEAMS.write_text(json.dumps(teams, indent=1, ensure_ascii=False), encoding="utf-8")
+
+
+@lru_cache(maxsize=None)
+def home_grounds() -> dict:
+    p = ROOT / "data" / "home_grounds.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def home_ground(entry, fmt: str) -> str | None:
+    """Primary home ground of a tournament side: a franchise's own ground (league presets), else its nation's
+    (scripts/build_home_grounds.py): the historical team's nation, or the nation most of a saved team's players play
+    for (at least 6). None (neutral venues) for mixed sides such as draft teams."""
+    if isinstance(entry, dict):
+        return home_grounds().get(fmt, {}).get(entry.get("nation"))
+    saved = next((t for t in load_teams() if t["name"] == entry), None)
+    if not saved:
+        return None
+    if saved.get("home_venue"):
+        return saved["home_venue"]
+    rows = ratings(fmt)["players"]
+    nat = Counter((rows.get(p["id"]) or {}).get("team") for p in saved["players"])
+    nat.pop(None, None)
+    top = nat.most_common(1)
+    return home_grounds().get(fmt, {}).get(top[0][0]) if top and top[0][1] >= 6 else None
 
 
 def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SIZE, years_mode: str = "blend") -> dict:
@@ -267,8 +292,9 @@ def _run(job: Job, params: dict) -> None:
             s = league_season(params["league"], params.get("season"))
             specs = [{"name": t["name"], "squad": t["players"], "overseas": t["overseas"],
                       "max_overseas": t["max_overseas"]} for t in s["teams"]]
+            homes = {t["name"]: t["home_venue"] for t in s["teams"] if t.get("home_venue")}
             res = play_tournament(specs, fmt="t20", comp=params["league"], year=s["year"], rounds=2, knockout="ipl",
-                                  venues=venues_, seed=seed, rain=rain_, on_match=on_match)
+                                  venues=venues_, home_venues=homes, seed=seed, rain=rain_, on_match=on_match)
         elif params["mode"] == "draft":
             groups = int(params.get("groups") or 1)
             res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
@@ -283,10 +309,12 @@ def _run(job: Job, params: dict) -> None:
                               fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match)
         else:
             groups = int(params.get("groups") or 1)
-            res = play_tournament([team_spec(t, fmt, size, ym) for t in params["teams"]], fmt=fmt, comp=comp, year=year,
+            specs = [team_spec(t, fmt, size, ym) for t in params["teams"]]
+            homes = {sp["name"]: h for t, sp in zip(params["teams"], specs) if (h := home_ground(t, fmt))}
+            res = play_tournament(specs, fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
-                                  knockout=params.get("knockout") or "semis", venues=venues_, seed=seed, rain=rain_,
-                                  on_match=on_match)
+                                  knockout=params.get("knockout") or "semis", venues=venues_, home_venues=homes,
+                                  seed=seed, rain=rain_, on_match=on_match)
         res["title"] = job.title
         _augment(res)
         if LAST.exists():

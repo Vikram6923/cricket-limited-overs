@@ -34,6 +34,11 @@ offline. Modes:
 - **Match / Series:** two saved teams play one match or a series of up to 7.
 - **Tournament:** pick teams; single or double round robin, one league or two groups, then semi-finals, IPL-style
   playoffs, a final or none.
+- **Home grounds (Tournament, Classic Tournament, League Season):** each side plays half its league games at its
+  primary home ground: a nation's most-used ground in its home series (Eden Gardens for India's T20s, the SCG for
+  Australia), a franchise's most-used ground that season (Wankhede, Chepauk, ...). The ground brings its own
+  conditions (high or low scoring, pace or spin); there is no home advantage beyond that. Knockouts and sides
+  without a home (draft teams) use the chosen venues or neutral conditions.
 - **Classic Series / Classic Tournament:** a nation over a range of years (ODIs from 1971, T20Is from 2005), e.g.
   Australia 2003-07 v India 2021-24. The squad is the period's 20 most-capped players (15 / 25 / everyone also
   offered), rated on those years, and batting where they batted then. Ratings for those years are either blended
@@ -239,7 +244,8 @@ python scripts/fetch_styles.py         # batting hand / bowling type from Wikipe
 python scripts/build_pre2002.py        # pre-2002 ODI players' career totals from Wikipedia lists
 python scripts/fetch_wiki_matches.py   # ODI match summaries (top scorers' runs and balls), cached
 python scripts/build_ratings.py        # player ratings -> data/ratings_{odi,t20}.json (+ _years, _comps)
-python scripts/build_league_presets.py # every season of 11 leagues -> data/league_seasons.json
+python scripts/build_league_presets.py # every season of 11 leagues (+ home grounds) -> data/league_seasons.json
+python scripts/build_home_grounds.py   # national sides' home grounds -> data/home_grounds.json
 python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free hit
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
