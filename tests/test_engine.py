@@ -121,7 +121,7 @@ def test_rain():
         if not c["rain"]:
             dry = simulate_match(a, b, fmt="odi", year=2024, seed=seed, venue="Lord's, London")
             assert dry["result"] == r and dry["innings"][0]["runs"] == c["innings"][0]["runs"]
-        elif len(c["innings"]) == 2 and not r.get("par") and r["type"] == "win":
+        elif len(c["innings"]) == 2 and not r.get("par") and r["type"] == "win" and r.get("by") != "super_over":
             i2 = c["innings"][1]
             assert (r["winner"] == i2["team"]) == (i2["runs"] >= i2["target"])
         scorecard_text(c)

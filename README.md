@@ -39,9 +39,10 @@ offline. Modes:
   offered), rated on those years, and batting where they batted then. Ratings for those years are either blended
   with the player's career (default; the most accurate) or based on those years only (closer to what he did then,
   noisier).
-- **League Season:** the latest IPL or BBL season with the real squads (everyone who played for each franchise
-  that season), the league's overseas limit (IPL 4, BBL 3), a double round robin and IPL-style playoffs. IPL games
-  use the Impact Player rule.
+- **League Season:** any season of eleven franchise leagues (IPL 2008-26, BBL, PSL, CPL, SA20, ILT20, BPL, LPL,
+  MLC, T20 Blast, Super Smash) with the real squads (everyone who played for each franchise that season), that
+  season's overseas limit (taken from the real XIs: IPL 4, BBL 3, ...), a double round robin and IPL-style
+  playoffs. IPL games from 2023 use the Impact Player rule.
 - **Fantasy Draft:** you and computer teams draft 15-man squads in snake order from the player pool of chosen
   years (full-member internationals, optionally franchise leagues), then play a league with knockouts.
 - **Team Builder:** search the ~7,800 rated players, pick 11-15 (with more than 11 the captain picks the XI for
@@ -191,9 +192,13 @@ save(res, "results/my_cup")
    - settling in (new batters score slowly);
    - intent when setting a total or chasing (a DLS-style par / pressure model);
    - batting hand v bowling type;
-   - venue, and the day's pitch (internationals).
+   - venue, and the day's pitch (internationals);
+   - pace v spin: each ground's edge for spinners over seamers, plus the day's (a turner one day, a green top the
+     next), fitted from how spinners and seamers did against expectation in every real match since 2012.
 
-   Captains plan the whole bowling innings from each bowler's real usage, pick XIs from squads (learned from real
+   Captains plan the whole bowling innings from each bowler's real usage (bowling more of whichever type the pitch
+   helps) and react during it: a bowler going for more than expected loses overs and a wicket-taker can be kept
+   on, as much as real captains do (fitted on every over since 2015), pick XIs from squads (learned from real
    selections), choose batting orders from position history, and make toss decisions at real rates. Ties go to
    super overs. Rain, DLS and the Impact Player are described above.
 
@@ -229,7 +234,7 @@ python scripts/fetch_styles.py         # batting hand / bowling type from Wikipe
 python scripts/build_pre2002.py        # pre-2002 ODI players' career totals from Wikipedia lists
 python scripts/fetch_wiki_matches.py   # ODI match summaries (top scorers' runs and balls), cached
 python scripts/build_ratings.py        # player ratings -> data/ratings_{odi,t20}.json (+ _years, _comps)
-python scripts/build_league_presets.py # latest IPL / BBL squads -> data/league_seasons.json
+python scripts/build_league_presets.py # every season of 11 leagues -> data/league_seasons.json
 python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free hit
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
@@ -237,6 +242,8 @@ python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 
 python -m engine.fit.fit_selection     # XI selection model
 python -m engine.fit.fit_impact        # Impact Player tables (balls still to come, real wicket timelines)
 python -m engine.fit.fit_rain          # rain profiles by host country
+python -m engine.fit.fit_spin          # pace v spin edge by venue and day
+python -m engine.fit.fit_reactive      # reactive bowling changes
 python -m engine.calibrate             # compare simulated v real
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
@@ -288,9 +295,10 @@ tests/             engine and tournament tests
 - [x] Historical teams (ratings for a year range), fantasy draft, worm / Manhattan / win-probability charts
 - [x] Pre-2002 ODI players from Wikipedia career totals (ODI classic teams from 1971); strike rates from match
       summaries
-- [x] League seasons (IPL, BBL) with overseas limits; IPL Impact Player rule
+- [x] League seasons (every season of 11 leagues) with overseas limits; IPL Impact Player rule
+- [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
-- [ ] Later: match settings panel (overs, toss, pitch), pace v spin pitches, player-v-player matchups
+- [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, alternate-history career mode
 
 ## Data, credits and licences
 

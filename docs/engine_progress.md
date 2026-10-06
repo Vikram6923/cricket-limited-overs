@@ -426,3 +426,48 @@ chances by country group and has no target revision. Here both parts come from d
   side goes through. UI: "Rain (DLS)" checkbox (on by default) in the conditions panel and League Season.
 - Check: 400 ODIs at Lord's: 15% DLS / rain-reduced results, 5.5% no result; IPL season: 4 of 79 matches hit.
   `tests/test_engine.py::test_rain`.
+
+
+## League seasons, pace v spin pitches, reactive bowling changes (2026-10-06)
+
+Built one at a time; each calibrated alone (`python -m engine.calibrate`, history in data/engine/calibration_*.json).
+
+### Every season of 11 leagues
+`scripts/build_league_presets.py` now writes every season of IPL (2008-26), BBL, PSL, CPL, SA20, ILT20, BPL, LPL,
+MLC, T20 Blast and Super Smash (101 seasons; July-June seasons for leagues across the new year). The overseas
+limit per XI comes from the data: the most overseas players at least 5 real XIs fielded that season, counting the
+side on the field (an Impact Player swap lists 12 names). IPL 4 (5 in a few seasons: a player Cricsheet records as
+capped by the UAE, AD Nath), BBL 3, SA20 4, ILT20 8-9, MLC 7-8, Super Smash 1-2. UI: League Season has a league and
+a season picker. All leagues use a double round robin and IPL-style playoffs.
+
+### Pace v spin pitches
+`python -m engine.fit.fit_spin` -> data/engine/spin_{t20,odi}.json. For every real match since 2012 (fit_venues'
+matches), expected runs and bowler wickets from the ratings for every ball, observed / expected for spin and for
+pace, and the match's spin edge d = log(O/E spin) - log(O/E pace). Venue edge = EB mean at the ground; day's edge
+= spread beyond noise around the venue edge.
+- T20 (6,593 matches): between-venue sd runs 0.04, wickets 0.11; day sd 0.08 / 0.20. ODI (1,304): 0.03 / 0.17;
+  day 0.07 / 0.24. Spin-friendly: Providence, R Premadasa, Kathmandu, Eden Gardens, Arun Jaitley; pace-friendly:
+  Adelaide, MCG, SCG, Basin Reserve, SuperSport Park, Hagley Oval.
+- Engine (`conditions.spin_edge`, `by_type`): edge = venue (relative to the overall mean) + day draw (own random
+  stream); spin balls x exp(edge x pace share), pace balls x exp(-edge x spin share), minus half the day variance
+  so the average day is neutral. The bowling plan and the over-by-over chooser cost bowlers on these rates, so
+  captains bowl more spin on a turner. Pitch report: "...; it turned" / "...; it helped the seamers".
+- Calibration (off -> on): T20I 1st inns 167.2 -> 166.9, wkts 6.79 -> 6.85; IPL 187.4 -> 184.7, 6.45 -> 6.54;
+  ODI 265.2 -> 264.5, 8.07 -> 8.11; phase run rates within 3.2%. The extra wickets come from captains using the
+  favoured type (intended). Gate met; stopped.
+
+### Reactive bowling changes
+`python -m engine.fit.fit_reactive` -> data/engine/reactive_{t20,odi}.json. Real matches since 2015 (full-member
+internationals + IPL; full-member ODIs): at the end of every over, for each bowler with overs left, overs bowled in
+the rest of the innings v runs and wickets above what his ratings expected so far (within cells of overs bowled x
+overs gone, adjusting for usual overs per match). T20: -0.019 overs per run above expectation, +0.024 per wicket;
+ODI: -0.031 per run, +0.064 per wicket (~160k situations each; captains react mostly to being hit).
+- Engine (`Innings.react`): when the plan picks a bowler running above expectation he is taken off with the
+  probability that removes the fitted number of overs (the captain picks someone else); a bowler with wickets
+  above expectation can be kept on in place of the planned one. Own random stream. Event "X is taken off after
+  going for R from O overs".
+- Gain: applied at face value the simulated captains reacted ~40% as strongly as real ones (refitting the same
+  regression on replays: T20 -0.008, ODI -0.011). GAIN = 3.0 (T20), 4.0 (ODI) gives -0.018 / -0.030 (real -0.019
+  / -0.031); wickets +0.016 / +0.053 (real +0.024 / +0.064).
+- Calibration: T20I 1st inns 166.3 (real 168.8), IPL 185.4 (186.3), ODI 264.4 (267.5); phase run rates within
+  3%; all-outs slightly down (T20I 17.7%, IPL 11.6%, ODI 40.8%). Gate met; stopped.

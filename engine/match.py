@@ -52,6 +52,8 @@ class BatInns:
 @dataclass
 class BowlFig:
     p: Player
+    exp_runs: float = 0.0        # what his ratings predicted for the balls he bowled (reactive changes)
+    exp_wkts: float = 0.0
     balls: int = 0
     runs: int = 0
     wkts: int = 0
@@ -163,9 +165,10 @@ class Innings:
         quota_left = {p: quota for p in fielders}
         last = None
         plan = None
+        react = self.m.reactive(self) if not self.super_over else None
         if not self.super_over and self.m.use_plan:
             plan = captain.BowlingPlan(fielders, self.bowl.keeper, fmt, self.m.base, self.max_overs, quota,
-                                       self.m.rng)
+                                       self.m.rng, base_of=self.m.base_of)
         over = -1
         while over + 1 < self.max_overs:
             over += 1
@@ -190,16 +193,22 @@ class Innings:
                 bowler = self.allowed_bowlers[0]
             else:
                 bowler = plan.bowler_for(over, last, quota_left) if plan else None
+                if bowler is not None and react:
+                    bowler = self.react(plan, over, bowler, last, quota_left, fielders, react)
                 if bowler is not None:
                     q = dict(quota_left)
                     q[bowler] -= 1
                     if not captain.feasible(q, self.max_overs - over - 1, bowler):
                         bowler = None
                 if bowler is None:
-                    bowler = captain.choose_bowler(fielders, self.bowl.keeper, quota_left, self.max_overs - over,
-                                                   last, ph, base, fmt, self.m.rng)
+                    skip = react.pop("skip", None) if react else None
+                    pool = [p for p in fielders if p is not skip] if skip else fielders
+                    if skip and not any(p is not last and quota_left.get(p, 0) > 0 for p in pool):
+                        pool = fielders
+                    bowler = captain.choose_bowler(pool, self.bowl.keeper, quota_left, self.max_overs - over,
+                                                   last, ph, base, fmt, self.m.rng, base_of=self.m.base_of)
             quota_left[bowler] = quota_left.get(bowler, 0) - 1
-            self.bowl_over(over, bowler, ph, base)
+            self.bowl_over(over, bowler, ph, self.m.base_of(bowler)[ph])
             last = bowler
             if not self.done and self.legal % 6 == 0:
                 self.striker, self.non_striker = self.non_striker, self.striker
@@ -212,6 +221,41 @@ class Innings:
         self.event(f"End of innings: {self.runs}/{self.wkts} ({self.over_str()} ov)" +
                    ("" if not left else " - " + ", ".join(f"{c.p.name} {c.runs}* ({c.balls}b)" for c in left)),
                    "end_of_innings")
+
+    def react(self, plan, over: int, planned: Player, last: Player | None, quota_left: dict, fielders: list,
+              st: dict) -> Player | None:
+        """Reactive bowling changes (engine/fit/fit_reactive.py): a bowler's figures against what his ratings
+        predicted move overs to or from him - runs above expectation cost overs, wickets above expectation earn
+        them, by the amounts real captains move them. Done by chance at each over so the expected number of overs
+        moved matches; None = take the planned bowler off (the captain picks someone else)."""
+        k, rng = st["coef"], st["rng"]
+        g = k.get("gain", 1.0)        # fitted so simulated captains react as strongly as real ones (fit_reactive)
+
+        def delta(p):
+            f = self.figs.get(p)
+            return 0.0 if f is None else g * (k["per_run"] * (f.runs - f.exp_runs)
+                                              + k["per_wicket"] * (f.wkts - f.exp_wkts))
+        d = delta(planned)
+        if d < 0:
+            rem = sum(1 for x in plan.seq[over:] if x is planned) or 1
+            q = min(1.0, max(0.0, -d - st["off"].get(planned, 0.0)) / rem)
+            st["off"][planned] = st["off"].get(planned, 0.0) + q
+            if q > 0 and rng.random() < q:
+                self.event(f"{planned.name} is taken off after going for {self.figs[planned].runs} "
+                           f"from {self.figs[planned].balls // 6} overs.", "bowling_change")
+                st["skip"] = planned
+                return None
+        left = max(self.max_overs - over, 1)
+        for p in fielders:
+            if p is planned or p is last or quota_left.get(p, 0) <= 0 or p is self.bowl.keeper:
+                continue
+            d = delta(p)
+            if d > 0:
+                a = min(1.0, max(0.0, d - st["on"].get(p, 0.0)) / left)
+                st["on"][p] = st["on"].get(p, 0.0) + a
+                if a > 0 and rng.random() < a:
+                    return p
+        return planned
 
     def bowl_over(self, over: int, bowler: Player, ph: str, base: dict):
         f = self.fig(bowler)
@@ -230,6 +274,9 @@ class Innings:
             if o.legal:                       # counted first so events carry the ball they happened on
                 balls_in_over += 1
                 self.legal += 1
+                ib, iw = self.striker.p.bat[ph], bowler.bowl[ph]
+                f.exp_runs += base["runs"] * ib["runs"] * iw["runs"] + base["wide"] + base["noball"]
+                f.exp_wkts += base["wkt"] * ib["wkt"] * iw["wkt"]
             self.apply(o, bowler, f, seq)
             self.free_hit = (o.extra == "nb") or (self.free_hit and o.extra == "w")
             if self.chase_won() or self.wkts >= self.max_wkts:
@@ -458,7 +505,7 @@ class Match:
                  decision: str | None = None, overs: int | None = None, use_situation: bool = True,
                  use_plan: bool = True, use_venue: bool = True, pitch: dict | None = None,
                  use_matchups: bool = True, use_pitch: bool = True, impact_player: bool | None = None,
-                 rain_on: bool = False):
+                 rain_on: bool = False, use_spin: bool = True, use_reactive: bool = True):
         if fmt not in FORMATS:
             raise ValueError(f"format must be one of {sorted(FORMATS)}")
         self.fmt, self.year, self.venue = fmt, year, venue
@@ -474,10 +521,16 @@ class Match:
         cr = self.venue_info["runs"] * self.pitch["runs"]
         cw = self.venue_info["wkt"] * self.pitch["wkt"]
         self.base = conditions.apply(self.base, cr, cw)
+        # pace v spin: the ground's and the day's edge for spinners over seamers (engine/fit/fit_spin.py)
+        self.use_reactive = use_reactive
+        self.spin = conditions.spin_edge(fmt, venue, self.seed) if use_spin else {"runs": 0.0, "wkt": 0.0}
+        self.base_type = conditions.by_type(self.base, self.spin, fmt)
         self.conditions = {"venue": venue, "venue_known": self.venue_info["known"],
                            "venue_runs": round(self.venue_info["runs"], 3), "venue_wkt": round(self.venue_info["wkt"], 3),
                            "pitch_runs": round(self.pitch["runs"], 3), "pitch_wkt": round(self.pitch["wkt"], 3),
-                           "report": conditions.pitch_report(cr, cw)}
+                           "report": conditions.pitch_report(cr, cw)
+                           + (f"; {sr}" if (sr := conditions.spin_report(self.spin)) else ""),
+                           "spin_edge": {k: round(v, 3) for k, v in self.spin.items()}}
         self.model = BallModel(basics(fmt))
         self.sit = Situation(fmt, self.comp, year)
         self.use_situation = use_situation
@@ -503,6 +556,20 @@ class Match:
         self.innings: list[Innings] = []
         self.super_overs: list[Innings] = []
         self.wpa: dict[str, float] = {}
+
+    def reactive(self, inn: "Innings") -> dict | None:
+        """State for reactive bowling changes in this innings (own random stream), or None if off."""
+        if not self.use_reactive:
+            return None
+        coef = captain.reactive_coef(self.fmt)
+        if not coef:
+            return None
+        return {"coef": coef, "rng": random.Random(zlib.crc32(f"react|{self.seed}|{inn.number}".encode())),
+                "off": {}, "on": {}}
+
+    def base_of(self, p: Player) -> dict:
+        """Phase baselines for this bowler's deliveries (spin or pace on today's pitch)."""
+        return self.base_type.get(p.bowl_type or "", self.base)
 
     def wp_first(self, inn: "Innings") -> float:
         """Win probability of the side batting first, at the current state of `inn` (design T1-8)."""

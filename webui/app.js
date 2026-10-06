@@ -210,14 +210,16 @@ function updateClassicTotal() {
 
 /* ───────────────────────── league season ───────────────────────── */
 function initLeague() {
-  fillSelect($('l-league'), META.leagues.map(l => ({v: l.id, t: `${l.label} ${l.season}`})));
+  fillSelect($('l-league'), META.leagues.map(l => ({v: l.id, t: l.label})));
+  const league = () => META.leagues.find(x => x.id === $('l-league').value);
   const show = () => {
-    const l = META.leagues.find(x => x.id === $('l-league').value);
-    if (!l) { $('l-teams').textContent = 'No league data - run scripts/build_league_presets.py'; return; }
-    $('l-teams').innerHTML = l.teams.map(t => `${esc(t.name)} <span class="muted">(${t.n} players, ${t.overseas} overseas)</span>`).join('<br>');
-    $('l-total').textContent = `${l.teams.length} teams · ${matchCount(l.teams.length, 2, 1, 'ipl')} matches · ${l.label} ${l.year} conditions · max ${l.max_overseas} overseas per XI`;
+    const l = league(), s = l && l.seasons.find(x => x.season === $('l-season').value);
+    if (!s) { $('l-teams').textContent = 'No league data - run scripts/build_league_presets.py'; return; }
+    $('l-teams').innerHTML = s.teams.map(t => `${esc(t.name)} <span class="muted">(${t.n} players, ${t.overseas} overseas)</span>`).join('<br>');
+    $('l-total').textContent = `${s.teams.length} teams · ${matchCount(s.teams.length, 2, 1, 'ipl')} matches · ${l.label} ${s.year} conditions · max ${s.max_overseas} overseas per XI`;
   };
-  $('l-league').onchange = show; show();
+  const seasons = () => { const l = league(); fillSelect($('l-season'), l ? l.seasons.map(s => ({v: s.season, t: s.season})) : []); show(); };
+  $('l-league').onchange = seasons; $('l-season').onchange = show; seasons();
 }
 
 /* ───────────────────────── fantasy draft ───────────────────────── */
@@ -329,7 +331,7 @@ function payload() {
     venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
     rain: $('c-rain').checked};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value};
-  if (MODE === 'league') return {mode: 'league', league: $('l-league').value, seed: $('l-seed').value.trim(), venues: [],
+  if (MODE === 'league') return {mode: 'league', league: $('l-league').value, season: $('l-season').value, seed: $('l-seed').value.trim(), venues: [],
     rain: $('l-rain').checked};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
     team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value,

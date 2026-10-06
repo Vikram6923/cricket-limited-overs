@@ -10,6 +10,7 @@ import json
 import math
 import random
 import re
+import zlib
 from functools import lru_cache
 
 from .data import DATA
@@ -63,6 +64,47 @@ def pitch_report(runs: float, wkt: float) -> str:
     if wkt > 1.06:
         return "a lively pitch that helped the bowlers"
     return "a fair pitch"
+
+
+@lru_cache(maxsize=None)
+def spin_table(fmt: str) -> dict:
+    p = DATA / "engine" / f"spin_{fmt}.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def spin_edge(fmt: str, venue: str | None, seed) -> dict:
+    """Spin's edge over pace in this match (log scale; > 0 = helps spinners): the ground's edge plus the day's,
+    both fitted by engine/fit/fit_spin.py. Its own random stream, so the rest of the match is unchanged."""
+    t = spin_table(fmt)
+    if not t:
+        return {"runs": 0.0, "wkt": 0.0}
+    rng = random.Random(zlib.crc32(f"spin|{seed}".encode()))
+    v = t["venues"].get(venue_key(venue)) if venue else None
+    g = t["overall"]
+    return {k: (v[k] - g[k] if v else 0.0) + rng.gauss(0, t["day"]["sd_" + k]) for k in ("runs", "wkt")}
+
+
+def by_type(base: dict, edge: dict, fmt: str) -> dict:
+    """Baselines for spin and pace deliveries: spin scaled by exp(edge x pace share), pace by
+    exp(-edge x spin share), so the match's overall level is unchanged."""
+    t = spin_table(fmt)
+    share, day = t.get("spin_share", 0.4), t.get("day", {})
+    out = {}
+    for kind, w in (("spin", 1 - share), ("pace", -share)):
+        # minus half the day's variance: the day's draw then leaves each type's average rate unchanged
+        fr = math.exp(edge["runs"] * w - 0.5 * (day.get("sd_runs", 0.0) * w) ** 2)
+        fw = math.exp(edge["wkt"] * w - 0.5 * (day.get("sd_wkt", 0.0) * w) ** 2)
+        out[kind] = {ph: {**b, "runs": b["runs"] * fr, "four": b["four"] * fr, "six": b["six"] * fr,
+                          "wkt": b["wkt"] * fw} for ph, b in base.items()}
+    return out
+
+
+def spin_report(edge: dict) -> str | None:
+    if edge["wkt"] > 0.2 or edge["wkt"] - edge["runs"] > 0.25:
+        return "it turned"
+    if edge["wkt"] < -0.2 or edge["wkt"] - edge["runs"] < -0.25:
+        return "it helped the seamers"
+    return None
 
 
 def apply(base: dict, runs: float, wkt: float) -> dict:

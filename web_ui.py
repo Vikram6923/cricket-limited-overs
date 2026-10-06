@@ -36,11 +36,20 @@ UI = ROOT / "webui"
 TEAMS = ROOT / "data" / "teams.json"
 TEAMS_DEFAULT = ROOT / "data" / "teams_default.json"
 LAST = ROOT / "results" / "last"
-SEASONS = ROOT / "data" / "league_seasons.json"   # latest IPL / BBL seasons (scripts/build_league_presets.py)
+SEASONS = ROOT / "data" / "league_seasons.json"   # every season of 11 leagues (scripts/build_league_presets.py)
 
 
 def league_seasons() -> dict:
     return json.loads(SEASONS.read_text(encoding="utf-8")) if SEASONS.exists() else {}
+
+
+def league_season(league: str | None, season: str | None) -> dict | None:
+    """One season of a league (the latest if `season` is not given), with the league's label."""
+    lg = league_seasons().get(league or "")
+    if not lg:
+        return None
+    s = next((x for x in lg["seasons"] if x["season"] == season), None) if season else lg["seasons"][0]
+    return {**s, "label": lg["label"]} if s else None
 
 COMP_LABELS = {
     "t20i_full": "T20 internationals (full members)", "t20i": "T20 internationals (all teams)",
@@ -255,7 +264,7 @@ def _run(job: Job, params: dict) -> None:
             size = int(params["squad_size"]) if params["squad_size"] else None
         ym = params.get("years_mode") if params.get("years_mode") in ("blend", "only") else "blend"
         if params["mode"] == "league":
-            s = league_seasons()[params["league"]]
+            s = league_season(params["league"], params.get("season"))
             specs = [{"name": t["name"], "squad": t["players"], "overseas": t["overseas"],
                       "max_overseas": t["max_overseas"]} for t in s["teams"]]
             res = play_tournament(specs, fmt="t20", comp=params["league"], year=s["year"], rounds=2, knockout="ipl",
@@ -311,10 +320,11 @@ def api_meta():
         # a list, not a dict: Flask sorts dict keys, which would put "final" first in the dropdown
         "knockouts": [{"id": k, "label": v} for k, v in KNOCKOUTS.items()],
         "draft_teams": DEFAULT_TEAMS,
-        "leagues": [{"id": k, "label": s["label"], "season": s["season"], "year": s["year"],
-                     "teams": [{"name": t["name"], "n": len(t["players"]), "overseas": len(t["overseas"])}
-                               for t in s["teams"]], "max_overseas": s["teams"][0]["max_overseas"] if s["teams"] else None}
-                    for k, s in league_seasons().items()],
+        "leagues": [{"id": k, "label": lg["label"],
+                     "seasons": [{"season": s["season"], "year": s["year"], "max_overseas": s["max_overseas"],
+                                  "teams": [{"name": t["name"], "n": len(t["players"]), "overseas": len(t["overseas"])}
+                                            for t in s["teams"]]} for s in lg["seasons"]]}
+                    for k, lg in league_seasons().items()],
         "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
         "teams": load_teams(), "has_results": (LAST / "summary.json").exists(),
         "job": JOB.to_dict() if JOB else None,
@@ -403,9 +413,9 @@ def api_run():
             title = f"{a} v {b}" + (f" - {n}-match series" if n > 1 else "")
             total = n
         elif p.get("mode") == "league":
-            s = league_seasons().get(p.get("league"))
+            s = league_season(p.get("league"), p.get("season"))
             if not s:
-                return jsonify(error="Unknown league."), 400
+                return jsonify(error="Unknown league or season."), 400
             p["comp"], p["year"] = p["league"], s["year"]
             total = match_count(len(s["teams"]), 2, None, "ipl")
             title = f"{s['label']} {s['season']} - {len(s['teams'])} teams, double round robin + playoffs"

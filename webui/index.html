@@ -21,7 +21,7 @@
     <button class="mode" data-mode="tournament"><b>Tournament</b><span>League, groups, knockouts</span></button>
     <button class="mode" data-mode="classic"><b>Classic Series</b><span>Any nation, any era</span></button>
     <button class="mode" data-mode="classic_t"><b>Classic Tournament</b><span>Nations across eras</span></button>
-    <button class="mode" data-mode="league"><b>League Season</b><span>IPL / BBL, latest season</span></button>
+    <button class="mode" data-mode="league"><b>League Season</b><span>IPL, BBL, PSL and more - any season</span></button>
     <button class="mode" data-mode="draft"><b>Fantasy Draft</b><span>Draft squads, then play</span></button>
     <button class="mode" data-mode="builder"><b>Team Builder</b><span>Create and edit teams</span></button>
   </div>
@@ -79,8 +79,11 @@
 
   <!-- League season -->
   <div class="form" id="f-league">
-    <h2>League season</h2><p class="hint">The latest season of a franchise league with its real squads (everyone who played for each team that season), in that league's conditions: double round robin, then IPL-style playoffs (Qualifier 1, Eliminator, Qualifier 2, Final). The captain respects the overseas limit.</p>
-    <div class="fg"><label>League</label><select id="l-league"></select></div>
+    <h2>League season</h2><p class="hint">Any season of eleven franchise leagues (IPL, BBL, PSL, CPL, SA20, ILT20, BPL, LPL, MLC, T20 Blast, Super Smash) with the real squads (everyone who played for each team that season), in that league and year's conditions: double round robin, then IPL-style playoffs (Qualifier 1, Eliminator, Qualifier 2, Final). The captain respects the overseas limit (the most overseas players real XIs fielded that season). IPL from 2023 uses the Impact Player rule.</p>
+    <div class="seg2">
+      <div class="fg"><label>League</label><select id="l-league"></select></div>
+      <div class="fg"><label>Season</label><select id="l-season"></select></div>
+    </div>
     <div class="fg"><label>Teams</label><div class="roster" id="l-teams"></div></div>
     <div class="fg"><label>Seed (optional)</label><input type="text" id="l-seed" placeholder="random"></div>
     <div class="fg"><label><input type="checkbox" id="l-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (the league's home country).</div></div>

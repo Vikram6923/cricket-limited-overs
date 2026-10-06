@@ -172,14 +172,14 @@ def feasible(quota_left: dict, overs_left: int, last: Player | None) -> bool:
 
 
 def choose_bowler(fielders: list[Player], keeper: Player, quota_left: dict, overs_left: int, last: Player | None,
-                  phase: str, base: dict, fmt: str, rng: random.Random) -> Player:
+                  phase: str, base: dict, fmt: str, rng: random.Random, base_of=None) -> Player:
     """Pick the bowler for the next over. `quota_left` maps every fielder to overs still allowed."""
     cands = [p for p in fielders if p is not last and quota_left[p] > 0]
     if not cands:
         cands = [p for p in fielders if p is not last]   # emergency: quotas exhausted (tiny custom XIs)
     scored = []
     for p in cands:
-        c = bowling_cost(p, phase, base, fmt)
+        c = bowling_cost(p, phase, base_of(p)[phase] if base_of else base, fmt)
         if p is keeper:
             c += 10.0
         if not p.rated_bowl:
@@ -193,6 +193,13 @@ def choose_bowler(fielders: list[Player], keeper: Player, quota_left: dict, over
         if feasible(q, overs_left - 1, p):
             return p
     return scored[0][1]
+
+
+@lru_cache(maxsize=2)
+def reactive_coef(fmt: str) -> dict | None:
+    """Overs gained per run / wicket above expectation (engine/fit/fit_reactive.py)."""
+    p = DATA / "engine" / f"reactive_{fmt}.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
 class BowlingPlan:
@@ -211,13 +218,14 @@ class BowlingPlan:
     QUALITY = 2.0   # how strongly cost moves overs toward better bowlers (exponent on relative cost)
 
     def __init__(self, fielders: list[Player], keeper: Player, fmt: str, base: dict, max_overs: int,
-                 quota: int, rng: random.Random):
+                 quota: int, rng: random.Random, base_of=None):
         self.fmt = fmt
         from .data import FORMATS
         phases = FORMATS[fmt]["phases"]
         ph_overs = {name: max(0, min(hi, max_overs - 1) - lo + 1) for lo, hi, name in phases if lo < max_overs}
         bowlers = [p for p in fielders if p is not keeper] or list(fielders)
-        cost = {p: {ph: bowling_cost(p, ph, base[ph], fmt) + (0.0 if p.rated_bowl else 0.3) for ph in ph_overs}
+        cost = {p: {ph: bowling_cost(p, ph, (base_of(p) if base_of else base)[ph], fmt) + (0.0 if p.rated_bowl else 0.3)
+                    for ph in ph_overs}
                 for p in bowlers}
         med = {ph: sorted(c[ph] for c in cost.values())[len(cost) // 2] for ph in ph_overs}
 
