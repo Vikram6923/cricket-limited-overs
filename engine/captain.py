@@ -12,7 +12,7 @@ import random
 from functools import lru_cache
 
 from .conditions import venue_key
-from .data import DATA, PHASES, Player
+from .data import DATA, PHASES, Player, phases_for
 
 ROLE_ORDER = {"top": 2.0, "middle": 4.5, "lower": 6.5, "tail": 9.5}
 WICKET_VALUE = {"t20": 9.0, "odi": 22.0}   # rough runs-equivalent of a wicket, for ranking bowlers (T1 refits)
@@ -221,8 +221,8 @@ class BowlingPlan:
                  quota: int, rng: random.Random, base_of=None):
         self.fmt = fmt
         from .data import FORMATS
-        phases = FORMATS[fmt]["phases"]
-        ph_overs = {name: max(0, min(hi, max_overs - 1) - lo + 1) for lo, hi, name in phases if lo < max_overs}
+        phases = phases_for(fmt, max_overs)
+        ph_overs = {name: hi - lo + 1 for lo, hi, name in phases}
         bowlers = [p for p in fielders if p is not keeper] or list(fielders)
         cost = {p: {ph: bowling_cost(p, ph, (base_of(p) if base_of else base)[ph], fmt) + (0.0 if p.rated_bowl else 0.3)
                     for ph in ph_overs}

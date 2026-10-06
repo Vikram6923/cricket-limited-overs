@@ -54,12 +54,13 @@ class Situation:
         """Runs an average side would still add from this state (resources x expected total)."""
         return self.par_frac(legal, wk) * self.scale
 
-    def pressure(self, legal: int, wk: int, need: int) -> float:
-        p = self.par_runs(legal, wk)
+    def pressure(self, legal: int, wk: int, need: int, k: float = 1.0) -> float:
+        """Runs needed / par runs to come; k scales par in a shortened innings (Innings.par_k)."""
+        p = self.par_runs(legal, wk) * k
         return need / p if p > 1 else 9.0
 
     def multipliers(self, innings: int, legal: int, wk: int, runs: int, target: int | None,
-                    faced: int) -> dict:
+                    faced: int, k: float = 1.0) -> dict:
         t = self.t
         s = bisect.bisect_left(t["settle_edges"], faced)
         bl = bisect.bisect_left(t["balls_left_edges"], self.N - legal)
@@ -67,7 +68,7 @@ class Situation:
         if innings == 1 or target is None:
             key = (s, 1, bl, w)
         else:
-            p = bisect.bisect_left(t["press_edges"], self.pressure(legal, wk, target - runs))
+            p = bisect.bisect_left(t["press_edges"], self.pressure(legal, wk, target - runs, k))
             key = (s, 2, bl, w, p)
         m = self._cache.get(key)
         if m is None:
@@ -95,7 +96,7 @@ class Situation:
             self._cache[key] = out
         return out
 
-    def win_prob_chase(self, legal: int, wk: int, need: int) -> float:
+    def win_prob_chase(self, legal: int, wk: int, need: int, k: float = 1.0) -> float:
         """Chance the chasing side wins from here (design T1-8): logistic in log(pressure), fitted by maximum
         likelihood on real chases (fit_situation.py: win_model)."""
         if need <= 0:
@@ -103,12 +104,13 @@ class Situation:
         if wk >= 10 or legal >= self.N:
             return 0.0
         m = self.t["win_model"]
-        p = max(self.pressure(legal, wk, need), 1e-3)
-        res = max(self.par_frac(legal, wk), 0.01)
+        p = max(self.pressure(legal, wk, need, k), 1e-3)
+        res = max(self.par_frac(legal, wk) * k, 0.01)
         z = m["a"] + m["k0"] * math.log(p) / (res ** m["g"])
         return 1.0 / (1.0 + math.exp(min(max(z, -30.0), 30.0)))
 
-    def win_prob_first(self, legal: int, wk: int, runs: int) -> float:
-        """Chance the side batting first wins, from its projected total (runs + par still to come)."""
-        projected = runs + self.par_runs(legal, wk)
-        return 1.0 - self.win_prob_chase(0, 0, int(round(projected)) + 1)
+    def win_prob_first(self, legal: int, wk: int, runs: int, k: float = 1.0, start: int = 0) -> float:
+        """Chance the side batting first wins, from its projected total (runs + par still to come), against a
+        chase of the same length (starting `start` balls into the full-innings table)."""
+        projected = runs + self.par_runs(legal, wk) * k
+        return 1.0 - self.win_prob_chase(start, 0, int(round(projected)) + 1, k)

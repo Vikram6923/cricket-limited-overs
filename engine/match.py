@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from . import rain
 from . import captain, conditions
 from .ballmodel import BallModel
-from .data import FORMATS, Player, baseline, basics, phase_of, player
+from .data import FORMATS, Player, baseline, basics, phase_at, player
 from .situation import Situation
 
 KIND_TEXT = {"bowled": "b", "lbw": "lbw", "caught_fielder": "c", "caught_keeper": "c", "caught_bowler": "c & b",
@@ -134,6 +134,19 @@ class Innings:
         innings: resources depend on overs left and wickets, as in DLS."""
         return 0 if self.super_over else (FORMATS[self.m.fmt]["overs"] - self.max_overs) * 6
 
+    def par_k(self) -> float:
+        """Scale on par runs in a shortened innings. The full-innings par table read at the shortened innings'
+        balls left over-rates it (rare states such as 0 down after 10 overs of a T20 come from good days), so a
+        chaser thought it was ahead and batted too slowly (a 10-over chase won 40%, not 50%). Par is scaled so the
+        innings starts at its fitted DLS resources (engine/rain.py)."""
+        if self.super_over or self.max_overs >= FORMATS[self.m.fmt]["overs"]:
+            return 1.0
+        key = self.max_overs
+        if getattr(self, "_par_k", (None,))[0] != key:
+            off = self.offset()
+            self._par_k = (key, self.m.dls.res(self.max_overs * 6, 0) / max(self.m.sit.par_frac(off, 0), 1e-3))
+        return self._par_k[1]
+
     def ball_str(self) -> str:
         """The ball just bowled, as scorers write it: the 6th ball of the 1st over is 0.6 (0.0 before any ball)."""
         n = self.legal
@@ -186,7 +199,7 @@ class Innings:
                     if over >= self.max_overs:
                         break
             # phases scale with a shortened innings (as powerplays do)
-            ph = (phase_of(over * FORMATS[fmt]["overs"] // self.max_overs, fmt)
+            ph = (phase_at(over, fmt, self.max_overs)
                   if not self.super_over else "death")
             base = self.m.base[ph]
             if self.allowed_bowlers and len(self.allowed_bowlers) == 1:
@@ -265,7 +278,7 @@ class Innings:
         seq = []
         while balls_in_over < 6 and not self.done:
             sit = self.m.sit.multipliers(1 if self.target is None else 2, self.legal + self.offset(), self.wkts, self.runs,
-                                         self.target, self.striker.balls) if self.m.use_situation else {}
+                                         self.target, self.striker.balls, self.par_k()) if self.m.use_situation else {}
             if self.m.use_matchups:
                 sit = self.m.sit.with_matchup(sit, self.striker.p.bat_hand, bowler.bowl_kind)
             o = self.m.model.delivery(self.m.rng, base, self.striker.p, bowler, ph, btype, sit, self.free_hit)
@@ -576,14 +589,14 @@ class Match:
         n, off = inn.max_overs * 6, inn.offset()
         if inn.number == 1:
             if inn.done or inn.wkts >= 10 or inn.legal >= n:
-                return self.sit.win_prob_first(n + off, 9, inn.runs)
-            return self.sit.win_prob_first(inn.legal + off, inn.wkts, inn.runs)
+                return self.sit.win_prob_first(n + off, 9, inn.runs, inn.par_k(), off)
+            return self.sit.win_prob_first(inn.legal + off, inn.wkts, inn.runs, inn.par_k(), off)
         need = inn.target - inn.runs
         if need <= 0:
             return 0.0
         if inn.wkts >= 10 or inn.legal >= n:
             return 0.5 if need == 1 else 1.0
-        return 1.0 - self.sit.win_prob_chase(inn.legal + off, inn.wkts, need)
+        return 1.0 - self.sit.win_prob_chase(inn.legal + off, inn.wkts, need, inn.par_k())
 
     def wp_batting(self, inn: "Innings") -> float:
         if inn.super_over:
@@ -711,6 +724,11 @@ class Match:
             "events": [e for i in self.innings + self.super_overs for e in i.events],
         }
         card["impact"] = {pid: round(v, 3) for pid, v in sorted(self.wpa.items(), key=lambda kv: -kv[1])}
+        # runs worth one whole win at the break (slope of the chase win model at an average target): converts win
+        # probability added into runs for the player of the match
+        s = round(self.sit.scale)
+        card["runs_per_win"] = round(10 / max(self.sit.win_prob_chase(0, 0, s - 5)
+                                              - self.sit.win_prob_chase(0, 0, s + 5), 1e-3), 1)
         card["player_of_match"] = player_of_match(card, self.fmt)
         tp = turning_point(card)
         if tp:
@@ -824,8 +842,10 @@ class Match:
 
 
 def player_of_match(card: dict, fmt: str) -> dict:
-    """Balanced impact score: runs and wickets, with credit for scoring faster / conceding slower than the match
-    rate, catches, and a bonus for the winning side (ported idea from the Test sim's motmscore)."""
+    """Balanced score (runs and wickets, credit for scoring faster / conceding slower than the match rate,
+    catches, a bonus for the winning side; the Test sim's motmscore) plus win probability added converted into
+    runs (card["runs_per_win"]). Both count: win probability alone handed the award to a 6 off 3 balls in a close
+    finish over the innings that built the win."""
     inns = card["innings"]
     balls = sum(i["balls"] for i in inns) or 1
     rate = sum(i["runs"] for i in inns) / balls          # runs per ball in this match
@@ -858,12 +878,10 @@ def player_of_match(card: dict, fmt: str) -> dict:
     if not score:
         return {}
     impact = card.get("impact") or {}
-    if impact:
-        # win probability added decides; the balanced score breaks near-ties
-        best = max(score, key=lambda pid: impact.get(pid, 0.0) + 0.0001 * score[pid])
-    else:
-        best = max(score, key=score.get)
-    return {"id": best, "name": names[best], "team": team_of[best], "score": round(score[best], 1),
+    k = card.get("runs_per_win") or (140 if fmt == "t20" else 270)
+    total = {pid: s + k * impact.get(pid, 0.0) for pid, s in score.items()}
+    best = max(total, key=total.get)
+    return {"id": best, "name": names[best], "team": team_of[best], "score": round(total[best], 1),
             "impact": impact.get(best)}
 
 

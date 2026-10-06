@@ -23,6 +23,32 @@ FORMATS = {
 YEAR_POOL_BALLS = 6000  # a baseline year with fewer balls than this borrows from neighbouring years
 
 
+@lru_cache(maxsize=None)
+def phases_for(fmt: str, max_overs: int) -> tuple:
+    """Phases of an innings of max_overs: the powerplay scaled in proportion (as the playing conditions do), the
+    last overs death overs (4 of a T20, 10 of an ODI) as far as the innings allows, the rest middle overs. Death
+    batting is about the overs left, so a rain-shortened 8-over innings has 4 death overs, not 1.6."""
+    full = FORMATS[fmt]["overs"]
+    if max_overs >= full:
+        return FORMATS[fmt]["phases"]
+    (_, p_hi, _), _, (d_lo, d_hi, _) = FORMATS[fmt]["phases"]
+    pp = max(1, int((p_hi + 1) * max_overs / full + 0.5))
+    death = min(d_hi - d_lo + 1, max_overs - pp)
+    out = [(0, pp - 1, "powerplay")]
+    if max_overs - pp - death > 0:
+        out.append((pp, max_overs - death - 1, "middle"))
+    if death > 0:
+        out.append((max_overs - death, max_overs - 1, "death"))
+    return tuple(out)
+
+
+def phase_at(over: int, fmt: str, max_overs: int) -> str:
+    for lo, hi, name in phases_for(fmt, max_overs):
+        if lo <= over <= hi:
+            return name
+    return "death"
+
+
 def phase_of(over: int, fmt: str) -> str:
     for lo, hi, name in FORMATS[fmt]["phases"]:
         if lo <= over <= hi:

@@ -371,8 +371,28 @@ def fit(fmt: str) -> dict:
                     marg_e[mk][j] += te[st][j]
                 marg_n[mk] += tn[st]
         marg = {mk: shrunk(marg_a[mk], marg_e[mk], marg_n[mk], [1.0] * len(METRICS)) for mk in marg_a}
+        # A chase cell with few balls (0 down needing a big rate halfway through: rare in full chases, but the
+        # start of every short rain-reduced chase) is shrunk toward the first innings in the same state (balls
+        # left, wickets lost: well populated) x the pressure response at that stage, pooled over wickets. Shrunk
+        # toward the chase marginal alone, such chases batted as if under no pressure (a 10-over chase won 43%).
+        one = {(st[1], st[2]): shrunk(ta[st], te[st], tn[st], [1.0] * len(METRICS)) for st in ta if st[0] == "1"}
+        ones = [1.0] * len(METRICS)
+        pr_a = defaultdict(lambda: [0.0] * len(METRICS))
+        pr_e = defaultdict(lambda: [0.0] * len(METRICS))
+        pr_n = defaultdict(int)
         for st in ta:
-            prior = marg[st[:3]] if st[0] == "2" else [1.0] * len(METRICS)
+            if st[0] == "2":
+                pk = (st[1], st[3])
+                for j in range(len(METRICS)):
+                    pr_a[pk][j] += ta[st][j]
+                    pr_e[pk][j] += te[st][j] * one.get((st[1], st[2]), ones)[j]
+                pr_n[pk] += tn[st]
+        press_resp = {pk: shrunk(pr_a[pk], pr_e[pk], pr_n[pk], [1.0] * len(METRICS)) for pk in pr_a}
+        for st in ta:
+            if st[0] == "2":
+                prior = [m * q for m, q in zip(one.get((st[1], st[2]), ones), press_resp[(st[1], st[3])])]
+            else:
+                prior = [1.0] * len(METRICS)
             state[st] = shrunk(ta[st], te[st], tn[st], prior)
         # keep the settle curve mean-preserving (weighted by expected counts) - state absorbs the level
         for j in range(len(METRICS)):
@@ -404,7 +424,9 @@ def fit(fmt: str) -> dict:
     wN = len(WKT_EDGES) + 1
     pN = len(PRESS_EDGES) + 1
     state1 = [[r(state.get(("1", b, w), [1.0] * len(METRICS))) for w in range(wN)] for b in range(blN)]
-    state2 = [[[r(state.get(("2", b, w, p), marg.get(("2", b, w), [1.0] * len(METRICS)))) for p in range(pN)]
+    state2 = [[[r(state.get(("2", b, w, p), [m * q for m, q in zip(state.get(("1", b, w), [1.0] * len(METRICS)),
+                                                                   press_resp.get((b, p), [1.0] * len(METRICS)))]))
+                 for p in range(pN)]
                for w in range(wN)] for b in range(blN)]
     # chase win probability per state: shrink toward the (balls left, wickets) marginal, then make it monotone
     # (lower pressure -> higher chance) within each (balls left, wickets) row

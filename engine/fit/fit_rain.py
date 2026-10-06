@@ -80,6 +80,31 @@ def profile(m: dict, sched: int) -> dict | None:
     return p or None
 
 
+def first_innings_states(m: dict, sched: int) -> tuple[int, list] | None:
+    """(total, [(overs left, wickets lost, runs still to come) at the start of every over]) for a complete,
+    uninterrupted first innings, else None."""
+    inns = [i for i in m["innings"] if not i.get("super_over")]
+    if not inns:
+        return None
+    inn = inns[0]
+    if wickets(inn) < 10 and legal_balls(inn) < sched * 6:
+        return None
+    per = []                                    # (runs, wickets) in each over
+    for ov in inn["overs"]:
+        per.append((sum(d["runs"]["total"] for d in ov["deliveries"]),
+                    sum(len(d.get("wickets", [])) for d in ov["deliveries"])))
+    total = sum(r for r, _ in per)
+    out, done, wk = [], 0, 0
+    for o in range(sched):
+        if wk >= 10:
+            break
+        out.append((sched - o, wk, total - done))
+        if o < len(per):
+            done += per[o][0]
+            wk += per[o][1]
+    return total, out
+
+
 def main() -> None:
     for fmt, zips in (("odi", [(RAW / "odis_male_json.zip", None)]),
                       ("t20", [(RAW / "t20s_male_json.zip", None)] +

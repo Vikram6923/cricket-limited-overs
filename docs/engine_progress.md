@@ -471,3 +471,40 @@ ODI: -0.031 per run, +0.064 per wicket (~160k situations each; captains react mo
   / -0.031); wickets +0.016 / +0.053 (real +0.024 / +0.064).
 - Calibration: T20I 1st inns 166.3 (real 168.8), IPL 185.4 (186.3), ODI 264.4 (267.5); phase run rates within
   3%; all-outs slightly down (T20I 17.7%, IPL 11.6%, ODI 40.8%). Gate met; stopped.
+
+
+## DLS fairness, short-innings play and player of the match (2026-10-06)
+
+User report: Gujarat 104/1 in 11 overs (innings ended by rain), Punjab set 99 from 6 overs, made 50/1, and lost by
+48 (DLS). Three faults, fixed one at a time.
+
+1. **Resource table.** DLS used the engine's par table (`situation.par_frac`, cell averages of runs still to come).
+   Rare states are biased: sides 0 down after 14 overs of a T20 were having good days, so 6 overs with 10 wickets was
+   worth 42% of an innings (official DLS: about 38%) and the target was 99 (official about 80). Now
+   `engine/fit/fit_dls.py` fits the Duckworth-Lewis form Z0 F(w) (1 - exp(-b u / F(w))): b from the engine's own
+   first innings in matches of 5..full overs (replays of the calibration fixtures; fitting b on real in-progress
+   states still over-rated short innings - a 25-over ODI chase won 28%), F(w) and Z0 from every complete real
+   first innings (cells of overs left x wickets lost). Resources at 20 ODI overs 0.566 (official 0.566), 25 overs
+   0.669 (0.665). The example now gets 81.
+2. **Short chases batted as if under no pressure.** Even in equal 10-over matches the chaser won 43% (real
+   shortened T20s: 49%). The chase table cells for 0-1 down with half the overs left and a high rate needed are
+   rare in full chases and were shrunk toward the (balls left, wickets) average over all pressures (runs x1.03 when
+   the first-innings table in the same state says x1.12). `fit_situation` now shrinks every chase cell toward the
+   first innings in the same state x the pressure response at that stage (pooled over wickets). 10-over chases
+   now win 48-50%; full chases unchanged. Also `Innings.par_k`: par in a shortened innings is scaled to its DLS
+   resources (chase pressure and the win-probability chart).
+3. **Phases in a shortened innings** were scaled in proportion (an 8-over innings had 1.6 death overs, and the
+   bowling plan cut phases differently: 6 powerplay overs, no death). Now `data.phases_for`: powerplay scaled, the
+   last 5 (T20) / 10 (ODI) overs death overs as far as the innings allows, middle overs the rest - one rule for
+   batting and the bowling plan. Shortened innings scoring v real rain-shortened matches: 8 overs 0.49 of a full
+   total (real 0.55, 46 matches), 12 overs 0.68 (0.69); ODI 20 overs 0.57 (0.61, 17 matches).
+- Fairness (replays with rain forced; chase win %): chase cut at the break T20I 51%, ODI 48%; cut mid-chase
+  46-48%; first innings cut short 50-58% (DLS gives the chaser the G term there, as in real matches - real
+  DLS-target matches: chaser won 55%). Before: 28-40%.
+- Calibration (full matches): T20I 1st inns 166.1 (real 168.8), IPL 185.4 (186.3), ODI 264.5 (267.5); phase run
+  rates within 3%; chase won % within 2 points. Gate met.
+
+**Player of the match** was the top win probability added alone, which could give it to a 6 off 3 balls in a close
+finish. Now the balanced score (runs, 20/25 per wicket, rate bonuses, catches, win bonus) plus win probability
+added x runs per win (`card["runs_per_win"]`: slope of the chase win model at an average target, ~150 in a T20,
+~270 in an ODI). On 250 IPL replays, awards to someone with under 25 runs and no wicket fell from 11 to 3.

@@ -116,9 +116,12 @@ marks the two players with ↑ in and ↓ out, and both are credited with the ap
 **Rain and DLS.** With rain on, a match is interrupted as often as real matches in the host country are (from
 Cricsheet: about a quarter of ODIs in Sri Lanka and the West Indies, a fifth in England, under a tenth in India,
 Pakistan and Australia), replaying a real match's pattern: overs lost before the start, the first innings ended
-early, the chase reduced, or play stopped for good. Targets and par scores use the DLS Standard Edition formulas on
-the engine's own resource table (learned from real innings); a chase needs 20 overs (ODI) or 5 (T20) for a result.
-Bowler quotas and phases shrink with the innings (`engine/rain.py`).
+early, the chase reduced, or play stopped for good. Targets and par scores use the DLS Standard Edition formulas
+with a resource table in the Duckworth-Lewis form: how resources fall with overs is fitted to what a side scores in
+a shortened innings, the cost of wickets to real innings. The targets come out close to the official table's (a
+20-over ODI chase: 56.6% of the resources, as in the official table) and are fair: a chase revised by DLS is won about
+as often as a normal one. A chase needs 20 overs (ODI) or 5 (T20) for a result. Bowler quotas shrink with the
+innings; the powerplay is scaled, and the last overs are death overs however short the innings (`engine/rain.py`).
 
 Historical teams and drafts from Python:
 
@@ -169,7 +172,9 @@ save(res, "results/my_cup")
 - **Records:** highest and lowest totals, top scores, best figures, fastest 50s and 100s, biggest and narrowest wins,
   super overs.
 - **MVP rankings:**
-  - *official*: win probability added; it also picks the player of the match and of the series;
+  - *official*: win probability added; it also picks the player of the series;
+  - the player of the match: the balanced score below plus win probability added converted into runs (a whole win
+    is worth about 150 runs in a T20, from the chase win model), so a match-winning 70 beats a 6 off 3 balls;
   - *balanced*: runs + 25 per wicket + 5 per catch/stumping + 25 per team win, plus strike-rate and economy
     bonuses.
 
@@ -242,6 +247,7 @@ python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 
 python -m engine.fit.fit_selection     # XI selection model
 python -m engine.fit.fit_impact        # Impact Player tables (balls still to come, real wicket timelines)
 python -m engine.fit.fit_rain          # rain profiles by host country
+python -m engine.fit.fit_dls           # DLS resources (after the other fits: it replays shortened matches)
 python -m engine.fit.fit_spin          # pace v spin edge by venue and day
 python -m engine.fit.fit_reactive      # reactive bowling changes
 python -m engine.calibrate             # compare simulated v real
