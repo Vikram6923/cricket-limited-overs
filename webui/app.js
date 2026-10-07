@@ -87,8 +87,9 @@ async function init() {
   fillSelect($('t-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
   ['t-rounds', 't-groups', 't-ko'].forEach(id => $(id).onchange = updateTournamentTotal);
   $('t-search').oninput = filterTeams;
-  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initLeague(); initBuilder(); initMatchNav();
+  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initLeague(); initBuilder(); initMatchNav();
   $('go-btn').onclick = start;
+  $('r-save').onclick = saveRun;
   if (META.has_results) { $('last-btn').style.display = ''; $('home-note').textContent = 'Results from your last run are still available — click “View last results”.'; }
   if (META.job && META.job.status === 'running') poll();
 }
@@ -97,10 +98,12 @@ function setMode(m) {
   MODE = m;
   document.querySelectorAll('.mode').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   document.querySelectorAll('.form').forEach(f => f.classList.toggle('on', f.id === 'f-' + m));
-  const b = m === 'builder';
+  const b = m === 'builder' || m === 'saved';
+  if (m === 'saved') drawSaved();
   $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' ? 'none' : '';
+  if (m === 'auction') aRefresh();
   $('go-err').textContent = '';
-  if (b) { showView('v-builder'); loadBuilderPool(); }
+  if (m === 'builder') { showView('v-builder'); loadBuilderPool(); }
   else if ($('v-builder').classList.contains('on')) showView('v-home');
 }
 
@@ -329,7 +332,41 @@ function drawDraftPool() {
   ], rows, {limit: 300, sort: {k: 'value', dir: -1}, onClick: r => { if (yours) draftPick({id: r.id}); }, empty: 'No players match'});
 }
 function drawBoard(el, teams, board, me) {
-  el.innerHTML = teams.map(t => `<div class="bcol ${t === me ? 'me' : ''}"><b>${esc(t)}${t === me ? ' (you)' : ''}</b><ol>${(board[t] || []).map(p => `<li>${esc(p.name)} <span class="muted">· ${esc(p.role)}</span></li>`).join('')}</ol></div>`).join('');
+  el.innerHTML = teams.map(t => `<div class="bcol ${t === me ? 'me' : ''}"><b>${esc(t)}${t === me ? ' (you)' : ''}</b><ol>${(board[t] || []).map(p => `<li>${esc(p.name)} <span class="muted">· ${esc(p.role)}${p.price ? ' · ' + cr(p.price) + (p.retained ? ' R' : '') : ''}</span></li>`).join('')}</ol></div>`).join('');
+}
+
+/* ───────────────────────── saved runs ───────────────────────── */
+async function saveRun() {
+  const name = prompt('Name this run', R.title || 'My run');
+  if (!name) return;
+  try {
+    META.saved = (await api('/api/saved', {name})).saved;
+    const sv = META.saved.find(s => s.name === name.trim()) || META.saved[0];
+    $('r-save').style.display = 'none'; $('r-saved').textContent = `Saved as “${sv.name}”`;
+    toast('Saved. Find it under “Saved runs”.'); aRefresh();
+  } catch (e) { toast(e.message, true); }
+}
+function drawSaved() {
+  const list = META.saved || [];
+  $('sv-list').innerHTML = list.length ? list.map(s => `<div class="sv-item" data-id="${esc(s.id)}">
+      <b>${esc(s.name)}</b>
+      <span class="muted small">${esc(s.title || '')}${s.winner ? ' · winner: ' + esc(s.winner) : ''} · saved ${esc(s.saved)}</span>
+      <div class="sv-btns"><button class="btn sec" data-a="open">Open</button><button class="btn sec" data-a="rename">Rename</button>
+      <button class="btn sec" data-a="delete">Delete</button></div></div>`).join('')
+    : '<div class="muted small">Nothing saved yet. Open a run\'s results and press “Save this run”.</div>';
+  $('sv-list').querySelectorAll('.sv-item').forEach(el => {
+    const id = el.dataset.id, s = list.find(x => x.id === id);
+    el.querySelector('[data-a="open"]').onclick = () => showResults(id);
+    el.querySelector('[data-a="rename"]').onclick = async () => {
+      const name = prompt('New name', s.name);
+      if (name) { META.saved = (await api('/api/saved/rename', {id, name})).saved; drawSaved(); aRefresh(); }
+    };
+    el.querySelector('[data-a="delete"]').onclick = async () => {
+      if (!confirm(`Delete the saved run “${s.name}”? This cannot be undone.`)) return;
+      META.saved = (await api('/api/saved/delete', {id})).saved; drawSaved(); aRefresh();
+      if (R_RUN === id) showView('v-home');
+    };
+  });
 }
 
 /* ───────────────────────── start / poll ───────────────────────── */
@@ -355,6 +392,7 @@ async function start() {
   $('go-err').textContent = ''; $('go-btn').disabled = true;
   try {
     if (MODE === 'draft') { await startDraft(); return; }
+    if (MODE === 'auction') { await startAuction(); return; }
     await api('/api/run', payload()); poll();
   }
   catch (e) { $('go-err').textContent = e.message; $('go-btn').disabled = false; }
@@ -387,20 +425,27 @@ async function stopJob() { await api('/api/stop', {}); setTimeout(poll, 300); }
 /* ───────────────────────── results ───────────────────────── */
 let R = null, CUR_MATCH = 0;
 const MCACHE = {};
-async function showResults() {
+let R_RUN = '';                        // '' = the last run, else the saved run's id
+const runQ = () => R_RUN ? '?run=' + encodeURIComponent(R_RUN) : '';
+async function showResults(run) {
   clearTimeout(POLL_T);
-  try { R = await api('/api/results'); } catch (e) { toast(e.message, true); showView('v-home'); return; }
+  R_RUN = typeof run === 'string' ? run : '';
+  try { R = await api('/api/results' + runQ()); } catch (e) { toast(e.message, true); showView('v-home'); return; }
   for (const k in MCACHE) delete MCACHE[k];
   showView('v-results');
   const fmt = R.format.toUpperCase();
   $('r-title').textContent = R.kind === 'series' ? R.result : `${R.winner} won the tournament`;
   $('r-sub').textContent = `${fmt} · ${R.title || ''} · ${R.fixtures.length} match${R.fixtures.length === 1 ? '' : 'es'} · conditions: ${R.competition} ${R.year} · seed ${R.seed}`;
+  const sv = (META.saved || []).find(s => s.id === R_RUN);
+  $('r-save').style.display = R_RUN ? 'none' : '';
+  $('r-saved').textContent = sv ? `Saved run: ${sv.name} (${sv.saved})` : '';
   const pos = R.player_of_series;
   $('r-pos').style.display = pos ? '' : 'none';
   if (pos) $('r-pos').textContent = `Player of the series: ${pos.name} (${pos.team})`;
   CUR_MATCH = 0;
   $('tab-board').style.display = R.draft ? '' : 'none';
   if (R.draft) drawBoard($('r-board'), R.draft.teams, R.draft.board, R.draft.user);
+  $('tab-board').textContent = R.draft && R.draft.auction ? 'Auction squads' : 'Draft board';
   renderSummary(); renderMatchSelect(); renderStatsTables(); renderMVP();
   openTab('p-summary');
 }
@@ -493,7 +538,7 @@ async function showMatch(i) {
   const f = M[i];
   $('m-sel').value = i; $('m-prev').disabled = i === 0; $('m-next').disabled = i === M.length - 1;
   $('m-body').innerHTML = '<div class="muted">Loading…</div>';
-  if (!MCACHE[f.match_no]) MCACHE[f.match_no] = api('/api/match/' + f.match_no);
+  if (!MCACHE[f.match_no]) MCACHE[f.match_no] = api('/api/match/' + f.match_no + runQ());
   const d = await MCACHE[f.match_no];
   if (CUR_MATCH !== i) return;
   const c = d.card, pom = c.player_of_match || {}, cond = c.conditions || {};

@@ -253,4 +253,21 @@ svg.chart .wkt{stroke:var(--bg);stroke-width:1.2}
 .xi-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .xi-status{font-size:.8rem;margin-top:8px}
 .xi-status .bad{color:var(--red)}
-@media (max-width:1100px){.cap-grid{grid-template-columns:1fr}.xi-cols{grid-template-columns:1fr}}
+@media (max-width:1100px){.cap-grid{grid-template-columns:minmax(0,1fr)}.xi-cols{grid-template-columns:1fr}}
+
+/* auction room */
+.au-name{font-size:1.15rem;font-weight:600;margin-bottom:4px}
+.au-price{margin:12px 0 6px;font-size:.95rem}
+.au-price b{font-size:1.5rem;color:var(--amber);margin-right:8px}
+.au-log{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 10px;font-size:.74rem}
+.au-log span{border:1px solid var(--border);border-radius:99px;padding:1px 8px;color:var(--muted)}
+.au-log span.me{border-color:var(--green);color:var(--green)}
+.au-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 6px}
+.au-act .btn{width:auto}
+.au-max{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)}
+.au-max input{width:80px}
+
+/* saved runs */
+.sv-item{border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;display:flex;flex-direction:column;gap:3px}
+.sv-btns{display:flex;gap:6px;margin-top:4px}
+.sv-btns .btn{padding:4px 10px;font-size:.78rem}

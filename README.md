@@ -58,6 +58,21 @@ offline. Modes:
   modes can use it later.
 - **Fantasy Draft:** you and computer teams draft 15-man squads in snake order from the player pool of chosen
   years (full-member internationals, optionally franchise leagues), then play a league with knockouts.
+- **Auction:** an IPL-style auction, then a league. Players: everyone from a real league season (with its
+  franchises, conditions and home grounds) or a range of years (as in the draft, with an optional home nation for
+  overseas limits). IPL rules: Rs 120 crore purse, squads of 18-25 with at most 8 overseas, players in sets
+  (marquee, then capped and uncapped batters, all-rounders, keepers, fast bowlers, spinners) at base prices,
+  standard bid steps, an accelerated round for the unsold. **Retentions** before the auction: up to 6 players from
+  the previous season's squad (or your last auction), 5 capped at Rs 18 / 14 / 11 / 18 / 14 crore and 2 uncapped
+  at 4 crore; every unused slot is a **Right to Match** card (the buyer gets one final raise, then the old team
+  matches or not). Bid live for your team (bid, pass, or bid up to a limit), or let the computer bid for you to
+  the end of the set or the auction; every call shows what the computer would bid and why. Computer teams value a
+  player by what he adds to their best XI in runs per match (the engine's own ratings), at the market rate for the
+  money left. Then the squads play a league, and you can captain your team.
+- **Saved runs:** "Save this run" on the results page keeps a run (any mode) under a name in `results/saved/`,
+  so the next run doesn't overwrite it; the Saved runs mode lists them to open (the full results page), rename or
+  delete. A saved league (an auction league or a League Season) of the same league can be retained from in a later
+  auction, so a franchise can carry its squad from one auction season to the next.
 - **Team Builder:** search the ~7,800 rated players, pick 11-15 (with more than 11 the captain picks the XI for
   each match) and save the team. Ten preset national squads are included.
 
@@ -65,7 +80,7 @@ For every run choose the format, the year and whose conditions to play in (full-
 optionally venues, a seed and whether rain can interrupt play (on by default). The results page has a summary
 (points tables with net run rate, knockouts, top performers, records), every match (Previous / Next, match report,
 rain notes, run worm, Manhattan, win-probability and partnership charts, scorecard and innings log), sortable batting and bowling tables, the MVP race (official and balanced) and,
-after a draft, the draft board. Saved teams go in `data/teams.json` (not in git).
+after a draft or an auction, the squads (with prices). Saved teams go in `data/teams.json` (not in git).
 
 ### From Python
 
@@ -289,6 +304,7 @@ engine/            match engine (library)
   control.py       manual captaincy (a person makes one side's decisions)
   history.py       historical (nation + years) teams
   draft.py         fantasy draft
+  auction.py       IPL-style auction with retentions and Right to Match
   render.py        text scorecard and match report
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
@@ -320,6 +336,7 @@ tests/             engine and tournament tests
 - [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
 - [x] Captain a team in a league season (toss, XI, bowlers, batters, Impact Player)
+- [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, alternate-history career mode
 
 ## Data, credits and licences

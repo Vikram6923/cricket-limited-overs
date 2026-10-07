@@ -530,3 +530,37 @@ shown, any part skippable). Not fitted - the person's decisions replace the engi
 - Tests (`tests/test_control.py`): random answers to every question for both sides of 60 IPL 2024 matches keep
   the laws (quotas, no consecutive overs, 11 players, overseas limit; 120 Impact substitutions at all moments);
   always taking the computer's choice reproduces auto play exactly (no Impact Player); skip; tournament.
+
+## Auction game (2026-10-07)
+
+User's design (2026-10-07): player pool selectable (a real league season, or a range of years as in the draft);
+IPL rules; live bidding with skips; retentions (user request). Game AI, not fitted to real franchises' bidding.
+- `engine/auction.py`. Rules of the IPL 2025 mega auction: Rs 120 cr purse, squads 18-25 (fewer if the pool is
+  small: 85% of pool / teams), max 8 overseas; retentions up to 6 (5 capped at 18/14/11/18/14 cr, 2 uncapped at
+  4 cr), unused slots = RTM cards; sets (2 marquee sets of 6, then capped / uncapped by role, 8 per set, random
+  order inside a set); base prices by expected price (capped 2 cr-75 L, uncapped 50-30 L); IPL bid steps;
+  accelerated round for the unsold, then fill-up at 30 L for teams short of the minimum.
+- Valuation: runs value per match (selection.value_parts, the XI selector's own number). Replacement level per
+  slot (keeper, 5 bowlers, 5 others; +1 other in Impact Player seasons) = the best player who would make none of
+  the k XIs. A team's worth for a player = gain in its best XI (greedy, empty places at replacement level) x its
+  money rate + 30 L while it still needs bodies. Market rate = 0.9 x free money / runs above replacement still on
+  offer for the open XI places (recomputed every lot); a team's rate is scaled by its money per open place against
+  the others' (0.5-2x). Lognormal spread 0.12 per team and player (seeded). Bids capped to keep 30 L per place
+  still needed. Computer retention: keep while expected price >= the next slot's cost. RTM: the old team uses it
+  if the player is worth the price to it; the computer buyer raises half way to its own worth.
+- Years pool: overseas = not from the chosen home nation; if the pool has too few home players to fill the squads
+  the overseas limits are switched off. Retention from the last auction you played (results/auction_last.json).
+- Result, IPL 2025 pool, no user, seed 1: retentions 0-3 per team (Bumrah, Suryakumar, Rashid, Jaiswal...; CSK
+  none), top buys 21-24 cr, 38 players at 10 cr+ (incl. retained), median sold price 3.5 cr, 154 sold + 11 filled,
+  17 RTM matches, every team ends at the 17-player minimum (the season pool is only ~200 players). Prices follow
+  the engine's ratings, so young players with short, strong records (Priyansh Arya, Suryavanshi, Mhatre) go high.
+- Web: /api/auction/start, /api/auction, /api/auction/act, /api/auction/last; /api/run mode "auction" (league
+  with optional captain, the controller of League Season); `webui/auction.js` (form + auction room).
+- Tests (`tests/test_auction.py`): computer-only auction keeps every rule and reproduces from its seed; random
+  user answers (retain, bid, limits, skips, RTM) keep every rule; years pool with home nation, retention from a
+  given squad, the squads play a tournament; ODI pool without overseas limits.
+- Saved runs (user request, 2026-10-08): results/saved/<name>/ = a copy of results/last plus meta.json (mode,
+  league / format, year, winner, user team, squads: an auction's or draft's squads, else everyone who played, with
+  League Season names "<franchise> <season>" reduced to the franchise). /api/saved (list, save), /api/saved/rename,
+  /api/saved/delete; /api/results and /api/match take ?run=. The auction form offers retention from saved runs of
+  the same league (season pool) or format (years pool) that share teams.

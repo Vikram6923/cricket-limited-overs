@@ -28,6 +28,7 @@ from flask import Flask, abort, jsonify, request, send_from_directory
 from engine.conditions import venue_table
 from engine.control import KINDS, Cancelled, WaitingController
 from engine import history
+from engine.auction import Auction, season_pool, years_pool
 from engine.draft import DEFAULT_TEAMS, Draft
 from engine.data import ratings
 from engine.render import full_text, match_report
@@ -38,6 +39,8 @@ UI = ROOT / "webui"
 TEAMS = ROOT / "data" / "teams.json"
 TEAMS_DEFAULT = ROOT / "data" / "teams_default.json"
 LAST = ROOT / "results" / "last"
+SAVED = ROOT / "results" / "saved"        # runs the user saved: one folder each (summary.json, matches/, meta.json)
+AUCTION_LAST = ROOT / "results" / "auction_last.json"   # squads of the last finished auction (to retain from)
 SEASONS = ROOT / "data" / "league_seasons.json"   # every season of 11 leagues (scripts/build_league_presets.py)
 
 
@@ -233,6 +236,7 @@ class Job:
 JOB: Job | None = None
 LOCK = threading.Lock()
 DRAFT: Draft | None = None     # the draft in progress (or just finished, waiting for its league)
+AUCTION: Auction | None = None  # the auction in progress (or just finished, waiting for its league)
 
 
 def _augment(res: dict) -> None:
@@ -312,6 +316,20 @@ def _run(job: Job, params: dict) -> None:
                                   on_match=on_match)
             res["draft"] = {"teams": DRAFT.teams, "user": DRAFT.user,
                             "board": DRAFT.state()["board"], "years": [DRAFT.y1, DRAFT.y2]}
+        elif params["mode"] == "auction":
+            a = AUCTION
+            control = {job.controller.team: job.controller} if job.controller else None
+            if a.comp:                         # a real season: its conditions, home grounds and IPL playoffs
+                res = play_tournament(a.team_specs(), fmt="t20", comp=a.comp, year=a.year, rounds=2, knockout="ipl",
+                                      home_venues={t: h for t, h in a.homes.items() if h}, seed=seed, rain=rain_,
+                                      on_match=on_match, control=control)
+            else:
+                res = play_tournament(a.team_specs(), fmt=fmt, comp=comp, year=year,
+                                      rounds=int(params.get("rounds") or 1), knockout=params.get("knockout") or "semis",
+                                      venues=venues_, seed=seed, rain=rain_, on_match=on_match, control=control)
+            sm = a.summary()
+            res["draft"] = {"teams": sm["teams"], "user": sm["user"], "board": sm["board"], "auction": True,
+                            "purse": sm["purse"]}
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
                               n=int(params["matches"]),
@@ -325,6 +343,7 @@ def _run(job: Job, params: dict) -> None:
                                   knockout=params.get("knockout") or "semis", venues=venues_, home_venues=homes,
                                   seed=seed, rain=rain_, on_match=on_match)
         res["title"] = job.title
+        res["mode"] = params["mode"]
         _augment(res)
         if LAST.exists():
             shutil.rmtree(LAST)
@@ -359,11 +378,12 @@ def api_meta():
         "draft_teams": DEFAULT_TEAMS,
         "leagues": [{"id": k, "label": lg["label"],
                      "seasons": [{"season": s["season"], "year": s["year"], "max_overseas": s["max_overseas"],
-                                  "teams": [{"name": t["name"], "n": len(t["players"]), "overseas": len(t["overseas"])}
+                                  "teams": [{"name": t["name"], "franchise": t.get("franchise", t["name"]),
+                                             "n": len(t["players"]), "overseas": len(t["overseas"])}
                                             for t in s["teams"]]} for s in lg["seasons"]]}
                     for k, lg in league_seasons().items()],
         "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
-        "teams": load_teams(), "has_results": (LAST / "summary.json").exists(),
+        "teams": load_teams(), "has_results": (LAST / "summary.json").exists(), "saved": saved_runs(),
         "job": JOB.to_dict() if JOB else None,
     })
 
@@ -476,6 +496,27 @@ def api_run():
                 return jsonify(error="Not enough teams for these knockouts / groups."), 400
             total = match_count(len(teams), int(p.get("rounds") or 1), groups if groups > 1 else None, ko)
             title = f"Fantasy draft league - {len(teams)} teams, players from {DRAFT.y1}-{DRAFT.y2}"
+        elif p.get("mode") == "auction":
+            a = AUCTION
+            if not a or not a.done:
+                return jsonify(error="Finish the auction first."), 400
+            if a.comp:
+                p["fmt"], p["comp"], p["year"] = "t20", a.comp, a.year
+                total = match_count(len(a.teams), 2, None, "ipl")
+            else:
+                if a.fmt != fmt:
+                    return jsonify(error=f"The squads were bought for {a.fmt.upper()}."), 400
+                ko = p.get("knockout") or "semis"
+                if ko not in KNOCKOUTS:
+                    return jsonify(error="Unknown knockout format."), 400
+                if len(a.teams) < {"semis": 4, "ipl": 4, "final": 2, "none": 1}[ko]:
+                    return jsonify(error="Not enough teams for these knockouts."), 400
+                total = match_count(len(a.teams), int(p.get("rounds") or 1), None, ko)
+            title = f"Auction league - {a.label}, {len(a.teams)} teams"
+            if p.get("captain") and p["captain"] != a.user:
+                return jsonify(error="You can captain the team you bought for."), 400
+            if p.get("captain"):
+                title += f" - you captain {p['captain']}"
         elif p.get("mode") == "tournament":
             teams = p.get("teams") or []
             if len(teams) < 2:
@@ -499,7 +540,7 @@ def api_run():
         else:
             return jsonify(error="Unknown mode."), 400
         JOB = Job(title, total)
-        if p.get("mode") == "league" and p.get("captain"):
+        if p.get("mode") in ("league", "auction") and p.get("captain"):
             manual = set(p["manual"]) & set(KINDS) if isinstance(p.get("manual"), list) else set(KINDS)
             JOB.controller = WaitingController(p["captain"], manual)
         threading.Thread(target=_run, args=(JOB, p), daemon=True).start()
@@ -577,6 +618,112 @@ def api_draft_pick():
     return jsonify(state=_draft_state())
 
 
+# ------------------------------------------------------------------------------------------------ auction
+
+def _auction_reply(pool: bool = False):
+    a = AUCTION
+    if a.done and a.user is not None and not getattr(a, "_saved", False):     # retain from it next time
+        AUCTION_LAST.parent.mkdir(parents=True, exist_ok=True)
+        AUCTION_LAST.write_text(json.dumps({"label": a.label, "fmt": a.fmt, "squads": a.squad}), encoding="utf-8")
+        a._saved = True
+    out = {"state": a.state()}
+    if pool:
+        out["pool"] = [x.row() for x in a.lots.values()]
+    else:
+        out["changes"] = {i: {"status": x.status, "buyer": x.buyer, "price": x.price, "set": x.set}
+                          for i, x in a.lots.items()}
+    return jsonify(out)
+
+
+def _last_auction() -> dict:
+    try:
+        return json.loads(AUCTION_LAST.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+@app.get("/api/auction/last")
+def api_auction_last():
+    d = _last_auction()
+    return jsonify(label=d.get("label"), fmt=d.get("fmt"), teams=sorted(d.get("squads") or {}))
+
+
+@app.post("/api/auction/start")
+def api_auction_start():
+    """{pool: "season" | "years", league, season | fmt, y1, y2, source, home, years_mode, teams,
+    user, retain: "previous" | "last" | "none", seed}"""
+    global AUCTION
+    d = request.get_json(force=True)
+    if JOB and JOB.status == "running":
+        return jsonify(error="A simulation is running."), 409
+    try:
+        seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
+        if d.get("pool") == "season":
+            if not league_season(d.get("league"), d.get("season")):
+                return jsonify(error="Unknown league or season."), 400
+            pool = season_pool(d["league"], d["season"])
+        else:
+            fmt = d.get("fmt")
+            if fmt not in ("t20", "odi"):
+                return jsonify(error="Choose T20 or ODI."), 400
+            y1, y2 = int(d.get("y1")), int(d.get("y2"))
+            lo, hi = history.first_year(fmt), history.last_year(fmt)
+            if y1 > y2 or y1 < lo or y2 > hi:
+                return jsonify(error=f"Choose years within {lo}-{hi}, start before end."), 400
+            names = [str(x).strip() for x in d.get("teams") or []]
+            if any(not n or len(n) > 40 for n in names) or len(set(names)) != len(names):
+                return jsonify(error="Every team needs a different name (up to 40 characters)."), 400
+            if not 2 <= len(names) <= 12:
+                return jsonify(error="An auction has 2 to 12 teams."), 400
+            source = d.get("source") if d.get("source") in ("full", "intl", "leagues") else "full"
+            if source == "leagues" and fmt != "t20":
+                source = "full"
+            ym = d.get("years_mode") if d.get("years_mode") in ("blend", "only") else "blend"
+            pool = years_pool(fmt, y1, y2, names, source, d.get("home") or None, ym)
+        retain = d.get("retain") or "none"
+        prev = {}
+        if retain == "previous":
+            prev = None                        # the pool's own previous season
+        elif retain == "last":
+            prev = _last_auction().get("squads") or {}
+            if not set(prev) & set(pool["teams"]):
+                return jsonify(error="Your last auction had none of these teams."), 400
+        elif retain.startswith("saved:"):
+            sd = SAVED / retain[6:]
+            if sd.parent != SAVED or not (sd / "summary.json").exists():
+                return jsonify(error="That saved run no longer exists."), 400
+            prev = _run_meta(sd)["squads"]
+            if not set(prev) & set(pool["teams"]):
+                return jsonify(error="That saved run has none of these teams."), 400
+        AUCTION = Auction(pool, user=d.get("user") or None, prev=prev, seed=seed)
+    except (TypeError, ValueError) as e:
+        return jsonify(error=str(e) or "Check the settings."), 400
+    return _auction_reply(pool=True)
+
+
+@app.get("/api/auction")
+def api_auction():
+    if not AUCTION:
+        return jsonify(error="No auction."), 404
+    return _auction_reply(pool=True)
+
+
+@app.post("/api/auction/act")
+def api_auction_act():
+    """The user's answer to the open question, or {auto: "set" | "all"} (the computer bids for the user)."""
+    if not AUCTION or AUCTION.done:
+        return jsonify(error="No auction in progress."), 400
+    d = request.get_json(force=True)
+    try:
+        if d.get("auto") in ("set", "all"):
+            AUCTION.auto(d["auto"])
+        else:
+            AUCTION.act(d.get("answer") or {})
+    except (TypeError, ValueError) as e:
+        return jsonify(error=str(e)), 400
+    return _auction_reply()
+
+
 @app.get("/api/status")
 def api_status():
     return jsonify(JOB.to_dict() if JOB else {"status": "idle"})
@@ -604,9 +751,104 @@ def api_decide():
     return jsonify(ok=True)
 
 
+# ------------------------------------------------------------------------------------------------ saved runs
+
+def _run_dir(run: str | None) -> Path:
+    """The last run, or a saved one (by folder name)."""
+    if not run:
+        return LAST
+    d = SAVED / run
+    if d.parent != SAVED or not (d / "summary.json").exists():
+        abort(404)
+    return d
+
+
+def _base_team(name: str) -> str:
+    """A League Season side is named "<franchise> <season>": the franchise, for retention."""
+    head, _, last = name.rpartition(" ")
+    return head if head and any(ch.isdigit() for ch in last) else name
+
+
+def _run_meta(d: Path) -> dict:
+    """What the saved-runs list and retention need (cached in meta.json): mode, league / format, year, winner, the
+    user's team, and every side's squad (an auction's or draft's squads; otherwise everyone who played)."""
+    mp = d / "meta.json"
+    if mp.exists():
+        return json.loads(mp.read_text(encoding="utf-8"))
+    s = json.loads((d / "summary.json").read_text(encoding="utf-8"))
+    dr = s.get("draft") or {}
+    mode = s.get("mode") or ("auction" if dr.get("auction") else "draft" if dr else s.get("kind"))
+    squads: dict = {}
+    if dr.get("board"):
+        squads = {t: [p["id"] for p in ps] for t, ps in dr["board"].items()}
+    else:
+        for r in s.get("batting", []) + s.get("bowling", []):
+            ids = squads.setdefault(_base_team(r["team"]), [])
+            if r["id"] not in ids:
+                ids.append(r["id"])
+    meta = {"id": d.name, "name": d.name, "saved": time.strftime("%Y-%m-%d %H:%M", time.localtime(d.stat().st_mtime)),
+            "mode": mode, "fmt": s.get("format"), "comp": s.get("competition"), "year": s.get("year"),
+            "title": s.get("title"), "winner": s.get("winner") or s.get("result"), "user": dr.get("user"),
+            "squads": squads}
+    mp.write_text(json.dumps(meta), encoding="utf-8")
+    return meta
+
+
+def saved_runs() -> list[dict]:
+    if not SAVED.exists():
+        return []
+    out = []
+    for d in SAVED.iterdir():
+        if (d / "summary.json").exists():
+            m = _run_meta(d)
+            out.append({k: v for k, v in m.items() if k != "squads"} | {"teams": sorted(m["squads"])})
+    return sorted(out, key=lambda m: m["saved"], reverse=True)
+
+
+@app.get("/api/saved")
+def api_saved():
+    return jsonify(saved_runs())
+
+
+@app.post("/api/saved")
+def api_save():
+    """Save the last run under a name (a copy of results/last; the next run no longer overwrites it)."""
+    if not (LAST / "summary.json").exists():
+        return jsonify(error="No results to save."), 400
+    name = " ".join(str(request.get_json(force=True).get("name") or "").split())
+    name = "".join(ch for ch in name if ch.isalnum() or ch in " -_.,()'&+")[:80].strip(" .")
+    if not name:
+        return jsonify(error="Give the run a name."), 400
+    d = SAVED / name
+    if d.exists():
+        return jsonify(error=f"There is already a saved run called {name!r}."), 400
+    SAVED.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(LAST, d)
+    m = _run_meta(d)
+    m["name"] = name
+    (d / "meta.json").write_text(json.dumps(m), encoding="utf-8")
+    return jsonify(saved=saved_runs())
+
+
+@app.post("/api/saved/rename")
+def api_saved_rename():
+    d = request.get_json(force=True)
+    src = _run_dir(d.get("id") or "")
+    m = _run_meta(src)
+    m["name"] = " ".join(str(d.get("name") or "").split())[:80] or m["name"]
+    (src / "meta.json").write_text(json.dumps(m), encoding="utf-8")
+    return jsonify(saved=saved_runs())
+
+
+@app.post("/api/saved/delete")
+def api_saved_delete():
+    shutil.rmtree(_run_dir(request.get_json(force=True).get("id") or ""))
+    return jsonify(saved=saved_runs())
+
+
 @app.get("/api/results")
 def api_results():
-    p = LAST / "summary.json"
+    p = _run_dir(request.args.get("run")) / "summary.json"
     if not p.exists():
         return jsonify(error="No results yet - run a simulation first."), 404
     return app.response_class(p.read_text(encoding="utf-8"), mimetype="application/json")
@@ -614,7 +856,7 @@ def api_results():
 
 @app.get("/api/match/<int:n>")
 def api_match(n: int):
-    p = LAST / "matches" / f"{n:03d}.json"
+    p = _run_dir(request.args.get("run")) / "matches" / f"{n:03d}.json"
     if not p.exists():
         abort(404)
     card = json.loads(p.read_text(encoding="utf-8"))

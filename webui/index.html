@@ -23,6 +23,8 @@
     <button class="mode" data-mode="classic_t"><b>Classic Tournament</b><span>Nations across eras</span></button>
     <button class="mode" data-mode="league"><b>League Season</b><span>IPL, BBL, PSL and more - any season</span></button>
     <button class="mode" data-mode="draft"><b>Fantasy Draft</b><span>Draft squads, then play</span></button>
+    <button class="mode" data-mode="auction"><b>Auction</b><span>IPL-style auction with retentions, then a league</span></button>
+    <button class="mode" data-mode="saved"><b>Saved runs</b><span>Open the seasons and series you kept</span></button>
     <button class="mode" data-mode="builder"><b>Team Builder</b><span>Create and edit teams</span></button>
   </div>
 
@@ -125,6 +127,52 @@
     <div class="total" id="d-total"></div>
   </div>
 
+  <!-- Auction -->
+  <div class="form" id="f-auction">
+    <h2>Auction</h2><p class="hint">An IPL-style auction: ₹120 crore purse, squads of 18–25 (max 8 overseas), retentions and Right to Match cards, players in sets with base prices, an accelerated round for the unsold. Bid live for your team (the computer shows what it would bid), or let the computer bid. Then the squads play a league, and you can captain your side.</p>
+    <div class="fg"><label>Players</label><select id="a-pool">
+      <option value="season">A real league season (its players and franchises)</option>
+      <option value="years">Players from a range of years (as in the draft)</option></select></div>
+    <div id="a-season-box">
+      <div class="seg2">
+        <div class="fg"><label>League</label><select id="a-league"></select></div>
+        <div class="fg"><label>Season</label><select id="a-season"></select></div>
+      </div>
+      <div class="hint" style="margin:-4px 0 8px">Everyone who played that season goes into the auction, rated on their careers; the league is played in that season's conditions, at the franchises' home grounds.</div>
+      <div class="fg"><label><input type="checkbox" id="a-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label></div>
+    </div>
+    <div id="a-years-box" style="display:none">
+      <div class="fg"><label>Player pool years</label>
+        <div class="era"><input type="number" id="a-ya" value="2015"><span class="to">to</span><input type="number" id="a-yb" value="2025"></div></div>
+      <div class="fg"><label>Pool</label><select id="a-src">
+        <option value="full">Full-member internationals</option>
+        <option value="leagues">Full-member internationals + franchise leagues (T20)</option>
+        <option value="intl">All internationals (associate ratings run high)</option></select></div>
+      <div class="fg"><label>Ratings for those years</label><select id="a-ymode">
+        <option value="blend">Blended with the career (most accurate)</option>
+        <option value="only">Those years only (noisier)</option></select></div>
+      <div class="fg"><label>Home nation (others are overseas)</label><select id="a-home"></select>
+        <div class="hint" style="margin:4px 0 0">Overseas limits apply only if the pool has enough home players to fill the squads.</div></div>
+      <div class="fg"><label>Number of teams</label><input type="number" id="a-k" value="8" min="2" max="12"></div>
+      <div class="fg"><label>Team names</label><div id="a-names"></div></div>
+      <div class="seg2">
+        <div class="fg"><label>Rounds</label><select id="a-rounds"><option value="1">Single round robin</option><option value="2" selected>Double (home and away)</option></select></div>
+        <div class="fg"><label>Knockouts</label><select id="a-ko"></select></div>
+      </div>
+    </div>
+    <div class="fg"><label>Retain players from</label><select id="a-retain"></select></div>
+    <div class="fg"><label>You bid for</label><select id="a-user"></select></div>
+    <div class="fg" id="a-captain-box"><label><input type="checkbox" id="a-captain" checked style="width:auto;margin-right:6px">Captain my team in the league</label></div>
+    <div class="fg"><label>Seed (optional)</label><input type="text" id="a-seed" placeholder="random"></div>
+    <div class="total" id="a-total"></div>
+  </div>
+
+  <!-- Saved runs -->
+  <div class="form" id="f-saved">
+    <h2>Saved runs</h2><p class="hint">Runs you saved from the results page (“Save this run”). Each keeps its full results: tables, every match, stats, MVP race, and the squads of a draft or auction. A saved auction league can also be retained from in a later auction of the same league. They live in results/saved/ on this computer.</p>
+    <div id="sv-list"></div>
+  </div>
+
   <!-- Team builder -->
   <div class="form" id="f-builder">
     <h2>Team builder</h2><p class="hint">Search the player database on the right and add 11–15 players (with more than 11, the captain picks the XI for each match). Teams are saved by player, so they work in both formats.</p>
@@ -163,6 +211,7 @@
       <div class="card"><b>Tournament</b><span>A World Cup or IPL-style event: round robin or two groups, then semi-finals, IPL playoffs or a final. Points tables with net run rate.</span></div>
       <div class="card"><b>Classic Series / Tournament</b><span>Nations from any year range since Cricsheet's coverage began (ODIs ~2002, T20Is 2005), each rated on those years: Australia 2003–07 v India 2011, or a tournament of great sides.</span></div>
       <div class="card"><b>Fantasy Draft</b><span>You and computer teams draft 15-man squads from an era's player pool in snake order, then play a league with knockouts.</span></div>
+      <div class="card"><b>Auction</b><span>Retain players, then bid against computer teams in an IPL-style auction for a real season's players or an era's; then play the league and captain your side.</span></div>
       <div class="card"><b>Team Builder</b><span>Hand-pick 11–15 players from about 6,500 rated players and save the team for series and tournaments.</span></div>
     </div>
     <p class="small muted" id="home-note"></p>
@@ -205,7 +254,9 @@
 
   <!-- results -->
   <section class="view" id="v-results">
-    <div class="res-head"><h2 id="r-title">Results</h2><span class="muted small" id="r-sub"></span><span class="mos" id="r-pos" style="display:none"></span></div>
+    <div class="res-head"><h2 id="r-title">Results</h2><span class="muted small" id="r-sub"></span><span class="mos" id="r-pos" style="display:none"></span>
+      <span style="flex:1"></span><span class="muted small" id="r-saved"></span>
+      <button class="btn sec" id="r-save" style="width:auto">💾 Save this run</button></div>
     <div class="tabs" id="r-tabs">
       <button class="tab on" data-pane="p-summary">Summary</button>
       <button class="tab" data-pane="p-matches">Matches</button>
@@ -256,6 +307,38 @@
     </div>
   </section>
 
+  <!-- auction room -->
+  <section class="view" id="v-auction">
+    <div class="draft-top">
+      <h2 style="font-size:1.1rem" id="au-title">Auction</h2>
+      <span class="turn" id="au-turn"></span>
+      <span class="muted small" id="au-progress"></span>
+      <span class="err" id="au-msg"></span>
+      <span style="flex:1"></span>
+      <button class="btn sec" id="au-skip-set">Computer bids for me: rest of this set</button>
+      <button class="btn sec" id="au-skip-all">Computer bids for me: rest of auction</button>
+      <button class="btn go" id="au-play" style="display:none;width:auto">▶ Play the league</button>
+    </div>
+    <div class="cap-grid">
+      <div>
+        <div class="cap-panel" id="au-q"></div>
+        <div class="muted small" id="au-upcoming" style="margin:-4px 0 10px"></div>
+        <div class="cap-panel"><h3>Latest</h3><table class="mini" id="au-sales"></table></div>
+        <h3>Players</h3>
+        <div class="filters">
+          <input type="text" id="ap-search" placeholder="Search name…">
+          <select id="ap-status"></select><select id="ap-role"></select>
+        </div>
+        <div class="tbl" id="ap-table" style="max-height:52vh"></div>
+      </div>
+      <div>
+        <div class="cap-panel"><h3>Teams</h3><table class="mini" id="au-teams"></table></div>
+        <div class="cap-panel" id="au-squad-box"><h3 id="au-squad-title">Your squad</h3><ul class="squad" id="au-squad"></ul></div>
+        <h3>All squads</h3><div class="board" id="au-board"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- team builder -->
   <section class="view" id="v-builder">
     <div class="builder">
@@ -287,6 +370,7 @@
 <div class="toast" id="toast"></div>
 <div id="popover"></div>
 <script src="/ui/captain.js"></script>
+<script src="/ui/auction.js"></script>
 <script src="/ui/app.js"></script>
 </body>
 </html>
