@@ -33,6 +33,7 @@ class Team:
     bench: list[Player] = field(default_factory=list)   # squad players not in the XI (Impact Player candidates)
     max_overseas: int | None = None
     impact: dict | None = None   # the Impact Player substitution made, if any
+    squad: list[Player] = field(default_factory=list)   # everyone available (XI + bench) before the toss
 
 
 @dataclass
@@ -103,7 +104,7 @@ def make_team(spec: dict, fmt: str, ctx: dict | None = None) -> Team:
     capt = by_id.get(spec.get("captain")) or max(ps, key=lambda p: p.bat_balls + p.bowl_balls)
     bench = [p for p in squad if p not in ps] if spec.get("squad") else []
     return Team(spec["name"], ps, keeper, capt, order, fixed_order=bool(spec.get("order")), bench=bench,
-                max_overseas=spec.get("max_overseas"))
+                max_overseas=spec.get("max_overseas"), squad=ps + bench)
 
 
 class Innings:
@@ -220,12 +221,17 @@ class Innings:
                         pool = fielders
                     bowler = captain.choose_bowler(pool, self.bowl.keeper, quota_left, self.max_overs - over,
                                                    last, ph, base, fmt, self.m.rng, base_of=self.m.base_of)
+                if self.m.control:
+                    bowler, changed = self.m.bowler_turn(self, over, bowler, last, quota_left, ph)
+                    if changed:                # Impact Player came in: the rest chosen over by over
+                        fielders, plan = self.bowl.players, None
             quota_left[bowler] = quota_left.get(bowler, 0) - 1
             self.bowl_over(over, bowler, ph, self.m.base_of(bowler)[ph])
             last = bowler
             if not self.done and self.legal % 6 == 0:
                 self.striker, self.non_striker = self.non_striker, self.striker
             if (not self.done and self.number == 1 and self.m.impact_player and not self.super_over
+                    and not self.m.manual(self.bowl, "impact")
                     and self.m.impact_mid_bowling(self, quota_left)):
                 fielders = self.bowl.players   # a bowler came in: the rest of the innings is chosen over by over
                 plan = None
@@ -414,9 +420,11 @@ class Innings:
         if self.wkts >= self.max_wkts or self.next_in >= len(self.cards):
             self.done = True
         else:
-            if self.m.impact_player and not self.super_over:
+            if self.m.impact_player and not self.super_over and not self.m.manual(self.bat, "impact"):
                 self.m.impact_mid_innings(self)
             j = self.pick_next()
+            if self.m.control and not self.super_over:
+                j = self.m.batter_turn(self, j)
             if j != self.next_in:              # move the chosen batter up to the next slot
                 self.cards.insert(self.next_in, self.cards.pop(j))
                 for i, c in enumerate(self.cards):
@@ -518,7 +526,8 @@ class Match:
                  decision: str | None = None, overs: int | None = None, use_situation: bool = True,
                  use_plan: bool = True, use_venue: bool = True, pitch: dict | None = None,
                  use_matchups: bool = True, use_pitch: bool = True, impact_player: bool | None = None,
-                 rain_on: bool = False, use_spin: bool = True, use_reactive: bool = True):
+                 rain_on: bool = False, use_spin: bool = True, use_reactive: bool = True,
+                 control: dict | None = None):
         if fmt not in FORMATS:
             raise ValueError(f"format must be one of {sorted(FORMATS)}")
         self.fmt, self.year, self.venue = fmt, year, venue
@@ -566,6 +575,9 @@ class Match:
         # IPL Impact Player rule (2023 onwards): one substitute per side, used at the innings break
         self.impact_player = impact_player if impact_player is not None else (self.comp == "ipl" and year >= 2023)
         self.toss_spec, self.decision_spec = toss, decision
+        # manual captaincy (engine/control.py): team name -> controller, for the sides a person captains
+        self.control = {t.name: control[t.name] for t in self.teams if control and t.name in control}
+        self.key = f"{self.seed}|{self.teams[0].name}|{self.teams[1].name}"
         self.innings: list[Innings] = []
         self.super_overs: list[Innings] = []
         self.wpa: dict[str, float] = {}
@@ -676,23 +688,285 @@ class Match:
         quota_left.pop(out, None)
         return True
 
+    # ------------------------------------------------------------------ manual captaincy (engine/control.py)
+    def manual(self, team: Team, kind: str, inn: "Innings | None" = None) -> bool:
+        ctl = self.control.get(team.name)
+        return bool(ctl and ctl.manual(kind, self.key, inn.number if inn else None))
+
+    def ask(self, team: Team, kind: str, payload: dict, inn: "Innings | None" = None, skip_inn: bool = True):
+        """The person's answer for `team` (None = the computer's choice, also when the decision isn't theirs)."""
+        if not self.manual(team, kind, inn if skip_inn else None):
+            return None
+        q = {"kind": kind, "team": team.name, "match_key": self.key,
+             "innings": inn.number if inn and skip_inn else None,
+             "state": self.live(inn) if inn else self.pre_state(team), **payload}
+        return self.control[team.name].decide(q)
+
+    def pre_state(self, team: Team) -> dict:
+        a, b = self.teams
+        return {"match": f"{a.name} v {b.name}", "venue": self.venue, "pitch": self.conditions["report"],
+                "format": self.fmt, "overs": self.overs, "rain": list(self.rain_log),
+                "opponent": (b if team is a else a).name}
+
+    def live(self, inn: "Innings") -> dict:
+        """The scorecard so far, for a person captaining: score, chase, batters, bowlers, recent overs, events."""
+        st = self.pre_state(inn.bat)
+        balls_left = inn.max_overs * 6 - inn.legal
+        st.update({
+            "innings": inn.number, "batting": inn.bat.name, "bowling": inn.bowl.name, "runs": inn.runs,
+            "wkts": inn.wkts, "overs_done": inn.over_str(), "max_overs": inn.max_overs, "target": inn.target,
+            "crr": round(6 * inn.runs / inn.legal, 2) if inn.legal else None,
+            "need": inn.target - inn.runs if inn.target else None, "balls_left": balls_left,
+            "rrr": round(6 * (inn.target - inn.runs) / balls_left, 2) if inn.target and balls_left > 0 else None,
+            "win_prob": round(self.wp_batting(inn), 3) if not inn.super_over else None,
+            "previous": [f"{i.bat.name} {i.score_str()} ({i.over_str()} ov)" for i in self.innings_so_far()
+                         if i is not inn],
+            "batters": [{"name": c.p.name, "runs": c.runs, "balls": c.balls, "fours": c.fours, "sixes": c.sixes,
+                         "out": c.out, "how": (c.how or {}).get("text"), "batted": c.batted,
+                         "on_strike": c is inn.striker and not c.out,
+                         "at_crease": c in (inn.striker, inn.non_striker) and not c.out}
+                        for c in inn.cards],
+            "bowlers": [{"name": f.p.name, "overs": f"{f.balls // 6}.{f.balls % 6}", "maidens": f.maidens,
+                         "runs": f.runs, "wkts": f.wkts} for f in inn.figs.values()],
+            "partnership": {"runs": inn.pship["runs"], "balls": inn.pship["balls"]},
+            "recent": [{"over": o["over"], "bowler": o["bowler"], "balls": o["balls"], "runs": o["runs"]}
+                       for o in inn.overs[-4:]],
+            "events": [e["over"] + " " + e["text"] for e in inn.events[-6:]],
+        })
+        return st
+
+    def innings_so_far(self) -> list:
+        return [i for i in (getattr(self, "_i1", None), getattr(self, "_i2", None)) if i is not None]
+
+    def pinfo(self, p: Player, ph: str | None = None) -> dict:
+        """What a captain sees about a player: role, career numbers, and expected rates in this phase today."""
+        r = p.ref or {}
+        b, w = r.get("bat") or {}, r.get("bowl") or {}
+        if p.keeper:
+            role = "WK"
+        elif (p.bowl_role or "").startswith("spec"):
+            role = ("All-rounder" if p.bat_role in ("top", "middle") else
+                    "Spin" if p.bowl_type == "spin" else "Pace")
+        else:
+            role = "Batter"
+        d = {"id": p.id, "name": p.name, "role": role, "hand": p.bat_hand, "overseas": p.overseas,
+             "kind": (p.bowl_kind or "").replace("_", " "), "slot": p.usual_slot,
+             "bat_avg": b.get("avg"), "bat_sr": b.get("sr"),
+             "bowl_econ": w.get("econ") if p.rated_bowl else None, "bowl_avg": w.get("avg") if p.rated_bowl else None,
+             "overs_per_match": round(p.bowl_overs_per_match, 1)}
+        if ph:
+            bb, bw = self.base[ph], self.base_of(p)[ph]
+            d["phase"] = ph
+            d["phase_sr"] = round(100 * bb["runs"] * p.bat[ph]["runs"], 1)
+            d["phase_econ"] = round(6 * (bw["runs"] * p.bowl[ph]["runs"] + bw["wide"] * p.wide
+                                         + bw["noball"] * p.noball), 2)
+        return d
+
+    def ask_xi(self, team: Team, batting_first: bool, toss: str) -> None:
+        """The XI (in batting order), keeper and Impact Player substitutes, after the toss."""
+        from .impact import N_SUBS
+        squad = team.squad or team.players + team.bench
+        imp = bool(self.impact_player)
+        default = {"xi": [p.id for p in team.order], "keeper": team.keeper.id,
+                   "subs": [p.id for p in team.bench] if imp else []}
+        ans = self.ask(team, "xi", {"options": [self.pinfo(p) for p in squad], "default": default,
+                                    "max_overseas": team.max_overseas, "n_subs": N_SUBS if imp else 0,
+                                    "batting_first": batting_first, "toss": toss})
+        if not isinstance(ans, dict):
+            return
+        by = {p.id: p for p in squad}
+        xi = [by[i] for i in ans.get("xi") or [] if i in by]
+        keeper = by.get(ans.get("keeper"))
+        if len(set(xi)) != 11 or len(xi) != 11 or keeper not in xi:
+            return
+        if team.max_overseas is not None and sum(p.overseas for p in xi) > team.max_overseas:
+            return
+        team.players, team.order, team.keeper = xi, list(xi), keeper
+        if imp:
+            subs = [by[i] for i in ans.get("subs") or [] if i in by and by[i] not in xi]
+            team.bench = list(dict.fromkeys(subs))[:N_SUBS]
+        else:
+            team.bench = [p for p in squad if p not in xi]
+        if team.captain not in xi:
+            team.captain = max(xi, key=lambda p: p.bat_balls + p.bowl_balls)
+
+    def impact_block(self, team: Team, inn: "Innings | None", sugg: dict | None, batting: bool) -> dict:
+        """The Impact Player options for a decision screen: who can go out, who can come in, the computer's
+        suggestion (None = it would wait)."""
+        at_crease = {c.p for c in (inn.striker, inn.non_striker)} if inn is not None and batting else set()
+        return {"outs": [self.pinfo(p) for p in team.players if p is not team.keeper and p not in at_crease],
+                "ins": [self.pinfo(p) for p in team.bench], "max_overseas": team.max_overseas,
+                "overseas_in_xi": sum(p.overseas for p in team.players), "suggestion": sugg}
+
+    def manual_impact(self, team: Team, choice: dict | None, inn: "Innings | None", quota_left: dict | None = None,
+                      when: str = "", index: int | None = None) -> bool:
+        """Make the person's Impact Player substitution, if allowed. Batting: the new player takes the place of the
+        one going out in the order still to come (or goes in next if that player has batted)."""
+        from .impact import _allowed
+        if not isinstance(choice, dict) or team.impact:
+            return False
+        out = next((p for p in team.players if p.id == choice.get("out")), None)
+        new = next((p for p in team.bench if p.id == choice.get("in")), None)
+        if out is None or new is None or out is team.keeper or not _allowed(team.players, team.max_overseas, out, new):
+            return False
+        batting = inn is not None and inn.bat is team
+        if batting and any(c.p is out and not c.out for c in (inn.striker, inn.non_striker)):
+            return False
+        need = choice.get("for") or ("bat" if batting else "bowl")
+        self._apply_impact(team, out, new, need, when or (f"after {inn.ball_str()} overs" if inn else "innings break"),
+                           float(choice.get("gain") or 0.0), inn)
+        team.order = [new if p is out else p for p in team.order]
+        if batting:
+            rem = [c.p for c in inn.cards[inn.next_in:]]
+            if out in rem and index is None:
+                inn.cards[inn.next_in + rem.index(out)] = BatInns(new, 0)
+            else:
+                inn.cards = [c for k, c in enumerate(inn.cards) if k < inn.next_in or c.p is not out]
+                inn.cards.insert(inn.next_in + (index or 0), BatInns(new, 0))
+            for k, c in enumerate(inn.cards):
+                c.pos = k + 1
+        if quota_left is not None:
+            quota_left[new] = rain.quota(inn.max_overs) if inn else FORMATS[self.fmt]["quota"]
+            quota_left.pop(out, None)
+        return True
+
+    def ask_break_impact(self, team: Team, need: str, i1: "Innings") -> None:
+        """Innings break: the person's Impact Player call (the computer's suggestion is its own break swap)."""
+        from . import impact
+        if team.impact or not team.bench:
+            return
+        best = impact.best_break_swap(team, need, self.fmt, self.base, self._slot_balls())
+        sugg = {"out": best[1].id, "in": best[2].id, "gain": round(best[0], 1), "for": need} if best else None
+        ans = self.ask(team, "impact", {"default": sugg, "moment": "innings break", "for": need,
+                                        "impact": self.impact_block(team, None, sugg, False)}, i1, skip_inn=False)
+        if ans is None:
+            self.impact_swap(team, need)          # the computer's choice
+        elif isinstance(ans, dict) and ans.get("in"):
+            self.manual_impact(team, {**ans, "for": need}, None, when="innings break")
+
+    def bowler_turn(self, inn: "Innings", over: int, default: Player, last: Player | None, quota_left: dict,
+                    ph: str) -> tuple[Player, bool]:
+        """Each over in the field: the person's bowler (and Impact Player substitution, if made). Returns
+        (bowler, whether the substitution was made)."""
+        from . import impact
+        team = inn.bowl
+        if team.name not in self.control:
+            return default, False
+        left = inn.max_overs - over
+
+        def valid():
+            out = []
+            for p in team.players:
+                if p is last or quota_left.get(p, 0) <= 0:
+                    continue
+                q = dict(quota_left)
+                q[p] -= 1
+                if captain.feasible(q, left - 1, p):
+                    out.append(p)
+            return [p for p in out if p is not team.keeper] or out
+        imp_ok = self.impact_player and not team.impact and team.bench and self.manual(team, "impact", inn)
+        sugg = None
+        if imp_ok and inn.number == 1:            # the computer's own rule 3 (bowling first)
+            brk = impact.best_break_swap(team, "bat", self.fmt, self.base, self._slot_balls())
+            pick = impact.bowling_swap(team, quota_left, inn.max_overs - inn.legal // 6, self.fmt, self.base,
+                                       self._slot_balls(), brk[0] if brk else 0.0)
+            if pick:
+                sugg = {"out": pick[1].id, "in": pick[2].id, "gain": round(pick[0], 1), "for": pick[3]}
+        opts = valid()
+        block = self.impact_block(team, inn, sugg, False) if imp_ok else None
+        if self.manual(team, "bowler", inn) and (len(opts) > 1 or sugg):
+            ans = self.ask(team, "bowler", {"options": [dict(self.pinfo(p, ph), quota_left=quota_left.get(p, 0))
+                                                        for p in opts],
+                                            "default": default.id, "over": over + 1, "impact": block}, inn)
+            if ans is None:
+                ans = {"bowler": default.id, "impact": sugg}
+        elif sugg:                                 # bowler left to the computer: ask only when it would sub now
+            a = self.ask(team, "impact", {"default": sugg, "moment": f"before over {over + 1}", "for": sugg["for"],
+                                          "impact": block}, inn)
+            ans = {"bowler": default.id, "impact": sugg if a is None else a}
+        else:
+            return default, False
+        ans = ans if isinstance(ans, dict) else {}
+        changed = self.manual_impact(team, ans.get("impact"), inn, quota_left)
+        if changed:
+            opts = valid()
+        pick = next((p for p in opts if p.id == ans.get("bowler")), None)
+        if pick is None:
+            pick = default if default in opts else captain.choose_bowler(
+                team.players, team.keeper, quota_left, left, last, ph, self.base[ph], self.fmt, self.rng,
+                base_of=self.base_of)
+        return pick, changed
+
+    def batter_turn(self, inn: "Innings", j: int) -> int:
+        """At the fall of a wicket: the person's next batter (and Impact Player substitution, if made). Returns
+        the index in inn.cards of the batter going in."""
+        from . import impact
+        team = inn.bat
+        if team.name not in self.control:
+            return j
+        ph = phase_at(min(inn.legal // 6, inn.max_overs - 1), self.fmt, inn.max_overs)
+        imp_ok = self.impact_player and not team.impact and team.bench and self.manual(team, "impact", inn)
+        sugg = None
+        if imp_ok:                                 # the computer's own rule 2
+            brk = None
+            if inn.number == 1:
+                b = impact.best_break_swap(team, "bowl", self.fmt, self.base, self._slot_balls())
+                brk = b[0] if b else 0.0
+            pick = impact.batting_swap(team, inn.cards, inn.next_in, inn.wkts, inn.legal + inn.offset(), self.fmt,
+                                       self.base, brk)
+            if pick:
+                sugg = {"out": pick[1].id, "in": pick[2].id, "gain": round(pick[0], 1), "for": pick[4],
+                        "index": pick[3]}
+        rem = inn.cards[inn.next_in:]
+        block = self.impact_block(team, inn, sugg, True) if imp_ok else None
+        default = inn.cards[j].p
+        if self.manual(team, "batter", inn) and (len(rem) > 1 or sugg):
+            ans = self.ask(team, "batter", {"options": [self.pinfo(c.p, ph) for c in rem], "default": default.id,
+                                            "impact": block}, inn)
+            if ans is None:
+                ans = {"batter": None, "impact": sugg}
+        elif sugg:
+            a = self.ask(team, "impact", {"default": sugg, "moment": f"after the fall of wicket {inn.wkts}",
+                                          "for": sugg["for"], "impact": block}, inn)
+            ans = {"batter": None, "impact": sugg if a is None else a}
+        else:
+            return j
+        ans = ans if isinstance(ans, dict) else {}
+        imp = ans.get("impact")
+        same = bool(sugg and isinstance(imp, dict) and imp.get("out") == sugg["out"] and imp.get("in") == sugg["in"])
+        if self.manual_impact(team, imp, inn, index=sugg["index"] if same else None):
+            j = inn.pick_next()
+        k = next((i for i in range(inn.next_in, len(inn.cards)) if inn.cards[i].p.id == ans.get("batter")), None)
+        return k if k is not None else j
+
     def play(self) -> dict:
         a, b = self.teams
         toss_winner = {"a": a, "b": b}.get(self.toss_spec) or (a if self.rng.random() < 0.5 else b)
         decision = self.decision_spec or captain.toss_decision(self.fmt, self.rng, self.venue)
+        ans = self.ask(toss_winner, "toss", {"options": ["bat", "bowl"], "default": decision,
+                                             "text": f"{toss_winner.name} won the toss."})
+        if ans in ("bat", "bowl"):
+            decision = ans
         first = toss_winner if decision == "bat" else (b if toss_winner is a else a)
         second = b if first is a else a
-        if self.impact_player:                 # XI and substitutes are named after the toss
-            from .impact import choose_xi
-            choose_xi(first, True, self.fmt, self.base, self._slot_balls())
-            choose_xi(second, False, self.fmt, self.base, self._slot_balls())
-        i1 = Innings(self, first, second, 1, None, self.overs)
+        toss_text = f"{toss_winner.name} won the toss and chose to {decision}."
+        for t, bat_first in ((first, True), (second, False)):
+            if self.impact_player:             # XI and substitutes are named after the toss
+                from .impact import choose_xi
+                choose_xi(t, bat_first, self.fmt, self.base, self._slot_balls())
+            if t.name in self.control:
+                self.ask_xi(t, bat_first, toss_text)
+        i1 = self._i1 = Innings(self, first, second, 1, None, self.overs)
         i1.play()
         i1.close_partnership()
         self.innings_first_runs = i1.runs
         if self.impact_player:
-            self.impact_swap(first, "bowl")    # batted first: bring in the best bowler for the defence
-            self.impact_swap(second, "bat")    # has bowled: bring in the best batter for the chase
+            for t, need in ((first, "bowl"), (second, "bat")):
+                # batted first: the best bowler for the defence; has bowled: the best batter for the chase
+                if self.manual(t, "impact"):
+                    self.ask_break_impact(t, need, i1)
+                else:
+                    self.impact_swap(t, need)
         p = self.rain_profile or {}
         if "stop1" in p:                       # washed out during the first innings or at the break
             self.no_result = True
@@ -701,7 +975,7 @@ class Match:
             result = {"type": "no_result", "winner": None, "text": "No result"}
         else:
             m2 = self.chase_overs(i1)
-            i2 = Innings(self, second, first, 2, self.dls.target(i1.runs), m2)
+            i2 = self._i2 = Innings(self, second, first, 2, self.dls.target(i1.runs), m2)
             if i2.target != i1.runs + 1:
                 self.rain_log.append(f"{second.name} need {i2.target} from {m2} overs (DLS).")
             i2.play()
@@ -735,6 +1009,11 @@ class Match:
             card["turning_point"] = tp
             card["events"].append({"innings": tp["innings"], "over": str(tp["over"]), "score": tp["score"],
                                    "kind": "turning_point", "text": tp["text"]})
+        for t in self.teams:
+            if t.name in self.control:
+                self.ask(t, "result", {"result": result["text"], "pom": card["player_of_match"],
+                                       "scores": [f"{i.bat.name} {i.score_str()} ({i.over_str()} ov)"
+                                                  for i in self.innings]}, self.innings[-1])
         return card
 
     def chase_overs(self, i1: Innings) -> int:

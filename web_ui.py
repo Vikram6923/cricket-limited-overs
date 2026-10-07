@@ -26,6 +26,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_from_directory
 
 from engine.conditions import venue_table
+from engine.control import KINDS, Cancelled, WaitingController
 from engine import history
 from engine.draft import DEFAULT_TEAMS, Draft
 from engine.data import ratings
@@ -217,10 +218,16 @@ class Job:
         self.status, self.error = "running", None
         self.started, self.finished = time.time(), None
         self.cancel = False
+        self.controller: WaitingController | None = None   # manual captaincy: the side the person captains
 
     def to_dict(self) -> dict:
-        return {"status": self.status, "title": self.title, "done": self.done, "total": self.total,
-                "elapsed": round((self.finished or time.time()) - self.started, 1), "error": self.error}
+        d = {"status": self.status, "title": self.title, "done": self.done, "total": self.total,
+             "elapsed": round((self.finished or time.time()) - self.started, 1), "error": self.error}
+        c = self.controller
+        if c:
+            d["captain"] = {"team": c.team, "manual": sorted(c.manual_kinds), "pending": c.pending,
+                            "skip": (c.skip or {}).get("scope")}
+        return d
 
 
 JOB: Job | None = None
@@ -293,8 +300,10 @@ def _run(job: Job, params: dict) -> None:
             specs = [{"name": t["name"], "squad": t["players"], "overseas": t["overseas"],
                       "max_overseas": t["max_overseas"]} for t in s["teams"]]
             homes = {t["name"]: t["home_venue"] for t in s["teams"] if t.get("home_venue")}
+            control = {job.controller.team: job.controller} if job.controller else None
             res = play_tournament(specs, fmt="t20", comp=params["league"], year=s["year"], rounds=2, knockout="ipl",
-                                  venues=venues_, home_venues=homes, seed=seed, rain=rain_, on_match=on_match)
+                                  venues=venues_, home_venues=homes, seed=seed, rain=rain_, on_match=on_match,
+                                  control=control)
         elif params["mode"] == "draft":
             groups = int(params.get("groups") or 1)
             res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
@@ -321,7 +330,7 @@ def _run(job: Job, params: dict) -> None:
             shutil.rmtree(LAST)
         save(res, LAST)
         job.status = "done"
-    except Stopped:
+    except (Stopped, Cancelled):
         job.status = "stopped"
     except Exception as e:  # noqa: BLE001 - shown to the user
         job.status, job.error = "error", f"{e}\n\n{traceback.format_exc()}"
@@ -447,6 +456,11 @@ def api_run():
             p["comp"], p["year"] = p["league"], s["year"]
             total = match_count(len(s["teams"]), 2, None, "ipl")
             title = f"{s['label']} {s['season']} - {len(s['teams'])} teams, double round robin + playoffs"
+            cap = p.get("captain") or None
+            if cap and cap not in {t["name"] for t in s["teams"]}:
+                return jsonify(error="Choose a team from this season to captain."), 400
+            if cap:
+                title += f" - you captain {cap}"
         elif p.get("mode") == "draft":
             if not DRAFT or not DRAFT.done:
                 return jsonify(error="Finish the draft first."), 400
@@ -485,6 +499,9 @@ def api_run():
         else:
             return jsonify(error="Unknown mode."), 400
         JOB = Job(title, total)
+        if p.get("mode") == "league" and p.get("captain"):
+            manual = set(p["manual"]) & set(KINDS) if isinstance(p.get("manual"), list) else set(KINDS)
+            JOB.controller = WaitingController(p["captain"], manual)
         threading.Thread(target=_run, args=(JOB, p), daemon=True).start()
     return jsonify(ok=True)
 
@@ -569,6 +586,21 @@ def api_status():
 def api_stop():
     if JOB and JOB.status == "running":
         JOB.cancel = True
+        if JOB.controller:
+            JOB.controller.cancel()
+    return jsonify(ok=True)
+
+
+@app.post("/api/decide")
+def api_decide():
+    """The captain's answer to the open question: {id, choice (None = the computer's), auto: {kind: bool},
+    skip: "innings" | "match" | "all"}."""
+    p = request.get_json(force=True)
+    c = JOB.controller if JOB and JOB.status == "running" else None
+    if not c:
+        return jsonify(error="No match is waiting for a decision."), 409
+    if not c.answer(int(p.get("id") or 0), p.get("choice"), p.get("auto"), p.get("skip")):
+        return jsonify(error="That decision has already been made."), 409
     return jsonify(ok=True)
 
 

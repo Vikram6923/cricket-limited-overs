@@ -85,6 +85,18 @@
       <div class="fg"><label>Season</label><select id="l-season"></select></div>
     </div>
     <div class="fg"><label>Teams</label><div class="roster" id="l-teams"></div></div>
+    <div class="fg"><label>Captain a team (optional)</label><select id="l-captain"></select>
+      <div class="hint" style="margin:4px 0 0">You make that side's decisions in its matches; every screen shows what the computer would do. Other matches play automatically.</div></div>
+    <div class="fg" id="l-manual-box" style="display:none"><label>Decisions you make</label>
+      <div class="checks" id="l-manual">
+        <label><input type="checkbox" value="toss" checked> Toss</label>
+        <label><input type="checkbox" value="xi" checked> Playing XI</label>
+        <label><input type="checkbox" value="bowler" checked> Bowler each over</label>
+        <label><input type="checkbox" value="batter" checked> Next batter</label>
+        <label id="l-impact-opt"><input type="checkbox" value="impact" checked> Impact Player</label>
+        <label><input type="checkbox" value="result" checked> Pause after my matches</label>
+      </div>
+      <div class="hint" style="margin:4px 0 0">Anything unticked is left to the computer. Obvious calls (one possible bowler, the last batter) are never asked.</div></div>
     <div class="fg"><label>Seed (optional)</label><input type="text" id="l-seed" placeholder="random"></div>
     <div class="fg"><label><input type="checkbox" id="l-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (the league's home country).</div></div>
     <div class="total" id="l-total"></div>
@@ -164,6 +176,32 @@
     <div class="muted small" id="run-count"></div>
     <div style="margin-top:22px"><button class="btn stop" onclick="stopJob()">■ Stop</button></div>
   </div></section>
+
+  <!-- manual captaincy -->
+  <section class="view" id="v-captain">
+    <div class="cap-head">
+      <div><h2 id="cap-title">Captain</h2><div class="muted small" id="cap-ctx"></div></div>
+      <span style="flex:1"></span>
+      <span class="muted small" id="cap-progress"></span>
+      <button class="btn stop" onclick="stopJob()">■ Stop</button>
+    </div>
+    <div class="cap-grid">
+      <div id="cap-score"></div>
+      <div>
+        <div class="cap-panel" id="cap-q"></div>
+        <div class="cap-panel cap-ctl">
+          <div class="lbl">Leave to the computer</div>
+          <div class="cap-auto" id="cap-auto"></div>
+          <div class="lbl" style="margin-top:12px">Skip ahead (computer plays)</div>
+          <div class="cap-skip">
+            <button class="btn sec" data-skip="innings">To end of innings</button>
+            <button class="btn sec" data-skip="match">To end of match</button>
+            <button class="btn sec" data-skip="all">Rest of the season</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- results -->
   <section class="view" id="v-results">
@@ -248,6 +286,7 @@
 </div>
 <div class="toast" id="toast"></div>
 <div id="popover"></div>
+<script src="/ui/captain.js"></script>
 <script src="/ui/app.js"></script>
 </body>
 </html>

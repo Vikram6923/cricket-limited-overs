@@ -196,3 +196,61 @@ svg.chart text.ax{font-size:10.5px}
 svg.chart .grid{stroke:var(--border);stroke-width:1}
 svg.chart .target{stroke:var(--muted);stroke-dasharray:5 4;stroke-width:1}
 svg.chart .wkt{stroke:var(--bg);stroke-width:1.2}
+
+/* manual captaincy */
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:.82rem}
+.checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.checks input{width:auto}
+.cap-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.cap-head h2{font-size:1.1rem}
+.cap-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,1.05fr);gap:16px;align-items:start}
+.cap-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.cap-panel h3{font-size:.98rem;margin-bottom:4px}
+.cap-ctl .btn.sec{padding:5px 10px;font-size:.8rem}
+.cap-auto,.cap-skip{display:flex;flex-wrap:wrap;gap:6px}
+.tog{background:transparent;border:1px solid var(--border);border-radius:99px;padding:4px 11px;font-size:.78rem;cursor:pointer;color:var(--muted)}
+.tog.on{border-color:var(--amber);color:var(--amber);background:rgba(227,179,65,.08)}
+.sb-score{font-size:1.7rem;font-weight:700;letter-spacing:.3px}
+.sb-score small{font-size:.9rem;color:var(--muted);font-weight:500;margin-left:6px}
+.sb-line{color:var(--muted);font-size:.84rem;margin-top:2px}
+.sb-line b{color:var(--text)}
+.wp{display:flex;height:8px;border-radius:99px;overflow:hidden;margin:10px 0 4px;background:var(--panel2)}
+.wp i{background:var(--green)}
+.mini{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}
+.mini th{color:var(--muted);font-weight:500;text-align:right;padding:3px 6px;border-bottom:1px solid var(--border)}
+.mini td{text-align:right;padding:3px 6px;border-bottom:1px solid rgba(45,54,67,.5)}
+.mini th:first-child,.mini td:first-child{text-align:left}
+.mini tr.crease td{color:var(--green)}
+.mini tr.dim td{color:var(--muted)}
+.mini td.how{text-align:left;color:var(--muted);font-size:.74rem}
+.overs{display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:.8rem}
+.overs .ball{display:inline-block;min-width:20px;text-align:center;padding:1px 4px;margin-right:3px;border-radius:4px;background:var(--panel2)}
+.overs .ball.W{background:rgba(248,81,73,.25);color:var(--red)}
+.overs .ball.b4{background:rgba(76,141,255,.22)}
+.overs .ball.b6{background:rgba(63,185,80,.25)}
+.evs{font-size:.76rem;color:var(--muted);margin-top:8px;line-height:1.5}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:10px}
+.opt{position:relative;text-align:left;background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:9px 10px;cursor:pointer;color:var(--text)}
+.opt:hover{border-color:var(--blue)}
+.opt.cpu{border-color:var(--amber)}
+.opt b{display:block;font-size:.88rem;margin-bottom:2px;padding-right:44px}
+.opt span{display:block;font-size:.74rem;color:var(--muted)}
+.cpu-tag{position:absolute;top:7px;right:7px;font-size:.62rem;font-weight:700;letter-spacing:.4px;color:var(--amber);border:1px solid rgba(227,179,65,.5);border-radius:99px;padding:0 6px}
+.os-tag{font-size:.62rem;color:var(--blue);border:1px solid rgba(76,141,255,.5);border-radius:99px;padding:0 5px;margin-left:4px}
+.cap-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.cap-actions .btn{width:auto}
+.impact-box{margin-top:14px;border-top:1px dashed var(--border);padding-top:12px}
+.impact-box .row{margin-top:6px}
+.xi-list{list-style:none;margin-top:8px}
+.xi-list li{display:flex;align-items:center;gap:6px;padding:4px 6px;border-bottom:1px solid rgba(45,54,67,.6);font-size:.82rem}
+.xi-list li .n{width:18px;color:var(--muted);text-align:right}
+.xi-list li .nm{flex:1}
+.xi-list li .st{color:var(--muted);font-size:.72rem}
+.xi-list li button{background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;padding:0 6px;font-size:.75rem}
+.xi-list li button:hover{border-color:var(--blue);color:var(--text)}
+.xi-list li.cpu .nm::after{content:" CPU";font-size:.6rem;color:var(--amber);vertical-align:super}
+.xi-list li input{width:auto}
+.xi-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.xi-status{font-size:.8rem;margin-top:8px}
+.xi-status .bad{color:var(--red)}
+@media (max-width:1100px){.cap-grid{grid-template-columns:1fr}.xi-cols{grid-template-columns:1fr}}

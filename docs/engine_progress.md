@@ -508,3 +508,25 @@ User report: Gujarat 104/1 in 11 overs (innings ended by rain), Punjab set 99 fr
 finish. Now the balanced score (runs, 20/25 per wicket, rate bonuses, catches, win bonus) plus win probability
 added x runs per win (`card["runs_per_win"]`: slope of the chase win model at an average target, ~150 in a T20,
 ~270 in an ODI). On 250 IPL replays, awards to someone with under 25 runs and no wicket fell from 11 to 3.
+
+
+## Manual captaincy (2026-10-06)
+
+League Season can be played as the captain of one franchise (user request: decisions with the computer's choice
+shown, any part skippable). Not fitted - the person's decisions replace the engine's own.
+- `engine/control.py`: Controller (interface; makes the computer's choice), WaitingController (waits for another
+  thread: the web server). Decision kinds toss, xi, bowler, batter, impact, result; per-kind auto, skip to the end
+  of the innings / match / everything (the result pause is skipped only by "everything").
+- `engine/match.py`: Match(control={team: controller}); at each decision the engine computes its own choice
+  first (same code path as auto play) and asks; None = the computer's choice. XI after the toss (whole squad,
+  batting order, keeper, Impact substitutes; overseas limit checked); bowler each over (options = bowlers who keep
+  the rest of the innings feasible, no consecutive overs); next batter; Impact Player: offered inside the bowler /
+  batter decisions, at the innings break, and on its own when the computer would make it while those decisions are
+  left to it - a controlled side's automatic mid-innings swaps are off. Answers are validated; invalid ones fall
+  back to the computer's choice. Live state for the screen: Match.live.
+- `engine/tournament.py`: play_tournament(control=...), stage and match number passed as context.
+- Web: /api/run (league, `captain`, `manual`), /api/status (`captain.pending`), /api/decide;
+  `webui/captain.js` (captain screen).
+- Tests (`tests/test_control.py`): random answers to every question for both sides of 60 IPL 2024 matches keep
+  the laws (quotas, no consecutive overs, 11 players, overseas limit; 120 Impact substitutions at all moments);
+  always taking the computer's choice reproduces auto play exactly (no Impact Player); skip; tournament.

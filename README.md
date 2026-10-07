@@ -48,6 +48,14 @@ offline. Modes:
   MLC, T20 Blast, Super Smash) with the real squads (everyone who played for each franchise that season), that
   season's overseas limit (taken from the real XIs: IPL 4, BBL 3, ...), a double round robin and IPL-style
   playoffs. IPL games from 2023 use the Impact Player rule.
+- **Captain a team (League Season):** pick one franchise and make its calls in its matches while the computer
+  plays everything else: the toss, the XI in batting order with the keeper (and the 5 Impact substitutes), the
+  bowler for every over, the next batter at every wicket, and when to use the Impact Player. Each screen shows a
+  live scorecard (score, chase, win probability, both cards, recent overs) and marks what the computer would do,
+  with its Impact Player suggestion and how many runs it is worth. Any type of decision can be left to the
+  computer, play can be skipped to the end of the innings, the match or the season, and obvious calls (one
+  possible bowler, the last batter) are not asked. Built on a generic controller (`engine/control.py`), so other
+  modes can use it later.
 - **Fantasy Draft:** you and computer teams draft 15-man squads in snake order from the player pool of chosen
   years (full-member internationals, optionally franchise leagues), then play a league with knockouts.
 - **Team Builder:** search the ~7,800 rated players, pick 11-15 (with more than 11 the captain picks the XI for
@@ -278,6 +286,7 @@ engine/            match engine (library)
   selection.py     XI selection learned from real XIs
   impact.py        IPL Impact Player decisions
   rain.py          rain interruptions and DLS
+  control.py       manual captaincy (a person makes one side's decisions)
   history.py       historical (nation + years) teams
   draft.py         fantasy draft
   render.py        text scorecard and match report
@@ -310,6 +319,7 @@ tests/             engine and tournament tests
 - [x] League seasons (every season of 11 leagues) with overseas limits; IPL Impact Player rule
 - [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
+- [x] Captain a team in a league season (toss, XI, bowlers, batters, Impact Player)
 - [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, alternate-history career mode
 
 ## Data, credits and licences

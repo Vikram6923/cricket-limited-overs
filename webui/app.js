@@ -217,7 +217,14 @@ function initLeague() {
     if (!s) { $('l-teams').textContent = 'No league data - run scripts/build_league_presets.py'; return; }
     $('l-teams').innerHTML = s.teams.map(t => `${esc(t.name)} <span class="muted">(${t.n} players, ${t.overseas} overseas)</span>`).join('<br>');
     $('l-total').textContent = `${s.teams.length} teams · ${matchCount(s.teams.length, 2, 1, 'ipl')} matches · ${l.label} ${s.year} conditions · max ${s.max_overseas} overseas per XI`;
+    const keep = $('l-captain').value;
+    fillSelect($('l-captain'), [{v: '', t: 'None - the computer plays everything'}, ...s.teams.map(t => ({v: t.name, t: t.name}))]);
+    if (s.teams.some(t => t.name === keep)) $('l-captain').value = keep;
+    CAP.impact = l.id === 'ipl' && s.year >= 2023;
+    $('l-impact-opt').style.display = CAP.impact ? '' : 'none';
+    $('l-manual-box').style.display = $('l-captain').value ? '' : 'none';
   };
+  $('l-captain').onchange = () => { $('l-manual-box').style.display = $('l-captain').value ? '' : 'none'; };
   const seasons = () => { const l = league(); fillSelect($('l-season'), l ? l.seasons.map(s => ({v: s.season, t: s.season})) : []); show(); };
   $('l-league').onchange = seasons; $('l-season').onchange = show; seasons();
 }
@@ -332,7 +339,8 @@ function payload() {
     rain: $('c-rain').checked};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value};
   if (MODE === 'league') return {mode: 'league', league: $('l-league').value, season: $('l-season').value, seed: $('l-seed').value.trim(), venues: [],
-    rain: $('l-rain').checked};
+    rain: $('l-rain').checked, captain: $('l-captain').value,
+    manual: [...$('l-manual').querySelectorAll('input:checked')].map(i => i.value).filter(k => k !== 'impact' || CAP.impact)};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
     team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value,
     years_mode: document.querySelector('.c-ymode').value};
@@ -360,7 +368,11 @@ async function poll() {
   $('status-pill').textContent = running ? 'Running' : 'Idle';
   $('status-pill').classList.toggle('run', running);
   $('go-btn').disabled = running;
-  if (running) {
+  if (running && st.captain && st.captain.skip !== 'all') {
+    showView('v-captain');
+    capRender(st);
+    POLL_T = setTimeout(poll, st.captain.pending ? 700 : 200);
+  } else if (running) {
     showView('v-running');
     $('run-title').textContent = st.title || 'Simulating…';
     $('run-bar').style.width = (st.total ? Math.round(100 * st.done / st.total) : 0) + '%';

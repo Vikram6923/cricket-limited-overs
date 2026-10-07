@@ -53,7 +53,8 @@ class _Runner:
     """Plays matches with consistent numbering, seeds and venues."""
 
     def __init__(self, fmt: str, comp: str | None, year: int, seed: int | None, venues: list | None,
-                 home_venues: dict | None, knockout_venues: list | None, rain: bool = False):
+                 home_venues: dict | None, knockout_venues: list | None, rain: bool = False,
+                 control: dict | None = None):
         self.fmt, self.comp, self.year = fmt, comp or FORMATS[fmt]["intl"], year
         self.rain = rain
         self.seed = seed if seed is not None else random.randrange(1 << 30)
@@ -61,6 +62,7 @@ class _Runner:
         self.home = dict(home_venues or {})
         self.ko_venues = list(knockout_venues or [])
         self.cards: list[dict] = []
+        self.control = control or {}  # team name -> engine.control.Controller (a person captains that side)
         self.on_match = None          # optional callback(card) after every match (progress / cancel)
 
     def venue_for(self, home: str, knockout: bool) -> str | None:
@@ -77,12 +79,14 @@ class _Runner:
     def play(self, a: dict, b: dict, stage: str, knockout: bool = False) -> dict:
         no = len(self.cards) + 1
         venue = self.venue_for(a["name"], knockout)
+        for ctl in self.control.values():
+            ctl.context = {"stage": stage, "match_no": no, "knockout": knockout, "venue": venue}
         card = simulate_match(a, b, fmt=self.fmt, comp=self.comp, year=self.year, venue=venue,
-                              seed=_seed(self.seed, no), rain_on=self.rain)
+                              seed=_seed(self.seed, no), rain_on=self.rain, control=self.control)
         if knockout and card["result"]["type"] == "no_result":
             # reserve day; if that is washed out too, the higher-placed side (named first) goes through
             card = simulate_match(a, b, fmt=self.fmt, comp=self.comp, year=self.year, venue=venue,
-                                  seed=_seed(self.seed, no) + 7919, rain_on=self.rain)
+                                  seed=_seed(self.seed, no) + 7919, rain_on=self.rain, control=self.control)
             card["rain"] = ["Washed out; played on the reserve day."] + card["rain"]
             if card["result"]["type"] == "no_result":
                 card["result"] = {"type": "no_result", "winner": a["name"], "loser": b["name"], "by": "no_result",
@@ -382,13 +386,14 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
                     rounds: int = 1, groups: int | list | None = None, advance: int | None = None,
                     knockout: str = "semis", venues: list | None = None, home_venues: dict | None = None,
                     knockout_venues: list | None = None, seed: int | None = None, win_points: int = 2,
-                    on_match=None, rain: bool = False) -> dict:
+                    on_match=None, rain: bool = False, control: dict | None = None) -> dict:
     """League stage (round robin, `rounds` times, optionally in groups) then knockouts.
 
     groups:   None/1 = one league; an int = that many groups, teams dealt in the order given (1st to group A,
               2nd to B, ...); or explicit lists of team names.
     knockout: "semis" (1v4, 2v3; with two groups A1vB2, B1vA2), "ipl" (qualifier 1, eliminator, qualifier 2,
               final), "final" (top two), or "none".
+    control:  {team name: engine.control.Controller} for sides a person captains (their decisions are asked).
     """
     if knockout not in KNOCKOUTS:
         raise ValueError(f"knockout must be one of {KNOCKOUTS}")
@@ -403,7 +408,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
     else:
         group_lists = [list(g) for g in groups]
     labels = [chr(ord("A") + i) for i in range(len(group_lists))] if len(group_lists) > 1 else ["League"]
-    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain)
+    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain, control)
     run.on_match = on_match
 
     # league stage: rounds of single round robins. Within a round each side is at home in about half its games
