@@ -5,7 +5,8 @@
 
 Plain Flask, one background job at a time, the page polls /api/status (no websockets, no CDN scripts, works
 offline). The engine is called directly as a library. Modes: Match / Series, Tournament, Classic Series and
-Classic Tournament (a nation over a year range, rated on those years), Team Builder.
+Classic Tournament (a nation over a year range, rated on those years), League Season, Fantasy Draft, Auction,
+Career (a league season after season, engine/career.py; kept in results/careers/<id>/), Team Builder.
 Saved teams live in data/teams.json (created from data/teams_default.json on first run); the last results are
 kept in results/last/ so they survive a restart.
 """
@@ -30,6 +31,7 @@ from engine.control import KINDS, Cancelled, WaitingController
 from engine.judge import AllBut, season_report
 from engine import history
 from engine.auction import Auction, season_pool, years_pool
+from engine.career import Career
 from engine.draft import DEFAULT_TEAMS, Draft
 from engine.data import ratings
 from engine.render import full_text, match_report
@@ -42,6 +44,7 @@ TEAMS_DEFAULT = ROOT / "data" / "teams_default.json"
 LAST = ROOT / "results" / "last"
 SAVED = ROOT / "results" / "saved"        # runs the user saved: one folder each (summary.json, matches/, meta.json)
 AUCTION_LAST = ROOT / "results" / "auction_last.json"   # squads of the last finished auction (to retain from)
+CAREERS = ROOT / "results" / "careers"    # one folder per career: career.json, seasons/<season>/
 SEASONS = ROOT / "data" / "league_seasons.json"   # every season of 11 leagues (scripts/build_league_presets.py)
 
 
@@ -331,6 +334,11 @@ def _run(job: Job, params: dict) -> None:
             sm = a.summary()
             res["draft"] = {"teams": sm["teams"], "user": sm["user"], "board": sm["board"], "auction": True,
                             "purse": sm["purse"]}
+        elif params["mode"] == "career":
+            car = load_career(params["career"])
+            res = play_tournament(car.specs(), **car.play_args(), rain=rain_, on_match=on_match, control=control,
+                                  skill=skill)
+            res["career"] = {"id": params["career"], "name": car.name, "season": car.season_label}
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
                               n=int(params["matches"]),
@@ -354,6 +362,15 @@ def _run(job: Job, params: dict) -> None:
         if LAST.exists():
             shutil.rmtree(LAST)
         save(res, LAST)
+        if params["mode"] == "career":           # into the career: its season folder, history and statistics
+            label = _safe(car.season_label)
+            d = CAREERS / params["career"] / "seasons" / label
+            if d.exists():
+                shutil.rmtree(d)
+            shutil.copytree(LAST, d)
+            car.record(res, run=f"career/{params['career']}/{label}")
+            car.advance()
+            save_career(params["career"], car)
         job.status = "done"
     except (Stopped, Cancelled):
         job.status = "stopped"
@@ -390,6 +407,7 @@ def api_meta():
                     for k, lg in league_seasons().items()],
         "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
         "teams": load_teams(), "has_results": (LAST / "summary.json").exists(), "saved": saved_runs(),
+        "careers": careers_list(),
         "job": JOB.to_dict() if JOB else None,
     })
 
@@ -525,6 +543,21 @@ def api_run():
                 return jsonify(error="You can captain the team you bought for."), 400
             if p.get("captain"):
                 title += f" - you captain {p['captain']}"
+        elif p.get("mode") == "career":
+            try:
+                car = load_career(p.get("career"))
+            except FileNotFoundError:
+                return jsonify(error="Unknown career."), 400
+            if car.phase != "season":
+                return jsonify(error="Hold the auction before the season."), 400
+            p["fmt"], p["comp"], p["year"] = "t20", car.league, car.cond_year()
+            total = match_count(len(car.franchises), 2, None, "ipl")
+            title = f"{car.name} - season {car.season_label}"
+            if p.get("captain") and car.user:
+                p["captain"] = car.user
+                title += f" - you captain {car.user}"
+            else:
+                p["captain"] = None
         elif p.get("mode") == "tournament":
             teams = p.get("teams") or []
             if len(teams) < 2:
@@ -548,7 +581,7 @@ def api_run():
             sides = [label(e) for e in teams]
         else:
             return jsonify(error="Unknown mode."), 400
-        cap = p.get("captain") if p.get("mode") in ("league", "auction") else None
+        cap = p.get("captain") if p.get("mode") in ("league", "auction", "career") else None
         if p.get("mode") in ("series", "tournament", "draft") and str(p.get("captain_i", "")).strip() != "":
             try:
                 cap = sides[int(p["captain_i"])]
@@ -638,11 +671,11 @@ def api_draft_pick():
 
 def _auction_reply(pool: bool = False):
     a = AUCTION
-    if a.done and a.user is not None and not getattr(a, "_saved", False):     # retain from it next time
+    if a.done and a.user is not None and not getattr(a, "_saved", False) and not getattr(a, "career_id", None):     # retain from it next time
         AUCTION_LAST.parent.mkdir(parents=True, exist_ok=True)
         AUCTION_LAST.write_text(json.dumps({"label": a.label, "fmt": a.fmt, "squads": a.squad}), encoding="utf-8")
         a._saved = True
-    out = {"state": a.state()}
+    out = {"state": {**a.state(), "career": getattr(a, "career_id", None)}}
     if pool:
         out["pool"] = [x.row() for x in a.lots.values()]
     else:
@@ -767,12 +800,146 @@ def api_decide():
     return jsonify(ok=True)
 
 
+# ------------------------------------------------------------------------------------------------ careers
+
+def _safe(name: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in str(name))[:60] or "x"
+
+
+def _career_path(cid: str | None) -> Path:
+    d = CAREERS / _safe(cid or "")
+    if d.parent != CAREERS:
+        raise FileNotFoundError(cid)
+    return d / "career.json"
+
+
+def load_career(cid: str | None) -> Career:
+    return Career.from_json(json.loads(_career_path(cid).read_text(encoding="utf-8")))
+
+
+def save_career(cid: str, c: Career) -> None:
+    p = _career_path(cid)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(c.to_json()), encoding="utf-8")
+    tmp.replace(p)
+
+
+def careers_list() -> list[dict]:
+    out = []
+    if CAREERS.exists():
+        for d in CAREERS.iterdir():
+            p = d / "career.json"
+            if p.exists():
+                c = json.loads(p.read_text(encoding="utf-8"))
+                out.append({"id": d.name, "name": c["name"], "league": c["league_label"], "user": c["user"],
+                            "season": c["season_label"], "played": len(c["history"]), "phase": c["phase"],
+                            "titles": sum(h["champion"] == c["user"] for h in c["history"]) if c["user"] else None,
+                            "updated": p.stat().st_mtime})
+    return sorted(out, key=lambda r: -r["updated"])
+
+
+def _career_reply(cid: str, c: Career | None = None):
+    c = c or load_career(cid)
+    return jsonify(id=cid, state=c.state(), careers=careers_list())
+
+
+def _busy() -> bool:
+    return bool(JOB and JOB.status == "running")
+
+
+@app.get("/api/careers")
+def api_careers():
+    return jsonify(careers_list())
+
+
+@app.post("/api/career/new")
+def api_career_new():
+    d = request.get_json(force=True)
+    if _busy():
+        return jsonify(error="A simulation is running."), 409
+    try:
+        seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
+        c = Career(d.get("league") or "", d.get("season") or "", user=d.get("user") or None,
+                   mega_every=int(d.get("mega_every") or 3), seed=seed,
+                   name=" ".join(str(d.get("name") or "").split())[:80] or None)
+    except (ValueError, KeyError, StopIteration) as e:
+        return jsonify(error=str(e) or "Could not start the career."), 400
+    cid = _safe(f"{c.league}-{c.start_season}-{time.strftime('%Y%m%d-%H%M%S')}")
+    save_career(cid, c)
+    return _career_reply(cid, c)
+
+
+@app.get("/api/career")
+def api_career():
+    try:
+        return _career_reply(request.args.get("id"))
+    except FileNotFoundError:
+        return jsonify(error="Unknown career."), 404
+
+
+@app.post("/api/career/rename")
+def api_career_rename():
+    d = request.get_json(force=True)
+    c = load_career(d.get("id"))
+    c.name = " ".join(str(d.get("name") or "").split())[:80] or c.name
+    save_career(d["id"], c)
+    return _career_reply(d["id"], c)
+
+
+@app.post("/api/career/delete")
+def api_career_delete():
+    p = _career_path(request.get_json(force=True).get("id"))
+    if p.exists():
+        shutil.rmtree(p.parent)
+    return jsonify(careers=careers_list())
+
+
+@app.post("/api/career/auction")
+def api_career_auction():
+    """Open the career's auction in the auction room (auto=true: the computer decides everything)."""
+    global AUCTION
+    d = request.get_json(force=True)
+    if _busy():
+        return jsonify(error="A simulation is running."), 409
+    c = load_career(d.get("id"))
+    if c.phase != "auction":
+        return jsonify(error="No auction is due."), 400
+    if d.get("auto") or not c.user:
+        c.auto_auction()
+        save_career(d["id"], c)
+        return _career_reply(d["id"], c)
+    AUCTION = c.auction()
+    AUCTION.career_id = d["id"]
+    return _auction_reply(pool=True)
+
+
+@app.post("/api/career/auction_done")
+def api_career_auction_done():
+    d = request.get_json(force=True)
+    a = AUCTION
+    if not a or getattr(a, "career_id", None) != d.get("id") or not a.done:
+        return jsonify(error="Finish the auction first."), 400
+    c = load_career(d["id"])
+    if c.phase != "auction":
+        return jsonify(error="This auction is already saved."), 400
+    c.apply_auction(a)
+    save_career(d["id"], c)
+    return _career_reply(d["id"], c)
+
+
 # ------------------------------------------------------------------------------------------------ saved runs
 
 def _run_dir(run: str | None) -> Path:
-    """The last run, or a saved one (by folder name)."""
+    """The last run, a saved one (by folder name) or a career's season ("career/<id>/<season>")."""
     if not run:
         return LAST
+    if run.startswith("career/"):
+        parts = run.split("/")
+        d = CAREERS / parts[1] / "seasons" / parts[-1] if len(parts) == 3 else None
+        if not d or d.parent.parent.parent != CAREERS or not (d / "summary.json").exists():
+            abort(404)
+        return d
     d = SAVED / run
     if d.parent != SAVED or not (d / "summary.json").exists():
         abort(404)

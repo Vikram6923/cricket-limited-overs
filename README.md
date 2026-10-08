@@ -78,6 +78,16 @@ offline. Modes:
   the end of the set or the auction; every call shows what the computer would bid and why. Computer teams value a
   player by what he adds to their best XI in runs per match (the engine's own ratings), at the market rate for the
   money left. Then the squads play a league, and you can captain your team.
+- **Career:** a franchise league season after season, from a real season's squads (any of the 11 leagues). You
+  run one franchise (or watch). Between seasons players age (age curves fitted from real careers), draw a new
+  season's form, retire (the real chance at each age) or leave after going unsold twice; newcomers arrive: the
+  players who really debuted in the league that year, then, once the real seasons run out, made-up youngsters
+  copied from real debutants' rating profiles. A **mega auction** (retentions, Right to Match) every 1-5 seasons
+  (3 by default, as the IPL) and **mini auctions** in between (keep players at their contract prices or release
+  them). Play each season, captaining your side if you like; the career page keeps the honours (champions, your
+  finish, most runs and wickets, MVP, each season's full results), the trophy count, career records across all
+  seasons and every squad with ages and current ratings. Careers are kept in `results/careers/` and can be
+  reopened at any time.
 - **Saved runs:** "Save this run" on the results page keeps a run (any mode) under a name in `results/saved/`,
   so the next run doesn't overwrite it; the Saved runs mode lists them to open (the full results page), rename or
   delete. A saved league (an auction league or a League Season) of the same league can be retained from in a later
@@ -288,6 +298,7 @@ python -m engine.fit.fit_rain          # rain profiles by host country
 python -m engine.fit.fit_dls           # DLS resources (after the other fits: it replays shortened matches)
 python -m engine.fit.fit_spin          # pace v spin edge by venue and day
 python -m engine.fit.fit_reactive      # reactive bowling changes
+python -m engine.fit.fit_career        # career mode: age curves, season form, retirements
 python -m engine.calibrate             # compare simulated v real
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
@@ -314,7 +325,8 @@ engine/            match engine (library)
   judge.py         captaincy decisions valued in runs: the captaincy report and weaker computer captains
   history.py       historical (nation + years) teams
   draft.py         fantasy draft
-  auction.py       IPL-style auction with retentions and Right to Match
+  auction.py       IPL-style auction with retentions and Right to Match (and mini auctions)
+  career.py        career mode: a league over many seasons (ageing, retirements, newcomers, auctions)
   render.py        text scorecard and match report
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
@@ -347,7 +359,8 @@ tests/             engine and tournament tests
 - [x] Rain interruptions and DLS; partnership charts
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
-- [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, alternate-history career mode
+- [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
+- [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, an international career world
 
 ## Data, credits and licences
 

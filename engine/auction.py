@@ -11,6 +11,11 @@ Rules (the IPL's 2025 mega auction):
   then gets one final raise, and the old team matches it or lets him go (the raise stands either way)
 - unsold players come back in an accelerated round; teams still short of 18 then fill up at 30 lakh each
 
+Mini auctions (the career mode, engine/career.py, between mega auctions): pool["kept"] = {team: {player: contract
+price}}. Instead of retentions each team releases the players it no longer wants (the computer releases a player
+whose expected auction price is below RELEASE x his contract) and keeps the rest at their contract prices, which
+come off its purse; the released players join the auction pool. No Right to Match cards.
+
 Pools: "season" = everyone who played one real league season, with that season's franchises, retention from the
 season before, career ratings and the league's conditions (as in League Season); "years" = a period's players as
 in the fantasy draft (rated on those years), overseas = not from the home nation, retention from the last auction.
@@ -48,6 +53,7 @@ MARQUEE, SET_SIZE = 12, 8
 SPEND = 0.9                          # share of the free purse the market rate expects to spend on XI players
 NOISE = 0.12                         # spread of a team's valuation (log scale)
 ROLES = ("Batter", "All-rounder", "WK", "Pace", "Spin")
+RELEASE = 0.75                       # mini auction: release a player expected to fetch less than this x his contract
 SET_LABEL = {"Batter": "batters", "All-rounder": "all-rounders", "WK": "keepers", "Pace": "fast bowlers",
              "Spin": "spinners"}
 
@@ -81,6 +87,7 @@ class Lot:
     base: int = MIN_PRICE
     set: str = ""
     prev: str | None = None   # team of the previous squad (retention / RTM)
+    contract: int | None = None  # mini auction: his current contract price (lakh)
     status: str = "pool"      # pool / retained / sold / unsold
     buyer: str | None = None
     price: int | None = None
@@ -90,7 +97,7 @@ class Lot:
         b, w = self.ref.get("bat") or {}, self.ref.get("bowl") or {}
         return {"id": self.id, "name": self.name, "team": self.team, "role": self.role, "value": round(self.value, 1),
                 "overseas": self.overseas, "capped": self.capped, "base": self.base, "est": self.est, "set": self.set,
-                "prev": self.prev, "status": self.status, "buyer": self.buyer, "price": self.price,
+                "prev": self.prev, "contract": self.contract, "status": self.status, "buyer": self.buyer, "price": self.price,
                 "bat_avg": b.get("avg"), "bat_sr": b.get("sr"),
                 "econ": w.get("econ") if self.bowler else None, "bowl_avg": w.get("avg") if self.bowler else None}
 
@@ -188,7 +195,10 @@ def years_pool(fmt: str, y1: int, y2: int, teams: list[str], source: str = "full
 # ------------------------------------------------------------------------------------------------ auction
 
 class Auction:
-    def __init__(self, pool: dict, user: str | None = None, prev: dict | None = None, seed: int | None = None):
+    def __init__(self, pool: dict, user: str | None = None, prev: dict | None = None, seed: int | None = None,
+                 start: bool = True):
+        """start=False: set up the pool and its prices without running anything (the career mode prices its
+        opening squads this way)."""
         self.fmt, self.comp, self.year, self.label = pool["fmt"], pool["comp"], pool["year"], pool["label"]
         self.teams = list(pool["teams"])
         if len(self.teams) < 2:
@@ -217,6 +227,12 @@ class Auction:
         self.squad: dict[str, list[str]] = {t: [] for t in self.teams}
         self.retained: dict[str, list[str]] = {t: [] for t in self.teams}
         self.rtm = {t: 0 for t in self.teams}
+        self.kept = pool.get("kept")           # mini auction: {team: {player: contract}}
+        self.kind = "mini" if self.kept is not None else "mega"
+        for t, ids in (self.kept or {}).items():
+            for pid, price in ids.items():
+                if pid in self.lots:
+                    self.lots[pid].contract, self.lots[pid].prev = int(price), t
         prev = pool["prev"] if prev is None else prev
         for t, ids in prev.items():
             for pid in ids:
@@ -237,7 +253,8 @@ class Auction:
         self.user_auto: str | None = None      # None (asked), "set", "all": the computer bids for the user
         self.question: dict | None = None
         self._gen = self._flow()
-        self._advance(None)
+        if start:
+            self._advance(None)
 
     # ---------------------------------------------------------------- valuation
     def _replacement(self) -> None:
@@ -325,9 +342,9 @@ class Auction:
         if not q:
             raise ValueError("Nothing to decide.")
         k = q["kind"]
-        if k == "retain":
+        if k in ("retain", "release"):
             ids = list(dict.fromkeys(answer.get("ids") or []))
-            err = self.retain_error(self.user, ids)
+            err = (self.retain_error if k == "retain" else self.release_error)(self.user, ids)
             if err:
                 raise ValueError(err)
             answer = {"ids": ids}
@@ -351,7 +368,7 @@ class Auction:
     def auto(self, scope: str = "all") -> None:
         """Hand the user's bidding to the computer (to the end of the set or the auction)."""
         self.user_auto = scope
-        if self.question and self.question["kind"] != "retain":
+        if self.question and self.question["kind"] not in ("retain", "release"):
             self._advance({"auto": True})
 
     @property
@@ -362,6 +379,54 @@ class Auction:
         return self.user is not None and self.user_auto is None
 
     def _flow(self):
+        if self.kept is not None:
+            yield from self._release_flow()
+        else:
+            yield from self._retain_flow()
+        yield from self._auction_flow()
+
+    def _release_flow(self):
+        """Mini auction: each team releases players and keeps the rest at their contracts (no RTM cards)."""
+        self.phase = "release"
+        for t in self.teams:
+            if t != self.user:
+                self._keep(t, self.suggest_release(t))
+        if self.user:
+            squad = self.retain_candidates(self.user)
+            if squad:
+                a = yield {"kind": "release", "squad": [self.lots[i].row() for i in squad],
+                           "suggested": self.suggest_release(self.user)}
+                ids = a.get("ids", []) if isinstance(a, dict) else self.suggest_release(self.user)
+            else:
+                ids = []
+            self._keep(self.user, ids)
+
+    def suggest_release(self, t: str) -> list[str]:
+        return [i for i in self.retain_candidates(t) if self.lots[i].est < RELEASE * (self.lots[i].contract or 0)]
+
+    def release_error(self, t: str, ids: list[str]) -> str | None:
+        cands = set(self.retain_candidates(t))
+        if any(i not in cands for i in ids):
+            return "You can only release players from your squad."
+        keep = [i for i in cands if i not in ids]
+        if sum(self.lots[i].contract or 0 for i in keep) > PURSE:
+            return "The players you keep cost more than the purse."
+        if self.xi_overseas is not None and sum(self.lots[i].overseas for i in keep) > OVERSEAS_MAX:
+            return f"Keep at most {OVERSEAS_MAX} overseas players."
+        return None
+
+    def _keep(self, t: str, release: list[str]) -> None:
+        for i in self.retain_candidates(t):
+            x = self.lots[i]
+            if i in release:
+                x.prev = None                       # back in the pool, no Right to Match
+                continue
+            self.purse[t] -= x.contract or 0
+            self.squad[t].append(i)
+            self.retained[t].append(i)
+            x.status, x.buyer, x.price = "retained", t, x.contract
+
+    def _retain_flow(self):
         # retentions (and RTM cards)
         self.phase = "retain"
         for t in self.teams:
@@ -376,6 +441,8 @@ class Auction:
             else:
                 ids = []
             self._retain(self.user, ids)
+
+    def _auction_flow(self):
         # sets
         self.phase = "auction"
         self._make_sets()
@@ -607,6 +674,7 @@ class Auction:
             lot = {**{k: v for k, v in self.lot.items() if k != "passed"}, "player": x.row()}
         sold = [s for s in self.sales if s["team"]]
         return {"label": self.label, "fmt": self.fmt, "comp": self.comp, "year": self.year, "teams": self.teams,
+                "kind": self.kind,
                 "user": self.user, "phase": self.phase,
                 "done": self.done, "purse": self.purse, "rtm": self.rtm, "squad_min": self.squad_min,
                 "squad_max": SQUAD_MAX, "overseas_max": OVERSEAS_MAX, "xi_overseas": self.xi_overseas,

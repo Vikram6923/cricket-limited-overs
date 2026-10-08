@@ -70,7 +70,9 @@ async function startAuction() {
        home: $('a-home').value, years_mode: $('a-ymode').value, teams: aTeams()}
     : {pool: 'season', league: $('a-league').value, season: $('a-season').value};
   Object.assign(body, {user: $('a-user').value, retain: $('a-retain').value, seed: $('a-seed').value.trim()});
-  const d = await api('/api/auction/start', body);
+  openAuctionRoom(await api('/api/auction/start', body));
+}
+function openAuctionRoom(d) {
   APOOL = new Map(d.pool.map(p => [p.id, p]));
   fillSelect($('ap-role'), [{v: '', t: 'All roles'}, ...['Batter', 'WK', 'All-rounder', 'Pace', 'Spin'].map(r => ({v: r, t: r}))]);
   fillSelect($('ap-status'), [{v: '', t: 'Everyone'}, {v: 'pool', t: 'Still to come'}, {v: 'sold', t: 'Sold'},
@@ -78,7 +80,7 @@ async function startAuction() {
   ['ap-search', 'ap-role', 'ap-status'].forEach(id => $(id).oninput = drawAuctionPool);
   $('au-skip-set').onclick = () => auAct({auto: 'set'});
   $('au-skip-all').onclick = () => auAct({auto: 'all'});
-  $('au-play').onclick = playAuctionLeague;
+  $('au-play').onclick = () => AU.career ? careerAuctionDone() : playAuctionLeague();
   renderAuction(d.state);
 }
 async function auAct(body) {
@@ -110,14 +112,16 @@ function renderAuction(st) {
   const me = st.user, q = st.question;
   $('au-title').textContent = `${st.label} auction` + (me ? ` — you bid for ${me}` : '');
   const set = st.sets[st.set_no];
-  $('au-turn').textContent = st.done ? 'Auction complete' : q ? 'Your call!' : st.phase === 'retain' ? 'Retentions' : 'Bidding…';
+  $('au-turn').textContent = st.done ? 'Auction complete' : q ? 'Your call!' : st.phase === 'retain' ? 'Retentions'
+    : st.phase === 'release' ? 'Releases' : 'Bidding…';
   $('au-turn').className = 'turn' + (q ? ' you' : '');
   $('au-progress').textContent = st.done ? `${st.n_sold} players sold for ${cr(st.spent)}`
     : set ? `${set.name} (set ${st.set_no + 1} of ${st.sets.length}) · ${st.n_sold} sold so far` : '';
   const live = !st.done && me;
-  $('au-skip-set').style.display = live && st.phase !== 'retain' && st.user_auto !== 'all' ? '' : 'none';
+  $('au-skip-set').style.display = live && !['retain', 'release'].includes(st.phase) && st.user_auto !== 'all' ? '' : 'none';
   $('au-skip-all').style.display = live && st.user_auto !== 'all' ? '' : 'none';
   $('au-play').style.display = st.done ? '' : 'none';
+  $('au-play').textContent = st.career ? '✔ Save the squads and go back to the career' : '▶ Play the league';
   $('au-q').innerHTML = st.done ? doneHTML(st) : q ? questionHTML(q, st) : '<div class="muted">The computer is bidding for you…</div>';
   wireQuestion(q);
   $('au-sales').innerHTML = '<tr><th>Player</th><th>Sold to</th><th>Price</th></tr>' + st.sales.map(s =>
@@ -148,6 +152,7 @@ function bidLogHTML() {
 }
 function questionHTML(q, st) {
   if (q.kind === 'retain') return retainHTML(q, st);
+  if (q.kind === 'release') return releaseHTML(q, st);
   const p = q.player, adv = q.advice;
   if (q.kind === 'bid') {
     const now = q.price ? `<b>${cr(q.price)}</b> ${esc(q.leader)}${q.leader === st.user ? ' (you)' : ''}` : '<b>No bid yet</b>';
@@ -186,6 +191,21 @@ function retainHTML(q, st) {
       <td>${esc(c.name)}${osTag(c)}</td><td>${esc(c.role)}</td><td>${c.capped ? 'capped' : 'uncapped'}</td><td>${cr(c.est)}</td></tr>`).join('')}</table>
     <div class="au-act"><button class="btn go" data-a="retain">Confirm retentions</button><span class="muted small" id="au-ret-cost"></span></div>`;
 }
+function releaseHTML(q, st) {
+  const sug = new Set(q.suggested);
+  return `<h3>Releases (mini auction)</h3>
+    <p class="muted small" style="margin:4px 0 8px">Keep players at their contract prices (they come off your ₹120 cr purse) or release them into the auction.
+    Ticked: the computer's choice (players now expected to fetch less than ${Math.round(75)}% of their contract). Ages and form have moved on since they were bought.</p>
+    <table class="mini"><tr><th>Release</th><th>Player</th><th>Role</th><th>Contract</th><th>Expected now</th></tr>
+    ${q.squad.map(c => `<tr><td><input type="checkbox" class="au-rel" value="${esc(c.id)}" data-c="${c.contract || 0}" ${sug.has(c.id) ? 'checked' : ''}></td>
+      <td>${esc(c.name)}${osTag(c)}</td><td>${esc(c.role)}</td><td>${cr(c.contract)}</td><td class="${c.est < c.contract ? 'l' : 'w'}">${cr(c.est)}</td></tr>`).join('')}</table>
+    <div class="au-act"><button class="btn go" data-a="release">Confirm releases</button><span class="muted small" id="au-rel-cost"></span></div>`;
+}
+function relCost() {
+  const all = [...document.querySelectorAll('.au-rel')], kept = all.filter(b => !b.checked);
+  const cost = kept.reduce((a, b) => a + +b.dataset.c, 0);
+  $('au-rel-cost').innerHTML = `${kept.length} kept for ${cr(cost)} · ${cr(12000 - cost)} to spend · ${all.length - kept.length} released`;
+}
 function retCost() {
   const boxes = [...document.querySelectorAll('.au-ret:checked')];
   const c = boxes.filter(b => b.dataset.capped === '1').length, u = boxes.length - c;
@@ -201,6 +221,10 @@ function wireQuestion(q) {
     document.querySelectorAll('.au-ret').forEach(b => b.onchange = retCost); retCost();
     on('retain', () => answer({ids: [...document.querySelectorAll('.au-ret:checked')].map(b => b.value)}));
   }
+  if (q.kind === 'release') {
+    document.querySelectorAll('.au-rel').forEach(b => b.onchange = relCost); relCost();
+    on('release', () => answer({ids: [...document.querySelectorAll('.au-rel:checked')].map(b => b.value)}));
+  }
   on('bid', () => answer({bid: true}));
   on('pass', () => answer({bid: false}));
   on('max', () => answer({max: Math.round(+$('au-max').value * 100)}));
@@ -214,7 +238,8 @@ function doneHTML(st) {
   const me = st.user;
   return `<h3>Auction complete</h3><p class="muted small" style="margin:6px 0">${st.n_sold} players bought for ${cr(st.spent)}.
     ${me ? `Your squad: ${st.board[me].length} players, ${cr(st.purse[me])} left.` : ''} ${st.news.map(esc).join(' ')}
-    Press “Play the league” for the season${me && $('a-captain').checked ? `, with you as captain of ${esc(me)}` : ''}.</p>`;
+    ${st.career ? 'Save the squads to go back to the career and play the season.'
+      : `Press “Play the league” for the season${me && $('a-captain').checked ? `, with you as captain of ${esc(me)}` : ''}.`}</p>`;
 }
 function drawAuctionPool() {
   if (!APOOL) return;

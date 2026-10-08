@@ -275,3 +275,8 @@ svg.chart .wkt{stroke:var(--bg);stroke-width:1.2}
 /* captaincy report */
 .cap-report p{margin:6px 0}
 .cap-report .mini{max-width:640px}
+
+/* career */
+.kc-news{margin:0;padding-left:18px;max-height:40vh;overflow:auto}
+.kc-news li{margin:3px 0;font-size:.85rem}
+#kc-hist td,#kc-hist th{white-space:nowrap}

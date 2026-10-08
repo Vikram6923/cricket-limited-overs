@@ -20,7 +20,7 @@ import sys
 import zlib
 from pathlib import Path
 
-from .data import FORMATS, resolve
+from .data import FORMATS, Player, resolve
 from .match import simulate_match
 from .render import full_text
 
@@ -34,7 +34,7 @@ def team_spec(fmt: str, t: dict) -> dict:
     out = dict(t)
     for key in ("players", "squad", "order"):
         if t.get(key):
-            out[key] = [x if isinstance(x, dict) else resolve(fmt, x) for x in t[key]]
+            out[key] = [x if isinstance(x, (dict, Player)) else resolve(fmt, x) for x in t[key]]
     for key in ("keeper", "captain"):
         if t.get(key):
             out[key] = resolve(fmt, t[key])

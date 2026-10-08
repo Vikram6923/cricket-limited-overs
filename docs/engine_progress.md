@@ -586,3 +586,60 @@ User: manual captaincy didn't seem to beat the computer; asked for weaker oppone
   distinct levels. Stopped.
 - UI: "Opponent captains" in the three captain boxes (League Season, Auction, others); "Your captaincy" on the
   results summary; "Your calls" on each match.
+
+## Career mode (2026-10-09)
+
+User's choices: a franchise career first (an international world later, sharing the same pieces); newcomers are
+the real debutants while real seasons last, then made-up players drawn from the real debut distribution.
+
+`engine/career.py` (state as JSON, kept by the server in `results/careers/<id>/`), `engine/fit/fit_career.py`
+-> `data/engine/career_t20.json`, mini auctions in `engine/auction.py`, `webui/career.js`, `tests/test_career.py`.
+
+### Fitted tables (`python -m engine.fit.fit_career`, ~3 s)
+
+From `data/ratings_t20_years.json` (actual / expected counts per player and year; expected already allows for
+era, competition and opponents) and dates of birth (`styles.json`).
+
+- **Age curves** per side and metric: A ~ Poisson(E x player level x f(age)), player fixed effects, ages 19-39,
+  smoothed (1-2-1 over neighbouring ages, exposure weighted). Batting runs index: 0.90 at 19, 0.98 at 23, 1.00 at
+  25, peak 1.02 at 29-33, 0.97 at 39; dismissals 1.19 at 19 falling to 0.97 at 29-33, back to 1.06 at 39. Bowling:
+  economy barely moves (0.96 at 19, 1.01 at 35); wickets 1.09 at 19, 1.05 at 25, 0.93 at 37, 0.90 at 39.
+- **Season form:** the yearly spread around level x age. The noise-corrected moment is scaled by the factor the
+  year-range ratings validated on held-out years (`periods.TAU_SCALE`: 0.2 batting, 0.05 bowling). Result: sigma
+  2.5% for batting runs, under 0.6% elsewhere: beyond age, season-to-season form is hardly measurable. The lag 1-3
+  residual autocovariances are negative (no carry-over), so each season's form is drawn afresh. An AR(1) fit from
+  the autocovariances was tried first and failed (all covariances negative: the demeaning bias dominates).
+- **Retirement:** the share of established players (30+ T20 matches, careers ended by 2023) playing their last
+  season at each age: 0.5% at 24, 1% at 27, 2.6% at 30, 6% at 33, 16% at 36, 24% at 39 and 42; everyone at 44.
+- **Debut age:** median 24 (for players with no date of birth). A date of birth that puts a first T20 game past
+  34 is treated as a namesake's (Mukesh Choudhary's Wikipedia DOB was 1986) and replaced.
+
+### Model
+
+Season level = career rating x f(age) / f(typical age) x (1 + form), per side and metric; the typical age is the
+exposure-weighted mean of log f over the real seasons the rating comes from, so a player is rated at his career
+level at his career's typical age. Retirements, plus leaving after two unsold auctions in a row. Newcomers: the
+real debutants of each real season (first appearance in the league), then (past the last real season) as many
+made-up players as the league's average debutants over its last 5 seasons, each a copy of a random real
+debutant's rating profile, debut age and overseas status, named from real players of the same nation (no
+duplicate of a real name). Conditions: the real season's while they last, then the last real season's.
+
+Auctions: a mega auction (the existing one, retentions from the last squads) every `mega_every` seasons (default
+3), a mini auction otherwise: teams keep players at their contract prices (off the purse) or release them (the
+computer releases a player expected to fetch under 0.75 x his contract); no RTM. Opening contracts for the real
+squads: each player's expected auction price, scaled down so no squad costs more than 95% of the purse (real
+squads were bought over several auctions; unscaled, Punjab Kings 2025 cost more than the purse).
+
+### Calibration (12 seasons from IPL 2024, all teams by the computer, seed 7)
+
+| Season | 1st-inns avg | Wkts | Squad age | Made-up players in squads |
+|---|---|---|---|---|
+| 2024 | 189.9 | 6.35 | 29.2 | 0 |
+| 2026 (last real conditions) | 205.4 | 6.22 | 29.2 | 0 |
+| 2028 | 205.4 | 6.14 | 28.8 | 38 |
+| 2031 | 204.1 | 6.37 | 29.3 | 81 |
+| 2035 | 203.7 | 6.79 | 29.8 | 132 |
+
+Gate: once the conditions are fixed (2026 on), scoring stays at the real level (200-210 against 205 at the start)
+and squads do not age or get younger. Wickets drift up slightly (+0.5 an innings over a decade) as made-up
+players take over; recorded, not tuned. A season takes ~16 s and an auction ~5 s.

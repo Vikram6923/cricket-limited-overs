@@ -87,11 +87,12 @@ async function init() {
   fillSelect($('t-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
   ['t-rounds', 't-groups', 't-ko'].forEach(id => $(id).onchange = updateTournamentTotal);
   $('t-search').oninput = filterTeams;
-  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initLeague(); initBuilder(); initMatchNav();
+  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initCareerForm(); initLeague(); initBuilder(); initMatchNav();
   $('go-btn').onclick = start;
   $('g-captain').onfocus = capOptions; $('g-captain').onmousedown = capOptions;
   $('g-captain').onchange = capBoxes; ['c-comp', 'c-year'].forEach(id => $(id).addEventListener('change', capBoxes));
   $('r-save').onclick = saveRun;
+  $('r-career').onclick = () => openCareer(R.career.id);
   if (META.has_results) { $('last-btn').style.display = ''; $('home-note').textContent = 'Results from your last run are still available — click “View last results”.'; }
   if (META.job && META.job.status === 'running') poll();
 }
@@ -102,7 +103,8 @@ function setMode(m) {
   document.querySelectorAll('.form').forEach(f => f.classList.toggle('on', f.id === 'f-' + m));
   const b = m === 'builder' || m === 'saved';
   if (m === 'saved') drawSaved();
-  $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' ? 'none' : '';
+  if (m === 'career') drawCareers();
+  $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' || m === 'career' ? 'none' : '';
   if (m === 'auction') aRefresh();
   capOptions();
   $('go-err').textContent = '';
@@ -429,6 +431,7 @@ async function start() {
   try {
     if (MODE === 'draft') { await startDraft(); return; }
     if (MODE === 'auction') { await startAuction(); return; }
+    if (MODE === 'career') { await startCareer(); return; }
     await api('/api/run', {...payload(), ...capPayload()}); poll();
   }
   catch (e) { $('go-err').textContent = e.message; $('go-btn').disabled = false; }
@@ -473,8 +476,10 @@ async function showResults(run) {
   $('r-title').textContent = R.kind === 'series' ? R.result : `${R.winner} won the tournament`;
   $('r-sub').textContent = `${fmt} · ${R.title || ''} · ${R.fixtures.length} match${R.fixtures.length === 1 ? '' : 'es'} · conditions: ${R.competition} ${R.year} · seed ${R.seed}`;
   const sv = (META.saved || []).find(s => s.id === R_RUN);
-  $('r-save').style.display = R_RUN ? 'none' : '';
-  $('r-saved').textContent = sv ? `Saved run: ${sv.name} (${sv.saved})` : '';
+  $('r-save').style.display = R_RUN || R.career ? 'none' : '';
+  $('r-career').style.display = R.career ? '' : 'none';
+  if (R.career) $('r-saved').textContent = `${R.career.name} · season ${R.career.season}`;
+  if (!R.career) $('r-saved').textContent = sv ? `Saved run: ${sv.name} (${sv.saved})` : '';
   const pos = R.player_of_series;
   $('r-pos').style.display = pos ? '' : 'none';
   if (pos) $('r-pos').textContent = `Player of the series: ${pos.name} (${pos.team})`;

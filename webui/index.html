@@ -24,6 +24,7 @@
     <button class="mode" data-mode="league"><b>League Season</b><span>IPL, BBL, PSL and more - any season</span></button>
     <button class="mode" data-mode="draft"><b>Fantasy Draft</b><span>Draft squads, then play</span></button>
     <button class="mode" data-mode="auction"><b>Auction</b><span>IPL-style auction with retentions, then a league</span></button>
+    <button class="mode" data-mode="career"><b>Career</b><span>A league season after season: ageing, auctions, trophies</span></button>
     <button class="mode" data-mode="saved"><b>Saved runs</b><span>Open the seasons and series you kept</span></button>
     <button class="mode" data-mode="builder"><b>Team Builder</b><span>Create and edit teams</span></button>
   </div>
@@ -177,6 +178,25 @@
     <div class="total" id="a-total"></div>
   </div>
 
+  <!-- Career -->
+  <div class="form" id="f-career">
+    <h2>Career</h2><p class="hint">Run a franchise league season after season, starting from a real season's squads. Between seasons players age (age curves fitted from real careers), have a new season's form, retire, and newcomers arrive: the players who really debuted in the league that year, then made-up youngsters once the real seasons run out. Every few seasons there is a mega auction with retentions; in between, mini auctions where teams keep or release players. Play each season (captain your side if you like) and build up honours and career records.</p>
+    <h3 style="margin:10px 0 6px">Your careers</h3>
+    <div id="k-list"></div>
+    <h3 style="margin:16px 0 6px">Start a new career</h3>
+    <div class="seg2">
+      <div class="fg"><label>League</label><select id="k-league"></select></div>
+      <div class="fg"><label>Starting season</label><select id="k-season"></select></div>
+    </div>
+    <div class="fg"><label>Your franchise</label><select id="k-user"></select>
+      <div class="hint" style="margin:4px 0 0">You make its auction calls and can captain it each season.</div></div>
+    <div class="fg"><label>Mega auction</label><select id="k-mega">
+      <option value="1">Every season</option><option value="2">Every 2 seasons</option>
+      <option value="3" selected>Every 3 seasons (as the IPL)</option><option value="5">Every 5 seasons</option></select></div>
+    <div class="fg"><label>Name (optional)</label><input type="text" id="k-name" maxlength="80" placeholder="e.g. Punjab Kings dynasty"></div>
+    <div class="fg"><label>Seed (optional)</label><input type="text" id="k-seed" placeholder="random"></div>
+  </div>
+
   <!-- Saved runs -->
   <div class="form" id="f-saved">
     <h2>Saved runs</h2><p class="hint">Runs you saved from the results page (“Save this run”). Each keeps its full results: tables, every match, stats, MVP race, and the squads of a draft or auction. A saved auction league can also be retained from in a later auction of the same league. They live in results/saved/ on this computer.</p>
@@ -282,7 +302,8 @@
   <section class="view" id="v-results">
     <div class="res-head"><h2 id="r-title">Results</h2><span class="muted small" id="r-sub"></span><span class="mos" id="r-pos" style="display:none"></span>
       <span style="flex:1"></span><span class="muted small" id="r-saved"></span>
-      <button class="btn sec" id="r-save" style="width:auto">💾 Save this run</button></div>
+      <button class="btn sec" id="r-save" style="width:auto">💾 Save this run</button>
+      <button class="btn go" id="r-career" style="width:auto;display:none">↩ Back to the career</button></div>
     <div class="tabs" id="r-tabs">
       <button class="tab on" data-pane="p-summary">Summary</button>
       <button class="tab" data-pane="p-matches">Matches</button>
@@ -329,6 +350,25 @@
         <div class="roles" id="dr-roles"></div>
         <ul class="squad" id="dr-squad"></ul>
         <h3>Draft board</h3><div class="board" id="dr-board"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- career dashboard -->
+  <section class="view" id="v-career">
+    <div class="res-head"><h2 id="kc-title">Career</h2><span class="muted small" id="kc-sub"></span></div>
+    <div class="cap-grid">
+      <div>
+        <div class="cap-panel" id="kc-next"></div>
+        <h3>Honours</h3><div class="tbl"><table class="mini" id="kc-hist"></table></div>
+        <h3>Squad <select id="kc-team" style="width:auto;margin-left:8px"></select> <span class="muted small" id="kc-squad-sub"></span></h3>
+        <div class="tbl" id="kc-squad"></div>
+        <h3>Most runs</h3><div class="tbl" id="kc-runs"></div>
+        <h3>Most wickets</h3><div class="tbl" id="kc-wkts"></div>
+      </div>
+      <div>
+        <div class="cap-panel"><h3>Since last season</h3><ul class="kc-news" id="kc-news"></ul></div>
+        <div class="cap-panel"><h3>Titles</h3><ul class="squad" id="kc-titles"></ul></div>
       </div>
     </div>
   </section>
@@ -397,6 +437,7 @@
 <div id="popover"></div>
 <script src="/ui/captain.js"></script>
 <script src="/ui/auction.js"></script>
+<script src="/ui/career.js"></script>
 <script src="/ui/app.js"></script>
 </body>
 </html>
