@@ -234,9 +234,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-pitch", action="store_true", help="switch off the pitch of the day (T2-4)")
     ap.add_argument("--no-matchups", action="store_true", help="switch off batting-hand x bowling-kind (T2-1)")
     ap.add_argument("--no-spin", action="store_true", help="switch off the pace v spin pitch edge")
+    ap.add_argument("--no-depth", action="store_true", help="switch off batting depth still to come")
     args = ap.parse_args(argv)
     flags = {"use_venue": not args.no_venue, "use_pitch": not args.no_pitch, "use_matchups": not args.no_matchups,
-             "use_spin": not args.no_spin}
+             "use_spin": not args.no_spin, "use_depth": not args.no_depth}
     for name in args.suite or ["t20i", "ipl", "odi"]:
         run_suite(name, args.reps, args.limit, flags, args.label)
     return 0

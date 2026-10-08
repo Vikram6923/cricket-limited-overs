@@ -17,7 +17,7 @@ from . import rain
 from . import captain, conditions
 from .ballmodel import BallModel
 from .data import FORMATS, Player, baseline, basics, phase_at, player
-from .situation import Situation
+from .situation import Situation, bat_quality, depth_table
 
 KIND_TEXT = {"bowled": "b", "lbw": "lbw", "caught_fielder": "c", "caught_keeper": "c", "caught_bowler": "c & b",
              "stumped": "st", "hit_wicket": "hit wicket", "run_out": "run out"}
@@ -131,6 +131,11 @@ class Innings:
         self.streak: dict[Player, int] = {}   # consecutive legal balls taking wickets, per bowler (hat-tricks)
 
     # ------------------------------------------------------------------ helpers
+    def depth(self) -> float:
+        """Batting still to come: the batting average indexes of the players yet to bat (fit_depth.py)."""
+        tail = depth_table(self.m.fmt)["tail"]
+        return sum(bat_quality(c.p, tail) for c in self.cards[self.next_in:])
+
     def offset(self) -> int:
         """Balls to add so the situation tables (full-innings states) see the right balls left in a shortened
         innings: resources depend on overs left and wickets, as in DLS."""
@@ -290,6 +295,8 @@ class Innings:
                                          self.target, self.striker.balls, self.par_k()) if self.m.use_situation else {}
             if self.m.use_matchups:
                 sit = self.m.sit.with_matchup(sit, self.striker.p.bat_hand, bowler.bowl_kind)
+            if self.m.use_depth and sit and not self.super_over:
+                sit = self.m.sit.with_depth(sit, 1 if self.target is None else 2, self.wkts, self.depth())
             o = self.m.model.delivery(self.m.rng, base, self.striker.p, bowler, ph, btype, sit, self.free_hit)
             wp0 = self.m.wp_batting(self)
             striker = self.striker.p
@@ -532,7 +539,7 @@ class Match:
                  use_plan: bool = True, use_venue: bool = True, pitch: dict | None = None,
                  use_matchups: bool = True, use_pitch: bool = True, impact_player: bool | None = None,
                  rain_on: bool = False, use_spin: bool = True, use_reactive: bool = True,
-                 control: dict | None = None, skill: dict | None = None):
+                 control: dict | None = None, skill: dict | None = None, use_depth: bool = True):
         if fmt not in FORMATS:
             raise ValueError(f"format must be one of {sorted(FORMATS)}")
         self.fmt, self.year, self.venue = fmt, year, venue
@@ -563,6 +570,7 @@ class Match:
         self.use_situation = use_situation
         self.use_plan = use_plan
         self.use_matchups = use_matchups
+        self.use_depth = use_depth and depth_table(fmt) is not None   # batting still to come (fit_depth.py)
         # XI selection from squads: its own random stream (so it doesn't shift the ball-by-ball stream), the venue,
         # and the scoring level of ground x day's pitch that the captain can see
         sel_rng = random.Random(zlib.crc32(f"xi|{self.seed}".encode()))

@@ -643,3 +643,35 @@ squads were bought over several auctions; unscaled, Punjab Kings 2025 cost more 
 Gate: once the conditions are fixed (2026 on), scoring stays at the real level (200-210 against 205 at the start)
 and squads do not age or get younger. Wickets drift up slightly (+0.5 an innings over a decade) as made-up
 players take over; recorded, not tuned. A season takes ~16 s and an auction ~5 s.
+
+## Batting depth still to come (2026-10-09)
+
+The user noticed the engine played 5 down with all-rounders to come the same as 5 down with a long tail (the
+situation tables are averages over real line-ups) and asked for deep batting sides to take more risk and win more.
+
+`engine/fit/fit_depth.py` -> `data/engine/depth_t20.json`; `Situation.with_depth`, `Innings.depth`, Match
+`use_depth` (calibrate `--no-depth`). Depth = sum of the batting average indexes (runs / dismissal index, middle
+overs; unrated 0.4) of the players yet to bat; excess = depth - the real average at that many wickets down
+(T20: 7.3 at 0 down, 5.1 at 2, 3.1 at 4, 1.6 at 6). Observed / engine-expected (with all existing situation
+multipliers) per innings x wickets group (0-2, 3-4, 5-6, 7+) x excess bucket, shrunk (2000 pseudo-balls) and
+mean-preserving within each innings x wickets group.
+
+What real T20 data says (2012-26, internationals and 11 leagues): with 0-2 down, sides with far more batting to
+come (excess > 1.5) score 4-5% faster with 7-15% more sixes and no more dismissals (0.94-0.97); short line-ups
+(excess < -1.5) score 5% slower with 9-15% fewer sixes. From 3 down the effect is +-2%. Part of it may be the
+ratings' shrinkage (deep sides' batters slightly underrated); either way it predicts. ODI cells showed no
+consistent pattern (noise around 1): not used.
+
+Calibration (4 replays, same fixtures):
+
+| | real | depth off | depth on |
+|---|---|---|---|
+| T20I 1st inns | 168.8 | 166.1 (-1.6%) | 168.3 (-0.3%) |
+| T20I 2nd inns | 149.7 | 148.9 | 151.5 (+1.2%) |
+| IPL 1st inns | 186.3 | 185.4 (-0.5%) | 189.5 (+1.7%) |
+| IPL 2nd inns | 172.0 | 170.4 | 172.9 (+0.5%) |
+
+Phase run rates within 2.4%, wickets within 6.5% (IPL death). Gate met; stopped. Effect on results (8 T20I and 10
+IPL 2026 presets, 272 games each, depth off -> on): deepest line-ups (India, England, Australia, Mumbai Indians;
+depth of No. 3-11 above 9) +3 to +7 runs an innings and about +3-5 points of win %; the shortest (Afghanistan,
+Chennai, Lucknow) -1 to -2 runs and -1 to -4 points.

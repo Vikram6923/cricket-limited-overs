@@ -18,9 +18,22 @@ def tables(fmt: str) -> dict:
     return json.loads((DATA / "engine" / f"situation_{fmt}.json").read_text(encoding="utf-8"))
 
 
+@lru_cache(maxsize=None)
+def depth_table(fmt: str) -> dict | None:
+    p = DATA / "engine" / f"depth_{fmt}.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+def bat_quality(p, tail: float) -> float:
+    """A player's batting average index (runs / dismissals, middle overs) as fit_depth.py measures it."""
+    b = p.bat.get("middle") if p.rated_bat else None
+    return min(3.0, b["runs"] / b["wkt"]) if b and b.get("wkt") else tail
+
+
 class Situation:
     def __init__(self, fmt: str, comp: str, year: int):
         t = tables(fmt)
+        self.fmt = fmt
         self.t = t
         self.metrics = t["metrics"]
         self.N = FORMATS[fmt]["overs"] * 6
@@ -77,6 +90,23 @@ class Situation:
             m = {name: se[j] * st[j] for j, name in enumerate(self.metrics)}
             self._cache[key] = m
         return m
+
+    def with_depth(self, mult: dict, innings: int, wk: int, depth: float) -> dict:
+        """x the batting-depth table (engine/fit/fit_depth.py): how a side with more (or less) batting still to
+        come than usual at this many wickets down bats. depth = sum of the batting average indexes of the
+        players yet to bat."""
+        d = depth_table(self.fmt)
+        if not d:
+            return mult
+        g = bisect.bisect_left(d["wgroups"], wk)
+        x = bisect.bisect_left(d["excess_edges"], depth - d["mean_depth"][str(min(wk, 9))])
+        key = (id(mult), "depth", innings, g, x)
+        out = self._cache.get(key)
+        if out is None:
+            row = d["table"].get(str(innings), {}).get(str(g), {}).get(str(x))
+            out = {m: v * row.get(m, 1.0) for m, v in mult.items()} if row else mult
+            self._cache[key] = out
+        return out
 
     PACE = {"fast", "fast_medium", "medium_fast", "medium"}
 

@@ -299,6 +299,7 @@ python -m engine.fit.fit_dls           # DLS resources (after the other fits: it
 python -m engine.fit.fit_spin          # pace v spin edge by venue and day
 python -m engine.fit.fit_reactive      # reactive bowling changes
 python -m engine.fit.fit_career        # career mode: age curves, season form, retirements
+python -m engine.fit.fit_depth         # T20 batting depth still to come (after fit_situation)
 python -m engine.calibrate             # compare simulated v real
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
