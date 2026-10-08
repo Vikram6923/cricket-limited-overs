@@ -98,7 +98,7 @@ async function playAuctionLeague() {
        venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(), rain: $('c-rain').checked,
        rounds: +$('a-rounds').value, knockout: $('a-ko').value}
     : {mode: 'auction', fmt: 't20', seed: $('a-seed').value.trim(), rain: $('a-rain').checked};
-  if (me) { body.captain = me; body.manual = ['toss', 'xi', 'bowler', 'batter', 'result', ...(impact ? ['impact'] : [])]; CAP.impact = impact; }
+  if (me) { body.captain = me; body.opponents = $('a-opp').value; body.manual = ['toss', 'xi', 'bowler', 'batter', 'result', ...(impact ? ['impact'] : [])]; CAP.impact = impact; }
   try { await api('/api/run', body); poll(); }
   catch (e) { $('au-msg').textContent = e.message; toast(e.message, true); }
 }

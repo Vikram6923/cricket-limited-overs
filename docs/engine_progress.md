@@ -567,3 +567,22 @@ IPL rules; live bidding with skips; retentions (user request). Game AI, not fitt
 - Captaincy in every mode (2026-10-08): play_series takes control too; /api/run takes captain_i (index into
   the run's sides) for series / tournament / classic / draft; one "Captain a team" box in the conditions panel.
   Test: a series between a fixed XI and a historical squad, captained by random answers on either side.
+
+## Captaincy report and opponent levels (2026-10-09)
+
+User: manual captaincy didn't seem to beat the computer; asked for weaker opponents and a report.
+- `engine/judge.py`: option values in runs. Bowler = 6 x bowling_cost this over + min-cost transport of the
+  remaining overs (bowlers x phases, quotas; no-consecutive rule ignored). Next batter = the order still to come,
+  per-ball value in the phase each would bat in x impact.balls_next. XI = batting by slot + impact.attack_value.
+- Report: Match logs each of the person's calls (kind, when, you, computer, changed, delta); card["captaincy"];
+  judge.season_report sums by kind (and in wins via runs_per_win); results["captaincy"]. Sanity: always taking
+  the computer's choice = 0.0 runs; random answers = -853 runs over 15 matches (mostly the random XI order).
+- Loose computer captains: Match(skill={team: level}); per decision, with probability eps the side picks by
+  softmax(value / T) over its options (bowler, next batter among the next 4, one XI swap with the bench), flips
+  the toss, or lets an Impact Player moment pass. Own random stream: expert sides play exactly as before.
+  Levels (eps, T runs): average (0.15, 3), easy (0.6, 10).
+- Calibration (one pass; IPL 2024 squads, 90 ordered pairs x 10 seeds, expert side v the level):
+  expert 51.3%, average 56.4%, easy at (0.35, 6) 56.4% -> retuned to (0.6, 10): 65.8% (+-3). Gate: three
+  distinct levels. Stopped.
+- UI: "Opponent captains" in the three captain boxes (League Season, Auction, others); "Your captaincy" on the
+  results summary; "Your calls" on each match.

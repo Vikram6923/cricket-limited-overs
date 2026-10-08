@@ -120,6 +120,31 @@ def test_series_with_a_captain():
         assert ctl.asked.count("result") == 3 and "bowler" in ctl.asked
 
 
+def test_captaincy_report_and_levels():
+    """Every call the person makes is logged and valued; weaker computer captains keep the laws."""
+    from engine.judge import season_report
+    a, b = ipl_teams()
+    cards, kinds = [], set()
+    for seed in range(12):
+        ctl = {a["name"]: RandomCaptain(a["name"], seed)}
+        c = simulate_match(a, b, fmt="t20", comp="ipl", year=2024, seed=seed, control=ctl,
+                           skill={b["name"]: ["average", "easy"][seed % 2]})
+        check_card(c)
+        log = c["captaincy"][a["name"]]
+        kinds |= {d["kind"] for d in log}
+        assert all(d["delta"] is not None for d in log if d["kind"] in ("bowler", "xi") and not d["changed"])
+        cards.append(c)
+    assert {"toss", "xi", "bowler", "batter", "impact"} <= kinds, kinds
+    r = season_report(cards, a["name"])
+    assert r["matches"] == 12 and r["kinds"]["bowler"]["calls"] > 50
+    for seed in range(30):                       # both sides loose, no person
+        check_card(simulate_match(a, b, fmt="t20", comp="ipl", year=2024, seed=seed,
+                                  skill={a["name"]: "easy", b["name"]: "easy"}))
+    c1 = simulate_match(a, b, fmt="t20", comp="ipl", year=2024, seed=5, skill={a["name"]: "expert"})
+    c2 = simulate_match(a, b, fmt="t20", comp="ipl", year=2024, seed=5)
+    assert c1["innings"][0]["runs"] == c2["innings"][0]["runs"]
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

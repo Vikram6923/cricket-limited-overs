@@ -380,7 +380,7 @@ function payload() {
     rain: $('c-rain').checked};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value};
   if (MODE === 'league') return {mode: 'league', league: $('l-league').value, season: $('l-season').value, seed: $('l-seed').value.trim(), venues: [],
-    rain: $('l-rain').checked, captain: $('l-captain').value,
+    rain: $('l-rain').checked, captain: $('l-captain').value, opponents: $('l-opp').value,
     manual: [...$('l-manual').querySelectorAll('input:checked')].map(i => i.value).filter(k => k !== 'impact' || CAP.impact)};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
     team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value,
@@ -421,7 +421,7 @@ function capBoxes() {
 }
 function capPayload() {
   const i = $('g-captain').value;
-  return i === '' ? {} : {captain_i: MODE === 'draft' ? DRAFT.teams.indexOf(DRAFT.user) : +i,
+  return i === '' ? {} : {captain_i: MODE === 'draft' ? DRAFT.teams.indexOf(DRAFT.user) : +i, opponents: $('g-opp').value,
     manual: [...$('g-manual').querySelectorAll('input:checked')].map(x => x.value).filter(k => k !== 'impact' || CAP.impact)};
 }
 async function start() {
@@ -504,6 +504,7 @@ function renderSummary() {
     if (R.knockouts.length) h += '<h3>Knockouts</h3><ul class="ko">' + R.knockouts.map(k =>
       `<li><b>${esc(k.stage)}</b><a class="mlink" data-match="${k.match_no}">${esc(k.result)}</a> <span class="muted">(${esc(k.teams.join(' v '))})</span></li>`).join('') + '</ul>';
   }
+  h += captaincyHTML(R.captaincy);
   h += '<h3>Top performers</h3><div class="tops">';
   const li = (rows, f) => rows.length ? rows.map(f).join('') : '<li class="muted">–</li>';
   h += `<div class="card"><b>Most runs</b><ol>${li(R.batting.slice(0, 5), r => `<li>${esc(r.name)} <span>${r.runs} @ ${fmtNum(r.average, 1)}, SR ${fmtNum(r.strike_rate, 1)} · ${esc(r.team)}</span></li>`)}</ol></div>`;
@@ -585,8 +586,36 @@ async function showMatch(i) {
       ${pom.name ? `<span>Player of the match: <b>${esc(pom.name)}</b></span>` : ''}</div>
     ${(c.rain || []).length ? `<div class="meta">${c.rain.map(t => `<span>&#9730; ${esc(t)}</span>`).join('')}</div>` : ''}
     <div class="report">${esc(d.report)}</div>
+    ${callsHTML(c)}
     ${chartsHTML(c)}
     <h3>Scorecard and innings log</h3><pre class="sc">${esc(d.text)}</pre>`;
+}
+
+/* captaincy report (engine/judge.py): the person's calls against the computer's, in runs */
+const CALL_LABEL = {toss: 'Toss', xi: 'Playing XI and order', bowler: 'Bowler each over', batter: 'Next batter', impact: 'Impact Player'};
+const sgn = v => v === null || v === undefined ? '–' : (v > 0 ? '+' : '') + v.toFixed(1);
+function captaincyHTML(r) {
+  if (!r) return '';
+  const rows = Object.entries(r.kinds).map(([k, v]) => `<tr><td>${CALL_LABEL[k] || k}</td><td>${v.calls}</td><td>${v.changed}</td>
+    <td class="${v.runs > 0 ? 'w' : v.runs < 0 ? 'l' : ''}">${v.valued ? sgn(v.runs) : 'not valued'}</td></tr>`).join('');
+  const verdict = r.runs > 0 ? 'better than' : r.runs < 0 ? 'worse than' : 'the same as';
+  return `<h3>Your captaincy - ${esc(r.team)}</h3><div class="cap-report">
+    <p>Over ${r.matches} matches your calls were worth <b class="${r.runs > 0 ? 'w' : r.runs < 0 ? 'l' : ''}">${sgn(r.runs)} runs</b> against the computer's
+    (about ${sgn(r.wins)} wins at ${r.runs_per_win} runs a win): ${verdict} the computer captain. Opponent captains: ${esc(r.opponents || 'expert')}.</p>
+    <table class="mini"><tr><th>Decision</th><th>Calls</th><th>Different from the computer</th><th>Runs v the computer</th></tr>${rows}</table>
+    <p class="muted small">Estimates from the engine's own ratings (expected runs, wickets valued in runs), not the scorecard: a call can be right and still go wrong on the day. Bowlers: this over plus the best way to bowl the rest with the overs left. Batters: the order still to come and the balls each can expect. XI: batting by slot plus the best 20 overs the side can bowl. Toss and Impact Player calls are listed without a value. Each match's calls are on the Matches tab.</p></div>`;
+}
+function callsHTML(c) {
+  const logs = c.captaincy ? Object.entries(c.captaincy) : [];
+  return logs.map(([team, log]) => {
+    const valued = log.filter(d => d.delta !== null), tot = valued.reduce((a, d) => a + d.delta, 0);
+    const diff = log.filter(d => d.changed);
+    return `<h3>Your calls for ${esc(team)}: ${sgn(tot)} runs v the computer</h3>
+      <p class="muted small">${log.length} calls, ${diff.length} different from the computer's.</p>
+      ${diff.length ? `<table class="mini"><tr><th>When</th><th>Decision</th><th>You</th><th>Computer</th><th>Runs</th></tr>${diff.map(d =>
+        `<tr><td>${esc(d.when)}</td><td>${CALL_LABEL[d.kind] || d.kind}</td><td>${esc(d.you)}</td><td>${esc(d.computer)}</td>
+         <td class="${d.delta > 0 ? 'w' : d.delta < 0 ? 'l' : ''}">${sgn(d.delta)}</td></tr>`).join('')}</table>` : ''}`;
+  }).join('');
 }
 
 /* charts: run worm, Manhattan, win probability (inline SVG, data from each innings' overs_log) */

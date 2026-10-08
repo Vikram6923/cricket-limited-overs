@@ -12,6 +12,7 @@ import random
 import zlib
 from dataclasses import dataclass, field
 
+from . import judge
 from . import rain
 from . import captain, conditions
 from .ballmodel import BallModel
@@ -221,6 +222,8 @@ class Innings:
                         pool = fielders
                     bowler = captain.choose_bowler(pool, self.bowl.keeper, quota_left, self.max_overs - over,
                                                    last, ph, base, fmt, self.m.rng, base_of=self.m.base_of)
+                if self.m.skill and not self.super_over:
+                    bowler = self.m.loose_bowler(self, over, bowler, last, quota_left)
                 if self.m.control:
                     bowler, changed = self.m.bowler_turn(self, over, bowler, last, quota_left, ph)
                     if changed:                # Impact Player came in: the rest chosen over by over
@@ -423,6 +426,8 @@ class Innings:
             if self.m.impact_player and not self.super_over and not self.m.manual(self.bat, "impact"):
                 self.m.impact_mid_innings(self)
             j = self.pick_next()
+            if self.m.skill and not self.super_over:
+                j = self.m.loose_batter(self, j)
             if self.m.control and not self.super_over:
                 j = self.m.batter_turn(self, j)
             if j != self.next_in:              # move the chosen batter up to the next slot
@@ -527,7 +532,7 @@ class Match:
                  use_plan: bool = True, use_venue: bool = True, pitch: dict | None = None,
                  use_matchups: bool = True, use_pitch: bool = True, impact_player: bool | None = None,
                  rain_on: bool = False, use_spin: bool = True, use_reactive: bool = True,
-                 control: dict | None = None):
+                 control: dict | None = None, skill: dict | None = None):
         if fmt not in FORMATS:
             raise ValueError(f"format must be one of {sorted(FORMATS)}")
         self.fmt, self.year, self.venue = fmt, year, venue
@@ -578,6 +583,12 @@ class Match:
         # manual captaincy (engine/control.py): team name -> controller, for the sides a person captains
         self.control = {t.name: control[t.name] for t in self.teams if control and t.name in control}
         self.key = f"{self.seed}|{self.teams[0].name}|{self.teams[1].name}"
+        self.captain_log = {t.name: [] for t in self.teams if t.name in self.control}   # the person's calls, valued
+        # weaker computer captains (engine/judge.py): team name -> (chance of a loose call, temperature in runs);
+        # their own random stream, so expert sides play exactly as before
+        self.skill = {t.name: judge.LEVELS[skill.get(t.name)] for t in self.teams
+                      if skill and skill.get(t.name) in judge.LEVELS and skill.get(t.name) != "expert"}
+        self.loose_rng = random.Random(zlib.crc32(f"loose|{self.seed}".encode()))
         self.innings: list[Innings] = []
         self.super_overs: list[Innings] = []
         self.wpa: dict[str, float] = {}
@@ -630,6 +641,8 @@ class Match:
             team.impact.update(innings=inn_.number, score=f"{inn_.runs}/{inn_.wkts}")
 
     def impact_swap(self, team: Team, need: str) -> None:
+        if self.loose(team):
+            return
         """Impact Player at the innings break (engine/impact.py): the biggest team-value gain in the discipline
         still to come (`need`: "bowl" for the side that batted, "bat" for the chasing side)."""
         from . import impact
@@ -646,6 +659,8 @@ class Match:
             team.order = [inn if p is out else p for p in team.order]
 
     def impact_mid_innings(self, inn_: "Innings") -> None:
+        if self.loose(inn_.bat):
+            return
         """Batting side, at the fall of a wicket: bring in a batter now if the runs he adds beat what waiting is
         worth (first innings: the bowler the side could bring in at the break) - engine/impact.py rule 2."""
         from . import impact
@@ -670,6 +685,8 @@ class Match:
             c.pos = k + 1
 
     def impact_mid_bowling(self, inn_: "Innings", quota_left: dict) -> bool:
+        if self.loose(inn_.bowl):
+            return False
         """Bowling first, at the end of an over: bring in a bowler now if the better remaining overs beat the
         batter the side could bring in for the chase (engine/impact.py rule 3)."""
         from . import impact
@@ -689,6 +706,78 @@ class Match:
         return True
 
     # ------------------------------------------------------------------ manual captaincy (engine/control.py)
+    # ---------------------------------------------------------------- weaker captains and the report (judge.py)
+    def loose(self, team: Team):
+        """(chance, temperature) when this computer side makes a loose call now, else None."""
+        s = self.skill.get(team.name)
+        return s if s and self.loose_rng.random() < s[0] else None
+
+    def valid_bowlers(self, team: Team, quota_left: dict, left: int, last: Player | None) -> list:
+        """Who may bowl the next over: overs left in his quota, not the last over's bowler, and the rest of the
+        innings still possible without consecutive overs (the keeper only if no one else can)."""
+        out = []
+        for p in team.players:
+            if p is last or quota_left.get(p, 0) <= 0:
+                continue
+            q = dict(quota_left)
+            q[p] -= 1
+            if captain.feasible(q, left - 1, p):
+                out.append(p)
+        return [p for p in out if p is not team.keeper] or out
+
+    def loose_bowler(self, inn: "Innings", over: int, bowler: Player, last: Player | None, quota_left: dict):
+        s = self.loose(inn.bowl)
+        if not s:
+            return bowler
+        opts = self.valid_bowlers(inn.bowl, quota_left, inn.max_overs - over, last)
+        if len(opts) < 2:
+            return bowler
+        return judge.pick(judge.bowler_values(self, inn, over, opts, quota_left), s[1], self.loose_rng) or bowler
+
+    def loose_batter(self, inn: "Innings", j: int) -> int:
+        s = self.loose(inn.bat)
+        cands = [c.p for c in inn.cards[inn.next_in:inn.next_in + 4]]
+        if not s or len(cands) < 2:
+            return j
+        p = judge.pick(judge.batter_values(self, inn, cands), s[1], self.loose_rng)
+        return next(k for k in range(inn.next_in, len(inn.cards)) if inn.cards[k].p is p)
+
+    def loose_xi(self, team: Team) -> None:
+        """A loose captain may leave out a better player: one swap with the bench, likelier the less it costs."""
+        s = self.loose(team)
+        bench = [p for p in (team.squad or []) if p not in team.players and p not in team.bench] + list(team.bench)
+        if not s or not bench:
+            return
+        now = judge.xi_value(self, team.order, team.keeper)
+        opts = {}
+        for out in team.players:
+            if out is team.keeper:
+                continue
+            for new in bench:
+                if team.max_overseas is not None and new.overseas and not out.overseas \
+                        and sum(p.overseas for p in team.players) >= team.max_overseas:
+                    continue
+                xi = [new if p is out else p for p in team.players]
+                opts[(out, new)] = judge.xi_value(self, captain.batting_order(xi), team.keeper) - now
+        if not opts:
+            return
+        out, new = judge.pick(opts, s[1], self.loose_rng)
+        team.players = [new if p is out else p for p in team.players]
+        team.order = captain.batting_order(team.players)
+        if new in team.bench:
+            team.bench = [out if p is new else p for p in team.bench]
+        if team.captain is out:
+            team.captain = max(team.players, key=lambda p: p.bat_balls + p.bowl_balls)
+
+    def log(self, team: Team, kind: str, when: str, you, computer, delta: float | None = None) -> None:
+        """One of the person's calls for the captaincy report (delta = runs gained against the computer's call)."""
+        if team.name not in self.captain_log:
+            return
+        name = lambda x: x.name if isinstance(x, Player) else x
+        self.captain_log[team.name].append({"kind": kind, "when": when, "you": name(you), "computer": name(computer),
+                                            "changed": name(you) != name(computer),
+                                            "delta": None if delta is None else round(delta, 2)})
+
     def manual(self, team: Team, kind: str, inn: "Innings | None" = None) -> bool:
         ctl = self.control.get(team.name)
         return bool(ctl and ctl.manual(kind, self.key, inn.number if inn else None))
@@ -773,6 +862,8 @@ class Match:
                                     "max_overseas": team.max_overseas, "n_subs": N_SUBS if imp else 0,
                                     "batting_first": batting_first, "toss": toss})
         if not isinstance(ans, dict):
+            if self.manual(team, "xi"):
+                self.log(team, "xi", "after the toss", "the computer's XI", "the computer's XI", 0.0)
             return
         by = {p.id: p for p in squad}
         xi = [by[i] for i in ans.get("xi") or [] if i in by]
@@ -781,6 +872,10 @@ class Match:
             return
         if team.max_overseas is not None and sum(p.overseas for p in xi) > team.max_overseas:
             return
+        before = judge.xi_value(self, team.order, team.keeper)
+        same = [p.id for p in xi] == default["xi"] and keeper.id == default["keeper"]
+        self.log(team, "xi", "after the toss", "your XI" if not same else "the computer's XI", "the computer's XI",
+                 judge.xi_value(self, xi, keeper) - before)
         team.players, team.order, team.keeper = xi, list(xi), keeper
         if imp:
             subs = [by[i] for i in ans.get("subs") or [] if i in by and by[i] not in xi]
@@ -841,8 +936,11 @@ class Match:
                                         "impact": self.impact_block(team, None, sugg, False)}, i1, skip_inn=False)
         if ans is None:
             self.impact_swap(team, need)          # the computer's choice
-        elif isinstance(ans, dict) and ans.get("in"):
-            self.manual_impact(team, {**ans, "for": need}, None, when="innings break")
+            self.log(team, "impact", "innings break", self._sub_text(sugg), self._sub_text(sugg))
+        else:
+            done = isinstance(ans, dict) and ans.get("in") and \
+                self.manual_impact(team, {**ans, "for": need}, None, when="innings break")
+            self.log(team, "impact", "innings break", self._sub_text(ans) if done else "wait", self._sub_text(sugg))
 
     def bowler_turn(self, inn: "Innings", over: int, default: Player, last: Player | None, quota_left: dict,
                     ph: str) -> tuple[Player, bool]:
@@ -855,15 +953,7 @@ class Match:
         left = inn.max_overs - over
 
         def valid():
-            out = []
-            for p in team.players:
-                if p is last or quota_left.get(p, 0) <= 0:
-                    continue
-                q = dict(quota_left)
-                q[p] -= 1
-                if captain.feasible(q, left - 1, p):
-                    out.append(p)
-            return [p for p in out if p is not team.keeper] or out
+            return self.valid_bowlers(team, quota_left, left, last)
         imp_ok = self.impact_player and not team.impact and team.bench and self.manual(team, "impact", inn)
         sugg = None
         if imp_ok and inn.number == 1:            # the computer's own rule 3 (bowling first)
@@ -874,7 +964,8 @@ class Match:
                 sugg = {"out": pick[1].id, "in": pick[2].id, "gain": round(pick[0], 1), "for": pick[3]}
         opts = valid()
         block = self.impact_block(team, inn, sugg, False) if imp_ok else None
-        if self.manual(team, "bowler", inn) and (len(opts) > 1 or sugg):
+        asked = self.manual(team, "bowler", inn) and (len(opts) > 1 or sugg)
+        if asked:
             ans = self.ask(team, "bowler", {"options": [dict(self.pinfo(p, ph), quota_left=quota_left.get(p, 0))
                                                         for p in opts],
                                             "default": default.id, "over": over + 1, "impact": block}, inn)
@@ -895,7 +986,23 @@ class Match:
             pick = default if default in opts else captain.choose_bowler(
                 team.players, team.keeper, quota_left, left, last, ph, self.base[ph], self.fmt, self.rng,
                 base_of=self.base_of)
+        imp = ans.get("impact")
+        if self.manual(team, "impact", inn) and (sugg or changed):
+            self.log(team, "impact", f"over {over + 1}", self._sub_text(imp) if changed else "wait",
+                     self._sub_text(sugg) if sugg else "wait")
+        if asked:
+            d = None
+            if not changed and default in opts:
+                d = 0.0 if pick is default else (lambda v: v[pick] - v[default])(
+                    judge.bowler_values(self, inn, over, [pick, default], quota_left))
+            self.log(team, "bowler", f"over {over + 1}", pick, default, d)
         return pick, changed
+
+    def _sub_text(self, s: dict | None) -> str:
+        if not isinstance(s, dict) or not s.get("in"):
+            return "wait"
+        by = {p.id: p.name for t in self.teams for p in (t.squad or t.players + t.bench)}
+        return f"{by.get(s['in'], s['in'])} for {by.get(s.get('out'), s.get('out'))}"
 
     def batter_turn(self, inn: "Innings", j: int) -> int:
         """At the fall of a wicket: the person's next batter (and Impact Player substitution, if made). Returns
@@ -920,7 +1027,8 @@ class Match:
         rem = inn.cards[inn.next_in:]
         block = self.impact_block(team, inn, sugg, True) if imp_ok else None
         default = inn.cards[j].p
-        if self.manual(team, "batter", inn) and (len(rem) > 1 or sugg):
+        asked = self.manual(team, "batter", inn) and (len(rem) > 1 or sugg)
+        if asked:
             ans = self.ask(team, "batter", {"options": [self.pinfo(c.p, ph) for c in rem], "default": default.id,
                                             "impact": block}, inn)
             if ans is None:
@@ -934,17 +1042,32 @@ class Match:
         ans = ans if isinstance(ans, dict) else {}
         imp = ans.get("impact")
         same = bool(sugg and isinstance(imp, dict) and imp.get("out") == sugg["out"] and imp.get("in") == sugg["in"])
-        if self.manual_impact(team, imp, inn, index=sugg["index"] if same else None):
+        subbed = self.manual_impact(team, imp, inn, index=sugg["index"] if same else None)
+        if subbed:
             j = inn.pick_next()
         k = next((i for i in range(inn.next_in, len(inn.cards)) if inn.cards[i].p.id == ans.get("batter")), None)
-        return k if k is not None else j
+        k = k if k is not None else j
+        when = f"wicket {inn.wkts} ({inn.ball_str()} ov)"
+        if self.manual(team, "impact", inn) and (sugg or subbed):
+            self.log(team, "impact", when, self._sub_text(imp) if subbed else "wait",
+                     self._sub_text(sugg) if sugg else "wait")
+        if asked:
+            you = inn.cards[k].p
+            d = None if subbed else 0.0 if you is default else (lambda v: v[you] - v[default])(
+                judge.batter_values(self, inn, [you, default]))
+            self.log(team, "batter", when, you, default, d)
+        return k
 
     def play(self) -> dict:
         a, b = self.teams
         toss_winner = {"a": a, "b": b}.get(self.toss_spec) or (a if self.rng.random() < 0.5 else b)
         decision = self.decision_spec or captain.toss_decision(self.fmt, self.rng, self.venue)
+        if not self.decision_spec and self.loose(toss_winner):
+            decision = "bowl" if decision == "bat" else "bat"
         ans = self.ask(toss_winner, "toss", {"options": ["bat", "bowl"], "default": decision,
                                              "text": f"{toss_winner.name} won the toss."})
+        if self.manual(toss_winner, "toss"):
+            self.log(toss_winner, "toss", "toss", ans if ans in ("bat", "bowl") else decision, decision)
         if ans in ("bat", "bowl"):
             decision = ans
         first = toss_winner if decision == "bat" else (b if toss_winner is a else a)
@@ -954,6 +1077,8 @@ class Match:
             if self.impact_player:             # XI and substitutes are named after the toss
                 from .impact import choose_xi
                 choose_xi(t, bat_first, self.fmt, self.base, self._slot_balls())
+            if t.name in self.skill:
+                self.loose_xi(t)
             if t.name in self.control:
                 self.ask_xi(t, bat_first, toss_text)
         i1 = self._i1 = Innings(self, first, second, 1, None, self.overs)
@@ -998,6 +1123,8 @@ class Match:
             "events": [e for i in self.innings + self.super_overs for e in i.events],
         }
         card["impact"] = {pid: round(v, 3) for pid, v in sorted(self.wpa.items(), key=lambda kv: -kv[1])}
+        if self.captain_log:
+            card["captaincy"] = self.captain_log
         # runs worth one whole win at the break (slope of the chase win model at an average target): converts win
         # probability added into runs for the player of the match
         s = round(self.sit.scale)

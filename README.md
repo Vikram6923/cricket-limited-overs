@@ -56,6 +56,15 @@ offline. Modes:
   computer, play can be skipped to the end of the innings, the match or the season, and obvious calls (one
   possible bowler, the last batter) are not asked. League Season and Auction pick the team in their own form; Series, Tournament, Classic and Draft (your drafted
   team) in the "Captain a team" box under the conditions. Built on a generic controller (`engine/control.py`).
+  - **Opponent captains: Expert / Average / Easy.** Expert is the engine's own best calls. Weaker computer
+    captains sometimes make another call (bowler, next batter, a swap in the XI, the toss, the Impact Player
+    moment), the less costly ones more often, so their mistakes are plausible. Measured over 900 IPL 2024 games:
+    an expert side wins 51% against Expert, 56% against Average, 66% against Easy.
+  - **Captaincy report:** every call you make is valued in runs against the computer's call, with the engine's
+    own numbers (bowlers: this over plus the best way to bowl the rest; batters: the order still to come and the
+    balls each can expect; XI: batting by slot plus the best overs the side can bowl). The results summary shows
+    the total by decision type (and in wins), each match lists the calls where you differed. Toss and Impact
+    Player calls are listed without a value.
 - **Fantasy Draft:** you and computer teams draft 15-man squads in snake order from the player pool of chosen
   years (full-member internationals, optionally franchise leagues), then play a league with knockouts.
 - **Auction:** an IPL-style auction, then a league. Players: everyone from a real league season (with its
@@ -302,6 +311,7 @@ engine/            match engine (library)
   impact.py        IPL Impact Player decisions
   rain.py          rain interruptions and DLS
   control.py       manual captaincy (a person makes one side's decisions)
+  judge.py         captaincy decisions valued in runs: the captaincy report and weaker computer captains
   history.py       historical (nation + years) teams
   draft.py         fantasy draft
   auction.py       IPL-style auction with retentions and Right to Match

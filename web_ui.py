@@ -27,6 +27,7 @@ from flask import Flask, abort, jsonify, request, send_from_directory
 
 from engine.conditions import venue_table
 from engine.control import KINDS, Cancelled, WaitingController
+from engine.judge import AllBut, season_report
 from engine import history
 from engine.auction import Auction, season_pool, years_pool
 from engine.draft import DEFAULT_TEAMS, Draft
@@ -300,6 +301,7 @@ def _run(job: Job, params: dict) -> None:
             size = int(params["squad_size"]) if params["squad_size"] else None
         ym = params.get("years_mode") if params.get("years_mode") in ("blend", "only") else "blend"
         control = {job.controller.team: job.controller} if job.controller else None   # a side the user captains
+        skill = AllBut(params.get("opponents") or "expert", job.controller.team) if job.controller else None
         if params["mode"] == "league":
             s = league_season(params["league"], params.get("season"))
             specs = [{"name": t["name"], "squad": t["players"], "overseas": t["overseas"],
@@ -307,13 +309,13 @@ def _run(job: Job, params: dict) -> None:
             homes = {t["name"]: t["home_venue"] for t in s["teams"] if t.get("home_venue")}
             res = play_tournament(specs, fmt="t20", comp=params["league"], year=s["year"], rounds=2, knockout="ipl",
                                   venues=venues_, home_venues=homes, seed=seed, rain=rain_, on_match=on_match,
-                                  control=control)
+                                  control=control, skill=skill)
         elif params["mode"] == "draft":
             groups = int(params.get("groups") or 1)
             res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, seed=seed, rain=rain_,
-                                  on_match=on_match, control=control)
+                                  on_match=on_match, control=control, skill=skill)
             res["draft"] = {"teams": DRAFT.teams, "user": DRAFT.user,
                             "board": DRAFT.state()["board"], "years": [DRAFT.y1, DRAFT.y2]}
         elif params["mode"] == "auction":
@@ -321,11 +323,11 @@ def _run(job: Job, params: dict) -> None:
             if a.comp:                         # a real season: its conditions, home grounds and IPL playoffs
                 res = play_tournament(a.team_specs(), fmt="t20", comp=a.comp, year=a.year, rounds=2, knockout="ipl",
                                       home_venues={t: h for t, h in a.homes.items() if h}, seed=seed, rain=rain_,
-                                      on_match=on_match, control=control)
+                                      on_match=on_match, control=control, skill=skill)
             else:
                 res = play_tournament(a.team_specs(), fmt=fmt, comp=comp, year=year,
                                       rounds=int(params.get("rounds") or 1), knockout=params.get("knockout") or "semis",
-                                      venues=venues_, seed=seed, rain=rain_, on_match=on_match, control=control)
+                                      venues=venues_, seed=seed, rain=rain_, on_match=on_match, control=control, skill=skill)
             sm = a.summary()
             res["draft"] = {"teams": sm["teams"], "user": sm["user"], "board": sm["board"], "auction": True,
                             "purse": sm["purse"]}
@@ -333,7 +335,7 @@ def _run(job: Job, params: dict) -> None:
             res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
                               n=int(params["matches"]),
                               fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match,
-                              control=control)
+                              control=control, skill=skill)
         else:
             groups = int(params.get("groups") or 1)
             specs = [team_spec(t, fmt, size, ym) for t in params["teams"]]
@@ -341,9 +343,13 @@ def _run(job: Job, params: dict) -> None:
             res = play_tournament(specs, fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, home_venues=homes,
-                                  seed=seed, rain=rain_, on_match=on_match, control=control)
+                                  seed=seed, rain=rain_, on_match=on_match, control=control, skill=skill)
         res["title"] = job.title
         res["mode"] = params["mode"]
+        if job.controller:                     # how the person's calls compared with the computer's
+            res["captaincy"] = season_report(res["matches"], job.controller.team)
+            if res["captaincy"]:
+                res["captaincy"]["opponents"] = params.get("opponents") or "expert"
         _augment(res)
         if LAST.exists():
             shutil.rmtree(LAST)

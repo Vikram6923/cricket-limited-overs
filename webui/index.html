@@ -98,7 +98,12 @@
         <label id="l-impact-opt"><input type="checkbox" value="impact" checked> Impact Player</label>
         <label><input type="checkbox" value="result" checked> Pause after my matches</label>
       </div>
-      <div class="hint" style="margin:4px 0 0">Anything unticked is left to the computer. Obvious calls (one possible bowler, the last batter) are never asked.</div></div>
+      <div class="hint" style="margin:4px 0 0">Anything unticked is left to the computer. Obvious calls (one possible bowler, the last batter) are never asked.</div>
+      <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="l-opp">
+        <option value="expert">Expert - the engine's best calls (as before)</option>
+        <option value="average">Average - a loose call now and then</option>
+        <option value="easy">Easy - loose calls often, sometimes bad ones</option></select>
+        <div class="hint" style="margin:4px 0 0">Applies to every computer-captained side. Measured over 900 IPL games: an expert side wins 51% against Expert, 56% against Average, 66% against Easy.</div></div></div>
     <div class="fg"><label>Seed (optional)</label><input type="text" id="l-seed" placeholder="random"></div>
     <div class="fg"><label><input type="checkbox" id="l-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (the league's home country).</div></div>
     <div class="total" id="l-total"></div>
@@ -162,7 +167,12 @@
     </div>
     <div class="fg"><label>Retain players from</label><select id="a-retain"></select></div>
     <div class="fg"><label>You bid for</label><select id="a-user"></select></div>
-    <div class="fg" id="a-captain-box"><label><input type="checkbox" id="a-captain" checked style="width:auto;margin-right:6px">Captain my team in the league</label></div>
+    <div class="fg" id="a-captain-box"><label><input type="checkbox" id="a-captain" checked style="width:auto;margin-right:6px">Captain my team in the league</label>
+      <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="a-opp">
+        <option value="expert">Expert - the engine's best calls (as before)</option>
+        <option value="average">Average - a loose call now and then</option>
+        <option value="easy">Easy - loose calls often, sometimes bad ones</option></select>
+        <div class="hint" style="margin:4px 0 0">Applies to every computer-captained side. Measured over 900 IPL games: an expert side wins 51% against Expert, 56% against Average, 66% against Easy.</div></div></div>
     <div class="fg"><label>Seed (optional)</label><input type="text" id="a-seed" placeholder="random"></div>
     <div class="total" id="a-total"></div>
   </div>
@@ -204,7 +214,12 @@
         <label><input type="checkbox" value="batter" checked> Next batter</label>
         <label id="g-impact-opt"><input type="checkbox" value="impact" checked> Impact Player</label>
         <label><input type="checkbox" value="result" checked> Pause after my matches</label>
-      </div></div>
+      </div>
+      <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="g-opp">
+        <option value="expert">Expert - the engine's best calls (as before)</option>
+        <option value="average">Average - a loose call now and then</option>
+        <option value="easy">Easy - loose calls often, sometimes bad ones</option></select>
+        <div class="hint" style="margin:4px 0 0">Applies to every computer-captained side. Measured over 900 IPL games: an expert side wins 51% against Expert, 56% against Average, 66% against Easy.</div></div></div>
     <div class="fg"><label>Seed (optional, repeat a run exactly)</label><input type="text" id="c-seed" placeholder="random"></div>
     <div class="fg"><label><input type="checkbox" id="c-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (from the venue; neutral = average).</div></div>
   </div>

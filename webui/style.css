@@ -271,3 +271,7 @@ svg.chart .wkt{stroke:var(--bg);stroke-width:1.2}
 .sv-item{border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;display:flex;flex-direction:column;gap:3px}
 .sv-btns{display:flex;gap:6px;margin-top:4px}
 .sv-btns .btn{padding:4px 10px;font-size:.78rem}
+
+/* captaincy report */
+.cap-report p{margin:6px 0}
+.cap-report .mini{max-width:640px}

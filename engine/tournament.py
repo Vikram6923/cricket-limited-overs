@@ -54,7 +54,7 @@ class _Runner:
 
     def __init__(self, fmt: str, comp: str | None, year: int, seed: int | None, venues: list | None,
                  home_venues: dict | None, knockout_venues: list | None, rain: bool = False,
-                 control: dict | None = None):
+                 control: dict | None = None, skill: dict | None = None):
         self.fmt, self.comp, self.year = fmt, comp or FORMATS[fmt]["intl"], year
         self.rain = rain
         self.seed = seed if seed is not None else random.randrange(1 << 30)
@@ -63,6 +63,7 @@ class _Runner:
         self.ko_venues = list(knockout_venues or [])
         self.cards: list[dict] = []
         self.control = control or {}  # team name -> engine.control.Controller (a person captains that side)
+        self.skill = skill or {}      # team name -> "expert" | "average" | "easy" (computer captains, engine/judge.py)
         self.on_match = None          # optional callback(card) after every match (progress / cancel)
 
     def venue_for(self, home: str, knockout: bool) -> str | None:
@@ -82,11 +83,13 @@ class _Runner:
         for ctl in self.control.values():
             ctl.context = {"stage": stage, "match_no": no, "knockout": knockout, "venue": venue}
         card = simulate_match(a, b, fmt=self.fmt, comp=self.comp, year=self.year, venue=venue,
-                              seed=_seed(self.seed, no), rain_on=self.rain, control=self.control)
+                              seed=_seed(self.seed, no), rain_on=self.rain, control=self.control,
+                              skill=self.skill)
         if knockout and card["result"]["type"] == "no_result":
             # reserve day; if that is washed out too, the higher-placed side (named first) goes through
             card = simulate_match(a, b, fmt=self.fmt, comp=self.comp, year=self.year, venue=venue,
-                                  seed=_seed(self.seed, no) + 7919, rain_on=self.rain, control=self.control)
+                                  seed=_seed(self.seed, no) + 7919, rain_on=self.rain, control=self.control,
+                              skill=self.skill)
             card["rain"] = ["Washed out; played on the reserve day."] + card["rain"]
             if card["result"]["type"] == "no_result":
                 card["result"] = {"type": "no_result", "winner": a["name"], "loser": b["name"], "by": "no_result",
@@ -360,10 +363,10 @@ def _summary_card(c: dict) -> dict:
 
 def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: str | None = None,
                 year: int = 2025, venues: list | None = None, seed: int | None = None, on_match=None,
-                rain: bool = False, control: dict | None = None) -> dict:
-    """Bilateral series of n matches (all n are played). control: as in play_tournament."""
+                rain: bool = False, control: dict | None = None, skill: dict | None = None) -> dict:
+    """Bilateral series of n matches (all n are played). control, skill: as in play_tournament."""
     a, b = team_spec(fmt, team_a), team_spec(fmt, team_b)
-    run = _Runner(fmt, comp, year, seed, venues, None, None, rain, control)
+    run = _Runner(fmt, comp, year, seed, venues, None, None, rain, control, skill)
     run.on_match = on_match
     for i in range(n):
         run.play(a, b, f"Match {i + 1}")
@@ -386,7 +389,8 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
                     rounds: int = 1, groups: int | list | None = None, advance: int | None = None,
                     knockout: str = "semis", venues: list | None = None, home_venues: dict | None = None,
                     knockout_venues: list | None = None, seed: int | None = None, win_points: int = 2,
-                    on_match=None, rain: bool = False, control: dict | None = None) -> dict:
+                    on_match=None, rain: bool = False, control: dict | None = None,
+                    skill: dict | None = None) -> dict:
     """League stage (round robin, `rounds` times, optionally in groups) then knockouts.
 
     groups:   None/1 = one league; an int = that many groups, teams dealt in the order given (1st to group A,
@@ -394,6 +398,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
     knockout: "semis" (1v4, 2v3; with two groups A1vB2, B1vA2), "ipl" (qualifier 1, eliminator, qualifier 2,
               final), "final" (top two), or "none".
     control:  {team name: engine.control.Controller} for sides a person captains (their decisions are asked).
+    skill:    {team name: "expert" | "average" | "easy"} for computer captains (engine/judge.py; default expert).
     """
     if knockout not in KNOCKOUTS:
         raise ValueError(f"knockout must be one of {KNOCKOUTS}")
@@ -408,7 +413,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
     else:
         group_lists = [list(g) for g in groups]
     labels = [chr(ord("A") + i) for i in range(len(group_lists))] if len(group_lists) > 1 else ["League"]
-    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain, control)
+    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain, control, skill)
     run.on_match = on_match
 
     # league stage: rounds of single round robins. Within a round each side is at home in about half its games
