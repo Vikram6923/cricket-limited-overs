@@ -360,10 +360,10 @@ def _summary_card(c: dict) -> dict:
 
 def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: str | None = None,
                 year: int = 2025, venues: list | None = None, seed: int | None = None, on_match=None,
-                rain: bool = False) -> dict:
-    """Bilateral series of n matches (all n are played)."""
+                rain: bool = False, control: dict | None = None) -> dict:
+    """Bilateral series of n matches (all n are played). control: as in play_tournament."""
     a, b = team_spec(fmt, team_a), team_spec(fmt, team_b)
-    run = _Runner(fmt, comp, year, seed, venues, None, None, rain)
+    run = _Runner(fmt, comp, year, seed, venues, None, None, rain, control)
     run.on_match = on_match
     for i in range(n):
         run.play(a, b, f"Match {i + 1}")

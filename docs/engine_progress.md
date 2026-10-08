@@ -564,3 +564,6 @@ IPL rules; live bidding with skips; retentions (user request). Game AI, not fitt
   League Season names "<franchise> <season>" reduced to the franchise). /api/saved (list, save), /api/saved/rename,
   /api/saved/delete; /api/results and /api/match take ?run=. The auction form offers retention from saved runs of
   the same league (season pool) or format (years pool) that share teams.
+- Captaincy in every mode (2026-10-08): play_series takes control too; /api/run takes captain_i (index into
+  the run's sides) for series / tournament / classic / draft; one "Captain a team" box in the conditions panel.
+  Test: a series between a fixed XI and a historical squad, captained by random answers on either side.

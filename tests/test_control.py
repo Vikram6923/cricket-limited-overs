@@ -105,6 +105,21 @@ def test_tournament_with_a_captain():
     assert ctl.asked.count("result") == sum(1 for c in res["matches"] if teams[0]["name"] in c["teams"])
 
 
+def test_series_with_a_captain():
+    """Other modes: a series between a fixed XI (exactly 11 players) and a historical squad."""
+    from engine.history import historical_team
+    from engine.tournament import play_series
+    preset = json.loads((ROOT / "data" / "teams_default.json").read_text(encoding="utf-8"))[0]
+    xi = {"name": preset["name"], "players": [x["id"] for x in preset["players"]][:11]}
+    hist = historical_team("t20", "Australia", 2007, 2012)
+    for side in (xi["name"], hist["name"]):
+        ctl = RandomCaptain(side, 9)
+        res = play_series(xi, hist, n=3, fmt="t20", comp="t20i_full", year=2024, seed=4, control={side: ctl})
+        for c in res["matches"]:
+            check_card(c)
+        assert ctl.asked.count("result") == 3 and "bowler" in ctl.asked
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

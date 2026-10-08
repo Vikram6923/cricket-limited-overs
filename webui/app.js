@@ -89,6 +89,8 @@ async function init() {
   $('t-search').oninput = filterTeams;
   fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initLeague(); initBuilder(); initMatchNav();
   $('go-btn').onclick = start;
+  $('g-captain').onfocus = capOptions; $('g-captain').onmousedown = capOptions;
+  $('g-captain').onchange = capBoxes; ['c-comp', 'c-year'].forEach(id => $(id).addEventListener('change', capBoxes));
   $('r-save').onclick = saveRun;
   if (META.has_results) { $('last-btn').style.display = ''; $('home-note').textContent = 'Results from your last run are still available — click “View last results”.'; }
   if (META.job && META.job.status === 'running') poll();
@@ -102,6 +104,7 @@ function setMode(m) {
   if (m === 'saved') drawSaved();
   $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' ? 'none' : '';
   if (m === 'auction') aRefresh();
+  capOptions();
   $('go-err').textContent = '';
   if (m === 'builder') { showView('v-builder'); loadBuilderPool(); }
   else if ($('v-builder').classList.contains('on')) showView('v-home');
@@ -291,13 +294,14 @@ async function playDraftLeague() {
   try {
     await api('/api/run', {mode: 'draft', fmt: DRAFT.fmt, comp: $('c-comp').value, year: +$('c-year').value,
       venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
-      rain: $('c-rain').checked, rounds: +$('d-rounds').value, groups: 1, knockout: $('d-ko').value});
+      rain: $('c-rain').checked, rounds: +$('d-rounds').value, groups: 1, knockout: $('d-ko').value, ...capPayload()});
     poll();
   } catch (e) { $('dr-msg').textContent = e.message; toast(e.message, true); }
 }
 const NEED_LABEL = {keeper: 'WK', pace: 'Pace', spin: 'Spin', batter: 'Batters'};
 function renderDraft(st) {
   DRAFT = st;
+  capOptions();
   showView('v-draft'); $('go-btn').disabled = false;
   const me = st.user, mine = me ? st.board[me] : [], yours = st.current && st.current === me;
   $('dr-title').textContent = me ? `Drafting for ${me}` : 'Draft';
@@ -388,12 +392,44 @@ function payload() {
   return {...base, teams: [...document.querySelectorAll('#t-list input:checked')].map(i => i.value),
     rounds: +$('t-rounds').value, groups: +$('t-groups').value, knockout: $('t-ko').value};
 }
+/* captain a side in Series / Tournament / Classic / Draft (League Season and Auction have their own picker) */
+const histName = e => e.y1 === e.y2 ? `${e.nation} ${e.y1}` : `${e.nation} ${e.y1}-${String(e.y1).slice(0, 2) === String(e.y2).slice(0, 2) ? String(e.y2).slice(-2) : e.y2}`;
+function capSides() {
+  if (MODE === 'series') return [$('s-t1').value, $('s-t2').value];
+  if (MODE === 'tournament') return [...document.querySelectorAll('#t-list input:checked')].map(i => i.value);
+  if (MODE === 'classic') return [$('cs-r1').firstChild, $('cs-r2').firstChild].map(r => r ? histName(r.entry()) : '');
+  if (MODE === 'classic_t') return [...$('ct-rows').children].map(r => histName(r.entry()));
+  if (MODE === 'draft') return DRAFT && DRAFT.done && DRAFT.user ? [DRAFT.user] : [];
+  return [];
+}
+function capOptions() {
+  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE);
+  $('g-cap-box').style.display = show ? '' : 'none';
+  if (!show) { $('g-manual-box').style.display = 'none'; return; }
+  const sel = $('g-captain'), keep = sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : '';
+  const sides = capSides();
+  fillSelect(sel, [{v: '', t: MODE === 'draft' ? 'None - the computer captains every team' : 'None - the computer plays everything'},
+    ...sides.map((t, i) => ({v: String(i), t: MODE === 'draft' ? `${t} (your drafted team)` : t}))]);
+  const k = [...sel.options].findIndex(o => o.text === keep);
+  if (k > 0) sel.selectedIndex = k;
+  capBoxes();
+}
+function capBoxes() {
+  $('g-manual-box').style.display = $('g-captain').value ? '' : 'none';
+  CAP.impact = $('c-comp').value === 'ipl' && +$('c-year').value >= 2023;
+  $('g-impact-opt').style.display = CAP.impact ? '' : 'none';
+}
+function capPayload() {
+  const i = $('g-captain').value;
+  return i === '' ? {} : {captain_i: MODE === 'draft' ? DRAFT.teams.indexOf(DRAFT.user) : +i,
+    manual: [...$('g-manual').querySelectorAll('input:checked')].map(x => x.value).filter(k => k !== 'impact' || CAP.impact)};
+}
 async function start() {
   $('go-err').textContent = ''; $('go-btn').disabled = true;
   try {
     if (MODE === 'draft') { await startDraft(); return; }
     if (MODE === 'auction') { await startAuction(); return; }
-    await api('/api/run', payload()); poll();
+    await api('/api/run', {...payload(), ...capPayload()}); poll();
   }
   catch (e) { $('go-err').textContent = e.message; $('go-btn').disabled = false; }
 }

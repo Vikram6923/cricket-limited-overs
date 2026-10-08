@@ -299,12 +299,12 @@ def _run(job: Job, params: dict) -> None:
         if "squad_size" in params:
             size = int(params["squad_size"]) if params["squad_size"] else None
         ym = params.get("years_mode") if params.get("years_mode") in ("blend", "only") else "blend"
+        control = {job.controller.team: job.controller} if job.controller else None   # a side the user captains
         if params["mode"] == "league":
             s = league_season(params["league"], params.get("season"))
             specs = [{"name": t["name"], "squad": t["players"], "overseas": t["overseas"],
                       "max_overseas": t["max_overseas"]} for t in s["teams"]]
             homes = {t["name"]: t["home_venue"] for t in s["teams"] if t.get("home_venue")}
-            control = {job.controller.team: job.controller} if job.controller else None
             res = play_tournament(specs, fmt="t20", comp=params["league"], year=s["year"], rounds=2, knockout="ipl",
                                   venues=venues_, home_venues=homes, seed=seed, rain=rain_, on_match=on_match,
                                   control=control)
@@ -313,12 +313,11 @@ def _run(job: Job, params: dict) -> None:
             res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, seed=seed, rain=rain_,
-                                  on_match=on_match)
+                                  on_match=on_match, control=control)
             res["draft"] = {"teams": DRAFT.teams, "user": DRAFT.user,
                             "board": DRAFT.state()["board"], "years": [DRAFT.y1, DRAFT.y2]}
         elif params["mode"] == "auction":
             a = AUCTION
-            control = {job.controller.team: job.controller} if job.controller else None
             if a.comp:                         # a real season: its conditions, home grounds and IPL playoffs
                 res = play_tournament(a.team_specs(), fmt="t20", comp=a.comp, year=a.year, rounds=2, knockout="ipl",
                                       home_venues={t: h for t, h in a.homes.items() if h}, seed=seed, rain=rain_,
@@ -333,7 +332,8 @@ def _run(job: Job, params: dict) -> None:
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
                               n=int(params["matches"]),
-                              fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match)
+                              fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match,
+                              control=control)
         else:
             groups = int(params.get("groups") or 1)
             specs = [team_spec(t, fmt, size, ym) for t in params["teams"]]
@@ -341,7 +341,7 @@ def _run(job: Job, params: dict) -> None:
             res = play_tournament(specs, fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, home_venues=homes,
-                                  seed=seed, rain=rain_, on_match=on_match)
+                                  seed=seed, rain=rain_, on_match=on_match, control=control)
         res["title"] = job.title
         res["mode"] = params["mode"]
         _augment(res)
@@ -468,6 +468,7 @@ def api_run():
             if not 1 <= n <= 7:
                 return jsonify(error="A series has 1 to 7 matches."), 400
             title = f"{a} v {b}" + (f" - {n}-match series" if n > 1 else "")
+            sides = [a, b]
             total = n
         elif p.get("mode") == "league":
             s = league_season(p.get("league"), p.get("season"))
@@ -496,6 +497,7 @@ def api_run():
                 return jsonify(error="Not enough teams for these knockouts / groups."), 400
             total = match_count(len(teams), int(p.get("rounds") or 1), groups if groups > 1 else None, ko)
             title = f"Fantasy draft league - {len(teams)} teams, players from {DRAFT.y1}-{DRAFT.y2}"
+            sides = list(teams)
         elif p.get("mode") == "auction":
             a = AUCTION
             if not a or not a.done:
@@ -537,12 +539,20 @@ def api_run():
                 return jsonify(error=f"This knockout format needs at least {need} teams."), 400
             total = match_count(len(teams), int(p.get("rounds") or 1), groups if groups > 1 else None, ko)
             title = f"Tournament - {len(teams)} teams"
+            sides = [label(e) for e in teams]
         else:
             return jsonify(error="Unknown mode."), 400
+        cap = p.get("captain") if p.get("mode") in ("league", "auction") else None
+        if p.get("mode") in ("series", "tournament", "draft") and str(p.get("captain_i", "")).strip() != "":
+            try:
+                cap = sides[int(p["captain_i"])]
+            except (ValueError, IndexError):
+                return jsonify(error="Choose a team from this run to captain."), 400
+            title += f" - you captain {cap}"
         JOB = Job(title, total)
-        if p.get("mode") in ("league", "auction") and p.get("captain"):
+        if cap:
             manual = set(p["manual"]) & set(KINDS) if isinstance(p.get("manual"), list) else set(KINDS)
-            JOB.controller = WaitingController(p["captain"], manual)
+            JOB.controller = WaitingController(cap, manual)
         threading.Thread(target=_run, args=(JOB, p), daemon=True).start()
     return jsonify(ok=True)
 
