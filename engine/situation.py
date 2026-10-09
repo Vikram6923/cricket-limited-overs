@@ -92,19 +92,24 @@ class Situation:
         return m
 
     def with_depth(self, mult: dict, innings: int, wk: int, depth: float) -> dict:
-        """x the batting-depth table (engine/fit/fit_depth.py): how a side with more (or less) batting still to
-        come than usual at this many wickets down bats. depth = sum of the batting average indexes of the
+        """x the batting-depth trend (engine/fit/fit_depth.py): how a side with more (or less) batting still to
+        come than usual at this many wickets down bats, extrapolated beyond real line-ups. depth = sum of the batting average indexes of the
         players yet to bat."""
         d = depth_table(self.fmt)
         if not d:
             return mult
         g = bisect.bisect_left(d["wgroups"], wk)
-        x = bisect.bisect_left(d["excess_edges"], depth - d["mean_depth"][str(min(wk, 9))])
+        x = round(depth - d["mean_depth"][str(min(wk, 9))], 1)
         key = (id(mult), "depth", innings, g, x)
         out = self._cache.get(key)
         if out is None:
-            row = d["table"].get(str(innings), {}).get(str(g), {}).get(str(x))
-            out = {m: v * row.get(m, 1.0) for m, v in mult.items()} if row else mult
+            tr = d["trend"].get(str(innings), {}).get(str(g))
+            if tr:
+                cap = d["cap"]
+                f = {m: math.exp(min(cap, max(-cap, t["a"] + t["b"] * x))) for m, t in tr.items()}
+                out = {m: v * f.get(m, 1.0) for m, v in mult.items()}
+            else:
+                out = mult
             self._cache[key] = out
         return out
 

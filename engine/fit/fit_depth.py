@@ -9,14 +9,17 @@ usually have at that number of wickets down:
     depth   = sum over the XI players yet to bat (not the two at the crease) of their batting average index
               (runs index / dismissal index, middle overs; 1 = an average batter, a tailender ~0.3-0.5)
     excess  = depth - the average depth of real sides at that many wickets down (same format)
-Cells: innings (1 = setting a total, 2 = chasing) x wickets lost (0-2, 3-4, 5-6, 7+) x excess bucket; shrunk
-toward 1 with SHRINK pseudo-balls. A cell above 1 for runs and dismissals means sides with more batting to
-come score faster and take more risk; the engine applies it as one more multiplier (situation.depth_mult).
+The engine uses a trend per innings (1 = setting a total, 2 = chasing) x wickets lost (0-2, 3-4, 5-6, 7+) and
+metric: multiplier = exp(a + b x excess), fitted by Poisson maximum likelihood over cells of 0.1 depth, so a
+line-up deeper (or shallower) than any real one carries on along the same trend (the user asked for the engine
+to extrapolate beyond real sides), bounded only by CAP on the log scale. The bucket table (excess buckets,
+shrunk toward 1) is kept in the file to check the trend is straight enough.
 """
 from __future__ import annotations
 
 import bisect
 import json
+import math
 from collections import defaultdict
 
 from engine.fit.fit_situation import CFG, OUT, ROOT, bucket, iter_matches, load_ratings, phase_of
@@ -27,6 +30,7 @@ WGROUPS = [2, 4, 6]                       # wickets lost upper bounds: 0-2, 3-4,
 EXCESS_EDGES = [-1.5, -0.75, -0.25, 0.25, 0.75, 1.5]
 SHRINK = 2000
 USE = ("t20",)                            # ODI cells showed no consistent pattern (noise): not written
+CAP = 0.5                                 # safety bound on the log multiplier (x0.61 to x1.65)
 TAIL = 0.4                                # unrated player's batting average index
 
 
@@ -66,7 +70,7 @@ def fit(fmt: str) -> dict:
                     break
                 target = t["runs"]
             xi = [p for p in xis.get(inn["team"], []) if p]
-            if len(xi) != 11:
+            if not 11 <= len(xi) <= 13:      # 12-13: IPL Impact Player games list the substitutes too
                 break
             batted = set()
             faced = defaultdict(int)
@@ -131,8 +135,48 @@ def fit(fmt: str) -> dict:
                 avg = sum(r[mt] * r["balls"] for r in xs.values()) / tot
                 for r in xs.values():
                     r[mt] = round(r[mt] / avg, 4)
+    # the trend the engine uses: log multiplier linear in the excess, so it carries on beyond real line-ups
+    pts = defaultdict(list)                    # (innings, wicket group) -> [(excess, actual, expected)]
+    for (i, w, d), (a, e, n) in cells.items():
+        pts[(i, bisect.bisect_left(WGROUPS, w))].append((d - mean_d[w], a, e))
+    trend = {}
+    for (i, g), xs in sorted(pts.items()):
+        for j, mt in enumerate(METRICS):
+            a0, b, se = poisson_trend([(x, a[j], e[j]) for x, a, e in xs])
+            trend.setdefault(str(i), {}).setdefault(str(g), {})[mt] = {"a": round(a0, 5), "b": round(b, 5),
+                                                                      "se": round(se, 5)}
     return {"metrics": list(METRICS), "wgroups": WGROUPS, "excess_edges": EXCESS_EDGES, "tail": TAIL,
-            "mean_depth": {str(w): round(v, 3) for w, v in mean_d.items()}, "table": table}
+            "cap": CAP, "mean_depth": {str(w): round(v, 3) for w, v in mean_d.items()}, "trend": trend,
+            "table": table}
+
+
+def poisson_trend(pts: list) -> tuple[float, float, float]:
+    """Actual ~ Poisson(expected x exp(a + b x)) by Newton's method; the slope shrunk by b^2 / (b^2 + se^2);
+    then a re-set so that over the real balls
+    the multiplier averages 1 (the engine's other tables already hold the overall level). Returns (a, b,
+    standard error of b)."""
+    a = b = 0.0
+    for _ in range(30):
+        g0 = g1 = h00 = h01 = h11 = 0.0
+        for x, act, e in pts:
+            mu = e * math.exp(a + b * x)
+            g0 += act - mu
+            g1 += x * (act - mu)
+            h00 += mu
+            h01 += x * mu
+            h11 += x * x * mu
+        det = h00 * h11 - h01 * h01
+        if det <= 0:
+            break
+        da, db = (h11 * g0 - h01 * g1) / det, (h00 * g1 - h01 * g0) / det
+        a, b = a + da, b + db
+        if abs(da) + abs(db) < 1e-9:
+            break
+    se = math.sqrt(h00 / det) if det > 0 else 0.0
+    b *= b * b / (b * b + se * se) if b else 0.0       # shrink a noisy slope toward 0 (thin late-innings cells)
+    tot = sum(e for _, _, e in pts)
+    a = -math.log(sum(e * math.exp(b * x) for x, _, e in pts) / tot) if tot else 0.0
+    return a, b, se
 
 
 def main() -> None:
@@ -141,6 +185,10 @@ def main() -> None:
         if fmt in USE:
             (OUT / f"depth_{fmt}.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
         print(fmt, "mean depth by wickets:", out["mean_depth"])
+        for i, gs in out["trend"].items():
+            for g, ms in gs.items():
+                print(f"  trend inns {i} wkts-group {g}: " + "  ".join(
+                    f"{m} {100 * v['b']:+.2f}% (se {100 * v['se']:.2f})" for m, v in ms.items()) + " per unit of depth")
         for i, gs in out["table"].items():
             for g, xs in gs.items():
                 print(f"  inns {i} wkts-group {g}: " + "  ".join(

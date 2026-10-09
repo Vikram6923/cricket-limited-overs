@@ -675,3 +675,33 @@ Phase run rates within 2.4%, wickets within 6.5% (IPL death). Gate met; stopped.
 IPL 2026 presets, 272 games each, depth off -> on): deepest line-ups (India, England, Australia, Mumbai Indians;
 depth of No. 3-11 above 9) +3 to +7 runs an innings and about +3-5 points of win %; the shortest (Afghanistan,
 Chennai, Lucknow) -1 to -2 runs and -1 to -4 points.
+
+### Extrapolating beyond real line-ups (2026-10-09, same day)
+
+The user asked for the engine to extrapolate beyond what real teams have shown (an all-batting XI was capped by
+the deepest bucket, excess > 1.5). The engine now uses a trend instead of the buckets: per innings x wickets group
+x metric, multiplier = exp(a + b x excess), Poisson maximum likelihood over cells of 0.1 depth, the slope shrunk by
+b^2 / (b^2 + se^2) (late-innings cells are thin), a re-set so the multiplier averages 1 over real balls, log
+multiplier bounded at +-0.5 as a safety limit only. The bucket table stays in the file as a check on linearity.
+
+Bug found on the way: the fit took only 11-man player lists, so IPL games since 2023 (Cricsheet lists the Impact
+Player substitutes: 12-13 names) were left out; with the trend, the engine then overshot IPL scoring (1st innings
++2.8%, middle and death RPO +3.7-3.8%). Lists of 11-13 are now used (a substituted-out player still counts as to
+come: a small overcount). Slopes per unit of depth (about one proper batter), setting a total / chasing:
+
+| wickets down | runs | dismissals | sixes |
+|---|---|---|---|
+| 0-2 | +1.6% / +1.6% | -1.7% / -0.1% | +3.4% / +4.0% |
+| 3-4 | +1.6% / +1.2% | -2.6% / 0.0% | +3.5% / +1.2% |
+| 5-6 | +3.3% / +2.8% | -5.1% / +2.4% | +3.7% / +1.5% |
+| 7+ | +3.8% / +3.2% | +0.4% / +3.2% | -0.5% / +0.5% |
+
+Deeper sides score faster without losing more wickets (only chasing late do they also get out a little more).
+
+Calibration (4 replays): T20I 1st inns 167.5 v 168.8 (-0.7%), 2nd 150.7 v 149.7 (+0.7%); IPL 1st 188.8 v 186.3
+(+1.4%), 2nd 172.9 v 172.0 (+0.5%); phase RPO within 2.5% (IPL middle overs). Gate met; stopped.
+
+All-batting India XI (Jaiswal, Rohit, Kohli, Suryakumar, Pant, Rinku + Hardik, Jadeja, Axar, Dube, Washington
+Sundar; depth of No. 3-11 = 12.0 against 9.6 for the India 2024 preset) v the other 2024 T20I presets, 280
+games: scores 169.1 without depth, 180.6 with the trend (180.6 v 177.4 with the capped buckets), concedes 167.9,
+wins 65.7% (balanced India 2024: scores 164.8, concedes 153.7, wins 66.8%).
