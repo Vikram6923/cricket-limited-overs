@@ -47,6 +47,10 @@ def random_user(a: Auction, rng: random.Random) -> set:
                 a.act({"max": rng.randint(q["next"], q["cap"])})
             else:
                 a.act({"bid": r < 0.6 and q["next"] <= q["cap"]})
+        elif k == "nominate":
+            a.act({"ids": [c["id"] for c in q["players"] if rng.random() < 0.3]})
+        elif k == "set":
+            a.act({"self": rng.random() < 0.1})
         elif k == "rtm_raise":
             a.act({"amount": rng.randint(q["price"], q["cap"])})
         else:
@@ -71,6 +75,40 @@ def test_random_user():
         kinds |= random_user(a, random.Random(seed))
         check(a)
     assert {"retain", "bid"} <= kinds, kinds
+
+
+def test_wishlist_and_report():
+    """Bidding by the wishlist buys only listed players (up to their top bids) before the fill-up; the planner
+    and report card are filled in."""
+    pool = season_pool("ipl", "2025")
+    me = pool["teams"][3]
+    a = Auction(pool, user=me, seed=5)
+    assert a.question["kind"] == "retain" and a.to_you() and a.planner(me)
+    a.act({"ids": []})                                  # no retentions
+    tv = a.to_you()
+    want = sorted((x for x in a.lots.values() if x.status == "pool"), key=lambda x: -tv[x.id])[:8]
+    for x in want:
+        a.set_wish(x.id, max(x.base, tv[x.id]))
+    a.auto("wish")
+    kinds = set()
+    while a.question:
+        kinds.add(a.question["kind"])
+        assert a.question["kind"] in ("set", "nominate"), a.question["kind"]
+        assert a.planner(me)["xi"]
+        a.act({"go": True} if a.question["kind"] == "set" else {"ids": []})
+    check(a)
+    assert "set" in kinds
+    for i in a.squad[me]:
+        x = a.lots[i]
+        assert x.id in a.wish or x.price == 30, (x.name, x.price)
+        if x.id in a.wish:
+            assert x.price <= a.wish[x.id]["max"]
+    r = a.report()
+    assert len(r["teams"]) == len(a.teams) and r["bargains"]
+    if r["scale"] is not None:                          # a predicted table only where the fit found a link
+        assert abs(sum(t["wins"] for t in r["teams"]) - len(a.teams) * (len(a.teams) - 1)) < 0.5
+    else:
+        assert all(t["wins"] is None for t in r["teams"])
 
 
 def test_years_pool_and_league():

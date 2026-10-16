@@ -1,12 +1,13 @@
 /* Auction game (engine/auction.py): the form, the auction room and its questions. The server runs the auction up
-   to the next decision of your team (retentions, a bid, Right to Match); /api/auction/act sends the answer. */
+   to the next decision of your team (retentions, a bid, Right to Match, a set coming up in wishlist mode, the
+   accelerated round's names); /api/auction/act sends the answer, /api/auction/wish changes the wishlist. */
 'use strict';
 
 const cr = l => l === null || l === undefined ? '–' : l >= 100 ? `₹${(l / 100).toFixed(2)} cr` : `₹${l} L`;
 const HOMES = ['India', 'Australia', 'England', 'Pakistan', 'South Africa', 'New Zealand', 'West Indies', 'Sri Lanka',
   'Bangladesh', 'Afghanistan', 'Zimbabwe', 'Ireland'];
 const RET_CAPPED = [1800, 1400, 1100, 1800, 1400], RET_UNCAPPED = 400;
-let AU = null, APOOL = null, ALAST = {teams: []};
+let AU = null, APOOL = null, ALAST = {teams: []}, TOYOU = {}, WISH_WIRED = false;
 
 /* ───────────── form ───────────── */
 function initAuctionForm() {
@@ -79,6 +80,20 @@ function openAuctionRoom(d) {
     {v: 'retained', t: 'Retained'}, {v: 'unsold', t: 'Unsold'}]);
   ['ap-search', 'ap-role', 'ap-status'].forEach(id => $(id).oninput = drawAuctionPool);
   $('au-skip-set').onclick = () => auAct({auto: 'set'});
+  $('au-wish-go').onclick = () => {
+    if (!Object.keys(AU.wish || {}).length && !confirm('Your wishlist is empty: you would pass on every player. Go on?')) return;
+    auAct({auto: 'wish'});
+  };
+  if (!WISH_WIRED) {          // top-bid inputs live in the players table, the wishlist and the set preview
+    WISH_WIRED = true;
+    $('v-auction').addEventListener('change', e => {
+      const w = e.target.closest('[data-wrow]');
+      if (w) { const v = w.querySelector('.wish-max').value.trim();
+        setWish(w.dataset.wrow, v === '' ? null : Math.round(+v * 100), w.querySelector('.wish-ask').checked); }
+      if (e.target.id === 'au-pause' || e.target.id === 'au-pause-q') setPause(e.target.checked);
+    });
+  }
+  TOYOU = d.to_you || {};
   $('au-skip-all').onclick = () => auAct({auto: 'all'});
   $('au-play').onclick = () => AU.career ? careerAuctionDone() : playAuctionLeague();
   renderAuction(d.state);
@@ -88,10 +103,87 @@ async function auAct(body) {
   try {
     const d = await api('/api/auction/act', body);
     for (const [id, c] of Object.entries(d.changes)) Object.assign(APOOL.get(id), c);
+    TOYOU = d.to_you || {};
     renderAuction(d.state);
   } catch (e) { $('au-msg').textContent = e.message; }
 }
 const answer = a => auAct({answer: a});
+async function setWish(id, max, ask) {
+  $('au-msg').textContent = '';
+  try { const d = await api('/api/auction/wish', {id, max, ask}); AU.wish = d.wish; }
+  catch (e) { $('au-msg').textContent = e.message; }
+  drawWish(); drawAuctionPool();
+}
+async function setPause(on) {
+  try { const d = await api('/api/auction/wish', {pause: on}); AU.pause_sets = d.pause_sets; } catch (e) { $('au-msg').textContent = e.message; }
+  drawWish();
+}
+function wishCell(p) {
+  const w = (AU.wish || {})[p.id] || {};
+  return `<span class="wish" data-wrow="${esc(p.id)}">₹<input type="number" class="wish-max" step="0.05" min="0" placeholder="–"
+    value="${w.max ? (w.max / 100).toFixed(2) : ''}" title="Your top bid (₹ cr); empty = not on your list">
+    <label title="Stop and ask me when he comes up"><input type="checkbox" class="wish-ask" ${w.ask ? 'checked' : ''}>ask</label></span>`;
+}
+const toYou = p => p.id in TOYOU ? cr(TOYOU[p.id]) : '';
+const SLOT = {keeper: 'WK', bowler: 'Bowler', other: 'Bat / AR'};
+function drawPlan() {
+  const pl = AU.planner, box = $('au-plan-box');
+  box.style.display = pl ? '' : 'none';
+  if (!pl) return;
+  const os = pl.xi_overseas_max === null ? '' : ` · ${pl.xi_overseas} of ${pl.xi_overseas_max} overseas places used`;
+  const open = Object.entries(pl.open).filter(([, n]) => n).map(([k, n]) => `${n} ${SLOT[k].toLowerCase()}`).join(', ');
+  $('au-plan').innerHTML = `<div class="muted small">Worth ${fmtNum(pl.total, 1)} runs a match (<span class="${pl.vs_avg >= 0 ? 'w' : 'l'}">${pl.vs_avg >= 0 ? '+' : ''}${fmtNum(pl.vs_avg, 1)}</span> v the average team)${os}.
+    ${open ? `Open places: ${open} (counted at replacement level).` : 'No open places.'}</div>
+    <table class="mini"><tr><th>Place</th><th>Player</th><th>Worth</th></tr>${pl.xi.map(x => x.open
+      ? `<tr class="dim"><td>${SLOT[x.slot]}</td><td>open</td><td>${fmtNum(x.value, 1)}</td></tr>`
+      : `<tr><td>${SLOT[x.slot]}</td><td>${esc(x.name)}${osTag(x)} <span class="muted small">${esc(x.role)}</span></td><td>${fmtNum(x.value, 1)}</td></tr>`).join('')}</table>`;
+}
+function lotPlanHTML() {
+  const l = AU.planner && AU.planner.lot;
+  if (!l) return '';
+  if (!l.slot) return `<div class="hint">He would not make your best XI (adds ${fmtNum(l.gain, 1)} runs a match).</div>`;
+  return `<div class="hint">Adds <b>${l.gain >= 0 ? '+' : ''}${fmtNum(l.gain, 1)} runs a match</b> to your best XI, as ${SLOT[l.slot].toLowerCase()}, taking ${l.replaces === 'an open place' ? 'an open place' : 'the place of ' + esc(l.replaces)}.</div>`;
+}
+function drawWish() {
+  const st = AU, box = $('au-wish-box');
+  box.style.display = st.user && !st.done ? '' : 'none';
+  if (!st.user || st.done) return;
+  const ws = Object.entries(st.wish || {}).map(([id, w]) => ({p: APOOL.get(id), w})).filter(r => r.p);
+  const open = ws.filter(r => ['pool', 'unsold'].includes(r.p.status));
+  const sum = open.reduce((a, r) => a + (r.w.max || 0), 0);
+  const how = r => r.p.status === 'sold' || r.p.status === 'retained'
+    ? (r.p.buyer === st.user ? `<span class="w">yours, ${cr(r.p.price)}</span>` : `${esc(r.p.buyer)}, ${cr(r.p.price)}`)
+    : wishCell(r.p);
+  $('au-wish').innerHTML = `<p class="muted small" style="margin-bottom:6px">Give players a top bid (or tick <i>ask</i>) here, in the players table or when their set comes up.
+    <b>Bid by my wishlist</b> then bids for them up to those prices and passes on everyone else (your former players too: list them to use Right to Match).</p>
+    <label class="small"><input type="checkbox" id="au-pause" ${st.pause_sets ? 'checked' : ''}> Stop before each set so I can change the list</label>
+    ${ws.length ? `<table class="mini"><tr><th>Player</th><th>Expected</th><th>To you</th><th>Top bid</th></tr>${ws.map(r =>
+      `<tr><td>${esc(r.p.name)}${osTag(r.p)} <span class="muted small">${esc(r.p.role)}</span></td><td>${cr(r.p.est)}</td><td>${toYou(r.p)}</td><td>${how(r)}</td></tr>`).join('')}</table>
+      <div class="muted small" style="margin-top:6px">${open.length} still to come, top bids ${cr(sum)} · purse ${cr(st.purse[st.user])}</div>`
+      : '<div class="muted small" style="margin-top:6px">Nobody on your list yet.</div>'}
+    ${st.user_auto === 'wish' ? '<div class="small w" style="margin-top:6px">Bidding by your wishlist.</div>' : ''}`;
+}
+function drawReport() {
+  const st = AU, r = st.report, box = $('au-report');
+  box.style.display = r ? '' : 'none';
+  if (!r) return;
+  const me = st.user, pred = r.scale !== null, p5 = pred ? Math.round(100 / (1 + Math.exp(-5 / r.scale))) : null;
+  const deal = d => d ? `${esc(d.name)} ${cr(d.price)} <span class="${d.diff >= 0 ? 'w' : 'l'}">(${d.diff >= 0 ? '' : '+'}${cr(Math.abs(d.diff))} ${d.diff >= 0 ? 'under' : 'over'})</span>` : '–';
+  const list = (xs, t) => `<div><h3>${t}</h3><table class="mini"><tr><th>Player</th><th>Team</th><th>Price</th><th>Expected</th></tr>${xs.map(d =>
+    `<tr class="${d.team === me && me ? 'crease' : ''}"><td>${esc(d.name)} <span class="muted small">${esc(d.role)}</span></td><td>${esc(d.team)}</td><td>${cr(d.price)}</td><td>${cr(d.est)}</td></tr>`).join('')}</table></div>`;
+  box.innerHTML = `<h3>Report card</h3>
+    <p class="muted small" style="margin:4px 0 8px">Strength = the best XI's worth in runs a match, as the auction values players (open places at replacement level).
+    ${pred ? `Predicted table: a double round robin played many times over with each match's win chance from the strength gap (fitted on simulated matches:
+    a side 5 runs a match stronger wins ${p5}%).` : 'No predicted table: in simulated matches this strength measure did not clearly predict results.'}
+    Expected price = what the auction expected him to fetch when he came up.</p>
+    <table class="mini"><tr><th>Team</th><th>Strength</th><th>Rank</th>${pred ? `<th>Wins (of ${r.teams[0].games})</th><th>Top ${r.top_n}</th><th>Top</th>` : ''}
+      <th>Spent</th><th>Left</th><th>Players</th><th>Best buy</th><th>Dearest buy</th></tr>
+    ${r.teams.map(t => `<tr class="${t.team === me && me ? 'crease' : ''}"><td>${esc(t.team)}${t.team === me ? ' (you)' : ''}</td>
+      <td>${fmtNum(t.strength, 1)} <span class="muted small">${t.vs_avg >= 0 ? '+' : ''}${fmtNum(t.vs_avg, 1)}</span></td><td>${t.rank}</td>
+      ${pred ? `<td>${fmtNum(t.wins, 1)}</td><td>${t.top}%</td><td>${t.first}%</td>` : ''}<td>${cr(t.spent)}${t.retained ? ` <span class="muted small">(${cr(t.retained)} kept)</span>` : ''}</td>
+      <td>${cr(t.purse)}</td><td>${t.players} <span class="muted small">${t.overseas} OS</span></td><td class="how">${deal(t.best)}</td><td class="how">${deal(t.dear)}</td></tr>`).join('')}</table>
+    <div class="xi-cols" style="margin-top:10px">${list(r.bargains, 'Bargains')}${list(r.dearest, 'Dearest against expected')}</div>`;
+}
 async function playAuctionLeague() {
   const st = AU, years = !st.comp, me = $('a-captain').checked ? st.user : '';
   const impact = st.comp === 'ipl' && st.year >= 2023;
@@ -119,6 +211,7 @@ function renderAuction(st) {
     : set ? `${set.name} (set ${st.set_no + 1} of ${st.sets.length}) · ${st.n_sold} sold so far` : '';
   const live = !st.done && me;
   $('au-skip-set').style.display = live && !['retain', 'release'].includes(st.phase) && st.user_auto !== 'all' ? '' : 'none';
+  $('au-wish-go').style.display = live && !['retain', 'release'].includes(st.phase) && st.user_auto !== 'wish' ? '' : 'none';
   $('au-skip-all').style.display = live && st.user_auto !== 'all' ? '' : 'none';
   $('au-play').style.display = st.done ? '' : 'none';
   $('au-play').textContent = st.career ? '✔ Save the squads and go back to the career' : '▶ Play the league';
@@ -137,6 +230,7 @@ function renderAuction(st) {
   }
   $('au-squad-box').style.display = me ? '' : 'none';
   drawBoard($('au-board'), st.teams, st.board, me);
+  drawPlan(); drawWish(); drawReport();
   drawAuctionPool();
 }
 function lotHTML(p, extra = '') {
@@ -153,6 +247,8 @@ function bidLogHTML() {
 function questionHTML(q, st) {
   if (q.kind === 'retain') return retainHTML(q, st);
   if (q.kind === 'release') return releaseHTML(q, st);
+  if (q.kind === 'set') return setHTML(q, st);
+  if (q.kind === 'nominate') return nominateHTML(q, st);
   const p = q.player, adv = q.advice;
   if (q.kind === 'bid') {
     const now = q.price ? `<b>${cr(q.price)}</b> ${esc(q.leader)}${q.leader === st.user ? ' (you)' : ''}` : '<b>No bid yet</b>';
@@ -164,6 +260,7 @@ function questionHTML(q, st) {
         <span class="au-max">or up to ₹<input type="number" id="au-max" min="0" step="0.05" value="${(Math.max(adv, q.next) / 100).toFixed(2)}"> cr
         <button class="btn sec" data-a="max">Go</button></span>
       </div>
+      ${lotPlanHTML()}
       <div class="hint">The computer would bid up to <b>${cr(adv)}</b> for you (what he adds to your best XI, at the market rate).
       You can spend up to ${cr(q.cap)} on him and still fill your squad.</div>`);
   }
@@ -180,6 +277,26 @@ function questionHTML(q, st) {
       <div class="au-act"><button class="btn go" data-a="yes">Match ${cr(q.price)}</button><button class="btn sec" data-a="no">Let him go</button></div>
       <div class="hint">The computer would ${adv >= q.price ? 'match' : 'let him go'}: he is worth ${cr(adv)} to you.</div>`);
   return '';
+}
+function setHTML(q, st) {
+  return `<h3>Coming up: ${esc(q.name)}</h3>
+    <p class="muted small" style="margin:4px 0 8px">You are bidding by your wishlist. Change top bids for this set, then go on.</p>
+    <table class="mini"><tr><th>Player</th><th>Role</th><th>Base</th><th>Expected</th><th>To you</th><th>Top bid</th></tr>
+    ${q.players.map(c => { const p = APOOL.get(c.id) || c; return `<tr><td>${esc(p.name)}${osTag(p)}${p.prev === st.user ? ' <span class="w small">your RTM</span>' : ''}</td>
+      <td>${esc(p.role)}</td><td>${cr(p.base)}</td><td>${cr(p.est)}</td><td>${toYou(p)}</td><td>${wishCell(p)}</td></tr>`; }).join('')}</table>
+    <div class="au-act"><button class="btn go" data-a="go">Go on by my wishlist</button><button class="btn sec" data-a="self">Bid myself from here</button>
+      <label class="small"><input type="checkbox" id="au-pause-q" ${st.pause_sets ? 'checked' : ''}> stop before each set</label></div>`;
+}
+function nominateHTML(q, st) {
+  const sug = new Set(q.suggested);
+  return `<h3>Accelerated round</h3>
+    <p class="muted small" style="margin:4px 0 8px">These players went unsold. Tick the ones you want brought back; the other teams name theirs too,
+    and every named player is auctioned again. Ticked: ${st.user_auto === 'wish' ? 'your wishlist' : "the computer's choice (worth his base price to you)"}.
+    Teams short of ${st.squad_min} players then fill up at ₹30 L each.</p>
+    <table class="mini"><tr><th></th><th>Player</th><th>Role</th><th>Base</th><th>Expected</th><th>To you</th></tr>
+    ${q.players.map(c => `<tr><td><input type="checkbox" class="au-nom" value="${esc(c.id)}" ${sug.has(c.id) ? 'checked' : ''}></td>
+      <td>${esc(c.name)}${osTag(c)}</td><td>${esc(c.role)}</td><td>${cr(c.base)}</td><td>${cr(c.est)}</td><td>${toYou(c)}</td></tr>`).join('')}</table>
+    <div class="au-act"><button class="btn go" data-a="nominate">Bring these back</button></div>`;
 }
 function retainHTML(q, st) {
   const sug = new Set(q.suggested);
@@ -225,6 +342,9 @@ function wireQuestion(q) {
     document.querySelectorAll('.au-rel').forEach(b => b.onchange = relCost); relCost();
     on('release', () => answer({ids: [...document.querySelectorAll('.au-rel:checked')].map(b => b.value)}));
   }
+  on('go', () => answer({go: true}));
+  on('self', () => answer({self: true}));
+  on('nominate', () => answer({ids: [...document.querySelectorAll('.au-nom:checked')].map(b => b.value)}));
   on('bid', () => answer({bid: true}));
   on('pass', () => answer({bid: false}));
   on('max', () => answer({max: Math.round(+$('au-max').value * 100)}));
@@ -249,6 +369,8 @@ function drawAuctionPool() {
     {k: 'name', label: 'Player', html: r => `${esc(r.name)}${osTag(r)}`}, {k: 'team', label: 'Team'}, {k: 'role', label: 'Role'},
     {k: 'value', label: 'Worth', num: true, f: r => fmtNum(r.value, 1)},
     {k: 'base', label: 'Base', num: true, f: r => cr(r.base)}, {k: 'est', label: 'Expected', num: true, f: r => cr(r.est)},
+    ...(AU && AU.user && !AU.done ? [{k: 'toyou', label: 'To you', num: true, sv: r => TOYOU[r.id], f: toYou},
+      {k: 'wish', label: 'Your top bid', nosort: true, html: r => ['pool', 'unsold'].includes(r.status) ? wishCell(r) : ''}] : []),
     {k: 'set', label: 'Set'}, {k: 'buyer', label: 'Bought by', f: r => r.buyer || (r.status === 'unsold' ? 'unsold' : '')},
     {k: 'price', label: 'Price', num: true, f: r => r.price ? cr(r.price) : ''},
   ], rows, {limit: 300, sort: {k: 'est', dir: -1}, empty: 'No players match'});
