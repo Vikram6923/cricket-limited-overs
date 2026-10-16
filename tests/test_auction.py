@@ -85,6 +85,11 @@ def test_wishlist_and_report():
     a = Auction(pool, user=me, seed=5)
     assert a.question["kind"] == "retain" and a.to_you() and a.planner(me)
     a.act({"ids": []})                                  # no retentions
+    st = a.state()                                      # what the room shows: who is still in, teams' open places
+    assert st["lot"]["log"] and all(me in b["in"] or b["team"] != me for b in st["lot"]["log"])
+    assert all(b["team"] in b["in"] for b in st["lot"]["log"]) and set(st["needs"]) == set(a.teams)
+    a.auto("ask")                                       # back to being asked: nothing moves
+    assert a.question["kind"] == "bid" and a.user_auto is None
     tv = a.to_you()
     want = sorted((x for x in a.lots.values() if x.status == "pool"), key=lambda x: -tv[x.id])[:8]
     for x in want:

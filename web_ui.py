@@ -759,13 +759,13 @@ def api_auction():
 
 @app.post("/api/auction/act")
 def api_auction_act():
-    """The user's answer to the open question, or {auto: "set" | "all" | "wish"} (the computer, or the wishlist,
-    bids for the user)."""
+    """The user's answer to the open question, or {auto: "set" | "all" | "wish" | "ask"} (the computer, or the
+    wishlist, bids for the user; "ask": the user is asked again)."""
     if not AUCTION or AUCTION.done:
         return jsonify(error="No auction in progress."), 400
     d = request.get_json(force=True)
     try:
-        if d.get("auto") in ("set", "all", "wish"):
+        if d.get("auto") in ("set", "all", "wish", "ask"):
             AUCTION.auto(d["auto"])
         else:
             AUCTION.act(d.get("answer") or {})
