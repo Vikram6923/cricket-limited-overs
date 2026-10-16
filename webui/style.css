@@ -266,6 +266,9 @@ svg.chart .wkt{stroke:var(--bg);stroke-width:1.2}
 .au-act .btn{width:auto}
 .au-max{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)}
 .au-max input{width:80px}
+.wish{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:.78rem;color:var(--muted)}
+.wish input.wish-max{width:64px;padding:2px 4px}
+.wish label{display:inline-flex;align-items:center;gap:2px}
 
 /* saved runs */
 .sv-item{border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;display:flex;flex-direction:column;gap:3px}

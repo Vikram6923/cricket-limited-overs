@@ -383,6 +383,7 @@
       <span style="flex:1"></span>
       <button class="btn sec" id="au-skip-set">Computer bids for me: rest of this set</button>
       <button class="btn sec" id="au-skip-all">Computer bids for me: rest of auction</button>
+      <button class="btn sec" id="au-wish-go" title="Bid only for the players on your wishlist, up to your top bids">Bid by my wishlist</button>
       <button class="btn go" id="au-play" style="display:none;width:auto">▶ Play the league</button>
     </div>
     <div class="cap-grid">
@@ -400,11 +401,14 @@
       <div>
         <div class="cap-panel"><h3>Teams</h3><table class="mini" id="au-teams"></table></div>
         <div class="cap-panel" id="au-squad-box"><h3 id="au-squad-title">Your squad</h3><ul class="squad" id="au-squad"></ul></div>
+        <div class="cap-panel" id="au-plan-box"><h3>Your best XI</h3><div id="au-plan"></div></div>
+        <div class="cap-panel" id="au-wish-box"><h3>Wishlist</h3><div id="au-wish"></div></div>
         <h3>All squads</h3><div class="board" id="au-board"></div>
       </div>
     </div>
   </section>
 
+    <div class="cap-panel" id="au-report" style="display:none"></div>
   <!-- team builder -->
   <section class="view" id="v-builder">
     <div class="builder">

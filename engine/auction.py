@@ -9,7 +9,8 @@ Rules (the IPL's 2025 mega auction):
   20 lakh to 5 crore and 25 lakh above
 - RTM: when a player from a team's previous squad is sold to another team, the old team may use a card; the buyer
   then gets one final raise, and the old team matches it or lets him go (the raise stands either way)
-- unsold players come back in an accelerated round; teams still short of 18 then fill up at 30 lakh each
+- accelerated round: every team names unsold players it wants back (the computer: those worth their base price
+  to it); the named players are auctioned again, and teams still short of 18 then fill up at 30 lakh each
 
 Mini auctions (the career mode, engine/career.py, between mega auctions): pool["kept"] = {team: {player: contract
 price}}. Instead of retentions each team releases the players it no longer wants (the computer releases a player
@@ -31,7 +32,13 @@ spreads (a lot sells at about the second-highest valuation), capped at what the 
 set before retentions (for retention / release choices) and again once they are done.
 
 A library: Auction runs as a generator that stops at each decision of the user's team (retentions, each bid,
-Right to Match) and is resumed by act(); with no user team the whole auction runs at once.
+Right to Match, nominations for the accelerated round) and is resumed by act(); with no user team the whole auction
+runs at once. The user's team bids in one of four ways (user_auto): asked about every player (None), the computer
+for the rest of the set or auction ("set" / "all"), or by the wishlist ("wish": a top bid per player, or "ask me";
+everyone else is passed, with an optional pause before each set to change the list).
+
+After the auction, report() gives each squad's strength (its best XI's runs per match), spend, best and worst
+buys, and a predicted league table from a win chance fitted on simulated matches (engine/fit/fit_auction.py).
 """
 from __future__ import annotations
 
@@ -115,6 +122,20 @@ def second_best(k: int, sigma: float) -> float:
         pdf = math.exp(-z * z / 2) / math.sqrt(2 * math.pi)
         out += k * (k - 1) * cdf ** (k - 2) * (1 - cdf) * pdf * math.exp(sigma * z) / 100
     return out
+
+
+@lru_cache(maxsize=None)
+def report_scale(fmt: str) -> float | None:
+    """Runs per match of XI strength that make a side 73% favourite (logistic scale; engine/fit/fit_auction.py);
+    None when the fit found no clear link between strength and results (slope under 2 standard errors)."""
+    path = DATA / "engine" / f"auction_{fmt}.json"
+    try:
+        r = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if r.get("slope") is not None and r["slope"] < 2 * r.get("slope_se", 0):
+        return None
+    return float(r["scale"])
 
 
 # ------------------------------------------------------------------------------------------------ pools
@@ -255,14 +276,17 @@ class Auction:
                     self.lots[pid].prev = t
         self.has_prev = any(x.prev for x in self.lots.values())
         self._replacement()
-        self.lam0 = self._lambda()
+        self.lam0 = self.lam = self._lambda()
         self._price(self.lam0)
         self.sets: list[tuple[str, list[str]]] = []
         self.set_no = -1
         self.lot: dict | None = None
         self.sales: list[dict] = []
         self.phase = "retain"
-        self.user_auto: str | None = None      # None (asked), "set", "all": the computer bids for the user
+        self.user_auto: str | None = None      # None (asked), "set", "all": the computer bids for the user;
+        #                                        "wish": by the wishlist
+        self.wish: dict[str, dict] = {}        # player -> {"max": lakh or None, "ask": bool}
+        self.pause_sets = True                 # wishlist mode: stop before each set to change the list
         self.question: dict | None = None
         self._gen = self._flow()
         if start:
@@ -308,22 +332,47 @@ class Auction:
 
     def _xi(self, ids: list[str]) -> tuple[float, int]:
         """(value of the best XI, real players in it) with empty places at replacement level (greedy)."""
+        total, picks = self._xi_pick(ids)
+        return total, sum(i is not None for _, i in picks)
+
+    def _xi_pick(self, ids: list[str]) -> tuple[float, list[tuple[str, str | None]]]:
+        """(value of the best XI, its places as (slot, player or None for an empty place)). The gloves go to the
+        keeper who adds most there, or to nobody (a replacement keeper) when the squad's keepers are worth more as
+        batters: with many keeper-batters in a pool the replacement keeper is a good batter too."""
         xs = sorted((self.lots[i] for i in ids), key=lambda x: -x.value)
-        chosen, os_, total = set(), 0, 0.0
+        keepers = [x for x in xs if x.keeper and x.value > self.repl["keeper"]][:3]
+        best = self._xi_greedy(xs, None)
+        for k in keepers:
+            alt = self._xi_greedy(xs, k)
+            if alt[0] > best[0]:
+                best = alt
+        return best
+
+    def _xi_greedy(self, xs: list[Lot], keeper: Lot | None) -> tuple[float, list[tuple[str, str | None]]]:
+        """Best XI by value with the gloves given to `keeper` (None: a replacement keeper), the rest greedy."""
+        chosen, os_, total, picks = set(), 0, 0.0, []
+        if keeper is not None:
+            chosen.add(keeper.id)
+            picks.append(("keeper", keeper.id))
+            os_, total = int(keeper.overseas), keeper.value
+        else:
+            picks.append(("keeper", None))
+            total = self.repl["keeper"]
         ok = lambda x: x.id not in chosen and (not x.overseas or self.xi_overseas is None or os_ < self.xi_overseas)
-        for slot, n in (("keeper", 1), ("bowler", 5), ("other", self.xi_n - 6)):
+        for slot, n in (("bowler", 5), ("other", self.xi_n - 6)):
             got = 0
             for x in xs:
                 if got >= n:
                     break
-                if ok(x) and (slot == "other" or (x.keeper if slot == "keeper" else x.bowler)) \
-                        and x.value > self.repl[slot]:
+                if ok(x) and (slot == "other" or x.bowler) and x.value > self.repl[slot]:
                     chosen.add(x.id)
+                    picks.append((slot, x.id))
                     os_ += x.overseas
                     total += x.value
                     got += 1
             total += (n - got) * self.repl[slot]
-        return total, len(chosen)
+            picks += [(slot, None)] * (n - got)
+        return total, picks
 
     def _lambda(self) -> float:
         """Market rate (lakh per run per match): free money over the runs above replacement left for open places."""
@@ -344,12 +393,13 @@ class Auction:
         return (len(self.squad[t]) < SQUAD_MAX
                 and (not x.overseas or sum(self.lots[i].overseas for i in self.squad[t]) < self.overseas_max))
 
-    def worth(self, t: str, x: Lot, noise: bool = True) -> int:
-        """The most team t would pay for x (lakh), within what it can afford."""
+    def worth(self, t: str, x: Lot, noise: bool = True, rate: float | None = None) -> int:
+        """The most team t would pay for x (lakh), within what it can afford (rate: the team's money rate, if
+        already worked out)."""
         if not self.can_buy(t, x):
             return 0
         gain = self._xi(self.squad[t] + [x.id])[0] - self._xi(self.squad[t])[0]
-        v = self._rate(t) * gain + (MIN_PRICE if len(self.squad[t]) < self.squad_min else 0)
+        v = (self._rate(t) if rate is None else rate) * gain + (MIN_PRICE if len(self.squad[t]) < self.squad_min else 0)
         if noise:
             v *= math.exp(random.Random(f"{self.seed}|{t}|{x.id}").gauss(0.0, NOISE))
         return int(min(v, self._free(t, 1)))
@@ -383,6 +433,14 @@ class Auction:
                 answer = {"max": min(m, q["cap"])}
             elif answer.get("bid") and q["next"] > q["cap"]:
                 raise ValueError("You cannot afford that bid.")
+        elif k == "nominate":
+            ids = list(dict.fromkeys(answer.get("ids") or []))
+            if any(i not in {p["id"] for p in q["players"]} for i in ids):
+                raise ValueError("You can only name unsold players.")
+            answer = {"ids": ids}
+        elif k == "set":
+            if answer.get("self"):
+                self.user_auto = None
         elif k == "rtm_raise":
             amt = int(answer.get("amount") or q["price"])
             if not q["price"] <= amt <= q["cap"]:
@@ -391,17 +449,35 @@ class Auction:
         self._advance(answer)
 
     def auto(self, scope: str = "all") -> None:
-        """Hand the user's bidding to the computer (to the end of the set or the auction)."""
+        """Hand the user's bidding to the computer (to the end of the set or the auction), or to the wishlist."""
         self.user_auto = scope
-        if self.question and self.question["kind"] not in ("retain", "release"):
+        if self.question and self.question["kind"] not in ("retain", "release", "nominate", "set"):
             self._advance({"auto": True})
+
+    def set_wish(self, pid: str, top: int | None, ask: bool = False) -> None:
+        """Wishlist entry for a player still to be sold: a top bid (lakh), or ask me; neither = off the list."""
+        x = self.lots.get(pid)
+        if x is None or x.status not in ("pool", "unsold"):
+            raise ValueError("That player is not up for sale.")
+        if top is not None and int(top) < x.base:
+            raise ValueError(f"A top bid must be at least his base price ({money(x.base)}).")
+        if top is None and not ask:
+            self.wish.pop(pid, None)
+        else:
+            self.wish[pid] = {"max": None if top is None else int(top), "ask": bool(ask)}
+
+    def _user_plan(self, x: Lot) -> str:
+        """How the user's team bids on x: "ask", "auto" (the computer), "max" (up to the wishlist's top) or "out"."""
+        if self.user_auto is None:
+            return "ask"
+        if self.user_auto != "wish":
+            return "auto"
+        w = self.wish.get(x.id) or {}
+        return "ask" if w.get("ask") else "max" if w.get("max") else "out"
 
     @property
     def done(self) -> bool:
         return self.phase == "done"
-
-    def _user_asks(self) -> bool:
-        return self.user is not None and self.user_auto is None
 
     def _flow(self):
         if self.kept is not None:
@@ -475,13 +551,27 @@ class Auction:
             self.set_no = n
             if self.user_auto == "set":
                 self.user_auto = None
+            if self.user_auto == "wish" and self.pause_sets and any(self.can_buy(self.user, self.lots[i]) for i in ids):
+                yield {"kind": "set", "name": name, "players": [self.lots[i].row() for i in ids]}
             for pid in ids:
                 yield from self._sell(pid, name)
-        # accelerated round
+        # accelerated round: the players the teams name
         self.phase = "accelerated"
         if self.user_auto == "set":
             self.user_auto = None
-        again = sorted((x for x in self.lots.values() if x.status == "unsold"), key=lambda x: -x.est)
+        unsold = [x for x in self.lots.values() if x.status == "unsold"]
+        named = set()
+        for t in self.teams:
+            if t != self.user or self.user_auto == "all":
+                named |= set(self.nominate(t, unsold))
+        if self.user and self.user_auto != "all" and unsold:
+            sug = self.nominate(self.user, unsold)
+            if self.user_auto == "wish":
+                sug = [x.id for x in unsold if x.id in self.wish]
+            a = yield {"kind": "nominate", "players": [x.row() for x in sorted(unsold, key=lambda x: -x.est)],
+                       "suggested": sug}
+            named |= set(a.get("ids", []) if isinstance(a, dict) else sug)
+        again = sorted((x for x in unsold if x.id in named), key=lambda x: -x.est)
         name = "Accelerated round"
         self.sets.append((name, [x.id for x in again]))
         self.set_no = len(self.sets) - 1
@@ -498,6 +588,13 @@ class Auction:
                 self._assign(x, t, min(MIN_PRICE, self.purse[t]), "fill")
         self.lot = None
         self.phase = "done"
+
+    def nominate(self, t: str, unsold: list[Lot]) -> list[str]:
+        """The unsold players team t names for the accelerated round: those worth their base price to it, best
+        first, up to its open squad places."""
+        want = [(self.worth(t, x, noise=False), x) for x in unsold if self.can_buy(t, x)]
+        want = sorted(((w, x) for w, x in want if w >= x.base), key=lambda wx: -wx[0])
+        return [x.id for _, x in want[:max(0, SQUAD_MAX - len(self.squad[t]))]]
 
     # ---------------------------------------------------------------- retention
     def retain_candidates(self, t: str) -> list[str]:
@@ -584,12 +681,17 @@ class Auction:
         w = {t: self.worth(t, x) for t in self.teams}
         lot = self.lot = {"id": pid, "set": set_name, "price": None, "leader": None, "log": [], "passed": [],
                           "user_max": None}
-        user_mode = "ask" if self.user and self.can_buy(self.user, x) else "out"
+        def plan():
+            m = self._user_plan(x)
+            if m == "max":
+                lot["user_max"] = self.wish[pid]["max"]
+            return m
+        user_mode = plan() if self.user and self.can_buy(self.user, x) else "out"
         while True:
             price, leader = lot["price"], lot["leader"]
             nxt = x.base if leader is None else step(price)
-            if self.user and user_mode == "ask" and not self._user_asks():
-                user_mode = "auto"
+            if user_mode == "ask" and self._user_plan(x) != "ask":    # the user handed over mid-lot
+                user_mode = plan()
             if user_mode == "auto":
                 w[self.user] = self.worth(self.user, x)
             elif user_mode == "max":
@@ -606,7 +708,7 @@ class Auction:
                 elif a.get("max") is not None:
                     user_mode, lot["user_max"] = "max", a["max"]
                 elif a.get("auto") or a.get("skip"):
-                    user_mode = "auto"
+                    user_mode = plan()
                 else:
                     user_mode = "out"
                     lot["passed"].append(self.user)
@@ -629,28 +731,37 @@ class Auction:
         self._assign(x, buyer, price, "rtm" if buyer == holder else "bid")
 
     def _rtm(self, x: Lot, holder: str, buyer: str, price: int):
-        """Right to Match: the old team may match; the buyer gets one last raise first."""
-        ask_h = holder == self.user and self._user_asks()
+        """Right to Match: the old team may match; the buyer gets one last raise first. On the wishlist, the user's
+        top bid decides, and a former player not on it is let go."""
+        def plan(t):
+            return self._user_plan(x) if t == self.user else "auto"
+
+        def value(t):                         # the most t would pay
+            m = plan(t)
+            if m == "max":
+                return min(self.wish[x.id]["max"], self._free(t, 1))
+            return 0 if m == "out" else self.worth(t, x)
+        ask_h = plan(holder) == "ask"
         if ask_h:
             a = yield {"kind": "rtm_use", "player": x.row(), "buyer": buyer, "price": price,
                        "advice": self.worth(holder, x, noise=False), "cards": self.rtm[holder]}
             a = a or {}
-            use = self.worth(holder, x) >= price if a.get("auto") else bool(a.get("yes"))
+            use = value(holder) >= price if a.get("auto") else bool(a.get("yes"))
         else:
-            use = self.worth(holder, x) >= price
+            use = value(holder) >= price
         if not use:
             return buyer, price
         self.lot["log"].append({"team": holder, "price": price, "rtm": True})
         cap_b = max(price, self._free(buyer, 1))
         new = None
-        if buyer == self.user and self._user_asks():
+        if plan(buyer) == "ask":
             a = yield {"kind": "rtm_raise", "player": x.row(), "holder": holder, "price": price,
                        "cap": cap_b, "advice": self.worth(buyer, x, noise=False)}
             a = a or {}
             if not a.get("auto"):
                 new = int(a.get("amount") or price)
         if new is None:                       # the computer's raise: half way to what he is worth to the buyer
-            wb = min(self.worth(buyer, x), cap_b)
+            wb = min(value(buyer), cap_b)
             new = price
             while step(new) <= wb and new < price + (wb - price) // 2:
                 new = step(new)
@@ -662,11 +773,11 @@ class Auction:
             a = yield {"kind": "rtm_match", "player": x.row(), "buyer": buyer, "price": new,
                        "advice": self.worth(holder, x, noise=False)}
             a = a or {}
-            match = self.worth(holder, x) >= new if a.get("auto") else bool(a.get("yes"))
+            match = value(holder) >= new if a.get("auto") else bool(a.get("yes"))
         elif ask_h:
             match = True
         else:
-            match = self.worth(holder, x) >= new
+            match = value(holder) >= new
         if match:
             self.rtm[holder] -= 1
             return holder, new
@@ -676,6 +787,91 @@ class Auction:
         lot = self.lot
         return {"kind": "bid", "player": x.row(), "price": lot["price"], "leader": lot["leader"], "next": nxt,
                 "cap": self._free(self.user, 1), "advice": self.worth(self.user, x, noise=False)}
+
+    # ---------------------------------------------------------------- planner and report
+    def planner(self, t: str) -> dict:
+        """Team t's best XI now (open places at replacement level), against the other teams', and what the player
+        on the block would change in it."""
+        total, picks = self._xi_pick(self.squad[t])
+        avg = sum(self._xi(self.squad[u])[0] for u in self.teams) / len(self.teams)
+        xi = []
+        for slot, i in picks:
+            if i is None:
+                xi.append({"slot": slot, "open": True, "value": round(self.repl[slot], 1)})
+            else:
+                x = self.lots[i]
+                xi.append({"slot": slot, "id": i, "name": x.name, "role": x.role, "value": round(x.value, 1),
+                           "overseas": x.overseas})
+        out = {"xi": xi, "total": round(total, 1), "vs_avg": round(total - avg, 1),
+               "open": {sl: sum(1 for s_, i in picks if s_ == sl and i is None) for sl in ("keeper", "bowler", "other")},
+               "xi_overseas": sum(1 for _, i in picks if i and self.lots[i].overseas), "xi_overseas_max": self.xi_overseas,
+               "lot": None}
+        if self.lot and self.lot["id"] in self.lots:
+            x = self.lots[self.lot["id"]]
+            if x.status in ("pool", "unsold") and self.can_buy(t, x):
+                t2, p2 = self._xi_pick(self.squad[t] + [x.id])
+                before = {i for _, i in picks if i}
+                slot = next((sl for sl, i in p2 if i == x.id), None)
+                out_ = [self.lots[i].name for i in before - {i for _, i in p2 if i}]
+                out["lot"] = {"name": x.name, "gain": round(t2 - total, 1), "slot": slot,
+                              "replaces": out_[0] if out_ else ("an open place" if slot else None)}
+        return out
+
+    def to_you(self) -> dict:
+        """What each player still for sale is worth to the user's team now (the computer's top bid, no spread)."""
+        if not self.user or self.done:
+            return {}
+        r = self._rate(self.user)
+        return {x.id: self.worth(self.user, x, noise=False, rate=r) for x in self.lots.values()
+                if x.status in ("pool", "unsold")}
+
+    def report(self, sims: int = 2000) -> dict:
+        """Report card: each squad's strength (best XI, runs per match), spend, best and worst buys, and a
+        predicted table for a double round robin (win chance fitted in engine/fit/fit_auction.py)."""
+        strength = {t: self._xi(self.squad[t])[0] for t in self.teams}
+        avg = sum(strength.values()) / len(self.teams)
+        scale = report_scale(self.fmt)
+        if scale is None:
+            sims = 0
+        pw = lambda a, b: 1 / (1 + math.exp(-(strength[a] - strength[b]) / scale)) if scale else 0.5
+        top = 4 if len(self.teams) >= 5 else 2 if len(self.teams) >= 3 else 1
+        rng = random.Random(f"{self.seed}|report")
+        made, first = dict.fromkeys(self.teams, 0), dict.fromkeys(self.teams, 0)
+        pairs = [(a, b, pw(a, b)) for n, a in enumerate(self.teams) for b in self.teams[n + 1:]]
+        for _ in range(sims):
+            wins = dict.fromkeys(self.teams, 0.0)
+            for a, b, p_ in pairs:
+                for _ in range(2):
+                    wins[a if rng.random() < p_ else b] += 1
+            order = sorted(self.teams, key=lambda t: (-wins[t], rng.random()))
+            first[order[0]] += 1
+            for t in order[:top]:
+                made[t] += 1
+        buys = [x for x in self.lots.values() if x.status == "sold" and x.price is not None and x.buyer]
+        bought = [s_ for s_ in self.sales if s_["how"] in ("bid", "rtm")]
+        by_bid = {s_["id"] for s_ in bought}
+        deal = lambda x: {"name": x.name, "team": x.buyer, "role": x.role, "price": x.price, "est": x.est,
+                          "diff": x.est - x.price}
+        teams = []
+        for t in self.teams:
+            sq = [self.lots[i] for i in self.squad[t]]
+            mine = [x for x in sq if x.id in by_bid]
+            teams.append({
+                "team": t, "strength": round(strength[t], 1), "vs_avg": round(strength[t] - avg, 1),
+                "spent": sum(x.price or 0 for x in sq), "retained": sum(x.price or 0 for x in sq if x.status == "retained"),
+                "purse": self.purse[t], "players": len(sq), "overseas": sum(x.overseas for x in sq),
+                "wins": round(sum(2 * (pw(t, u)) for u in self.teams if u != t), 1) if sims else None,
+                "games": 2 * (len(self.teams) - 1),
+                "top": round(100 * made[t] / sims) if sims else None, "first": round(100 * first[t] / sims) if sims else None,
+                "best": deal(max(mine, key=lambda x: x.est - x.price)) if mine else None,
+                "dear": deal(min(mine, key=lambda x: x.est - x.price)) if mine else None})
+        teams.sort(key=lambda r: -(r["wins"] if sims else r["strength"]))
+        for n, r in enumerate(sorted(teams, key=lambda r: -r["strength"])):
+            r["rank"] = n + 1
+        bid = [x for x in buys if x.id in by_bid]
+        return {"teams": teams, "top_n": top, "scale": scale,
+                "bargains": [deal(x) for x in sorted(bid, key=lambda x: x.price - x.est)[:8]],
+                "dearest": [deal(x) for x in sorted(bid, key=lambda x: x.est - x.price)[:8]]}
 
     # ---------------------------------------------------------------- output
     def team_specs(self) -> list[dict]:
@@ -709,7 +905,10 @@ class Auction:
                 "upcoming": [self.lots[i].name for i in (self.sets[self.set_no][1] if 0 <= self.set_no < len(self.sets) else [])
                              if self.lots[i].status == "pool" and i != (self.lot or {}).get("id")],
                 "sales": self.sales[-12:][::-1], "n_sold": len(sold), "spent": sum(s["price"] for s in sold),
-                "news": self.news, "has_prev": self.has_prev}
+                "news": self.news, "has_prev": self.has_prev,
+                "wish": self.wish, "pause_sets": self.pause_sets,
+                "planner": self.planner(self.user) if self.user else None,
+                "report": self.report() if self.done else None}
 
     def summary(self) -> dict:
         """For the results page: squads with prices, purse left, the top buys."""

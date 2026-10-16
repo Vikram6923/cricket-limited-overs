@@ -675,7 +675,7 @@ def _auction_reply(pool: bool = False):
         AUCTION_LAST.parent.mkdir(parents=True, exist_ok=True)
         AUCTION_LAST.write_text(json.dumps({"label": a.label, "fmt": a.fmt, "squads": a.squad}), encoding="utf-8")
         a._saved = True
-    out = {"state": {**a.state(), "career": getattr(a, "career_id", None)}}
+    out = {"state": {**a.state(), "career": getattr(a, "career_id", None)}, "to_you": a.to_you()}
     if pool:
         out["pool"] = [x.row() for x in a.lots.values()]
     else:
@@ -759,18 +759,36 @@ def api_auction():
 
 @app.post("/api/auction/act")
 def api_auction_act():
-    """The user's answer to the open question, or {auto: "set" | "all"} (the computer bids for the user)."""
+    """The user's answer to the open question, or {auto: "set" | "all" | "wish"} (the computer, or the wishlist,
+    bids for the user)."""
     if not AUCTION or AUCTION.done:
         return jsonify(error="No auction in progress."), 400
     d = request.get_json(force=True)
     try:
-        if d.get("auto") in ("set", "all"):
+        if d.get("auto") in ("set", "all", "wish"):
             AUCTION.auto(d["auto"])
         else:
             AUCTION.act(d.get("answer") or {})
     except (TypeError, ValueError) as e:
         return jsonify(error=str(e)), 400
     return _auction_reply()
+
+
+@app.post("/api/auction/wish")
+def api_auction_wish():
+    """Wishlist: {id, max (lakh or null), ask} for one player, and/or {pause: bool} (stop before each set)."""
+    if not AUCTION or AUCTION.done or not AUCTION.user:
+        return jsonify(error="No auction in progress."), 400
+    d = request.get_json(force=True)
+    try:
+        if d.get("id"):
+            top = d.get("max")
+            AUCTION.set_wish(d["id"], None if top in (None, "") else int(top), bool(d.get("ask")))
+        if "pause" in d:
+            AUCTION.pause_sets = bool(d["pause"])
+    except (TypeError, ValueError) as e:
+        return jsonify(error=str(e)), 400
+    return jsonify(wish=AUCTION.wish, pause_sets=AUCTION.pause_sets)
 
 
 @app.get("/api/status")

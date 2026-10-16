@@ -576,6 +576,42 @@ IPL rules; live bidding with skips; retentions (user request). Game AI, not fitt
   the run's sides) for series / tournament / classic / draft; one "Captain a team" box in the conditions panel.
   Test: a series between a fixed XI and a historical squad, captained by random answers on either side.
 
+### Wishlist, squad planner, accelerated round, report card (2026-10-17)
+
+User's choice from a list of 12 suggestions (1, 3, 8, 12).
+- Wishlist: `Auction.set_wish(player, top, ask)`, /api/auction/wish; `user_auto = "wish"` ("Bid by my
+  wishlist"): listed players are bid for up to their top bids (the "max" mode the bid question already had),
+  "ask" players stop as usual, everyone else is passed. Right to Match follows the top bid; a former player who
+  isn't on the list is let go (asking about every one meant 13 stops in one test run). Optional pause before each
+  set (question kind "set") to change the list or go back to bidding yourself. Inputs in the players table, the
+  wishlist panel and the set preview; a "To you" column (the computer's top bid for your team, no spread).
+- Squad planner: `Auction.planner(team)`: best XI by place (open places at replacement level), worth against the
+  average team, overseas places used, and for the player on the block: runs a match added, which place, whose
+  place he takes.
+- Accelerated round: each team names unsold players (`nominate`: worth his base price to the team, up to its
+  open squad places); the user ticks theirs (question "nominate"); only named players are auctioned again,
+  then the fill-up as before.
+- Report card (`Auction.report()`, shown when the auction ends): strength (best XI's runs a match), rank, spend
+  (retained part), purse left, squad size, each team's best and dearest buy against expected price, the 8
+  biggest bargains and overpays. Predicted table for a double round robin (Monte Carlo over a logistic win
+  chance) only when `engine/fit/fit_auction.py` finds strength predicts simulated results (slope over 2 SE).
+- Bug fixed on the way (the planner showed it): the best XI always gave the gloves to the best keeper. With many
+  keeper-batters the replacement keeper is worth 5.4 runs a match (IPL 2025) against 0.9 for other places, so
+  Rickelton counted as +3.2 as keeper instead of +7.6 as a batter with a cheap keeper. Expected prices used +7.6,
+  bids used +3.2. `_xi_pick` now also tries the gloves with each of the squad's top 3 keepers or with nobody and
+  keeps the best. Price/expected after it, median over 5 seeds: IPL 2025 1.00, IPL 2023 1.01, BBL 1.00, T20
+  2015-24 years pool 0.98.
+- Win chance (`python -m engine.fit.fit_auction`, ~25 min): computer-only auctions, then engine matches between
+  their squads. T20 (IPL 2025 / 2023, BBL, PSL, CPL, 2 seeds each, 4,800 matches): slope 0.030 +- 0.005 per run
+  (scale 33 runs: a side 5 runs a match stronger, about 1 SD between auction squads, wins 54%); a 1,200-match
+  run gave 0.013 +- 0.010, so the bigger sample matters. ODI (three years pools, 1,080 matches): 0.029 +- 0.036,
+  no clear link (years-pool squads differ by only 1.7 runs a match), so ODI report cards have no predicted table.
+  Open: the strength differences between auction squads are small next to T20 match noise; predictions are
+  close to even by design, not a bug.
+- Bug fixed: to_you() during retentions read the market rate before it was set.
+- Tests: `test_wishlist_and_report` (only listed players bought before the fill-up, each within its top bid;
+  planner and report filled in); the random user now also answers set pauses and nominations.
+
 ## Captaincy report and opponent levels (2026-10-09)
 
 User: manual captaincy didn't seem to beat the computer; asked for weaker opponents and a report.
