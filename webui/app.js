@@ -17,7 +17,10 @@ function toast(msg, bad) {
   const t = $('toast'); t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : ''); t.style.display = 'block';
   clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', 4000);
 }
-function showView(id) { document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === id)); }
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === id));
+  if (id !== 'v-auction') document.body.classList.remove('au-fold');     // the auction room folds the sidebar away
+}
 const fmtTime = s => { s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const fmtNum = (v, d) => v === null || v === undefined || v === '' ? '–' : (typeof v === 'number' && d !== undefined ? v.toFixed(d) : v);
 function fillSelect(sel, items, keep) {

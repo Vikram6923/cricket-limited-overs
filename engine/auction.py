@@ -281,6 +281,7 @@ class Auction:
         self.sets: list[tuple[str, list[str]]] = []
         self.set_no = -1
         self.lot: dict | None = None
+        self.prev_lot: dict | None = None    # the lot before (its bids, for the room to replay)
         self.sales: list[dict] = []
         self.phase = "retain"
         self.user_auto: str | None = None      # None (asked), "set", "all": the computer bids for the user;
@@ -449,7 +450,11 @@ class Auction:
         self._advance(answer)
 
     def auto(self, scope: str = "all") -> None:
-        """Hand the user's bidding to the computer (to the end of the set or the auction), or to the wishlist."""
+        """Hand the user's bidding to the computer (to the end of the set or the auction), or to the wishlist;
+        "ask": back to being asked about every player."""
+        if scope == "ask":
+            self.user_auto = None
+            return
         self.user_auto = scope
         if self.question and self.question["kind"] not in ("retain", "release", "nominate", "set"):
             self._advance({"auto": True})
@@ -679,6 +684,7 @@ class Auction:
         x = self.lots[pid]
         self.lam = self._lambda()
         w = {t: self.worth(t, x) for t in self.teams}
+        self.prev_lot = self.lot
         lot = self.lot = {"id": pid, "set": set_name, "price": None, "leader": None, "log": [], "passed": [],
                           "user_max": None}
         def plan():
@@ -698,13 +704,15 @@ class Auction:
                 w[self.user] = min(lot["user_max"], self._free(self.user, 1))
             bidders = [t for t in self.teams if t != leader and w[t] >= nxt
                        and (t != self.user or user_mode in ("auto", "max"))]
+            # teams still in at this price (the paddles the room shows): the leader, the willing, the user if asked
+            still = [t for t in self.teams if t == leader or t in bidders or (t == self.user and user_mode == "ask")]
             if user_mode == "ask" and leader != self.user and nxt <= self._free(self.user, 1) \
                     and not (leader is None and bidders):
                 a = yield self._bid_question(x, nxt)
                 a = a or {}
                 if a.get("bid"):
                     lot["price"], lot["leader"] = nxt, self.user
-                    lot["log"].append({"team": self.user, "price": nxt})
+                    lot["log"].append({"team": self.user, "price": nxt, "in": still})
                 elif a.get("max") is not None:
                     user_mode, lot["user_max"] = "max", a["max"]
                 elif a.get("auto") or a.get("skip"):
@@ -717,7 +725,7 @@ class Auction:
                 break
             t = self.rng.choice(bidders)
             lot["price"], lot["leader"] = nxt, t
-            lot["log"].append({"team": t, "price": nxt})
+            lot["log"].append({"team": t, "price": nxt, "in": still})
         if lot["leader"] is None:
             x.status = "unsold"
             self.sales.append({"id": x.id, "name": x.name, "team": None, "price": None, "how": "unsold",
@@ -817,6 +825,13 @@ class Auction:
                               "replaces": out_[0] if out_ else ("an open place" if slot else None)}
         return out
 
+    def needs(self, t: str) -> dict:
+        """Open places in team t's best XI (keeper / bowler / other) and overseas places left in the squad."""
+        _, picks = self._xi_pick(self.squad[t])
+        out = {sl: sum(1 for s_, i in picks if s_ == sl and i is None) for sl in ("keeper", "bowler", "other")}
+        out["os_left"] = self.overseas_max - sum(self.lots[i].overseas for i in self.squad[t])
+        return out
+
     def to_you(self) -> dict:
         """What each player still for sale is worth to the user's team now (the computer's top bid, no spread)."""
         if not self.user or self.done:
@@ -901,13 +916,15 @@ class Auction:
                 "done": self.done, "purse": self.purse, "rtm": self.rtm, "squad_min": self.squad_min,
                 "squad_max": SQUAD_MAX, "overseas_max": OVERSEAS_MAX, "xi_overseas": self.xi_overseas,
                 "board": self.board(), "question": self.question, "lot": lot, "user_auto": self.user_auto,
+                "prev_lot": {"id": self.prev_lot["id"], "log": self.prev_lot["log"]} if self.prev_lot else None,
                 "set_no": self.set_no, "sets": [{"name": n, "n": len(ids)} for n, ids in self.sets],
-                "upcoming": [self.lots[i].name for i in (self.sets[self.set_no][1] if 0 <= self.set_no < len(self.sets) else [])
+                "upcoming": [i for i in (self.sets[self.set_no][1] if 0 <= self.set_no < len(self.sets) else [])
                              if self.lots[i].status == "pool" and i != (self.lot or {}).get("id")],
                 "sales": self.sales[-12:][::-1], "n_sold": len(sold), "spent": sum(s["price"] for s in sold),
                 "news": self.news, "has_prev": self.has_prev,
                 "wish": self.wish, "pause_sets": self.pause_sets,
                 "planner": self.planner(self.user) if self.user else None,
+                "needs": {t: self.needs(t) for t in self.teams},
                 "report": self.report() if self.done else None}
 
     def summary(self) -> dict:

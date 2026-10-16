@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auction Room Mockup</title>
+<!-- Static mockup of the new auction room (made-up data). Not wired to the server. -->
+<style>
+:root{--bg:#0e1116;--panel:#161b22;--panel2:#1c2330;--border:#2d3643;--text:#e6edf3;--muted:#8b949e;
+--green:#3fb950;--blue:#4c8dff;--amber:#e3b341;--red:#f85149;--accent:#2ea043;--r:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+header{height:52px;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--border)}
+header h1{font-size:1.05rem;font-weight:650}
+.pill{font-size:.75rem;padding:3px 10px;border-radius:99px;border:1px solid var(--border);color:var(--muted)}
+.muted{color:var(--muted)}.small{font-size:.78rem}
+.layout{display:grid;grid-template-columns:52px 1fr;min-height:calc(100vh - 52px)}
+.rail{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding-top:12px;gap:10px}
+.rail button{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted)}
+main{padding:16px 20px 40px;min-width:0}
+
+/* note boxes (mockup only) */
+.note{border:1px dashed #6e5aa8;background:rgba(110,90,168,.08);color:#c9b8ff;border-radius:6px;padding:6px 10px;font-size:.76rem;margin:6px 0}
+.note b{color:#e2d8ff}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:10px}
+.top h2{font-size:1.1rem}
+.turn{font-size:.78rem;padding:3px 10px;border-radius:99px;border:1px solid var(--green);color:var(--green);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-left:auto}
+.seg button{background:transparent;border:0;border-right:1px solid var(--border);padding:6px 12px;font-size:.8rem;color:var(--muted)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:rgba(46,160,67,.15);color:var(--text)}
+
+/* set timeline */
+.sets{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;margin-bottom:8px;scrollbar-width:thin}
+.set{flex:0 0 auto;font-size:.74rem;border:1px solid var(--border);border-radius:99px;padding:3px 10px;color:var(--muted);white-space:nowrap}
+.set.done{opacity:.55;text-decoration:line-through}
+.set.cur{border-color:var(--amber);color:var(--amber);font-weight:600}
+.set .n{opacity:.8;margin-left:4px}
+
+/* team colours */
+.tc{display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;letter-spacing:.3px;
+  border-radius:5px;padding:1px 6px;min-width:40px;background:var(--c);color:var(--f);box-shadow:inset 3px 0 0 var(--a)}
+
+/* teams strip */
+.strip{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;margin-bottom:14px}
+.tcard{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:7px 8px;font-size:.72rem;position:relative;transition:.15s}
+.tcard .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.tcard .purse{font-weight:600;font-size:.8rem}
+.bar{height:4px;background:var(--panel2);border-radius:3px;overflow:hidden;margin:3px 0 4px}
+.bar i{display:block;height:100%;background:var(--c)}
+.tcard .needs{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard.me{border-color:var(--green)}
+.tcard.in{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 0 14px -4px var(--c)}
+.tcard.lead::after{content:"LEAD";position:absolute;top:-7px;right:6px;font-size:.6rem;font-weight:700;background:var(--amber);color:#000;border-radius:3px;padding:0 4px}
+.tcard.out{opacity:.45}
+
+/* columns */
+.cols{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.95fr);gap:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.panel h3{font-size:.95rem;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.panel h3 .sp{flex:1}
+
+/* stage */
+.stage{position:sticky;top:12px}
+.pcard{display:flex;gap:14px;align-items:flex-start}
+.avatar{flex:0 0 64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;
+  background:linear-gradient(135deg,#2a4a7a,#1c2330);border:2px solid var(--blue)}
+.pname{font-size:1.45rem;font-weight:700;line-height:1.2}
+.badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.badge{font-size:.7rem;border:1px solid var(--border);border-radius:99px;padding:1px 8px;color:var(--muted)}
+.badge.role{border-color:var(--blue);color:var(--blue)}
+.badge.os{border-color:var(--amber);color:var(--amber)}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+.tile{background:var(--panel2);border-radius:6px;padding:7px 9px}
+.tile .k{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.tile .v{font-size:1.15rem;font-weight:650}
+.tile .v.g{color:var(--green)}
+
+/* price */
+.price{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:4px}
+.price .now{font-size:2.4rem;font-weight:750;color:var(--amber);font-variant-numeric:tabular-nums;transition:color .2s}
+.price .by{display:flex;align-items:center;gap:6px;font-size:.9rem}
+.call{font-size:.85rem;color:var(--muted);min-height:1.3em;margin:2px 0 6px}
+.call.hot{color:var(--amber);font-weight:600}
+
+/* price bar */
+.pbar{position:relative;height:74px;margin:10px 4px 6px}
+.pbar .track{position:absolute;left:0;right:0;top:30px;height:10px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.pbar .fill{height:100%;width:0;background:var(--lead,#888);transition:width .12s linear}
+.mk{position:absolute;top:24px;width:0;height:22px;border-left:2px solid var(--mc)}
+.mk span{position:absolute;left:-60px;width:120px;text-align:center;font-size:.68rem;color:var(--mc);white-space:nowrap}
+.mk.up span{top:-20px}.mk.dn span{top:24px}
+.mk.lft span{left:-2px;text-align:left}
+.mk.dash{border-left-style:dashed}
+.pbar .ends{position:absolute;top:56px;left:0;right:0;display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted)}
+
+/* bid log */
+.log{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 10px;min-height:22px;max-height:52px;overflow:hidden}
+.log .tc{font-size:.66rem;min-width:0;padding:1px 6px;animation:pop .18s ease-out}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+
+/* controls */
+.ctl{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:6px}
+.btn{border:1px solid var(--border);background:var(--panel2);border-radius:8px;padding:10px 14px;font-weight:600}
+.btn.go{background:var(--accent);border-color:var(--accent);color:#fff;font-size:1.05rem}
+.btn:disabled{opacity:.4;cursor:default}
+.kbd{font-size:.66rem;border:1px solid var(--border);border-radius:4px;padding:0 5px;margin-left:6px;color:var(--muted);font-weight:500}
+.btn.go .kbd{border-color:rgba(255,255,255,.5);color:#fff}
+.limit{margin-top:10px;background:var(--panel2);border-radius:8px;padding:10px 12px}
+.limit .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.limit input[type=range]{flex:1;min-width:160px;accent-color:var(--blue)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{border:1px solid var(--border);background:transparent;border-radius:99px;padding:3px 10px;font-size:.76rem;color:var(--muted)}
+.chip.on,.chip:hover{border-color:var(--blue);color:var(--text)}
+.hint1{font-size:.76rem;color:var(--muted);margin-top:8px}
+.speed{display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--muted);margin-top:10px}
+
+/* sold banner */
+.sold{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+  background:rgba(14,17,22,.82);border-radius:var(--r);backdrop-filter:blur(2px);z-index:2}
+.sold.on{display:flex;animation:pop .25s ease-out}
+.sold .w{font-size:2.2rem;font-weight:800;letter-spacing:2px;color:var(--c)}
+.sold .t{font-size:1rem}
+.stage .panel{position:relative}
+
+/* feed */
+.feed{display:flex;flex-direction:column;gap:6px}
+.sale{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:var(--panel2);box-shadow:inset 3px 0 0 var(--c,#555)}
+.sale .nm{font-weight:600;font-size:.84rem}
+.sale .rl{font-size:.7rem;color:var(--muted)}
+.sale .pr{font-weight:650;font-variant-numeric:tabular-nums}
+.sale.uns{opacity:.5}
+.sale.me{outline:1px solid var(--green)}
+.next{display:flex;flex-wrap:wrap;gap:5px}
+.next span{font-size:.76rem;border:1px solid var(--border);border-radius:99px;padding:2px 9px}
+.next span.w{border-color:var(--blue)}
+table.mini{width:100%;border-collapse:collapse;font-size:.78rem}
+.mini th{color:var(--muted);font-weight:500;text-align:right;padding:4px 6px;border-bottom:1px solid var(--border)}
+.mini td{text-align:right;padding:4px 6px;border-bottom:1px solid rgba(45,54,67,.5)}
+.mini th:first-child,.mini td:first-child{text-align:left}
+.top-in{width:60px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 4px;text-align:right}
+
+/* your team */
+.meter{display:flex;align-items:center;gap:8px;font-size:.8rem;margin-bottom:8px}
+.meter .bar{flex:1;height:8px;position:relative;overflow:visible}
+.meter .bar .avg{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.fact{background:var(--panel2);border-radius:6px;padding:5px 8px;font-size:.72rem;color:var(--muted)}
+.fact b{display:block;color:var(--text);font-size:.92rem}
+.xi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.slot{border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:.74rem;min-height:44px;background:var(--panel2)}
+.slot .k{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.slot .p{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot .v{color:var(--muted)}
+.slot.open{background:transparent;border-style:dashed;color:var(--muted)}
+.slot.ghost{border:1px dashed var(--green);background:rgba(63,185,80,.08)}
+.slot.ghost .p{color:var(--green)}
+.bench{margin-top:8px;font-size:.76rem;color:var(--muted)}
+
+@media (max-width:1250px){.cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.cols>.c1{grid-column:1/-1}.stage{position:static}
+  .strip{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (max-width:760px){.layout{grid-template-columns:1fr}.rail{display:none}main{padding:12px 16px 30px}
+  .cols{grid-template-columns:minmax(0,1fr)}.strip{display:flex;overflow-x:auto}.tcard{flex:0 0 120px}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.seg{margin-left:0;width:100%;overflow-x:auto}.seg button{flex:1;white-space:nowrap}
+  .price .now{font-size:1.9rem}}
+</style>
+</head>
+<body>
+<header><h1>🏏 Limited-Overs Cricket Simulator</h1><span class="pill">ODI · T20</span><span style="flex:1"></span><span class="pill">MOCKUP · made-up data</span></header>
+<div class="layout">
+  <nav class="rail"><button title="Show the setup sidebar">☰</button></nav>
+  <main>
+    <div class="note"><b>Mockup.</b> Press <b>▶ Replay</b> on the stage to see the bidding replay, then try <b>Pass</b> to see the SOLD moment.
+      The setup sidebar folds into the rail on the left while an auction is on, so the room gets the full width.</div>
+
+    <div class="top">
+      <h2>IPL 2025 auction</h2>
+      <span class="turn" id="turn">Your call!</span>
+      <span class="muted small">you bid for <span class="tc" style="--c:#D71920;--f:#fff;--a:#DCDDDF">PBKS</span> · 14 sold · ₹212 cr spent</span>
+      <div class="seg" title="How your team bids">
+        <button class="on">I bid on every player</button><button>By my wishlist</button><button>Computer: this set</button><button>Computer: rest</button>
+      </div>
+    </div>
+    <div class="sets" id="sets"></div>
+
+    <div class="strip" id="strip"></div>
+
+    <div class="cols">
+      <!-- stage -->
+      <div class="c1 stage">
+        <div class="panel">
+          <div class="sold" id="sold"><div class="w" id="sold-w">SOLD</div><div class="t" id="sold-t"></div></div>
+          <div class="pcard">
+            <div class="avatar">AS</div>
+            <div style="min-width:0;flex:1">
+              <div class="pname">Abhishek Sharma</div>
+              <div class="badges"><span class="badge role">Batter</span><span class="badge">India · capped</span><span class="badge">left-hand bat</span>
+                <span class="badge">last squad <span class="tc" style="--c:#F26522;--f:#000;--a:#000;min-width:0">SRH</span> · has 2 RTM cards</span></div>
+            </div>
+          </div>
+          <div class="tiles">
+            <div class="tile"><div class="k">Bat avg</div><div class="v">30.4</div></div>
+            <div class="tile"><div class="k">Strike rate</div><div class="v">175.9</div></div>
+            <div class="tile"><div class="k">Worth</div><div class="v">+10.6</div><div class="muted small">runs a match</div></div>
+            <div class="tile"><div class="k">Adds to you</div><div class="v g">+9.7</div><div class="muted small">bat / AR, open place</div></div>
+          </div>
+
+          <div class="price"><span class="now" id="now">₹2.00 cr</span><span class="by" id="by"><span class="muted">base price</span></span></div>
+          <div class="call" id="call">Opening at the base price…</div>
+
+          <div class="pbar" id="pbar">
+            <div class="track"><div class="fill" id="fill"></div></div>
+            <div class="ends"><span></span><span id="pmax"></span></div>
+          </div>
+          <div class="log" id="log"></div>
+
+          <div class="ctl">
+            <button class="btn go" id="bid" disabled>Bid ₹2.20 cr<span class="kbd">B</span></button>
+            <button class="btn" id="pass" disabled>Pass<span class="kbd">P</span></button>
+          </div>
+          <div class="limit">
+            <div class="row"><span class="small muted">Keep bidding for me up to</span><b id="lim-v">₹25.00 cr</b>
+              <input type="range" id="lim" min="250" max="11520" step="25" value="2500">
+              <button class="btn" style="padding:6px 12px">Auto-bid<span class="kbd">L</span></button></div>
+            <div class="chips" id="lim-chips"></div>
+          </div>
+          <div class="hint1">You can spend up to ₹115.20 cr on him and still fill your squad.</div>
+          <div class="speed">Bidding replay:
+            <button class="chip" data-sp="0">Off</button><button class="chip on" data-sp="70">Fast</button><button class="chip" data-sp="220">Slow</button>
+            <span style="flex:1"></span><button class="chip" id="replay">▶ Replay</button><button class="chip" id="skip">Skip ▸▸</button></div>
+          <div class="note">Rival bids play back one at a time (the server already sends the bid log), the teams strip lights up who is still in,
+            and the bar fills in the leader's colour. Bids follow the IPL's fixed steps, so the quick options set a <b>limit</b>, not a jump bid.</div>
+        </div>
+      </div>
+
+      <!-- feed and players -->
+      <div class="c2">
+        <div class="panel"><h3>Still to come in Marquee 2 <span class="sp"></span><span class="muted small">3 of 6 left</span></h3>
+          <div class="next"><span class="w" title="On your wishlist">★ SP Narine</span><span>YBK Jaiswal</span><span>RD Rickelton</span></div></div>
+        <div class="panel"><h3>Latest sales</h3><div class="feed" id="feed"></div></div>
+        <div class="panel"><h3>Players <span class="sp"></span><span class="muted small">search · role · status filters as now</span></h3>
+          <table class="mini"><tr><th>Player</th><th>Role</th><th>Expected</th><th>To you</th><th>Your top</th></tr>
+            <tr><td>SP Narine <span class="tc" style="--c:#555;--f:#fff;--a:#555;min-width:0;font-size:.6rem">OS</span></td><td>AR</td><td>₹23.69 cr</td><td>₹21.01 cr</td><td><input class="top-in" value="18.00"></td></tr>
+            <tr><td>YBK Jaiswal</td><td>Batter</td><td>₹23.00 cr</td><td>₹20.40 cr</td><td><input class="top-in" placeholder="–"></td></tr>
+            <tr><td>RD Rickelton <span class="tc" style="--c:#555;--f:#fff;--a:#555;min-width:0;font-size:.6rem">OS</span></td><td>WK</td><td>₹25.24 cr</td><td>₹22.10 cr</td><td><input class="top-in" placeholder="–"></td></tr>
+            <tr><td>JJ Bumrah</td><td>Pace</td><td>₹19.69 cr</td><td>₹18.97 cr</td><td><input class="top-in" value="20.00"></td></tr>
+            <tr><td>Rashid Khan <span class="tc" style="--c:#555;--f:#fff;--a:#555;min-width:0;font-size:.6rem">OS</span></td><td>Spin</td><td>₹22.88 cr</td><td>₹20.29 cr</td><td><input class="top-in" placeholder="–"></td></tr>
+          </table></div>
+      </div>
+
+      <!-- your team -->
+      <div class="c3">
+        <div class="panel"><h3><span class="tc" style="--c:#D71920;--f:#fff;--a:#DCDDDF">PBKS</span> Your team</h3>
+          <div class="facts"><div class="fact">Purse left<b>₹88.75 cr</b></div><div class="fact">Players<b>3 / 25</b><span>min 18</span></div><div class="fact">Overseas<b>1 / 8</b><span>XI: 1 / 4</span></div></div>
+          <div class="meter"><span class="muted">XI strength</span><div class="bar"><i style="width:44%;--c:var(--red)"></i><span class="avg" style="left:55%" title="average team"></span></div><b>21.6</b><span class="l" style="color:var(--red)">−5.2</span></div>
+          <div class="xi" id="xi"></div>
+          <div class="bench">Bench: none yet · open places count at replacement level</div>
+          <div class="note">The green dashed place shows where the player on the block would go (+9.7). Open places are dashed.</div>
+        </div>
+        <div class="panel"><h3>Wishlist <span class="sp"></span><label class="small muted"><input type="checkbox" checked> stop before each set</label></h3>
+          <table class="mini"><tr><th>Player</th><th>Expected</th><th>Top bid</th></tr>
+            <tr><td>★ SP Narine</td><td>₹23.69 cr</td><td>₹18.00 cr</td></tr>
+            <tr><td>★ JJ Bumrah</td><td>₹19.69 cr</td><td>₹20.00 cr</td></tr>
+            <tr><td>★ Rashid Khan</td><td>₹22.88 cr</td><td>ask me</td></tr>
+            <tr><td style="color:var(--green)">✓ Arshdeep Singh</td><td>₹14.20 cr</td><td style="color:var(--green)">yours, ₹14.00 cr</td></tr>
+          </table>
+          <div class="muted small" style="margin-top:6px">3 still to come · top bids ₹38.00 cr · purse ₹88.75 cr</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+'use strict';
+const T = {   // franchise colours: background, text, accent stripe
+  CSK: ['#F9CD05', '#1a1a1a', '#0081E9', 'Chennai Super Kings'], MI: ['#004BA0', '#fff', '#D1AB3E', 'Mumbai Indians'],
+  RCB: ['#2B2A29', '#fff', '#EC1C24', 'Royal Challengers Bengaluru'], KKR: ['#3A225D', '#fff', '#B3A123', 'Kolkata Knight Riders'],
+  SRH: ['#F26522', '#000', '#000', 'Sunrisers Hyderabad'], RR: ['#EA1A85', '#fff', '#254AA5', 'Rajasthan Royals'],
+  DC: ['#17479E', '#fff', '#EF1B23', 'Delhi Capitals'], PBKS: ['#D71920', '#fff', '#DCDDDF', 'Punjab Kings'],
+  GT: ['#1B2133', '#fff', '#B8975A', 'Gujarat Titans'], LSG: ['#0057E2', '#fff', '#F28B00', 'Lucknow Super Giants'],
+};
+const ME = 'PBKS';
+const tc = (k, extra = '') => `<span class="tc" style="--c:${T[k][0]};--f:${T[k][1]};--a:${T[k][2]};${extra}">${k}</span>`;
+const cr = l => l >= 100 ? `₹${(l / 100).toFixed(2)} cr` : `₹${l} L`;
+const $ = id => document.getElementById(id);
+
+// set timeline
+const SETS = [['Marquee 1', 'done'], ['Marquee 2', 'cur', '3 of 6 left'], ['Capped batters 1'], ['Capped all-rounders 1'], ['Capped keepers 1'],
+  ['Capped fast bowlers 1'], ['Capped spinners 1'], ['Capped batters 2'], ['Capped all-rounders 2'], ['Capped fast bowlers 2'], ['…'],
+  ['Uncapped batters 1'], ['Uncapped fast bowlers 1'], ['…'], ['Accelerated round']];
+$('sets').innerHTML = `<span class="set muted" style="border:0;padding-left:0">Set 2 of 31</span>` +
+  SETS.map(([n, c, x]) => `<span class="set ${c || ''}">${n}${x ? `<span class="n">· ${x}</span>` : ''}</span>`).join('');
+
+// teams strip
+const TEAMS = {
+  CSK: [7650, 4, 2, 'needs WK, 2 pace'], MI: [6900, 5, 2, 'needs spin, opener'], RCB: [8200, 3, 1, 'needs 3 bowlers'],
+  KKR: [7425, 4, 3, 'needs WK, finisher'], SRH: [6350, 6, 3, 'needs spin'], RR: [7900, 4, 2, 'needs pace, AR'],
+  DC: [9100, 2, 1, 'needs almost everyone'], PBKS: [8875, 3, 1, 'needs WK, 3 bowlers'], GT: [7100, 5, 2, 'needs opener'],
+  LSG: [5600, 6, 3, 'needs 2 pace'],
+};
+function drawStrip(state = {}) {
+  $('strip').innerHTML = Object.entries(TEAMS).map(([k, [p, n, os, need]]) => {
+    const cls = [k === ME ? 'me' : '', state.in && state.in.has(k) ? 'in' : '', state.lead === k ? 'lead' : '', state.out && state.out.has(k) ? 'out' : ''].join(' ');
+    return `<div class="tcard ${cls}" style="--c:${T[k][0] === '#1B2133' || T[k][0] === '#2B2A29' ? T[k][2] : T[k][0]}" title="${T[k][3]}">
+      <div class="hd">${tc(k)}<span class="purse">${cr(p)}</span></div>
+      <div class="bar"><i style="width:${p / 120}%"></i></div>
+      <div>${n}/25 players · ${8 - os} OS left</div><div class="needs">${need}</div></div>`;
+  }).join('');
+}
+drawStrip();
+
+// feed
+const FEED = [['SS Iyer', 'Batter', 'PBKS', 2675], ['RR Pant', 'WK', 'LSG', 2700], ['JC Buttler', 'WK', 'GT', 1575],
+  ['Arshdeep Singh', 'Pace', 'PBKS', 1400, 'RTM'], ['MA Starc', 'Pace', null, null], ['KL Rahul', 'WK', 'DC', 1400]];
+$('feed').innerHTML = FEED.map(([n, r, t, p, how]) => t
+  ? `<div class="sale ${t === ME ? 'me' : ''}" style="--c:${T[t][0]}">${tc(t)}<div><div class="nm">${n}</div><div class="rl">${r}${how ? ' · ' + how : ''}</div></div><div class="pr">${cr(p)}</div></div>`
+  : `<div class="sale uns"><span class="tc" style="--c:#333;--f:#aaa;--a:#333">—</span><div><div class="nm">${n}</div><div class="rl">${r} · unsold, may come back</div></div><div class="pr">–</div></div>`).join('');
+
+// your XI (IPL 2025: 12 places with the Impact Player)
+const XI = [['WK', null, 'ghost-no'], ['Bat / AR', 'SS Iyer', '6.2'], ['Bat / AR', null, 'ghost'], ['Bat / AR'], ['Bat / AR'], ['Bat / AR'],
+  ['Bat / AR'], ['Bowler', 'Arshdeep Singh', '4.1'], ['Bowler', 'M Jansen', '3.4'], ['Bowler'], ['Bowler'], ['Bowler']];
+$('xi').innerHTML = XI.map(([k, p, v]) => v === 'ghost'
+  ? `<div class="slot ghost"><div class="k">${k}</div><div class="p">Abhishek Sharma?</div><div class="v">+9.7 if you buy him</div></div>`
+  : p ? `<div class="slot"><div class="k">${k}</div><div class="p">${p}</div><div class="v">${v}</div></div>`
+  : `<div class="slot open"><div class="k">${k}</div><div>open</div></div>`).join('');
+
+// price bar and markers (lakh)
+const BASE = 200, EST = 3191, TOYOU = 2828, MYTOP = 2500, MAXP = 3600;
+const pos = l => `${Math.min(100, 100 * l / MAXP)}%`;
+$('pmax').textContent = `${cr(MAXP)} · marks in ₹ cr`;
+const MARKS = [[BASE, 'base 2.00', 'var(--muted)', 'dn lft'], [EST, 'expected 31.91', 'var(--amber)', 'up'],
+  [TOYOU, 'to you 28.28', 'var(--green)', 'dn'], [MYTOP, 'your limit 25.00', 'var(--blue)', 'up dash']];
+$('pbar').insertAdjacentHTML('beforeend', MARKS.map(([l, t, c, cl]) => `<div class="mk ${cl}" id="${cl.includes('dash') ? 'mk-top' : ''}" style="left:${pos(l)};--mc:${c}"><span>${t}</span></div>`).join(''));
+
+// limit slider and quick chips
+const chips = [[1800, '₹18 cr'], [2200, '₹22 cr'], [TOYOU, 'computer\'s value ₹28.28 cr'], [EST, 'expected ₹31.91 cr']];
+$('lim-chips').innerHTML = chips.map(([l, t]) => `<button class="chip" data-l="${l}">${t}</button>`).join('');
+function setLimit(l) {
+  $('lim').value = l; $('lim-v').textContent = cr(+l);
+  const m = $('mk-top'); m.style.left = pos(+l); m.querySelector('span').textContent = `your limit ${(l / 100).toFixed(2)}`;
+  document.querySelectorAll('#lim-chips .chip').forEach(c => c.classList.toggle('on', +c.dataset.l === +l));
+}
+$('lim').oninput = e => setLimit(e.target.value);
+$('lim-chips').onclick = e => e.target.dataset.l && setLimit(e.target.dataset.l);
+
+// bidding replay: rival bids from the bid log, one at a time
+const step = p => p + (p < 100 ? 5 : p < 200 ? 10 : p < 500 ? 20 : 25);
+function makeLog() {
+  const out = [], rng = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  let live = ['MI', 'SRH', 'CSK', 'KKR', 'RCB'], p = BASE, lead = null;
+  const drop = {CSK: 600, KKR: 1000, RCB: 1225, SRH: 1325};
+  while (p <= 1425) {
+    live = live.filter(t => !(drop[t] && p > drop[t]));
+    const who = live.filter(t => t !== lead);
+    if (!who.length) break;
+    lead = who[Math.floor(rng() * who.length)];
+    out.push([lead, p, live.slice()]);
+    p = step(p);
+  }
+  return out;
+}
+const LOG = makeLog();
+let speed = 70, timer = null;
+function show(i) {
+  const [lead, p, live] = LOG[i];
+  $('now').textContent = cr(p);
+  $('by').innerHTML = tc(lead) + `<span class="muted">${T[lead][3]}</span>`;
+  $('fill').style.width = pos(p); $('fill').style.background = T[lead][0] === '#2B2A29' ? T[lead][2] : T[lead][0];
+  const shown = LOG.slice(Math.max(0, i - 13), i + 1);
+  $('log').innerHTML = shown.map(([t, q]) => tc(t, 'min-width:0').replace('</span>', ` ${cr(q)}</span>`)).join('');
+  const all = Object.keys(TEAMS), inn = new Set(live);
+  drawStrip({in: inn, lead, out: new Set(all.filter(t => !inn.has(t) && t !== ME))});
+  $('call').className = 'call'; $('call').textContent = `${live.length} teams still in`;
+}
+function finish() {
+  clearTimeout(timer); timer = null;
+  const i = LOG.length - 1; show(i);
+  const [, p] = LOG[i];
+  $('turn').textContent = 'Your call!'; $('turn').style.opacity = 1;
+  $('call').className = 'call hot'; $('call').textContent = `Your call — bid ${cr(step(p))} or pass`;
+  $('bid').disabled = $('pass').disabled = false;
+  $('bid').innerHTML = `Bid ${cr(step(p))}<span class="kbd">B</span>`;
+}
+function replay() {
+  $('sold').classList.remove('on');
+  $('bid').disabled = $('pass').disabled = true;
+  $('turn').textContent = 'Bidding…'; $('turn').style.opacity = .7;
+  if (!speed) return finish();
+  let i = 0;
+  const tick = () => { show(i); i++; timer = i < LOG.length ? setTimeout(tick, speed) : setTimeout(finish, speed); };
+  clearTimeout(timer); tick();
+}
+function hammer() {         // you pass: going once, twice, sold
+  $('bid').disabled = $('pass').disabled = true;
+  const [lead, p] = LOG[LOG.length - 1];
+  const words = ['Going once…', 'Going twice…'];
+  let k = 0;
+  const go = () => {
+    if (k < words.length) { $('call').className = 'call hot'; $('call').textContent = words[k++]; timer = setTimeout(go, 650); return; }
+    $('sold-w').textContent = 'SOLD'; $('sold').style.setProperty('--c', T[lead][0] === '#2B2A29' ? T[lead][2] : T[lead][0]);
+    $('sold-t').innerHTML = `to ${tc(lead)} ${T[lead][3]} for <b>${cr(p)}</b> · <a href="#" id="again" style="color:var(--blue)">replay demo</a>`;
+    $('sold').classList.add('on');
+    $('again').onclick = e => { e.preventDefault(); replay(); };
+  };
+  go();
+}
+$('replay').onclick = replay;
+$('skip').onclick = finish;
+$('pass').onclick = hammer;
+$('bid').onclick = () => { $('call').className = 'call hot'; $('call').textContent = 'You lead — rivals respond next (not simulated in the mockup)'; };
+document.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => {
+  speed = +b.dataset.sp; document.querySelectorAll('[data-sp]').forEach(x => x.classList.toggle('on', x === b));
+});
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'b' && !$('bid').disabled) $('bid').click();
+  if (e.key === 'p' && !$('pass').disabled) $('pass').click();
+});
+setLimit(MYTOP);
+replay();
+</script>
+</body>
+</html>

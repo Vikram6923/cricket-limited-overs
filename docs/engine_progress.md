@@ -609,6 +609,23 @@ User's choice from a list of 12 suggestions (1, 3, 8, 12).
   Open: the strength differences between auction squads are small next to T20 match noise; predictions are
   close to even by design, not a bug.
 - Bug fixed: to_you() during retentions read the market rate before it was set.
+- New auction room (2026-10-17, user approved a mockup: docs/mockups/auction_room.html). `webui/auction_room.js`
+  (room) beside `webui/auction.js` (form, server calls, wishlist, retention / release / set / nomination
+  questions). The setup sidebar folds away while the room is open (☰ brings it back). Top: one switch for how you
+  bid (every player / wishlist / computer this set / computer rest; `auto("ask")` goes back to being asked), the
+  set timeline, a teams strip (purse bar, squad and overseas places left, RTM cards, open XI places from
+  `Auction.needs`). Stage: player card with stat tiles and "adds to you", a price bar (base, expected, to you,
+  your limit; values in a legend under it, because labels on the bar collided), Bid / Pass, a limit slider with
+  quick buttons and Auto-bid (bids follow the fixed IPL steps, so no jump bids); keys B / P / L, S skips.
+  Bidding replay: each log entry now records the teams still in (`"in"`); the room plays the bids back (Fast
+  70 ms default, Slow 220 ms, Off; the last 40 at most), lighting up the strip. After you pass or set a limit,
+  the rest of that bidding war (`state["prev_lot"]`) plays on that player's card, then SOLD / UNSOLD in the
+  buyer's colour, then the next player. Your team: XI as tiles (open places dashed, the player on the block as
+  a green ghost in the place he would take), bench, strength against the average team. Sales feed and report
+  card (podium of the top 3 plus your team, table, bargains / dearest) in team colours: real colours for IPL
+  (all 19 names), BBL, PSL and the IPL owners' teams in SA20 / ILT20 / MLC / CPL; a palette and automatic short
+  names for others. Checked in the browser at 1440 px and on a phone (no sideways scroll; the report table
+  scrolls in its own box). Bug found on the way: with the sidebar hidden the room fell into a 0-width column.
 - Tests: `test_wishlist_and_report` (only listed players bought before the fill-up, each within its top bid;
   planner and report filled in); the random user now also answers set pauses and nominations.
 
