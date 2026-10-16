@@ -26,6 +26,9 @@ best player who would not make any XI) in runs per match (engine.selection.value
 market rate: the money the teams have left over the runs above replacement still on offer for their open XI places.
 A team with more money per open place than the others bids more freely. Bids are capped so the team can still
 fill its squad. A small random spread per team and player (seeded) makes auctions differ.
+Expected prices: the market rate x runs above replacement x the expected second-highest of the teams' random
+spreads (a lot sells at about the second-highest valuation), capped at what the second-richest team can spend;
+set before retentions (for retention / release choices) and again once they are done.
 
 A library: Auction runs as a generator that stops at each decision of the user's team (retentions, each bid,
 Right to Match) and is resumed by act(); with no user team the whole auction runs at once.
@@ -100,6 +103,18 @@ class Lot:
                 "prev": self.prev, "contract": self.contract, "status": self.status, "buyer": self.buyer, "price": self.price,
                 "bat_avg": b.get("avg"), "bat_sr": b.get("sr"),
                 "econ": w.get("econ") if self.bowler else None, "bowl_avg": w.get("avg") if self.bowler else None}
+
+
+@lru_cache(maxsize=None)
+def second_best(k: int, sigma: float) -> float:
+    """E[exp(Z)] for Z the second-highest of k normal(0, sigma) draws (k >= 2), by quadrature."""
+    out = 0.0
+    for i in range(-800, 801):
+        z = i / 100
+        cdf = 0.5 * (1 + math.erf(z / math.sqrt(2)))
+        pdf = math.exp(-z * z / 2) / math.sqrt(2 * math.pi)
+        out += k * (k - 1) * cdf ** (k - 2) * (1 - cdf) * pdf * math.exp(sigma * z) / 100
+    return out
 
 
 # ------------------------------------------------------------------------------------------------ pools
@@ -241,10 +256,7 @@ class Auction:
         self.has_prev = any(x.prev for x in self.lots.values())
         self._replacement()
         self.lam0 = self._lambda()
-        for x in self.lots.values():
-            x.est = int(MIN_PRICE + self.lam0 * x.var)
-            bases = CAPPED_BASES if x.capped else UNCAPPED_BASES
-            x.base = next((b for b in bases if x.est >= 4 * b), bases[-1])
+        self._price(self.lam0)
         self.sets: list[tuple[str, list[str]]] = []
         self.set_no = -1
         self.lot: dict | None = None
@@ -276,6 +288,19 @@ class Auction:
             if x.bowler:
                 r.append(x.value - self.repl["bowler"])
             x.var = max(0.0, max(r))
+
+    def _price(self, lam: float) -> None:
+        """Expected prices (and base prices) of the players still in the pool. A player sells at about the
+        second-highest of the teams' valuations, so the market value is scaled by the expected second-highest
+        of their random spreads, and capped at what the second-richest team can spend."""
+        cap = sorted((self._free(t, 1) for t in self.teams), reverse=True)[1]
+        m = second_best(len(self.teams), NOISE)
+        for x in self.lots.values():
+            if x.status != "pool":
+                continue
+            x.est = int(min(MIN_PRICE + lam * m * x.var, max(cap, MIN_PRICE)))
+            bases = CAPPED_BASES if x.capped else UNCAPPED_BASES
+            x.base = next((b for b in bases if x.est >= 4 * b), bases[-1])
 
     def _free(self, t: str, buying: int = 0) -> int:
         """Purse the team can spend now, keeping 30 lakh for each place still needed to reach the minimum squad."""
@@ -526,6 +551,7 @@ class Auction:
     # ---------------------------------------------------------------- sets
     def _make_sets(self) -> None:
         self.lam = self._lambda()
+        self._price(self.lam)                  # re-priced now that retentions have taken players and money
         left = sorted((x for x in self.lots.values() if x.status == "pool"), key=lambda x: -x.est)
         capped = [x for x in left if x.capped]
         marquee = capped[:MARQUEE]

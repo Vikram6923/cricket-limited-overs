@@ -548,6 +548,14 @@ IPL rules; live bidding with skips; retentions (user request). Game AI, not fitt
   the others' (0.5-2x). Lognormal spread 0.12 per team and player (seeded). Bids capped to keep 30 L per place
   still needed. Computer retention: keep while expected price >= the next slot's cost. RTM: the old team uses it
   if the player is worth the price to it; the computer buyer raises half way to its own worth.
+- Expected prices fixed (2026-10-17; user: "expected values are too low always"). Players sold at a median
+  1.14-1.34x their expected price (total spend 1.09-1.45x), from two causes: prices were set before retentions
+  (which take the best players and some money, so the market rate rose ~9%), and a lot sells at about the
+  second-highest of 10 noisy valuations (E = 1.13x for spread 0.12), not at the average one. Now: re-priced (and
+  base prices reset) after retentions, x the expected second-highest spread (`second_best`, by quadrature), capped
+  at the second-richest team's free purse. Median price/expected over 5 seeds: IPL 2025 1.01, IPL 2023 1.05, BBL
+  1.00, T20 2015-24 years pool 1.03 (totals 0.95-1.02). Left: lots late in the auction (uncapped sets, after XIs
+  have filled) still sell a little above or below, as the market rate drifts.
 - Years pool: overseas = not from the chosen home nation; if the pool has too few home players to fill the squads
   the overseas limits are switched off. Retention from the last auction you played (results/auction_last.json).
 - Result, IPL 2025 pool, no user, seed 1: retentions 0-3 per team (Bumrah, Suryakumar, Rashid, Jaiswal...; CSK
