@@ -80,38 +80,72 @@ function renderAuction(st) {
   $('au-turn').textContent = st.done ? 'Auction complete' : q ? 'Your call!' : st.phase === 'retain' ? 'Retentions'
     : st.phase === 'release' ? 'Releases' : 'Bidding…';
   $('au-turn').className = 'turn' + (q ? ' you' : '');
-  $('au-progress').textContent = `${st.n_sold} sold · ${cr(st.spent)} spent`;
+  $('au-progress').textContent = st.n_sold ? `${st.n_sold} sold · ${cr(st.spent)} spent` : '';
   drawMode(st);
   $('au-play').style.display = st.done ? '' : 'none';
   $('au-play').textContent = st.career ? '✔ Save the squads and go back to the career' : '▶ Play the league';
   drawSets(st); drawStrip(); drawFeed(st); drawUpcoming(st); drawTeam(); drawWish(); drawReport();
   drawBoard($('au-board'), st.teams, st.board, me);
-  drawAuctionPool();
+  drawAuctionPool(); drawTabs(st);
   drawStage(st);
 }
 
 function drawMode(st) {
   const me = st.user, live = me && !st.done && !['retain', 'release'].includes(st.phase);
   const cur = st.user_auto || 'ask';
-  const opts = [['ask', 'I bid on every player'], ['wish', 'By my wishlist'], ['set', 'Computer: this set'], ['all', 'Computer: rest']];
+  const opts = [['ask', 'I bid', 'You decide on every player'],
+    ['wish', 'By my wishlist', 'The computer bids for your wishlist players up to their top bids and passes on everyone else'],
+    ['set', 'Computer: this set', 'The computer bids for you until this set ends'], ['all', 'Computer: rest', 'The computer bids for you to the end']];
   $('au-mode').style.display = me && !st.done ? '' : 'none';
-  $('au-mode').innerHTML = opts.map(([k, t]) => `<button class="${k === cur ? 'on' : ''}" data-mode="${k}" ${live ? '' : 'disabled'}>${t}</button>`).join('');
+  $('au-mode').innerHTML = opts.map(([k, t, h]) => `<button class="${k === cur ? 'on' : ''}" data-mode="${k}" title="${h}" ${live ? '' : 'disabled'}>${t}</button>`).join('');
   $('au-mode').querySelectorAll('button').forEach(b => b.onclick = () => {
     const k = b.dataset.mode;
     if (k === cur) return;
-    if (k === 'wish' && !Object.keys(AU.wish || {}).length && !confirm('Your wishlist is empty: you would pass on every player. Go on?')) return;
+    if (k === 'wish' && !Object.keys(AU.wish || {}).length) {
+      showTab('wish');
+      $('au-msg').textContent = 'Your wishlist is empty: add players first (☆ next to a name).';
+      const f = $('au-wadd'); if (f) f.focus();
+      return;
+    }
     auAct({auto: k});
   });
+}
+
+/* the side panel's tabs */
+const TABS = [['team', 'Your team'], ['wish', 'Wishlist'], ['players', 'Players'], ['sales', 'Sales'], ['squads', 'Squads']];
+let TAB = null;
+function drawTabs(st) {
+  const ok = TABS.filter(([k]) => k === 'team' ? !!st.planner : k === 'wish' ? st.user && !st.done : true);
+  if (!TAB || !ok.some(([k]) => k === TAB)) {
+    let saved = null; try { saved = localStorage.getItem('auTab'); } catch (e) { /* private window */ }
+    TAB = ok.some(([k]) => k === saved) ? saved : ok[0][0];
+  }
+  const nWish = Object.keys(st.wish || {}).filter(id => APOOL.get(id) && ['pool', 'unsold'].includes(APOOL.get(id).status)).length;
+  const badge = k => k === 'wish' && nWish ? ` <i>${nWish}</i>` : k === 'sales' && st.n_sold ? ` <i>${st.n_sold}</i>` : '';
+  $('au-tabs').innerHTML = ok.map(([k, t]) => `<button class="${k === TAB ? 'on' : ''}" data-tab="${k}">${t}${badge(k)}</button>`).join('');
+  $('au-tabs').querySelectorAll('button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  document.querySelectorAll('#v-auction .au-pane').forEach(p => p.style.display = p.dataset.pane === TAB ? '' : 'none');
+}
+function showTab(k) {
+  TAB = k;
+  try { localStorage.setItem('auTab', k); } catch (e) { /* private window */ }
+  drawTabs(AU);
 }
 
 function drawSets(st) {
   const box = $('au-sets');
   if (!st.sets.length) { box.innerHTML = ''; return; }
+  const n = st.sets.length, i = Math.min(st.set_no, n - 1), s = st.sets[i];
+  const all = st.sets.map((x, j) => `${j + 1}. ${x.name}`).join('\n');
+  if (st.done || st.set_no < 0) {
+    box.innerHTML = `<span title="${esc(all)}"><b>${n} sets</b> <span class="muted">${st.done ? 'all done' : 'bidding starts after retentions'}</span></span>`;
+    return;
+  }
   const left = st.upcoming.length + (st.lot && APOOL.get(st.lot.id) && APOOL.get(st.lot.id).status === 'pool' ? 1 : 0);
-  box.innerHTML = `<span class="ar-set lbl">Set ${Math.max(1, st.set_no + 1)} of ${st.sets.length}</span>` + st.sets.map((s, i) =>
-    `<span class="ar-set ${i < st.set_no || st.done ? 'done' : i === st.set_no ? 'cur' : ''}">${esc(s.name)}${i === st.set_no && !st.done ? `<i> · ${left} of ${s.n} left</i>` : ''}</span>`).join('');
-  const cur = box.querySelector('.cur');
-  if (cur) box.scrollLeft = Math.max(0, cur.offsetLeft - box.offsetLeft - 120);
+  const next = st.sets.slice(i + 1, i + 3).map(x => esc(x.name)).join(' → ');
+  box.innerHTML = `<div class="ar-sprog" title="${esc(all)}"><i style="width:${100 * i / n}%"></i></div>
+    <span title="${esc(all)}"><b>Set ${i + 1} of ${n}</b> · ${esc(s.name)} <span class="muted">· ${left} of ${s.n} left</span></span>
+    ${next ? `<span class="muted nx">Next: ${next}${i + 3 < n ? ' …' : ''}</span>` : ''}`;
 }
 
 const NEED = {keeper: n => 'WK', bowler: n => `${n} bowler${n > 1 ? 's' : ''}`, other: n => `${n} bat/AR`};
@@ -125,13 +159,15 @@ function drawStrip(live) {      // live: {in: Set, lead} while a lot is being bi
   const st = AU;
   $('au-strip').innerHTML = st.teams.map(t => {
     const c = col(t), sq = st.board[t].length, os = st.board[t].filter(p => p.overseas).length;
-    const cls = [t === st.user ? 'me' : '', live && live.in.has(t) ? 'in' : '', live && live.lead === t ? 'lead' : '',
+    const cls = [t === st.user ? 'me' : '', live && live.in.has(t) && live.in.size < st.teams.length ? 'in' : '', live && live.lead === t ? 'lead' : '',
       live && !live.in.has(t) ? 'out' : ''].join(' ');
-    const rtm = st.has_prev && st.phase === 'auction' && st.rtm[t] ? ` · ${st.rtm[t]} RTM` : '';
-    return `<div class="ar-tcard ${cls}" style="--c:${c.hi}" title="${esc(t)}">
+    const rtm = st.has_prev && st.phase === 'auction' && st.rtm[t] ? st.rtm[t] : 0;
+    const tip = `${t}${t === st.user ? ' (you)' : ''}\n${cr(st.purse[t])} left · ${sq} of ${st.squad_max} players · ${st.overseas_max - os} overseas places left`
+      + (rtm ? ` · ${rtm} Right to Match card${rtm > 1 ? 's' : ''}` : '') + (needsText(t) ? `\nXI ${needsText(t)}` : '');
+    return `<div class="ar-tcard ${cls}" style="--c:${c.hi}" title="${esc(tip)}">
       <div class="hd">${tc(t)}<b>${cr(st.purse[t])}</b></div>
       <div class="ar-bar"><i style="width:${Math.max(0, 100 * st.purse[t] / 12000)}%"></i></div>
-      <div>${sq}/${st.squad_max} · ${st.overseas_max - os} OS left${rtm}</div><div class="nd" title="${esc(needsText(t))}">${esc(needsText(t))}</div></div>`;
+      <div class="sub">${sq}/${st.squad_max}${rtm ? `<span class="rtm">${rtm} RTM</span>` : ''}</div></div>`;
   }).join('');
 }
 
@@ -148,21 +184,22 @@ function drawFeed(st) {
 
 function drawUpcoming(st) {
   const set = st.sets[st.set_no];
-  $('au-next-box').style.display = st.done || !set ? 'none' : '';
+  $('au-next-box').style.display = st.done || !set || !['auction', 'accelerated'].includes(st.phase)
+    || (st.question && ['set', 'nominate'].includes(st.question.kind)) ? 'none' : '';   // those questions list the players themselves
   if (!set) return;
-  $('au-next-title').textContent = `Still to come in ${set.name}`;
+  $('au-next-title').innerHTML = `Up next in ${esc(set.name)}${st.user ? ' <span class="muted small">☆ adds a player to your wishlist</span>' : ''}`;
   $('au-upcoming').innerHTML = st.upcoming.map(id => { const p = APOOL.get(id); if (!p) return '';
     const w = (st.wish || {})[id];
-    return `<span class="${w ? 'w' : ''}" title="${esc(p.role)} · expected ${cr(p.est)}${w ? ' · on your wishlist' : ''}">${w ? '★ ' : ''}${esc(p.name)}</span>`; }).join('')
-    || '<span class="muted small" style="border:0">Last player of the set.</span>';
+    return `<span class="ar-up ${w ? 'w' : ''}">${st.user ? starBtn(p) : ''}<span class="nm" title="${esc(p.role)} · ${esc(p.team)}">${esc(p.name)}${osTag(p)}</span>
+      <span class="muted">${esc(p.role)} · ${cr(p.est)}</span></span>`; }).join('')
+    || '<span class="muted small">Last player of the set.</span>';
 }
 
 /* ───────────── your team ───────────── */
 const SLOT = {keeper: 'WK', bowler: 'Bowler', other: 'Bat / AR'};
 function drawTeam() {
-  const st = AU, pl = st.planner, box = $('au-plan-box');
-  box.style.display = pl ? '' : 'none';
-  if (!pl) return;
+  const st = AU, pl = st.planner;
+  if (!pl) { $('au-plan').innerHTML = ''; return; }
   const me = st.user, sq = st.board[me], os = sq.filter(p => p.overseas).length;
   const lot = !st.done && pl.lot;
   // the place the player on the block would take
@@ -172,8 +209,7 @@ function drawTeam() {
   const inXI = new Set(pl.xi.filter(x => !x.open).map(x => x.id));
   const bench = sq.filter(p => !inXI.has(p.id));
   const w = Math.max(3, Math.min(97, 50 + 3 * pl.vs_avg));
-  $('au-plan').innerHTML = `<h3>${tc(me)} Your team</h3>
-    <div class="ar-facts"><div>Purse left<b>${cr(st.purse[me])}</b></div><div>Players<b>${sq.length} / ${st.squad_max}</b>min ${st.squad_min}</div>
+  $('au-plan').innerHTML = `<div class="ar-facts"><div>Purse left<b>${cr(st.purse[me])}</b></div><div>Players<b>${sq.length} / ${st.squad_max}</b>min ${st.squad_min}</div>
       <div>Overseas<b>${os} / ${st.overseas_max}</b>${pl.xi_overseas_max === null ? 'no XI limit' : `XI: ${pl.xi_overseas} / ${pl.xi_overseas_max}`}</div></div>
     <div class="ar-meter" title="Best XI's worth in runs a match, against the average team (the tick)"><span class="muted">XI strength</span>
       <div class="ar-bar"><i style="width:${w}%;background:${pl.vs_avg >= 0 ? 'var(--green)' : 'var(--red)'}"></i><span class="avg"></span></div>
@@ -191,7 +227,6 @@ const LOT_KINDS = ['bid', 'rtm_use', 'rtm_raise', 'rtm_match'];
 function drawStage(st) {
   const q = st.question, box = $('au-q');
   clearTimeout(RP.timer); RP.busy = false;
-  box.classList.toggle('sticky', !!(q && LOT_KINDS.includes(q.kind)));
   if (st.done) { box.innerHTML = doneHTML(st); RP.lot = null; return; }
   if (!q) { box.innerHTML = '<div class="muted">The computer is bidding for you…</div>'; return; }
   if (!LOT_KINDS.includes(q.kind)) { box.innerHTML = questionHTML(q, st); wireQuestion(q); return; }
@@ -230,6 +265,10 @@ function stageHTML(q, st, lot) {
   if (lp) tiles.push(['Adds to you', (lp.gain >= 0 ? '+' : '') + fmtNum(lp.gain, 1), lp.slot ? `${SLOT[lp.slot].toLowerCase()}${lp.replaces === 'an open place' ? ', open place' : ', for ' + lp.replaces}` : 'not in your XI', 'g']);
   const prev = p.prev ? `<span class="ar-badge">last squad ${tc(p.prev)}${st.has_prev ? ` · ${st.rtm[p.prev] || 0} RTM card${st.rtm[p.prev] === 1 ? '' : 's'}` : ''}</span>` : '';
   return `<div class="ar-sold" id="ar-sold"></div>
+    <div class="ar-stbar"><span>${q.kind === 'watch' ? 'Still bidding' : 'On the block'}${p.set ? ` · ${esc(p.set)}` : ''}</span><span style="flex:1"></span>
+      <button class="ar-chip" id="ar-skip" title="Skip the replay (S)" style="visibility:hidden">Skip ▸▸</button>
+      <label title="How the other teams' bids are played back">Replay <select id="ar-sp">${Object.keys(SPEED).map(k =>
+        `<option value="${k}" ${replaySpeed() === k ? 'selected' : ''}>${k[0].toUpperCase() + k.slice(1)}</option>`).join('')}</select></label></div>
     <div class="ar-pcard">
       <div class="ar-avatar ${esc(p.role.replace(/\W/g, ''))}">${esc(initials)}</div>
       <div style="min-width:0;flex:1"><div class="ar-pname">${esc(p.name)}</div>
@@ -241,9 +280,7 @@ function stageHTML(q, st, lot) {
     <div class="ar-call" id="ar-call"></div>
     ${priceBarHTML(q, p, lot)}
     <div class="ar-log" id="ar-log"></div>
-    ${controlsHTML(q, st)}
-    <div class="ar-speed">Bidding replay:${Object.keys(SPEED).map(k => `<button class="ar-chip ${replaySpeed() === k ? 'on' : ''}" data-sp="${k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}
-      <span style="flex:1"></span><button class="ar-chip" id="ar-skip" title="Skip the replay (S)">Skip ▸▸</button></div>`;
+    ${controlsHTML(q, st)}`;
 }
 
 function barMax(q, p, lot) {
@@ -269,16 +306,15 @@ function controlsHTML(q, st) {
     if (q.next > q.cap) return `<div class="ar-ctl"><button class="btn go" disabled>Bid ${cr(q.next)}</button><button class="btn sec" data-a="pass">Pass<kbd>P</kbd></button></div>
       <div class="ar-hint">You can't afford the next bid and still fill your squad (up to ${cr(q.cap)}).</div>`;
     const lim = Math.min(Math.max(adv, q.next), q.cap);
-    const round = v => Math.ceil(v / 25) * 25;
-    const chips = [[round(q.next * 1.5), null], [round(q.next * 2.5), null], [adv, "computer's value"], [q.player.est, 'expected']]
+    const chips = [[adv, "computer's value"], [q.player.est, 'expected'], [q.cap, 'most you can']]
       .filter(([v]) => v >= q.next && v <= q.cap)
       .filter(([v], i, a) => a.findIndex(([w]) => w === v) === i);
     return `<div class="ar-ctl"><button class="btn go" data-a="bid">Bid ${cr(q.next)}<kbd>B</kbd></button><button class="btn sec" data-a="pass">Pass<kbd>P</kbd></button></div>
-      <div class="ar-limit"><div class="row"><span class="small muted">Keep bidding for me up to</span><b id="ar-lim-v">${cr(lim)}</b>
-        <input type="range" id="ar-lim" min="${q.next}" max="${q.cap}" step="1" value="${lim}">
+      <div class="ar-limit"><div class="row"><span class="small muted">or bid for me up to</span><b id="ar-lim-v">${cr(lim)}</b>
+        <input type="range" id="ar-lim" min="${q.next}" max="${q.cap}" step="1" value="${lim}"
+          title="Up to ${cr(q.cap)}: the most you can spend on him and still fill your squad">
         <button class="btn sec" data-a="max">Auto-bid<kbd>L</kbd></button></div>
-        <div class="ar-chips">${chips.map(([v, t]) => `<button class="ar-chip" data-l="${v}">${t ? t + ' ' : ''}${cr(v)}</button>`).join('')}</div></div>
-      <div class="ar-hint">You can spend up to ${cr(q.cap)} on him and still fill your squad.</div>`;
+        <div class="ar-chips">${chips.map(([v, t]) => `<button class="ar-chip" data-l="${v}">${t} ${cr(v)}</button>`).join('')}</div></div>`;
   }
   if (q.kind === 'rtm_use') return `<div class="ar-q">Sold to ${tc(q.buyer)} for <b>${cr(q.price)}</b>. Use a Right to Match card (${q.cards} left)?
       ${esc(q.buyer)} then gets one final raise, and you can match that too.</div>
@@ -305,11 +341,7 @@ function wireStage(q) {
   };
   if (lim) { lim.oninput = () => setLim(lim.value); setLim(lim.value); }
   document.querySelectorAll('#au-q .ar-chip[data-l]').forEach(c => c.onclick = () => setLim(c.dataset.l));
-  document.querySelectorAll('#au-q .ar-chip[data-sp]').forEach(c => c.onclick = () => {
-    setReplaySpeed(c.dataset.sp);
-    document.querySelectorAll('#au-q .ar-chip[data-sp]').forEach(x => x.classList.toggle('on', x === c));
-    if (!SPEED[c.dataset.sp]) skipReplay();
-  });
+  $('ar-sp').onchange = e => { setReplaySpeed(e.target.value); if (!SPEED[e.target.value]) skipReplay(); };
   $('ar-skip').onclick = skipReplay;
 }
 
@@ -319,6 +351,7 @@ function setBusy(on) {
   document.querySelectorAll('#au-q .ar-ctl button, #au-q .ar-limit button, #au-q .ar-limit input').forEach(b => {
     if (on) { b.dataset.was = b.disabled ? '1' : ''; b.disabled = true; } else if (b.dataset.was !== undefined) { b.disabled = b.dataset.was === '1'; delete b.dataset.was; }
   });
+  if ($('ar-skip')) $('ar-skip').style.visibility = on ? 'visible' : 'hidden';
   $('au-turn').textContent = on ? 'Bidding…' : 'Your call!';
   $('au-turn').className = 'turn' + (on ? '' : ' you');
 }
@@ -329,7 +362,9 @@ function showBid(i) {
   $('ar-by').innerHTML = `${tc(b.team)}<span class="muted">${esc(b.team)}${b.team === AU.user ? ' (you)' : ''}${b.rtm ? ' · Right to Match' : b.raise ? ' · final raise' : ''}</span>`;
   $('ar-fill').style.width = `${Math.min(100, 100 * b.price / mx)}%`;
   $('ar-fill').style.background = col(b.team).hi;
-  $('ar-log').innerHTML = log.slice(Math.max(0, i - 15), i + 1).map(x => tc(x.team, 'sm' + (x.team === AU.user ? ' me' : '')).replace('</span>', ` ${cr(x.price)}</span>`)).join('');
+  const shown = log.slice(Math.max(0, i - 15), i + 1);
+  $('ar-log').innerHTML = shown.map((x, j) => tc(x.team, 'sm' + (x.team === AU.user ? ' me' : '') + (j === shown.length - 1 ? ' new' : ''))
+    .replace('</span>', ` ${cr(x.price)}</span>`)).join('');
   if (b.in) {
     drawStrip({in: new Set(b.in), lead: b.team});
     $('ar-call').className = 'ar-call'; $('ar-call').textContent = `${b.in.length} team${b.in.length === 1 ? '' : 's'} still in`;
@@ -351,6 +386,7 @@ function skipReplay() {               // straight to the question, whatever was 
   const q = AU.question;
   if (!q || !LOT_KINDS.includes(q.kind)) return;
   if (RP.view !== AU.lot) showLot(AU, q, AU.lot);
+  else if ($('ar-sold')) $('ar-sold').classList.remove('on');
   finishReplay();
 }
 function finishReplay() {

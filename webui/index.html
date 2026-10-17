@@ -384,30 +384,31 @@
       <div class="au-seg" id="au-mode" title="How your team bids"></div>
       <button class="btn go" id="au-play" style="display:none;width:auto">▶ Play the league</button>
     </div>
-    <div class="au-sets" id="au-sets"></div>
     <div class="au-strip" id="au-strip"></div>
+    <div class="au-sets" id="au-sets"></div>
     <div class="au-cols">
-      <div class="au-c1"><div class="cap-panel au-stage" id="au-q"></div></div>
-      <div class="au-c2">
-        <div class="cap-panel" id="au-next-box"><h3 id="au-next-title">Still to come</h3><div class="au-next" id="au-upcoming"></div></div>
-        <div class="cap-panel"><h3>Latest sales</h3><div class="au-feed" id="au-sales"></div></div>
-        <div class="cap-panel"><h3>Players</h3>
+      <div class="au-c1">
+        <div class="cap-panel au-stage" id="au-q"></div>
+        <div class="cap-panel" id="au-next-box"><h3 id="au-next-title">Up next</h3><div class="au-next" id="au-upcoming"></div></div>
+      </div>
+      <div class="au-c2 cap-panel">
+        <div class="au-tabs" id="au-tabs"></div>
+        <div class="au-pane" data-pane="team" id="au-plan-box"><div id="au-plan"></div></div>
+        <div class="au-pane" data-pane="wish" id="au-wish-box"><div id="au-wish"></div></div>
+        <div class="au-pane" data-pane="players">
           <div class="filters">
             <input type="text" id="ap-search" placeholder="Search name…">
             <select id="ap-status"></select><select id="ap-role"></select>
           </div>
-          <div class="tbl" id="ap-table" style="max-height:52vh"></div>
+          <div class="tbl" id="ap-table" style="max-height:62vh"></div>
         </div>
-      </div>
-      <div class="au-c3">
-        <div class="cap-panel" id="au-plan-box"><div id="au-plan"></div></div>
-        <div class="cap-panel" id="au-wish-box"><h3>Wishlist</h3><div id="au-wish"></div></div>
-        <div class="cap-panel"><h3>All squads</h3><div class="board" id="au-board"></div></div>
+        <div class="au-pane" data-pane="sales"><div class="au-feed" id="au-sales"></div></div>
+        <div class="au-pane" data-pane="squads"><div class="board" id="au-board"></div></div>
       </div>
     </div>
+    <div id="au-report" style="display:none"></div>
   </section>
 
-    <div id="au-report" style="display:none"></div>
   <!-- team builder -->
   <section class="view" id="v-builder">
     <div class="builder">
