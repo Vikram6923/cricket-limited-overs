@@ -673,15 +673,21 @@ def _auction_reply(pool: bool = False):
     a = AUCTION
     if a.done and a.user is not None and not getattr(a, "_saved", False) and not getattr(a, "career_id", None):     # retain from it next time
         AUCTION_LAST.parent.mkdir(parents=True, exist_ok=True)
-        AUCTION_LAST.write_text(json.dumps({"label": a.label, "fmt": a.fmt, "squads": a.squad}), encoding="utf-8")
+        AUCTION_LAST.write_text(json.dumps({"label": a.label, "fmt": a.fmt, "squads": a.squad,
+                                            "prices": _board_prices(a.board())}), encoding="utf-8")
         a._saved = True
     out = {"state": {**a.state(), "career": getattr(a, "career_id", None)}, "to_you": a.to_you()}
     if pool:
         out["pool"] = [x.row() for x in a.lots.values()]
     else:
-        out["changes"] = {i: {"status": x.status, "buyer": x.buyer, "price": x.price, "set": x.set}
+        out["changes"] = {i: {"status": x.status, "buyer": x.buyer, "price": x.price, "set": x.set, "fee": x.fee}
                           for i, x in a.lots.items()}
     return jsonify(out)
+
+
+def _board_prices(board: dict) -> dict:
+    """{team: {player: contract}} from an auction's squads: what each player is paid (the price, or the capped fee)."""
+    return {t: {p["id"]: p.get("fee") or p.get("price") for p in ps} for t, ps in board.items()}
 
 
 def _last_auction() -> dict:
@@ -700,7 +706,9 @@ def api_auction_last():
 @app.post("/api/auction/start")
 def api_auction_start():
     """{pool: "season" | "years", league, season | fmt, y1, y2, source, home, years_mode, teams,
-    user, retain: "previous" | "last" | "none", seed}"""
+    user, retain: "previous" | "last" | "saved:<id>" | "none", kind: "mega" | "mini", seed}
+    A mini auction keeps the retention source's squads at their prices (from an auction: what it paid; a real
+    season's squads: expected prices, as the engine estimates them) and the teams release players instead."""
     global AUCTION
     d = request.get_json(force=True)
     if JOB and JOB.status == "running":
@@ -730,11 +738,19 @@ def api_auction_start():
             ym = d.get("years_mode") if d.get("years_mode") in ("blend", "only") else "blend"
             pool = years_pool(fmt, y1, y2, names, source, d.get("home") or None, ym)
         retain = d.get("retain") or "none"
-        prev = {}
+        mini = d.get("kind") == "mini"
+        if mini and retain == "none":
+            return jsonify(error="A mini auction needs squads to keep: choose where they come from."), 400
+        prev, prices = {}, {}
         if retain == "previous":
             prev = None                        # the pool's own previous season
+            if mini:
+                prev = pool["prev"]
+                if not prev:
+                    return jsonify(error="There is no previous season to keep squads from."), 400
         elif retain == "last":
-            prev = _last_auction().get("squads") or {}
+            last = _last_auction()
+            prev, prices = last.get("squads") or {}, last.get("prices") or {}
             if not set(prev) & set(pool["teams"]):
                 return jsonify(error="Your last auction had none of these teams."), 400
         elif retain.startswith("saved:"):
@@ -742,8 +758,15 @@ def api_auction_start():
             if sd.parent != SAVED or not (sd / "summary.json").exists():
                 return jsonify(error="That saved run no longer exists."), 400
             prev = _run_meta(sd)["squads"]
+            board = (json.loads((sd / "summary.json").read_text(encoding="utf-8")).get("draft") or {}).get("board")
+            if board and _run_meta(sd).get("mode") == "auction":
+                prices = _board_prices(board)
             if not set(prev) & set(pool["teams"]):
                 return jsonify(error="That saved run has none of these teams."), 400
+        if mini:                               # keep at the prices paid (None: the engine estimates a contract)
+            pool["kept"] = {t: {pid: (prices.get(t) or {}).get(pid) for pid in ids}
+                            for t, ids in prev.items() if t in pool["teams"]}
+            prev = {}
         AUCTION = Auction(pool, user=d.get("user") or None, prev=prev, seed=seed)
     except (TypeError, ValueError) as e:
         return jsonify(error=str(e) or "Check the settings."), 400

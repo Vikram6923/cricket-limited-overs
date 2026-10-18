@@ -8,8 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from engine.auction import (OVERSEAS_MAX, PURSE, RETAIN_MAX, SQUAD_MAX, Auction, season_pool,  # noqa: E402
-                            years_pool)
+from engine.auction import (FEE_CAP, OVERSEAS_MAX, PURSE, RETAIN_MAX, SQUAD_MAX, Auction,  # noqa: E402
+                            season_pool, years_pool)
 from engine.tournament import play_tournament  # noqa: E402
 
 
@@ -20,7 +20,7 @@ def check(a: Auction) -> None:
         sq = a.squad[t]
         assert a.squad_min <= len(sq) <= SQUAD_MAX, (t, len(sq))
         assert sum(a.lots[i].overseas for i in sq) <= OVERSEAS_MAX
-        assert len(a.retained[t]) <= RETAIN_MAX
+        assert a.kind == "mini" or len(a.retained[t]) <= RETAIN_MAX
         assert a.purse[t] >= 0 and a.purse[t] == PURSE - sum(a.lots[i].price for i in sq)
         assert not seen & set(sq)
         seen |= set(sq)
@@ -47,6 +47,11 @@ def random_user(a: Auction, rng: random.Random) -> set:
                 a.act({"max": rng.randint(q["next"], q["cap"])})
             else:
                 a.act({"bid": r < 0.6 and q["next"] <= q["cap"]})
+        elif k == "release":
+            ids = [c["id"] for c in q["squad"] if rng.random() < 0.4]
+            if a.release_error(a.user, ids):
+                ids = q["suggested"]
+            a.act({"ids": ids})
         elif k == "nominate":
             a.act({"ids": [c["id"] for c in q["players"] if rng.random() < 0.3]})
         elif k == "set":
@@ -126,6 +131,33 @@ def test_years_pool_and_league():
     assert len(res["matches"]) == 7
     a = Auction(years_pool("odi", 1995, 2005, teams), seed=2)       # no overseas limits
     check(a)
+
+
+def test_mini_auction():
+    """Kept squads at their contracts (given, or estimated), at most 25 and 8 overseas; no RTM, no marquee set;
+    overseas buys above the fee cap are paid the cap."""
+    pool = season_pool("ipl", "2026")
+    pool["kept"] = {t: {pid: None for pid in ids} for t, ids in pool["prev"].items() if t in pool["teams"]}
+    a = Auction(pool, prev={}, seed=1)
+    check(a)
+    assert a.kind == "mini" and not any(a.rtm.values()) and not any("Marquee" in n for n, _ in a.sets)
+    assert not any(s["how"] == "rtm" for s in a.sales)
+    for t in a.teams:
+        kept = a.retained[t]
+        assert kept and len(kept) <= SQUAD_MAX and sum(a.lots[i].overseas for i in kept) <= OVERSEAS_MAX
+        assert all(a.lots[i].price == a.lots[i].contract for i in kept)
+    for x in a.lots.values():
+        assert (x.fee == FEE_CAP) == (x.status == "sold" and x.overseas and x.price > FEE_CAP)
+    # the user's releases, with contracts given: a squad of 26 must be cut to 25
+    me = a.teams[0]
+    ids = [x.id for x in pool["lots"]][:26]
+    pool = season_pool("ipl", "2026")
+    pool["kept"] = {me: {pid: 30 for pid in ids}}
+    b = Auction(pool, user=me, prev={}, seed=2)
+    assert b.question["kind"] == "release" and b.release_error(me, []) is not None
+    assert len(b.suggest_release(me)) >= 1
+    random_user(b, random.Random(2))
+    check(b)
 
 
 if __name__ == "__main__":

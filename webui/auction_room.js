@@ -76,7 +76,7 @@ function renderAuction(st) {
   }
   showView('v-auction'); $('go-btn').disabled = false;
   const me = st.user, q = st.question;
-  $('au-title').innerHTML = `${esc(st.label)} auction` + (me ? ` <span class="muted small">you bid for</span> ${tc(me)}` : '');
+  $('au-title').innerHTML = `${esc(st.label)} ${st.kind === 'mini' ? 'mini ' : ''}auction` + (me ? ` <span class="muted small">you bid for</span> ${tc(me)}` : '');
   $('au-turn').textContent = st.done ? 'Auction complete' : q ? 'Your call!' : st.phase === 'retain' ? 'Retentions'
     : st.phase === 'release' ? 'Releases' : 'Bidding…';
   $('au-turn').className = 'turn' + (q ? ' you' : '');
@@ -175,7 +175,7 @@ function drawFeed(st) {
   const me = st.user;
   $('au-sales').innerHTML = st.sales.map(s => s.team
     ? `<div class="ar-sale ${s.team === me && me ? 'me' : ''}" style="--c:${col(s.team).hi}">${tc(s.team)}
-        <div><div class="nm">${esc(s.name)}</div><div class="rl">${esc(s.role)}${s.how === 'rtm' ? ' · Right to Match' : s.how === 'fill' ? ' · fill-up' : ''}</div></div>
+        <div><div class="nm">${esc(s.name)}</div><div class="rl">${esc(s.role)}${s.how === 'rtm' ? ' · Right to Match' : s.how === 'fill' ? ' · fill-up' : ''}${s.fee ? ` · paid ${cr(s.fee)}` : ''}</div></div>
         <div class="pr">${cr(s.price)}</div></div>`
     : `<div class="ar-sale uns"><span class="ar-tc" style="--c:#333;--f:#999;--a:#333">—</span>
         <div><div class="nm">${esc(s.name)}</div><div class="rl">${esc(s.role)} · unsold${st.phase === 'auction' ? ', may come back' : ''}</div></div><div class="pr">–</div></div>`).join('')
@@ -406,7 +406,7 @@ function hammer(x, then) {    // going once, twice, SOLD (or UNSOLD) for the lot
   const box = $('ar-sold'), sold = x.status === 'sold', c = sold ? col(x.buyer).hi : 'var(--muted)';
   setBusy(true);
   box.style.setProperty('--c', c);
-  box.innerHTML = `<div class="w">${sold ? 'SOLD' : 'UNSOLD'}</div><div class="t">${esc(x.name)}${sold ? ` to ${tc(x.buyer)} ${esc(x.buyer)} for <b>${cr(x.price)}</b>` : ''}</div>`;
+  box.innerHTML = `<div class="w">${sold ? 'SOLD' : 'UNSOLD'}</div><div class="t">${esc(x.name)}${sold ? ` to ${tc(x.buyer)} ${esc(x.buyer)} for <b>${cr(x.price)}</b>` : ''}</div>${x.fee ? `<div class="muted small">He is paid ${cr(x.fee)} (the overseas cap); the whole ${cr(x.price)} comes off the purse.</div>` : ''}`;
   box.classList.add('on');
   const close = () => { box.classList.remove('on'); box.onclick = null; then(); };
   box.onclick = () => { clearTimeout(RP.timer); close(); };
