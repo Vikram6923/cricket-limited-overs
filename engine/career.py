@@ -384,7 +384,7 @@ class Career:
     def apply_auction(self, a: Auction) -> None:
         bought = set()
         for t in self.franchises:
-            self.squads[t] = {pid: int(a.lots[pid].price or 0) for pid in a.squad[t]}
+            self.squads[t] = {pid: int(a.lots[pid].fee or a.lots[pid].price or 0) for pid in a.squad[t]}
             bought |= set(a.squad[t])
         for pid in list(self.free):
             if pid in bought:

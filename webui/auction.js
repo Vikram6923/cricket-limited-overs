@@ -18,7 +18,7 @@ function initAuctionForm() {
   fillSelect($('a-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
   const seasons = () => { const l = aLeague(); fillSelect($('a-season'), l ? l.seasons.map(s => ({v: s.season, t: s.season})) : []); aRefresh(); };
   $('a-league').onchange = seasons;
-  ['a-season', 'a-pool', 'a-user', 'a-rounds', 'a-ko'].forEach(id => $(id).addEventListener('change', aRefresh));
+  ['a-season', 'a-pool', 'a-user', 'a-rounds', 'a-ko', 'a-kind'].forEach(id => $(id).addEventListener('change', aRefresh));
   $('a-k').oninput = aNames;
   $('a-retain').onchange = () => { $('a-retain').dataset.picked = '1'; };
   aNames(); seasons();
@@ -59,8 +59,16 @@ function aRefresh() {
     if (same && s.teams.some(t => teams.includes(t)))
       opts.push({v: 'saved:' + s.id, t: `Saved: ${s.name}${s.mode === 'auction' ? ' (auction squads)' : ''}`});
   }
-  opts.push({v: 'none', t: 'No retentions'});
+  const mini = $('a-kind').value === 'mini';
+  if (!mini) opts.push({v: 'none', t: 'No retentions'});
   fillSelect($('a-retain'), opts);
+  $('a-retain-lbl').textContent = mini ? 'Squads to keep from' : 'Retain players from';
+  $('a-kind-hint').innerHTML = mini
+    ? `As in the IPL's auctions between mega auctions (Dec 2023, Dec 2025): each team keeps any of its players at the price it paid
+      (a real season's squads: estimated contracts), up to 25 players and 8 overseas, and releases the rest into the pool.
+      The purse is ₹120 cr less the players kept. No Right to Match, no marquee set; an overseas buy above ₹18 cr is paid ₹18 cr,
+      but the whole bid comes off the purse.` + (opts.length ? '' : ' <span class="err">No squads to keep for these teams: play an auction first, or pick a real season with one before it.</span>')
+    : 'Up to 6 players kept at ₹18, 14, 11, 18 and 14 cr (capped) and ₹4 cr (uncapped); unused slots become Right to Match cards.';
   if ($('a-retain').dataset.picked && opts.some(o => o.v === kr)) $('a-retain').value = kr;   // else the first option
   $('a-captain-box').style.display = $('a-user').value ? '' : 'none';
   $('a-total').textContent = `${teams.length} teams · purse ₹120 cr each · squads of 18–25, max 8 overseas` +
@@ -72,7 +80,7 @@ async function startAuction() {
     ? {pool: 'years', fmt: $('c-fmt').value, y1: +$('a-ya').value, y2: +$('a-yb').value, source: $('a-src').value,
        home: $('a-home').value, years_mode: $('a-ymode').value, teams: aTeams()}
     : {pool: 'season', league: $('a-league').value, season: $('a-season').value};
-  Object.assign(body, {user: $('a-user').value, retain: $('a-retain').value, seed: $('a-seed').value.trim()});
+  Object.assign(body, {user: $('a-user').value, retain: $('a-retain').value, kind: $('a-kind').value, seed: $('a-seed').value.trim()});
   openAuctionRoom(await api('/api/auction/start', body));
 }
 function openAuctionRoom(d) {
@@ -235,17 +243,21 @@ function retainHTML(q, st) {
 function releaseHTML(q, st) {
   const sug = new Set(q.suggested);
   return `<h3>Releases (mini auction)</h3>
-    <p class="muted small" style="margin:4px 0 8px">Keep players at their contract prices (they come off your ₹120 cr purse) or release them into the auction.
+    <p class="muted small" style="margin:4px 0 8px">Keep any of your players at their contract prices (they come off your ₹120 cr purse), at most 25 and 8 overseas,
+    or release them into the auction (no Right to Match on them).
     Ticked: the computer's choice (players now expected to fetch less than ${Math.round(75)}% of their contract). Ages and form have moved on since they were bought.</p>
     <table class="mini"><tr><th>Release</th><th>Player</th><th>Role</th><th>Contract</th><th>Expected now</th></tr>
-    ${q.squad.map(c => `<tr><td><input type="checkbox" class="au-rel" value="${esc(c.id)}" data-c="${c.contract || 0}" ${sug.has(c.id) ? 'checked' : ''}></td>
+    ${q.squad.map(c => `<tr><td><input type="checkbox" class="au-rel" value="${esc(c.id)}" data-c="${c.contract || 0}" data-os="${c.overseas ? 1 : 0}" ${sug.has(c.id) ? 'checked' : ''}></td>
       <td>${esc(c.name)}${osTag(c)}</td><td>${esc(c.role)}</td><td>${cr(c.contract)}</td><td class="${c.est < c.contract ? 'l' : 'w'}">${cr(c.est)}</td></tr>`).join('')}</table>
     <div class="au-act"><button class="btn go" data-a="release">Confirm releases</button><span class="muted small" id="au-rel-cost"></span></div>`;
 }
 function relCost() {
   const all = [...document.querySelectorAll('.au-rel')], kept = all.filter(b => !b.checked);
   const cost = kept.reduce((a, b) => a + +b.dataset.c, 0);
-  $('au-rel-cost').innerHTML = `${kept.length} kept for ${cr(cost)} · ${cr(12000 - cost)} to spend · ${all.length - kept.length} released`;
+  const os = kept.filter(b => b.dataset.os === '1').length;
+  const bad = kept.length > 25 ? 'Keep at most 25 players.' : os > 8 ? 'Keep at most 8 overseas players.' : cost > 12000 ? 'The players you keep cost more than the purse.' : '';
+  $('au-rel-cost').innerHTML = bad ? `<span class="err">${bad}</span>`
+    : `${kept.length} kept (${os} overseas) for ${cr(cost)} · ${cr(12000 - cost)} to spend · ${all.length - kept.length} released`;
 }
 function retCost() {
   const boxes = [...document.querySelectorAll('.au-ret:checked')];

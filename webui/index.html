@@ -166,7 +166,11 @@
         <div class="fg"><label>Knockouts</label><select id="a-ko"></select></div>
       </div>
     </div>
-    <div class="fg"><label>Retain players from</label><select id="a-retain"></select></div>
+    <div class="fg"><label>Kind of auction</label><select id="a-kind">
+      <option value="mega">Mega auction: retain up to 6 at set prices, Right to Match</option>
+      <option value="mini">Mini auction: keep any players at their contracts, release the rest</option></select>
+      <div class="hint" id="a-kind-hint" style="margin:4px 0 0"></div></div>
+    <div class="fg"><label id="a-retain-lbl">Retain players from</label><select id="a-retain"></select></div>
     <div class="fg"><label>You bid for</label><select id="a-user"></select></div>
     <div class="fg" id="a-captain-box"><label><input type="checkbox" id="a-captain" checked style="width:auto;margin-right:6px">Captain my team in the league</label>
       <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="a-opp">

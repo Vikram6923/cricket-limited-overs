@@ -12,10 +12,15 @@ Rules (the IPL's 2025 mega auction):
 - accelerated round: every team names unsold players it wants back (the computer: those worth their base price
   to it); the named players are auctioned again, and teams still short of 18 then fill up at 30 lakh each
 
-Mini auctions (the career mode, engine/career.py, between mega auctions): pool["kept"] = {team: {player: contract
-price}}. Instead of retentions each team releases the players it no longer wants (the computer releases a player
-whose expected auction price is below RELEASE x his contract) and keeps the rest at their contract prices, which
-come off its purse; the released players join the auction pool. No Right to Match cards.
+Mini auctions (the IPL's auctions between mega auctions, e.g. December 2023 and 2025; also the career mode,
+engine/career.py): pool["kept"] = {team: {player: contract price, or None: unknown}}. Unknown contracts are the
+players' expected prices, scaled down where a squad would cost more than 95% of the purse. Instead of
+retentions each team releases the players it no longer wants and keeps any number of the rest at their contract
+prices, which come off the Rs 120 crore purse; a kept squad has at most 25 players and 8 overseas. The computer
+releases a player whose expected auction price is below RELEASE x his contract (then the worst value for money
+while it keeps too many). The released players join the auction pool. No Right to Match cards and no marquee set.
+An overseas player bought for more than FEE_CAP is paid FEE_CAP (the rest goes to the BCCI), but the whole price
+comes off the buyer's purse; Lot.fee is what he is paid, and his contract at the next mini auction.
 
 Pools: "season" = everyone who played one real league season, with that season's franchises, retention from the
 season before, career ratings and the league's conditions (as in League Season); "years" = a period's players as
@@ -64,6 +69,7 @@ SPEND = 0.9                          # share of the free purse the market rate e
 NOISE = 0.12                         # spread of a team's valuation (log scale)
 ROLES = ("Batter", "All-rounder", "WK", "Pace", "Spin")
 RELEASE = 0.75                       # mini auction: release a player expected to fetch less than this x his contract
+FEE_CAP = 1800                       # mini auction: most an overseas player is paid (the top retention price)
 SET_LABEL = {"Batter": "batters", "All-rounder": "all-rounders", "WK": "keepers", "Pace": "fast bowlers",
              "Spin": "spinners"}
 
@@ -98,6 +104,7 @@ class Lot:
     set: str = ""
     prev: str | None = None   # team of the previous squad (retention / RTM)
     contract: int | None = None  # mini auction: his current contract price (lakh)
+    fee: int | None = None       # mini auction: what an overseas player bought above FEE_CAP is paid
     status: str = "pool"      # pool / retained / sold / unsold
     buyer: str | None = None
     price: int | None = None
@@ -107,7 +114,7 @@ class Lot:
         b, w = self.ref.get("bat") or {}, self.ref.get("bowl") or {}
         return {"id": self.id, "name": self.name, "team": self.team, "role": self.role, "value": round(self.value, 1),
                 "overseas": self.overseas, "capped": self.capped, "base": self.base, "est": self.est, "set": self.set,
-                "prev": self.prev, "contract": self.contract, "status": self.status, "buyer": self.buyer, "price": self.price,
+                "prev": self.prev, "contract": self.contract, "fee": self.fee, "status": self.status, "buyer": self.buyer, "price": self.price,
                 "bat_avg": b.get("avg"), "bat_sr": b.get("sr"),
                 "econ": w.get("econ") if self.bowler else None, "bowl_avg": w.get("avg") if self.bowler else None}
 
@@ -267,8 +274,8 @@ class Auction:
         self.kind = "mini" if self.kept is not None else "mega"
         for t, ids in (self.kept or {}).items():
             for pid, price in ids.items():
-                if pid in self.lots:
-                    self.lots[pid].contract, self.lots[pid].prev = int(price), t
+                if pid in self.lots and t in self.purse:
+                    self.lots[pid].contract, self.lots[pid].prev = None if price is None else int(price), t
         prev = pool["prev"] if prev is None else prev
         for t, ids in prev.items():
             for pid in ids:
@@ -278,6 +285,11 @@ class Auction:
         self._replacement()
         self.lam0 = self.lam = self._lambda()
         self._price(self.lam0)
+        for t in self.kept or {}:              # mini auction, contracts not known: expected prices, scaled down
+            ids = [x for x in self.lots.values() if x.prev == t and x.contract is None]     # where the squad would
+            k = min(1.0, 0.95 * PURSE / max(1, sum(x.est for x in ids)))                    # cost over 95% of the purse
+            for x in ids:
+                x.contract = max(MIN_PRICE, int(x.est * k))
         self.sets: list[tuple[str, list[str]]] = []
         self.set_no = -1
         self.lot: dict | None = None
@@ -508,13 +520,27 @@ class Auction:
             self._keep(self.user, ids)
 
     def suggest_release(self, t: str) -> list[str]:
-        return [i for i in self.retain_candidates(t) if self.lots[i].est < RELEASE * (self.lots[i].contract or 0)]
+        cands = self.retain_candidates(t)
+        out = [i for i in cands if self.lots[i].est < RELEASE * (self.lots[i].contract or 0)]
+        keep = sorted((i for i in cands if i not in out),        # best value for money first
+                      key=lambda i: -self.lots[i].est / max(MIN_PRICE, self.lots[i].contract or 0))
+        kept, os_n, cost = [], 0, 0
+        for i in keep:
+            x = self.lots[i]
+            os_ok = self.xi_overseas is None or not x.overseas or os_n < OVERSEAS_MAX
+            if len(kept) < SQUAD_MAX and os_ok and cost + (x.contract or 0) <= PURSE:
+                kept.append(i); os_n += x.overseas; cost += x.contract or 0
+            else:
+                out.append(i)
+        return out
 
     def release_error(self, t: str, ids: list[str]) -> str | None:
         cands = set(self.retain_candidates(t))
         if any(i not in cands for i in ids):
             return "You can only release players from your squad."
         keep = [i for i in cands if i not in ids]
+        if len(keep) > SQUAD_MAX:
+            return f"Keep at most {SQUAD_MAX} players."
         if sum(self.lots[i].contract or 0 for i in keep) > PURSE:
             return "The players you keep cost more than the purse."
         if self.xi_overseas is not None and sum(self.lots[i].overseas for i in keep) > OVERSEAS_MAX:
@@ -656,7 +682,7 @@ class Auction:
         self._price(self.lam)                  # re-priced now that retentions have taken players and money
         left = sorted((x for x in self.lots.values() if x.status == "pool"), key=lambda x: -x.est)
         capped = [x for x in left if x.capped]
-        marquee = capped[:MARQUEE]
+        marquee = capped[:MARQUEE] if self.kind == "mega" else []     # mini auctions have no marquee set
         sets = [(f"Marquee {k // 6 + 1}", [x.id for x in marquee[k:k + 6]]) for k in range(0, len(marquee), 6)]
         for cap, label in ((True, "Capped"), (False, "Uncapped")):
             by = {r: [x for x in left if x.capped == cap and x not in marquee and x.role == r] for r in ROLES}
@@ -678,7 +704,10 @@ class Auction:
         self.purse[t] -= price
         self.squad[t].append(x.id)
         x.status, x.buyer, x.price = "sold", t, price
-        self.sales.append({"id": x.id, "name": x.name, "team": t, "price": price, "how": how, "role": x.role})
+        if self.kind == "mini" and x.overseas and self.xi_overseas is not None and price > FEE_CAP:
+            x.fee = FEE_CAP                     # the whole price still comes off the purse
+        self.sales.append({"id": x.id, "name": x.name, "team": t, "price": price, "how": how, "role": x.role,
+                           "fee": x.fee})
 
     def _sell(self, pid: str, set_name: str):
         x = self.lots[pid]
@@ -901,6 +930,7 @@ class Auction:
 
     def board(self) -> dict:
         return {t: [{"id": i, "name": self.lots[i].name, "role": self.lots[i].role, "price": self.lots[i].price,
+                     "fee": self.lots[i].fee,
                      "overseas": self.lots[i].overseas, "retained": i in self.retained[t]} for i in self.squad[t]]
                 for t in self.teams}
 
@@ -913,7 +943,7 @@ class Auction:
         return {"label": self.label, "fmt": self.fmt, "comp": self.comp, "year": self.year, "teams": self.teams,
                 "kind": self.kind,
                 "user": self.user, "phase": self.phase,
-                "done": self.done, "purse": self.purse, "rtm": self.rtm, "squad_min": self.squad_min,
+                "done": self.done, "kind": self.kind, "purse": self.purse, "rtm": self.rtm, "squad_min": self.squad_min,
                 "squad_max": SQUAD_MAX, "overseas_max": OVERSEAS_MAX, "xi_overseas": self.xi_overseas,
                 "board": self.board(), "question": self.question, "lot": lot, "user_auto": self.user_auto,
                 "prev_lot": {"id": self.prev_lot["id"], "log": self.prev_lot["log"]} if self.prev_lot else None,
