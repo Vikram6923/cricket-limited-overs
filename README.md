@@ -56,6 +56,19 @@ offline. Modes:
   computer, play can be skipped to the end of the innings, the match or the season, and obvious calls (one
   possible bowler, the last batter) are not asked. League Season and Auction pick the team in their own form; Series, Tournament, Classic and Draft (your drafted
   team) in the "Captain a team" box under the conditions. Built on a generic controller (`engine/control.py`).
+  - **Ball by ball with aggression bars (League Season and Career, Cricket Captain style):** set each batter's
+    aggression and each bowler's plan on 9 bars and play a ball, an over, to the next wicket or to the end of the
+    innings, with a settled meter for each batter and the projected score or chase. Bar 5 is how real sides play
+    that situation (the engine as calibrated). The trade-off comes from real ball-by-ball data: across match
+    situations, how fours, sixes and dots move with the scoring rate, and how far each bar reaches (the range real
+    sides show, plus one bar beyond it at each end). Each bar's wicket cost is set so that bar 5 is best on
+    average, so the right setting depends on the moment: going hard pays when a wicket is cheap and costs when it
+    is dear. See [docs/match_play_design.md](docs/match_play_design.md).
+  - **Highlights:** on that screen the balls since your last pause replay as a 2D ball tracker (off / wickets and
+    boundaries / every ball): the ball's path on a top-down ground with the field, fielders chasing, runners, flying
+    bails, the catcher's name, and a side-on strip for the length. The engine decides what happened; the direction,
+    length and field are drawn by rules (Cricsheet records none of them), and the field follows the phase and your
+    bowling plan.
   - **Opponent captains: Expert / Average / Easy.** Expert is the engine's own best calls. Weaker computer
     captains sometimes make another call (bowler, next batter, a swap in the XI, the toss, the Impact Player
     moment), the less costly ones more often, so their mistakes are plausible. Measured over 900 IPL 2024 games:

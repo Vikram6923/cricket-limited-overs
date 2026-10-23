@@ -70,7 +70,8 @@ function renderCareer() {
        <button class="btn sec" id="kc-auto">${me ? 'Let the computer decide for me' : 'Run the auction'}</button></div>`
     : `<h3>Season ${esc(c.season)}</h3>
        <div class="checks" style="margin:6px 0">
-         ${me ? `<label><input type="checkbox" id="kc-cap" ${$('kc-cap') && !$('kc-cap').checked ? '' : 'checked'}> Captain ${esc(me)}</label>` : ''}
+         ${me ? `<label><input type="checkbox" id="kc-cap" ${$('kc-cap') && !$('kc-cap').checked ? '' : 'checked'}> Captain ${esc(me)}</label>
+           <label title="Set each batter's aggression and each bowler's plan (1-9 bars) and play ball by ball"><input type="checkbox" id="kc-ball" ${$('kc-ball') && !$('kc-ball').checked ? '' : 'checked'}> Ball by ball (aggression bars)</label>` : ''}
          <label><input type="checkbox" id="kc-rain" checked> Rain (DLS)</label></div>
        ${me ? `<div class="fg" style="margin:4px 0 8px"><label>Opponent captains</label><select id="kc-opp">
          <option value="expert">Expert</option><option value="average">Average</option><option value="easy">Easy</option></select></div>` : ''}
@@ -134,7 +135,7 @@ async function playCareerSeason() {
   const me = CAR.user, cap = me && $('kc-cap') && $('kc-cap').checked;
   const impact = CAR.league === 'ipl' && CAR.year >= 2023;
   const body = {mode: 'career', career: CAR_ID, fmt: 't20', rain: $('kc-rain').checked};
-  if (cap) { body.captain = me; body.opponents = $('kc-opp').value; body.manual = ['toss', 'xi', 'bowler', 'batter', 'result', ...(impact ? ['impact'] : [])]; CAP.impact = impact; }
+  if (cap) { body.captain = me; body.opponents = $('kc-opp').value; body.manual = ['toss', 'xi', 'bowler', 'batter', 'result', ...(impact ? ['impact'] : []), ...($('kc-ball') && $('kc-ball').checked ? ['ball'] : [])]; CAP.impact = impact; }
   try { await api('/api/run', body); poll(); }
   catch (e) { toast(e.message, true); }
 }

@@ -27,7 +27,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_from_directory
 
 from engine.conditions import venue_table
-from engine.control import KINDS, Cancelled, WaitingController
+from engine.control import DEFAULT_KINDS, KINDS, Cancelled, WaitingController
 from engine.judge import AllBut, season_report
 from engine import history
 from engine.auction import Auction, season_pool, years_pool
@@ -590,7 +590,7 @@ def api_run():
             title += f" - you captain {cap}"
         JOB = Job(title, total)
         if cap:
-            manual = set(p["manual"]) & set(KINDS) if isinstance(p.get("manual"), list) else set(KINDS)
+            manual = set(p["manual"]) & set(KINDS) if isinstance(p.get("manual"), list) else set(DEFAULT_KINDS)
             JOB.controller = WaitingController(cap, manual)
         threading.Thread(target=_run, args=(JOB, p), daemon=True).start()
     return jsonify(ok=True)

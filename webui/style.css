@@ -449,3 +449,31 @@ kbd{font:inherit;font-size:.66rem;border:1px solid var(--border);border-radius:4
 .kc-news{margin:0;padding-left:18px;max-height:40vh;overflow:auto}
 .kc-news li{margin:3px 0;font-size:.85rem}
 #kc-hist td,#kc-hist th{white-space:nowrap}
+
+/* ball by ball: aggression bars and settled meter */
+.bb-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.bb-name{min-width:180px;flex:1}
+.settle{height:5px;border-radius:99px;background:var(--panel2);overflow:hidden;margin:5px 0 3px;max-width:220px}
+.settle i{display:block;height:100%;background:var(--blue)}
+.bars{display:flex;align-items:flex-end;gap:3px}
+.bar{width:14px;border:1px solid var(--border);background:var(--panel2);border-radius:3px;cursor:pointer;padding:0}
+.bar[data-v="1"]{height:10px}.bar[data-v="2"]{height:13px}.bar[data-v="3"]{height:16px}.bar[data-v="4"]{height:19px}
+.bar[data-v="5"]{height:22px}.bar[data-v="6"]{height:25px}.bar[data-v="7"]{height:28px}.bar[data-v="8"]{height:31px}.bar[data-v="9"]{height:34px}
+.bar.on{background:var(--green);border-color:var(--green)}
+.bar.on[data-v="7"],.bar.on[data-v="8"]{background:var(--amber);border-color:var(--amber)}
+.bar.on[data-v="9"]{background:var(--red);border-color:var(--red)}
+.bar.mid{outline:1px solid var(--muted);outline-offset:1px}
+.bar-word{font-size:.78rem;color:var(--muted);margin-left:8px;min-width:110px}
+
+/* highlights: top-down ground, side-on length strip */
+.hl-box{background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:12px}
+.hl-head{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:4px}
+.hl-skip{color:var(--blue);text-decoration:none}
+.hl-stage{position:relative;max-width:340px;margin:0 auto}
+.hl-ground{display:block;width:100%;height:auto}
+.hl-flash{position:absolute;left:0;right:0;top:41%;text-align:center;font-size:1.7rem;font-weight:800;letter-spacing:.5px;text-shadow:0 2px 8px rgba(0,0,0,.8);opacity:0;transition:opacity .15s;pointer-events:none}
+.hl-flash.on{opacity:1}
+.hl-strip{display:block;width:100%;max-width:340px;height:auto;margin:0 auto}
+.hl-foot{text-align:center;font-size:.84rem;margin-top:4px;min-height:1.2em}
+.hl-level{margin-left:auto;font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.hl-level select{width:auto;padding:3px 6px}

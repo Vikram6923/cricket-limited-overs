@@ -1,0 +1,105 @@
+{
+ "metrics": [
+  "runs",
+  "wkt",
+  "dot",
+  "four",
+  "six",
+  "run_out"
+ ],
+ "bars": 9,
+ "wicket_value": 0.7,
+ "bowl_edge": 0.4,
+ "contain_edge": 0.8,
+ "bowl_share": 0.5,
+ "min_balls": 300,
+ "phases": {
+  "powerplay": {
+   "slope": {
+    "wkt": 1.7797,
+    "dot": -0.3574,
+    "four": 1.2675,
+    "six": 3.7766,
+    "run_out": 1.1496
+   },
+   "cross": {
+    "wkt": 0.2856,
+    "dot": -0.3574,
+    "four": 1.2675,
+    "six": 3.7766,
+    "run_out": 1.1496
+   },
+   "envelope": [
+    122463.0,
+    96627.3,
+    2594.0
+   ],
+   "step": 0.0428,
+   "reliability": 0.871,
+   "spread": {
+    "p5": -0.1229,
+    "p95": 0.1523
+   },
+   "cells": 37,
+   "balls": 164049
+  },
+  "middle": {
+   "slope": {
+    "wkt": 2.3385,
+    "dot": -0.7491,
+    "four": 1.2224,
+    "six": 3.0444,
+    "run_out": 1.5189
+   },
+   "cross": {
+    "wkt": 0.9645,
+    "dot": -0.7491,
+    "four": 1.2224,
+    "six": 3.0444,
+    "run_out": 1.5189
+   },
+   "envelope": [
+    371657.0,
+    219023.4,
+    12348.5
+   ],
+   "step": 0.0701,
+   "reliability": 0.942,
+   "spread": {
+    "p5": -0.1856,
+    "p95": 0.2476
+   },
+   "cells": 186,
+   "balls": 456676
+  },
+  "death": {
+   "slope": {
+    "wkt": 4.16,
+    "dot": -0.8606,
+    "four": 1.0455,
+    "six": 2.6845,
+    "run_out": 3.3048
+   },
+   "cross": {
+    "wkt": 1.8517,
+    "dot": -0.8606,
+    "four": 1.0455,
+    "six": 2.6845,
+    "run_out": 3.3048
+   },
+   "envelope": [
+    123125.0,
+    39739.8,
+    3199.7
+   ],
+   "step": 0.0906,
+   "reliability": 0.973,
+   "spread": {
+    "p5": -0.2129,
+    "p95": 0.338
+   },
+   "cells": 47,
+   "balls": 96383
+  }
+ }
+}

@@ -766,3 +766,40 @@ All-batting India XI (Jaiswal, Rohit, Kohli, Suryakumar, Pant, Rinku + Hardik, J
 Sundar; depth of No. 3-11 = 12.0 against 9.6 for the India 2024 preset) v the other 2024 T20I presets, 280
 games: scores 169.1 without depth, 180.6 with the trend (180.6 v 177.4 with the capped buckets), concedes 167.9,
 wins 65.7% (balanced India 2024: scores 164.8, concedes 153.7, wins 66.8%).
+
+### Open issues from the code review of the depth trend (2026-10-09, not fixed yet)
+
+1. **12-13 man lists count a player who will never bat** (`fit_depth.py`, the `11 <= len(xi) <= 13` check). In an
+   IPL Impact Player game the substitute and the player he replaces both count as "to come", so fitted depth is
+   too high in those games (`mean_depth["9"]` is 0.024 rather than 0). Fix: drop from the list a player who never
+   bats once a substitute has batted in his place (Cricsheet's `replacements` block names both players).
+2. **The engine compares 11-card depth with a mean built from 11-13 man lists** (`situation.with_depth`), so an
+   engine side of exactly average depth reads as slightly below average. This goes away with fix 1.
+3. **Newton steps in `poisson_trend` are undamped.** A thin cell (7+ down, sixes) can make `exp(a + b x)`
+   overflow and crash the fit on a future rebuild. Fix: step-halving, or bound a and b.
+4. **No guard for an old `depth_t20.json`** without `trend` / `cap`: every T20 ball would raise KeyError. Fix:
+   `use_depth` should also check for `"trend"` in the file, or `with_depth` should fall back.
+5. **The intercept is re-centred before the +-0.5 cap**, so where the cap bites the mean multiplier is not 1.
+   Small with today's slopes.
+6. **`Innings.depth()` is recomputed on every ball** but changes only at a wicket or an Impact swap. Cache it.
+7. The bucket table is still written to `depth_t20.json` but the engine doesn't read it (it's only a check). It
+   could become a printout only.
+8. One line in the `with_depth` docstring is ~150 characters; re-wrap.
+
+## Ball by ball with aggression bars (2026-10-12)
+
+This is Cricket Captain-style match play. The research, design, decisions and full build log are in
+docs/match_play_design.md.
+- Each batter has 9 bars of aggression and each bowler 9 bars of plan. Bar 5 is the engine as calibrated: tested
+  ball for ball, and the computer's sides always play at 5.
+- Fours, sixes, dots and run-outs follow the runs rate with slopes fitted across real situations. Wickets are
+  priced so that bar 5 is best on average.
+- The person can pause every ball, every over, at the next wicket or at the end of the innings.
+- On in League Season, Career and the Auction league, behind an opt-in tick box.
+- Gate: no fixed setting beats Normal. With the batting bars, bar 3 is 8 win points worse in T20 and bar 7 15
+  points worse.
+- Next: the other captain modes; a settled meter in the scorecard; maybe the Easy opponents could misuse the
+  dials.
+- Highlights (2026-10-17): `Match.log_ball` records each delivery of a captained side (presentation only: no random
+  draws, so matches are unchanged; tested) and `webui/highlight.js` replays them as a 2D ball tracker on the
+  ball-by-ball screen. Details in docs/match_play_design.md section 7.
