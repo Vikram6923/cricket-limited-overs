@@ -17,7 +17,7 @@ from . import rain
 from . import captain, conditions
 from .ballmodel import BallModel
 from .data import FORMATS, Player, baseline, basics, phase_at, player
-from .situation import Situation, bat_quality, depth_table
+from .situation import NORMAL_BARS, Situation, bat_quality, depth_table
 
 KIND_TEXT = {"bowled": "b", "lbw": "lbw", "caught_fielder": "c", "caught_keeper": "c", "caught_bowler": "c & b",
              "stumped": "st", "hit_wicket": "hit wicket", "run_out": "run out"}
@@ -126,6 +126,7 @@ class Innings:
         self.striker.batted = self.non_striker.batted = True
         self.pship = {"runs": 0, "balls": 0, "a": self.striker, "b": self.non_striker, "a_runs": 0, "b_runs": 0}
         self.free_hit = False
+        self.ball_log: list[dict] = []   # what each delivery was, for the highlights (only when a person captains)
         self.done = False
         self.rain_stopped = False    # play could not resume (rain): the result goes by DLS par
         self.streak: dict[Player, int] = {}   # consecutive legal balls taking wickets, per bowler (hat-tricks)
@@ -291,12 +292,18 @@ class Innings:
         btype = bowler.bowl_type or "unknown"
         seq = []
         while balls_in_over < 6 and not self.done:
+            if self.m.control:
+                self.m.ball_turn(self, bowler, ph, seq)
             sit = self.m.sit.multipliers(1 if self.target is None else 2, self.legal + self.offset(), self.wkts, self.runs,
                                          self.target, self.striker.balls, self.par_k()) if self.m.use_situation else {}
             if self.m.use_matchups:
                 sit = self.m.sit.with_matchup(sit, self.striker.p.bat_hand, bowler.bowl_kind)
             if self.m.use_depth and sit and not self.super_over:
                 sit = self.m.sit.with_depth(sit, 1 if self.target is None else 2, self.wkts, self.depth())
+            if self.m.bars and sit:
+                bb, wb = self.m.bars_of(self.bat, self.striker.p), self.m.bars_of(self.bowl, bowler)
+                if bb != NORMAL_BARS or wb != NORMAL_BARS:
+                    sit = self.m.sit.with_aggression(sit, ph, bb, wb)
             o = self.m.model.delivery(self.m.rng, base, self.striker.p, bowler, ph, btype, sit, self.free_hit)
             wp0 = self.m.wp_batting(self)
             striker = self.striker.p
@@ -306,7 +313,11 @@ class Innings:
                 ib, iw = self.striker.p.bat[ph], bowler.bowl[ph]
                 f.exp_runs += base["runs"] * ib["runs"] * iw["runs"] + base["wide"] + base["noball"]
                 f.exp_wkts += base["wkt"] * ib["wkt"] * iw["wkt"]
+            if self.m.control:
+                pre = (self.striker, self.non_striker, self.free_hit, self.legal - (1 if o.legal else 0))
             self.apply(o, bowler, f, seq)
+            if self.m.control:
+                self.log_ball(o, bowler, ph, seq[-1], *pre)
             self.free_hit = (o.extra == "nb") or (self.free_hit and o.extra == "w")
             if self.chase_won() or self.wkts >= self.max_wkts:
                 self.done = True
@@ -325,6 +336,29 @@ class Innings:
         big = 20 if self.m.fmt == "t20" else 18
         if runs >= big:
             self.event(f"{runs} runs off the over from {bowler.name} ({' '.join(seq)})", "big_over")
+
+    def log_ball(self, o, bowler: Player, ph: str, sym: str, st, ns, free_hit: bool, legal_before: int) -> None:
+        """One delivery for the highlights (presentation only: no random numbers are drawn here, so a match plays
+        the same with or without a person watching). Where the ball went, the field and the length are drawn by
+        the browser (webui/highlight.js) from these facts; Cricsheet has none of them."""
+        out = (st if st.out else ns if ns.out else None) if o.wicket else None   # both were in before the ball
+        how = (out.how or {}) if out else {}
+        role = None
+        if how.get("fielder_id"):
+            role = ("keeper" if how["fielder_id"] == (self.bowl.keeper.id if self.bowl.keeper else None)
+                    else "bowler" if how["fielder_id"] == bowler.id else "fielder")
+        self.ball_log.append({
+            "n": len(self.ball_log), "innings": self.number, "over": legal_before // 6 + 1,
+            "ball": legal_before % 6 + 1, "sym": sym, "phase": ph,
+            "batter": st.p.name, "batter_id": st.p.id, "hand": st.p.bat_hand or "right",
+            "non_striker": ns.p.name, "bowler": bowler.name, "bowl_type": bowler.bowl_type or "pace",
+            "bowl_kind": (bowler.bowl_kind or "").replace("_", " "),
+            "plan": self.m.bars_of(self.bowl, bowler) if self.bowl.name in self.m.bars else 5,
+            "runs": o.bat_runs, "extra": o.extra, "extra_runs": o.extra_runs, "ran": o.ran,
+            "wicket": o.wicket or None, "out": out.p.name if out else None,
+            "out_end": ("striker" if out is st else "non_striker") if out else None,
+            "fielder": how.get("fielder"), "fielder_role": role, "how": how.get("text"),
+            "free_hit": free_hit, "score": f"{self.runs}/{self.wkts}", "batting": self.bat.name})
 
     def apply(self, o, bowler: Player, f: BowlFig, seq: list):
         s = self.striker
@@ -592,6 +626,12 @@ class Match:
         self.control = {t.name: control[t.name] for t in self.teams if control and t.name in control}
         self.key = f"{self.seed}|{self.teams[0].name}|{self.teams[1].name}"
         self.captain_log = {t.name: [] for t in self.teams if t.name in self.control}   # the person's calls, valued
+        # aggression dials (docs/match_play_design.md): team -> player id -> bars, for the person's side only;
+        # everyone else plays at NORMAL_BARS (the engine as calibrated). pace: how far to play before the next
+        # ball-by-ball pause ({"until": "over" | "wicket" | "innings", ...})
+        self.bars = {t.name: {} for t in self.teams if t.name in self.control}
+        self.pace: dict = {}
+        self.seen: dict = {}      # team -> (innings, balls of its ball_log already shown to the person)
         # weaker computer captains (engine/judge.py): team name -> (chance of a loose call, temperature in runs);
         # their own random stream, so expert sides play exactly as before
         self.skill = {t.name: judge.LEVELS[skill.get(t.name)] for t in self.teams
@@ -798,6 +838,61 @@ class Match:
              "innings": inn.number if inn and skip_inn else None,
              "state": self.live(inn) if inn else self.pre_state(team), **payload}
         return self.control[team.name].decide(q)
+
+    def bars_of(self, team: Team, p: Player) -> int:
+        return self.bars.get(team.name, {}).get(p.id, NORMAL_BARS)
+
+    def ball_turn(self, inn: "Innings", bowler: Player, ph: str, seq: list) -> None:
+        """Ball by ball (kind "ball"): before a delivery, the person's side sets its aggression dials - the two
+        batters' bars when batting, the bowler's plan bars when fielding - and says how far to play before the
+        next pause (the next ball, the end of the over, the next wicket, the end of the innings)."""
+        for team in (inn.bat, inn.bowl):
+            if team.name not in self.control or not self.manual(team, "ball", inn):
+                continue
+            pc = self.pace.get(team.name)
+            if pc and pc["inn"] == inn.number and (
+                    pc["until"] == "innings"
+                    or (pc["until"] == "over" and pc["over"] == inn.legal // 6)
+                    or (pc["until"] == "wicket" and inn.wkts == pc["wkts"])):
+                continue
+            batting = team is inn.bat
+            mine = self.bars[team.name]
+            sit = self.sit
+
+            def bat(c):
+                return {"id": c.p.id, "name": c.p.name, "runs": c.runs, "balls": c.balls, "fours": c.fours,
+                        "sixes": c.sixes, "settled": round(sit.settled(c.balls), 2),
+                        "bars": mine.get(c.p.id, NORMAL_BARS) if batting else None,
+                        "sr": round(100 * self.base[ph]["runs"] * c.p.bat[ph]["runs"], 1)}
+            f = inn.fig(bowler)
+            proj = None
+            if inn.target is None and not inn.super_over:
+                proj = round(inn.runs + sit.par_runs(inn.legal + inn.offset(), inn.wkts) * inn.par_k())
+            k0 = self.seen.get(team.name)
+            k0 = k0[1] if k0 and k0[0] == inn.number else 0
+            since = inn.ball_log[k0:][-18:]
+            self.seen[team.name] = (inn.number, len(inn.ball_log))
+            ans = self.ask(team, "ball", {
+                "since": since,
+                "side": "bat" if batting else "bowl", "phase": ph, "over": inn.legal // 6 + 1,
+                "ball": inn.legal % 6 + 1,
+                "this_over": list(seq), "free_hit": inn.free_hit, "projected": proj,
+                "striker": bat(inn.striker), "non_striker": bat(inn.non_striker),
+                "bowler": {"id": bowler.id, "name": bowler.name, "kind": (bowler.bowl_kind or "").replace("_", " "),
+                           "figures": f"{f.balls // 6}.{f.balls % 6}-{f.maidens}-{f.runs}-{f.wkts}",
+                           "bars": None if batting else mine.get(bowler.id, NORMAL_BARS),
+                           "econ": round(6 * (self.base_of(bowler)[ph]["runs"] * bowler.bowl[ph]["runs"]), 2)},
+                "default": None}, inn)
+            ans = ans if isinstance(ans, dict) else {}
+            for side in ("bat", "bowl"):
+                for pid, v in (ans.get(side) or {}).items():
+                    try:
+                        mine[str(pid)] = min(9, max(1, int(v)))
+                    except (TypeError, ValueError):
+                        pass
+            u = ans.get("until")
+            self.pace[team.name] = None if u not in ("over", "wicket", "innings") else {
+                "until": u, "inn": inn.number, "over": inn.legal // 6, "wkts": inn.wkts}
 
     def pre_state(self, team: Team) -> dict:
         a, b = self.teams

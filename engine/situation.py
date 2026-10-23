@@ -24,6 +24,15 @@ def depth_table(fmt: str) -> dict | None:
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
+@lru_cache(maxsize=None)
+def aggression_table(fmt: str) -> dict | None:
+    p = DATA / "engine" / f"aggression_{fmt}.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+NORMAL_BARS = 5   # the middle of the 9-bar dials: the engine's own intent (what real sides do)
+
+
 def bat_quality(p, tail: float) -> float:
     """A player's batting average index (runs / dismissals, middle overs) as fit_depth.py measures it."""
     b = p.bat.get("middle") if p.rated_bat else None
@@ -112,6 +121,55 @@ class Situation:
                 out = mult
             self._cache[key] = out
         return out
+
+    def with_aggression(self, mult: dict, phase: str, bat_bars: int, bowl_bars: int) -> dict:
+        """x the aggression dials (engine/fit/fit_aggression.py, docs/match_play_design.md), 1-9 bars, 5 = as
+        real sides play this situation (the engine as calibrated).
+        Batting: d = step x (bars - 5) moves the runs rate by e^d and every other rate by e^(slope x d); the
+        wicket slope makes bar 5 the batters' best on average (the runs from a little more intent pay for the
+        wickets it costs), so far from 5 costs, at a rate that depends on how dear a wicket is just now.
+        Bowling plan: d = step x bowl_share x (bars - 5) moves the runs rate by e^d (and fours, sixes, dots with
+        it) and the wicket rate by e^(c d), c = the batting wicket slope x (1 - edge) when attacking, (1 + edge)
+        when containing: an attacking plan takes wickets at a little below what its runs cost on average, a
+        containing one saves runs at a little below what the lost wickets are worth, so bar 5 is the bowler's best
+        on average and each plan pays in its moment (attack when a wicket is dear, contain when it's cheap).
+        The edges (bowl_edge for attack, contain_edge) are fitted by simulation; Cricsheet has no line, length or
+        field data (an assumption)."""
+        if bat_bars == NORMAL_BARS and bowl_bars == NORMAL_BARS:
+            return mult
+        a = aggression_table(self.fmt)
+        if not a:
+            return mult
+        key = (id(mult), "aggr", phase, bat_bars, bowl_bars)
+        out = self._cache.get(key)
+        if out is None:
+            r = a["phases"][phase]
+            sl, step = r["slope"], r["step"]
+            db = step * (bat_bars - NORMAL_BARS)
+            dw = step * a["bowl_share"] * (bowl_bars - NORMAL_BARS)
+            m_ = a.get("bowl_edge", 0.0) if dw > 0 else a.get("contain_edge", a.get("bowl_edge", 0.0))
+            c = sl["wkt"] * (1.0 - m_ if dw > 0 else 1.0 + m_)    # wickets per unit of runs: attack below par, contain above
+            lr = db + dw                                           # log runs multiplier
+            f = {"runs": math.exp(lr)}
+            for m, b in sl.items():
+                if m == "wkt":
+                    f[m] = math.exp(b * db + c * dw)
+                elif m == "run_out":
+                    f[m] = math.exp(b * db)             # the bowler's plan doesn't run batters out
+                else:
+                    f[m] = math.exp(b * lr)
+            out = {m: mult.get(m, 1.0) * f.get(m, 1.0) for m in set(mult) | set(f)}
+            self._cache[key] = out
+        return out
+
+    def settled(self, balls: int) -> float:
+        """How settled a batter is, 0-1: where his scoring rate stands between his first ball and fully set
+        (the fitted settling-in curve, design T1-3)."""
+        t = self.t
+        r = [row[self.metrics.index("runs")] for row in t["settle"]]
+        x = max(r[:bisect.bisect_left(t["settle_edges"], balls) + 1])    # set stays set
+        lo, hi = r[0], max(r)
+        return 1.0 if hi <= lo else min(1.0, max(0.0, (x - lo) / (hi - lo)))
 
     PACE = {"fast", "fast_medium", "medium_fast", "medium"}
 

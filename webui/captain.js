@@ -3,7 +3,7 @@
 'use strict';
 
 const KIND_LABEL = {toss: 'Toss', xi: 'Playing XI', bowler: 'Bowlers', batter: 'Next batter', impact: 'Impact Player',
-  result: 'Pause after matches'};
+  result: 'Pause after matches', ball: 'Ball by ball'};
 const CAP = {qid: null, q: null, auto: {}, manual: [], impact: true};
 const n1 = v => v === null || v === undefined ? '–' : v;
 const statLine = p => [p.role + (p.kind && p.role !== 'Batter' && p.role !== 'WK' ? ` (${p.kind})` : ''),
@@ -26,11 +26,13 @@ function capRender(st) {
   $('cap-score').innerHTML = scoreHTML(q);
   renderAuto();
   ({toss: qToss, xi: qXI, bowler: q2 => qPick(q2, 'bowler'), batter: q2 => qPick(q2, 'batter'), impact: qImpact,
-    result: qResult}[q.kind] || qResult)(q);
+    result: qResult, ball: qBall}[q.kind] || qResult)(q);
 }
 
 function renderAuto() {
-  const kinds = Object.keys(KIND_LABEL).filter(k => k !== 'impact' || CAP.impact || CAP.manual.includes('impact'));
+  if (CAP.manual.includes('ball')) CAP.ballOn = true;
+  const kinds = Object.keys(KIND_LABEL).filter(k => (k !== 'impact' || CAP.impact || CAP.manual.includes('impact'))
+    && (k !== 'ball' || CAP.ballOn));
   const computer = k => CAP.auto[k] !== undefined ? CAP.auto[k] : !CAP.manual.includes(k);
   $('cap-auto').innerHTML = kinds.map(k => `<button class="tog ${computer(k) ? 'on' : ''}" data-k="${k}"
     title="${computer(k) ? 'The computer decides - click to decide yourself' : 'You decide - click to leave it to the computer'}">${KIND_LABEL[k]}${computer(k) ? ' · computer' : ''}</button>`).join('');
@@ -176,6 +178,66 @@ function qResult(q) {
     <div class="cap-actions"><button class="btn go" id="cap-cont">Continue</button></div>`;
   $('cap-cont').onclick = () => capSend(null);
 }
+
+/* ball by ball: aggression bars (1-9, 5 = as real sides play this situation; docs/match_play_design.md) */
+const BAT_WORD = {1: 'Block', 2: 'Very careful', 3: 'Careful', 4: 'Steady', 5: 'Normal', 6: 'Positive', 7: 'Attack',
+  8: 'Very aggressive', 9: 'All out'};
+const BOWL_WORD = {1: 'Contain', 2: 'Very tight', 3: 'Tight', 4: 'Steady', 5: 'Normal', 6: 'Probing', 7: 'Attack',
+  8: 'Very attacking', 9: 'All-out attack'};
+function barsHTML(key, val, words) {
+  return `<div class="bars" data-key="${esc(key)}">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i =>
+    `<button class="bar ${i <= val ? 'on' : ''} ${i === 5 ? 'mid' : ''}" data-v="${i}" title="${i}: ${words[i]}"></button>`).join('')}
+    <span class="bar-word">${val} · ${words[val]}</span></div>`;
+}
+function qBall(q) {
+  const bat = q.side === 'bat', st = q.state || {};
+  const vals = {};
+  const pct = c => Math.round(100 * c.settled);
+  const who = (c, strike) => `<div class="bb-row">
+      <div class="bb-name"><b>${esc(c.name)}${strike ? ' *' : ''}</b> <span class="muted">${c.runs} (${c.balls})</span>
+        <div class="settle" title="How far his scoring has picked up since his first ball (the fitted settling-in curve)"><i style="width:${pct(c)}%"></i></div>
+        <span class="muted small">settled ${pct(c)}% · usual SR in these overs ${n1(c.sr)}</span></div>
+      ${bat ? barsHTML(c.id, c.bars, BAT_WORD) : ''}</div>`;
+  if (bat) { vals[q.striker.id] = q.striker.bars; vals[q.non_striker.id] = q.non_striker.bars; }
+  else vals[q.bowler.id] = q.bowler.bars;
+  const ballsHTML = (q.this_over || []).map(b => `<span class="ball ${ballClass(b)}">${esc(b)}</span>`).join('');
+  const sit = st.target ? `Need <b>${st.need}</b> off <b>${st.balls_left}</b>` : (q.projected ? `Projected score <b>${q.projected}</b>` : '');
+  $('cap-q').innerHTML = `<div class="hl-box" id="hl-box" style="display:none"></div>
+    <h3>Over ${q.over}, ball ${q.ball}: ${esc(q.bowler.name)} to ${esc(q.striker.name)}${q.free_hit ? ' · <span style="color:var(--amber)">FREE HIT</span>' : ''}</h3>
+    <div class="sb-line">${sit}${sit ? ' · ' : ''}${esc(q.phase)} overs · this over: <span class="overs">${ballsHTML || '–'}</span></div>
+    <div class="lbl" style="margin-top:10px">${bat ? 'Your batters: aggression' : 'Your bowler: plan'}</div>
+    ${who(q.striker, true)}${who(q.non_striker, false)}
+    <div class="bb-row"><div class="bb-name"><b>${esc(q.bowler.name)}</b> <span class="muted">${esc(q.bowler.kind || '')} · ${esc(q.bowler.figures)} · expected econ ${n1(q.bowler.econ)}</span></div>
+      ${bat ? '' : barsHTML(q.bowler.id, q.bowler.bars, BOWL_WORD)}</div>
+    <div class="hint" style="margin-top:6px">${bat ? '5 = how real sides bat in this situation. Higher: more runs and more risk; lower: fewer of both. Far from 5 costs, more so when a wicket is dear.'
+      : '5 = a normal plan. Attack takes more wickets but leaks runs; contain saves runs but takes fewer wickets.'} Keys: 1-9 sets ${bat ? 'the striker' : 'the bowler'}, Space = next ball.</div>
+    <div class="cap-actions"><button class="btn go" data-until="ball">Next ball</button>
+      <button class="btn sec" data-until="over">Play the over</button>
+      <button class="btn sec" data-until="wicket">To the next wicket</button>
+      <button class="btn sec" data-until="innings">To the end of the innings</button>
+      ${HL.selectHTML()}</div>`;
+  const el = $('cap-q');
+  $('hl-level').onchange = ev => { HL.setLevel(ev.target.value); HL.play(q.since, $('hl-box')); };
+  HL.play(q.since, $('hl-box'));
+  const words = bat ? BAT_WORD : BOWL_WORD;
+  const setBars = (key, v) => {
+    vals[key] = v;
+    const box = [...el.querySelectorAll('.bars')].find(b => b.dataset.key === key);
+    if (!box) return;
+    box.querySelectorAll('.bar').forEach(b => b.classList.toggle('on', +b.dataset.v <= v));
+    box.querySelector('.bar-word').textContent = `${v} · ${words[v]}`;
+  };
+  el.querySelectorAll('.bars').forEach(box => box.querySelectorAll('.bar').forEach(b =>
+    b.onclick = () => setBars(box.dataset.key, +b.dataset.v)));
+  const send = until => { CAP.keys = null; HL.stop(); capSend(bat ? {bat: vals, until} : {bowl: vals, until}); };
+  el.querySelectorAll('[data-until]').forEach(b => b.onclick = () => send(b.dataset.until));
+  CAP.keys = e => {
+    if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (/^[1-9]$/.test(e.key)) setBars(bat ? q.striker.id : q.bowler.id, +e.key);
+    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); send('ball'); }
+  };
+}
+document.addEventListener('keydown', e => { if (CAP.keys) CAP.keys(e); });
 
 /* the XI in batting order, the keeper and the Impact substitutes */
 function qXI(q) {

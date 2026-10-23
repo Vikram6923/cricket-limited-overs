@@ -98,6 +98,7 @@
         <label><input type="checkbox" value="batter" checked> Next batter</label>
         <label id="l-impact-opt"><input type="checkbox" value="impact" checked> Impact Player</label>
         <label><input type="checkbox" value="result" checked> Pause after my matches</label>
+        <label title="Set each batter's aggression and each bowler's plan (1-9 bars) and play ball by ball, an over at a time, or to the next wicket"><input type="checkbox" value="ball" checked> Ball by ball: aggression bars</label>
       </div>
       <div class="hint" style="margin:4px 0 0">Anything unticked is left to the computer. Obvious calls (one possible bowler, the last batter) are never asked.</div>
       <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="l-opp">
@@ -173,6 +174,7 @@
     <div class="fg"><label id="a-retain-lbl">Retain players from</label><select id="a-retain"></select></div>
     <div class="fg"><label>You bid for</label><select id="a-user"></select></div>
     <div class="fg" id="a-captain-box"><label><input type="checkbox" id="a-captain" checked style="width:auto;margin-right:6px">Captain my team in the league</label>
+      <label style="margin-top:6px" title="Set each batter's aggression and each bowler's plan (1-9 bars) and play ball by ball"><input type="checkbox" id="a-ball" checked style="width:auto;margin-right:6px">Ball by ball: aggression bars</label>
       <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="a-opp">
         <option value="expert">Expert - the engine's best calls (as before)</option>
         <option value="average">Average - a loose call now and then</option>
@@ -443,10 +445,11 @@
 </div>
 <div class="toast" id="toast"></div>
 <div id="popover"></div>
+<script src="/ui/highlight.js"></script>
 <script src="/ui/captain.js"></script>
 <script src="/ui/auction.js"></script>
+<script src="/ui/auction_room.js"></script>
 <script src="/ui/career.js"></script>
 <script src="/ui/app.js"></script>
 </body>
-<script src="/ui/auction_room.js"></script>
 </html>

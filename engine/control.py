@@ -12,6 +12,8 @@ Decisions ("kind"):
 - impact  the Impact Player substitution on its own: at the innings break, and whenever the computer would make it
           while the bowler / batter decisions are left to the computer
 - result  a pause after each of the side's matches (nothing to decide)
+- ball    ball by ball (opt-in, not in the default set): before a delivery, the aggression dials of the side's
+          batters or bowler (1-9 bars, 5 = as real sides play) and how far to play before the next pause
 
 Skipping: each kind can be left to the computer (`auto`), and play can be skipped ahead to the end of the innings,
 the match, or everything (`skip`). Obvious decisions (one possible bowler, the last batter) are never asked.
@@ -21,7 +23,8 @@ from __future__ import annotations
 
 import threading
 
-KINDS = ("toss", "xi", "bowler", "batter", "impact", "result")
+KINDS = ("toss", "xi", "bowler", "batter", "impact", "result", "ball")
+DEFAULT_KINDS = tuple(k for k in KINDS if k != "ball")   # ball by ball only when asked for
 
 
 class Cancelled(Exception):
@@ -33,7 +36,7 @@ class Controller:
 
     def __init__(self, team: str, manual: set | None = None):
         self.team = team
-        self.manual_kinds = set(KINDS if manual is None else manual)
+        self.manual_kinds = set(DEFAULT_KINDS if manual is None else manual)
         self.skip: dict | None = None          # {"scope": "innings"|"match"|"all", "match": key, "innings": n}
         self.context: dict = {}                # set by the tournament runner: stage, match number
 
