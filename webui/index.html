@@ -18,6 +18,7 @@
 <aside>
   <div class="modes" id="modes">
     <button class="mode on" data-mode="series"><b>Match / Series</b><span>Two teams, 1–7 matches</span></button>
+    <button class="mode" data-mode="mp"><b>Two players</b><span>You v a friend on another device, ball by ball</span></button>
     <button class="mode" data-mode="tournament"><b>Tournament</b><span>League, groups, knockouts</span></button>
     <button class="mode" data-mode="classic"><b>Classic Series</b><span>Any nation, any era</span></button>
     <button class="mode" data-mode="classic_t"><b>Classic Tournament</b><span>Nations across eras</span></button>
@@ -35,6 +36,22 @@
     <div class="fg"><label>Team 1</label><select id="s-t1"></select><div class="roster" id="s-r1"></div></div>
     <div class="fg"><label>Team 2</label><select id="s-t2"></select><div class="roster" id="s-r2"></div></div>
     <div class="fg"><label>Matches</label><input type="number" id="s-n" value="3" min="1" max="7"></div>
+  </div>
+
+  <!-- Two players (docs/multiplayer_design.md) -->
+  <div class="form" id="f-mp">
+    <h2>Two players</h2><p class="hint">One match against a friend on another device on the same Wi-Fi. Each of you
+      captains a side; when you bat you set your batters' aggression, when you bowl your bowler's plan, both at once,
+      and you see each other's choice after the ball. The host computer must run <code>python web_ui.py --lan</code>.</p>
+    <div class="box"><div class="lbl">Host a match</div>
+      <div class="hint" style="margin-top:0">Set the format and conditions below and press Start to open a room. Each player picks their own team in the room.</div>
+      <div class="fg"><label>Shot clock</label><select id="mp-clock"><option value="off">Off</option>
+        <option value="10">10 seconds a ball</option><option value="20">20 seconds a ball</option></select>
+        <div class="hint" style="margin:4px 0 0">Out of time: the bars stay as they were. Other decisions get 60 seconds, then the computer's choice.</div></div></div>
+    <div class="box"><div class="lbl">Join a match</div>
+      <div class="row"><input type="text" id="mp-code" placeholder="Room code, e.g. KQTR" maxlength="4" style="text-transform:uppercase">
+        <button class="btn sec" id="mp-join" style="width:auto">Join</button></div>
+      <div class="err" id="mp-join-err"></div></div>
   </div>
 
   <!-- Tournament -->
@@ -279,10 +296,23 @@
   </div></section>
 
   <!-- manual captaincy -->
+  <section class="view" id="v-mp">
+    <div class="cap-head">
+      <div><h2>Two-player room <span class="mp-code" id="mp-room-code"></span></h2><div class="muted small" id="mp-cond"></div></div>
+      <span style="flex:1"></span>
+      <button class="btn sec" id="mp-leave" style="width:auto">Leave the room</button>
+    </div>
+    <div class="cap-panel" id="mp-links"></div>
+    <div class="mp-seats" id="mp-seats"></div>
+    <div class="cap-panel" id="mp-mine"></div>
+  </section>
+
   <section class="view" id="v-captain">
     <div class="cap-head">
       <div><h2 id="cap-title">Captain</h2><div class="muted small" id="cap-ctx"></div></div>
       <span style="flex:1"></span>
+      <span class="muted small" id="cap-opp"></span>
+      <span class="mp-clock" id="cap-clock"></span>
       <span class="muted small" id="cap-progress"></span>
       <button class="btn stop" onclick="stopJob()">■ Stop</button>
     </div>
@@ -297,8 +327,9 @@
           <div class="cap-skip">
             <button class="btn sec" data-skip="innings">To end of innings</button>
             <button class="btn sec" data-skip="match">To end of match</button>
-            <button class="btn sec" data-skip="all">Rest of the season</button>
+            <button class="btn sec" data-skip="all" id="cap-skip-all">Rest of the season</button>
           </div>
+          <button class="btn sec" id="cap-back" style="display:none;margin-top:8px">Take back my decisions</button>
         </div>
       </div>
     </div>
@@ -308,6 +339,7 @@
   <section class="view" id="v-results">
     <div class="res-head"><h2 id="r-title">Results</h2><span class="muted small" id="r-sub"></span><span class="mos" id="r-pos" style="display:none"></span>
       <span style="flex:1"></span><span class="muted small" id="r-saved"></span>
+      <button class="btn go" id="r-mp" style="width:auto;display:none">↩ Back to the room</button>
       <button class="btn sec" id="r-save" style="width:auto">💾 Save this run</button>
       <button class="btn go" id="r-career" style="width:auto;display:none">↩ Back to the career</button></div>
     <div class="tabs" id="r-tabs">
@@ -447,6 +479,7 @@
 <div id="popover"></div>
 <script src="/ui/highlight.js"></script>
 <script src="/ui/captain.js"></script>
+<script src="/ui/multiplayer.js"></script>
 <script src="/ui/auction.js"></script>
 <script src="/ui/auction_room.js"></script>
 <script src="/ui/career.js"></script>

@@ -477,3 +477,18 @@ kbd{font:inherit;font-size:.66rem;border:1px solid var(--border);border-radius:4
 .hl-foot{text-align:center;font-size:.84rem;margin-top:4px;min-height:1.2em}
 .hl-level{margin-left:auto;font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:6px}
 .hl-level select{width:auto;padding:3px 6px}
+
+/* two players (webui/multiplayer.js) */
+.mp-code{font-family:ui-monospace,Consolas,monospace;letter-spacing:.18em;color:var(--amber);margin-left:6px}
+.mp-seats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.mp-seat{border:1px solid var(--border);border-radius:var(--r);padding:12px;background:var(--panel2)}
+.mp-seat.me{border-color:var(--green)}
+.mp-seat .who{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.mp-seat .team{font-weight:600;margin:4px 0}
+.mp-seat .ok{color:var(--green)}.mp-seat .wait{color:var(--amber)}
+.mp-link{font-family:ui-monospace,Consolas,monospace;color:var(--blue);word-break:break-all}
+.mp-reveal{margin:8px 0;padding:6px 10px;border-left:3px solid var(--amber);background:rgba(227,179,65,.08);font-size:.85rem}
+.mp-clock{font-family:ui-monospace,Consolas,monospace;color:var(--amber);font-weight:600}
+.mp-clock.low{color:var(--red)}
+body.mp-on #cap-skip-all{display:none}
+@media (max-width:700px){.mp-seats{grid-template-columns:1fr}}

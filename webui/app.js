@@ -97,6 +97,7 @@ async function init() {
   $('r-save').onclick = saveRun;
   $('r-career').onclick = () => openCareer(R.career.id);
   if (META.has_results) { $('last-btn').style.display = ''; $('home-note').textContent = 'Results from your last run are still available — click “View last results”.'; }
+  if (await mpInit()) return;          // two players: a room this browser is in, or a ?join= link
   if (META.job && META.job.status === 'running') poll();
 }
 
@@ -435,12 +436,14 @@ async function start() {
     if (MODE === 'draft') { await startDraft(); return; }
     if (MODE === 'auction') { await startAuction(); return; }
     if (MODE === 'career') { await startCareer(); return; }
+    if (MODE === 'mp') { await mpCreate(); $('go-btn').disabled = false; return; }
     await api('/api/run', {...payload(), ...capPayload()}); poll();
   }
   catch (e) { $('go-err').textContent = e.message; $('go-btn').disabled = false; }
 }
 let POLL_T = null;
 async function poll() {
+  if (mpOn()) return mpPoll();
   clearTimeout(POLL_T);
   let st;
   try { st = await api('/api/status'); } catch (e) { POLL_T = setTimeout(poll, 1500); return; }
@@ -473,6 +476,8 @@ async function showResults(run) {
   clearTimeout(POLL_T);
   R_RUN = typeof run === 'string' ? run : '';
   try { R = await api('/api/results' + runQ()); } catch (e) { toast(e.message, true); showView('v-home'); return; }
+  if (R.captaincy_by) R.captaincy = (mpOn() && MP.team && R.captaincy_by[MP.team]) || null;   // two players: your own report
+  $('r-mp').style.display = mpOn() && R.mode === 'mp' && !R_RUN ? '' : 'none';
   for (const k in MCACHE) delete MCACHE[k];
   showView('v-results');
   const fmt = R.format.toUpperCase();

@@ -301,7 +301,7 @@ class Innings:
             if self.m.use_depth and sit and not self.super_over:
                 sit = self.m.sit.with_depth(sit, 1 if self.target is None else 2, self.wkts, self.depth())
             if self.m.bars and sit:
-                bb, wb = self.m.bars_of(self.bat, self.striker.p), self.m.bars_of(self.bowl, bowler)
+                bb, wb = self.m.bars_of(self.bat, self.striker.p, self), self.m.bars_of(self.bowl, bowler, self)
                 if bb != NORMAL_BARS or wb != NORMAL_BARS:
                     sit = self.m.sit.with_aggression(sit, ph, bb, wb)
             o = self.m.model.delivery(self.m.rng, base, self.striker.p, bowler, ph, btype, sit, self.free_hit)
@@ -353,7 +353,7 @@ class Innings:
             "batter": st.p.name, "batter_id": st.p.id, "hand": st.p.bat_hand or "right",
             "non_striker": ns.p.name, "bowler": bowler.name, "bowl_type": bowler.bowl_type or "pace",
             "bowl_kind": (bowler.bowl_kind or "").replace("_", " "),
-            "plan": self.m.bars_of(self.bowl, bowler) if self.bowl.name in self.m.bars else 5,
+            "plan": self.m.bars_of(self.bowl, bowler, self), "bars": self.m.bars_of(self.bat, st.p, self),
             "runs": o.bat_runs, "extra": o.extra, "extra_runs": o.extra_runs, "ran": o.ran,
             "wicket": o.wicket or None, "out": out.p.name if out else None,
             "out_end": ("striker" if out is st else "non_striker") if out else None,
@@ -832,20 +832,37 @@ class Match:
 
     def ask(self, team: Team, kind: str, payload: dict, inn: "Innings | None" = None, skip_inn: bool = True):
         """The person's answer for `team` (None = the computer's choice, also when the decision isn't theirs)."""
-        if not self.manual(team, kind, inn if skip_inn else None):
-            return None
-        q = {"kind": kind, "team": team.name, "match_key": self.key,
-             "innings": inn.number if inn and skip_inn else None,
-             "state": self.live(inn) if inn else self.pre_state(team), **payload}
-        return self.control[team.name].decide(q)
+        return self.ask_all([(team, kind, payload, inn)], skip_inn)[0]
 
-    def bars_of(self, team: Team, p: Player) -> int:
-        return self.bars.get(team.name, {}).get(p.id, NORMAL_BARS)
+    def ask_all(self, items: list, skip_inn: bool = True) -> list:
+        """Questions for several sides at the same moment, [(team, kind, payload, inn)]: all are posted before any
+        answer is awaited, so two people answer at once (docs/multiplayer_design.md). Answers in the same order."""
+        posted = []
+        for team, kind, payload, inn in items:
+            if not self.manual(team, kind, inn if skip_inn else None):
+                posted.append(None)
+                continue
+            q = {"kind": kind, "team": team.name, "match_key": self.key,
+                 "innings": inn.number if inn and skip_inn else None,
+                 "state": self.live(inn) if inn else self.pre_state(team), **payload}
+            self.control[team.name].post(q)
+            posted.append(team)
+        return [self.control[t.name].wait() if t else None for t in posted]
+
+    def bars_of(self, team: Team, p: Player, inn: "Innings | None" = None) -> int:
+        """A player's aggression bars; NORMAL_BARS when ball by ball is the computer's (left to it, or skipped)."""
+        mine = self.bars.get(team.name)
+        if not mine or not self.manual(team, "ball", inn):
+            return NORMAL_BARS
+        return mine.get(p.id, NORMAL_BARS)
 
     def ball_turn(self, inn: "Innings", bowler: Player, ph: str, seq: list) -> None:
         """Ball by ball (kind "ball"): before a delivery, the person's side sets its aggression dials - the two
         batters' bars when batting, the bowler's plan bars when fielding - and says how far to play before the
-        next pause (the next ball, the end of the over, the next wicket, the end of the innings)."""
+        next pause (the next ball, the end of the over, the next wicket, the end of the innings). When both sides
+        are people, both questions are open at once and neither sees the other's bars until the ball is bowled."""
+        items = []
+        sit = self.sit
         for team in (inn.bat, inn.bowl):
             if team.name not in self.control or not self.manual(team, "ball", inn):
                 continue
@@ -857,9 +874,8 @@ class Match:
                 continue
             batting = team is inn.bat
             mine = self.bars[team.name]
-            sit = self.sit
 
-            def bat(c):
+            def bat(c, batting=batting, mine=mine):
                 return {"id": c.p.id, "name": c.p.name, "runs": c.runs, "balls": c.balls, "fours": c.fours,
                         "sixes": c.sixes, "settled": round(sit.settled(c.balls), 2),
                         "bars": mine.get(c.p.id, NORMAL_BARS) if batting else None,
@@ -872,7 +888,7 @@ class Match:
             k0 = k0[1] if k0 and k0[0] == inn.number else 0
             since = inn.ball_log[k0:][-18:]
             self.seen[team.name] = (inn.number, len(inn.ball_log))
-            ans = self.ask(team, "ball", {
+            items.append((team, "ball", {
                 "since": since,
                 "side": "bat" if batting else "bowl", "phase": ph, "over": inn.legal // 6 + 1,
                 "ball": inn.legal % 6 + 1,
@@ -882,7 +898,9 @@ class Match:
                            "figures": f"{f.balls // 6}.{f.balls % 6}-{f.maidens}-{f.runs}-{f.wkts}",
                            "bars": None if batting else mine.get(bowler.id, NORMAL_BARS),
                            "econ": round(6 * (self.base_of(bowler)[ph]["runs"] * bowler.bowl[ph]["runs"]), 2)},
-                "default": None}, inn)
+                "default": None}, inn))
+        for (team, _, _, _), ans in zip(items, self.ask_all(items)):
+            mine = self.bars[team.name]
             ans = ans if isinstance(ans, dict) else {}
             for side in ("bat", "bowl"):
                 for pid, v in (ans.get(side) or {}).items():
@@ -954,16 +972,23 @@ class Match:
                                          + bw["noball"] * p.noball), 2)
         return d
 
-    def ask_xi(self, team: Team, batting_first: bool, toss: str) -> None:
-        """The XI (in batting order), keeper and Impact Player substitutes, after the toss."""
+    def xi_question(self, team: Team, batting_first: bool, toss: str) -> dict:
+        """The XI question after the toss: the squad, the computer's XI, keeper and Impact substitutes."""
         from .impact import N_SUBS
         squad = team.squad or team.players + team.bench
         imp = bool(self.impact_player)
         default = {"xi": [p.id for p in team.order], "keeper": team.keeper.id,
                    "subs": [p.id for p in team.bench] if imp else []}
-        ans = self.ask(team, "xi", {"options": [self.pinfo(p) for p in squad], "default": default,
-                                    "max_overseas": team.max_overseas, "n_subs": N_SUBS if imp else 0,
-                                    "batting_first": batting_first, "toss": toss})
+        return {"options": [self.pinfo(p) for p in squad], "default": default,
+                "max_overseas": team.max_overseas, "n_subs": N_SUBS if imp else 0,
+                "batting_first": batting_first, "toss": toss}
+
+    def apply_xi(self, team: Team, ans) -> None:
+        """The person's XI answer (None or invalid = the computer's XI)."""
+        from .impact import N_SUBS
+        squad = team.squad or team.players + team.bench
+        imp = bool(self.impact_player)
+        default = {"xi": [p.id for p in team.order], "keeper": team.keeper.id}
         if not isinstance(ans, dict):
             if self.manual(team, "xi"):
                 self.log(team, "xi", "after the toss", "the computer's XI", "the computer's XI", 0.0)
@@ -1182,8 +1207,10 @@ class Match:
                 choose_xi(t, bat_first, self.fmt, self.base, self._slot_balls())
             if t.name in self.skill:
                 self.loose_xi(t)
-            if t.name in self.control:
-                self.ask_xi(t, bat_first, toss_text)
+        xi_q = [(t, "xi", self.xi_question(t, bf, toss_text), None)          # both sides at once
+                for t, bf in ((first, True), (second, False)) if t.name in self.control]
+        for (t, _, _, _), ans in zip(xi_q, self.ask_all(xi_q)):
+            self.apply_xi(t, ans)
         i1 = self._i1 = Innings(self, first, second, 1, None, self.overs)
         i1.play()
         i1.close_partnership()

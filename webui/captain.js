@@ -32,6 +32,7 @@ function capRender(st) {
 function renderAuto() {
   if (CAP.manual.includes('ball')) CAP.ballOn = true;
   const kinds = Object.keys(KIND_LABEL).filter(k => (k !== 'impact' || CAP.impact || CAP.manual.includes('impact'))
+    && (k !== 'result' || !mpOn())
     && (k !== 'ball' || CAP.ballOn));
   const computer = k => CAP.auto[k] !== undefined ? CAP.auto[k] : !CAP.manual.includes(k);
   $('cap-auto').innerHTML = kinds.map(k => `<button class="tog ${computer(k) ? 'on' : ''}" data-k="${k}"
@@ -39,11 +40,13 @@ function renderAuto() {
   $('cap-auto').querySelectorAll('.tog').forEach(b => b.onclick = () => { CAP.auto[b.dataset.k] = !computer(b.dataset.k); renderAuto(); });
 }
 
+const mpOn = () => typeof MP !== 'undefined' && MP.active;      // two players (multiplayer.js)
 async function capSend(choice, extra = {}) {
-  try { await api('/api/decide', {id: CAP.q.id, choice, auto: CAP.auto, ...extra}); }
+  const mp = mpOn();
+  try { await api(mp ? '/api/mp/decide' : '/api/decide', {id: CAP.q.id, choice, auto: CAP.auto, ...extra, ...(mp ? {token: MP.token} : {})}); }
   catch (e) { toast(e.message, true); }
   $('cap-q').innerHTML = '<div class="muted">Playing on…</div>'; CAP.qid = 'sent';
-  clearTimeout(POLL_T); POLL_T = setTimeout(poll, 120);
+  clearTimeout(POLL_T); POLL_T = setTimeout(mp ? mpPoll : poll, 120);
 }
 
 const ballClass = b => /W/.test(b) ? 'W' : b === '4' ? 'b4' : b === '6' ? 'b6' : '';
@@ -202,8 +205,11 @@ function qBall(q) {
   else vals[q.bowler.id] = q.bowler.bars;
   const ballsHTML = (q.this_over || []).map(b => `<span class="ball ${ballClass(b)}">${esc(b)}</span>`).join('');
   const sit = st.target ? `Need <b>${st.need}</b> off <b>${st.balls_left}</b>` : (q.projected ? `Projected score <b>${q.projected}</b>` : '');
+  const lb = mpOn() && q.since && q.since.length ? q.since[q.since.length - 1] : null;   // both choices, shown after the ball
+  const reveal = lb && lb.bars ? `<div class="mp-reveal">Last ball (${lb.over}.${lb.ball}, ${esc(lb.sym)}): ${esc(lb.batter)} batting
+    <b>${lb.bars} · ${BAT_WORD[lb.bars]}</b> v ${esc(lb.bowler)} bowling <b>${lb.plan} · ${BOWL_WORD[lb.plan]}</b></div>` : '';
   $('cap-q').innerHTML = `<div class="hl-box" id="hl-box" style="display:none"></div>
-    <h3>Over ${q.over}, ball ${q.ball}: ${esc(q.bowler.name)} to ${esc(q.striker.name)}${q.free_hit ? ' · <span style="color:var(--amber)">FREE HIT</span>' : ''}</h3>
+    <h3>Over ${q.over}, ball ${q.ball}: ${esc(q.bowler.name)} to ${esc(q.striker.name)}${q.free_hit ? ' · <span style="color:var(--amber)">FREE HIT</span>' : ''}</h3>${reveal}
     <div class="sb-line">${sit}${sit ? ' · ' : ''}${esc(q.phase)} overs · this over: <span class="overs">${ballsHTML || '–'}</span></div>
     <div class="lbl" style="margin-top:10px">${bat ? 'Your batters: aggression' : 'Your bowler: plan'}</div>
     ${who(q.striker, true)}${who(q.non_striker, false)}

@@ -8,6 +8,7 @@ Plain Flask, one background job at a time, the page polls /api/status (no websoc
 offline). The engine is called directly as a library. Modes: Match / Series, Tournament, Classic Series and
 Classic Tournament (a nation over a year range, rated on those years), League Season, Fantasy Draft, Auction,
 Career (a league season after season, engine/career.py; kept in results/careers/<id>/), Team Builder.
+Two players (docs/multiplayer_design.md): one match, each side captained by a person on their own device.
 Saved teams live in data/teams.json (created from data/teams_default.json on first run); the last results are
 kept in results/last/ so they survive a restart.
 """
@@ -228,10 +229,12 @@ class Job:
         self.started, self.finished = time.time(), None
         self.cancel = False
         self.controller: WaitingController | None = None   # manual captaincy: the side the person captains
+        self.controllers: dict | None = None    # two players: team name -> WaitingController (see ROOM)
 
     def to_dict(self) -> dict:
         d = {"status": self.status, "title": self.title, "done": self.done, "total": self.total,
-             "elapsed": round((self.finished or time.time()) - self.started, 1), "error": self.error}
+             "elapsed": round((self.finished or time.time()) - self.started, 1), "error": self.error,
+             "mp": bool(self.controllers)}
         c = self.controller
         if c:
             d["captain"] = {"team": c.team, "manual": sorted(c.manual_kinds), "pending": c.pending,
@@ -306,6 +309,8 @@ def _run(job: Job, params: dict) -> None:
             size = int(params["squad_size"]) if params["squad_size"] else None
         ym = params.get("years_mode") if params.get("years_mode") in ("blend", "only") else "blend"
         control = {job.controller.team: job.controller} if job.controller else None   # a side the user captains
+        if job.controllers:                    # two players, each captaining a side
+            control = dict(job.controllers)
         skill = AllBut(params.get("opponents") or "expert", job.controller.team) if job.controller else None
         if params["mode"] == "league":
             s = league_season(params["league"], params.get("season"))
@@ -341,6 +346,10 @@ def _run(job: Job, params: dict) -> None:
             res = play_tournament(car.specs(), **car.play_args(), rain=rain_, on_match=on_match, control=control,
                                   skill=skill)
             res["career"] = {"id": params["career"], "name": car.name, "season": car.season_label}
+        elif params["mode"] == "mp":
+            res = play_series(team_spec(params["team1"], fmt), team_spec(params["team2"], fmt), n=1,
+                              fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match,
+                              control=control)
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
                               n=int(params["matches"]),
@@ -360,6 +369,11 @@ def _run(job: Job, params: dict) -> None:
             res["captaincy"] = season_report(res["matches"], job.controller.team)
             if res["captaincy"]:
                 res["captaincy"]["opponents"] = params.get("opponents") or "expert"
+        if job.controllers:                    # each player's calls against the computer's
+            res["captaincy_by"] = {t: season_report(res["matches"], t) for t in job.controllers}
+            for r in res["captaincy_by"].values():
+                if r:
+                    r["opponents"] = "the other player"
         _augment(res)
         if LAST.exists():
             shutil.rmtree(LAST)
@@ -827,6 +841,8 @@ def api_stop():
         JOB.cancel = True
         if JOB.controller:
             JOB.controller.cancel()
+        for c in (JOB.controllers or {}).values():
+            c.cancel()
     return jsonify(ok=True)
 
 
@@ -840,6 +856,256 @@ def api_decide():
         return jsonify(error="No match is waiting for a decision."), 409
     if not c.answer(int(p.get("id") or 0), p.get("choice"), p.get("auto"), p.get("skip")):
         return jsonify(error="That decision has already been made."), 409
+    return jsonify(ok=True)
+
+
+# ------------------------------------------------------------------------------------------------ two players
+# docs/multiplayer_design.md. One room at a time: the host creates it (conditions + their team), the second device
+# joins with the code and picks its own team, both say ready, and the match runs as an ordinary job with one
+# WaitingController per side. Every call carries the seat's secret token; a seat sees only its own question.
+
+MP_GONE = 60          # seconds without a poll before the other player may hand that side to the computer
+MP_CLOCKS = {"off": None, "10": 10, "20": 20}
+MP_CAPTAIN_CLOCK = 60  # with a shot clock: toss, XI, bowler, batter, Impact Player decisions
+ROOM: dict | None = None
+
+
+def _token() -> str:
+    import secrets
+    return secrets.token_urlsafe(12)
+
+
+def _seat(token: str | None):
+    """(room, seat index 0/1, or "spectator") for a token; (room, None) when the token isn't in this room."""
+    r = ROOM
+    if not r or not token:
+        return r, None
+    for i, s in enumerate(r["seats"]):
+        if s["token"] == token:
+            return r, i
+    return r, "spectator" if token in r["spectators"] else None
+
+
+def _mp_label(e) -> str:
+    return history.team_name(e["nation"], int(e["y1"]), int(e["y2"])) if isinstance(e, dict) else e
+
+
+def _mp_kinds(kinds) -> set:
+    return set(kinds) & set(KINDS) - {"result"} if isinstance(kinds, list) else set(DEFAULT_KINDS) - {"result"} | {"ball"}
+
+
+def _mp_job() -> bool:
+    """Is the room's match the job that is running (or just finished)?"""
+    r = ROOM
+    return bool(r and r.get("job") is not None and JOB is r["job"])
+
+
+def _mp_urls() -> list[str]:
+    port = request.host.rsplit(":", 1)[-1] if ":" in request.host else "80"
+    if not app.config.get("LAN"):
+        return []
+    return [f"http://{ip}:{port}/?join={ROOM['code']}" for ip in lan_addresses()]
+
+
+def _mp_start() -> str | None:
+    """Both seats ready: check the teams and start the match. Error message or None."""
+    global JOB
+    r = ROOM
+    st = r["settings"]
+    t1, t2 = (s["team"] for s in r["seats"])
+    err = check_entries([t1, t2], st["fmt"])
+    if err:
+        return "Both players picked the same team - one of you choose another." if "picked twice" in err else err
+    if JOB and JOB.status == "running":
+        return "Another simulation is running on the host computer."
+    names = [_mp_label(t1), _mp_label(t2)]
+    clock = MP_CLOCKS.get(st.get("clock") or "off")
+    ctl = {}
+    for name, seat in zip(names, r["seats"]):
+        c = WaitingController(name, seat["manual"],
+                              clock={k: (clock if k == "ball" else MP_CAPTAIN_CLOCK) for k in KINDS} if clock else None)
+        c.home_manual = set(seat["manual"])
+        ctl[name] = c
+    JOB = Job(f"{names[0]} v {names[1]} - two players", 1)
+    JOB.controllers = ctl
+    r["job"], r["names"] = JOB, names
+    for s in r["seats"]:
+        s["ready"] = False
+    params = {"mode": "mp", "team1": t1, "team2": t2, **{k: st[k] for k in ("fmt", "comp", "year", "venues",
+                                                                              "seed", "rain")}}
+    threading.Thread(target=_run, args=(JOB, params), daemon=True).start()
+    return None
+
+
+def _mp_settings(p: dict) -> dict | str:
+    fmt = p.get("fmt")
+    if fmt not in ("t20", "odi"):
+        return "Choose T20 or ODI."
+    try:
+        year = int(p.get("year"))
+    except (TypeError, ValueError):
+        return "Choose a year."
+    return {"fmt": fmt, "comp": p.get("comp"), "year": year, "venues": list(p.get("venues") or []),
+            "seed": p.get("seed") or "", "rain": bool(p.get("rain")),
+            "clock": p.get("clock") if p.get("clock") in MP_CLOCKS else "off"}
+
+
+@app.post("/api/mp/create")
+def api_mp_create():
+    """The host opens a room: conditions, their team and the decisions they make. -> {code, token}"""
+    global ROOM
+    p = request.get_json(force=True)
+    with LOCK:
+        if JOB and JOB.status == "running":
+            return jsonify(error="A simulation is already running."), 409
+        st = _mp_settings(p)
+        if isinstance(st, str):
+            return jsonify(error=st), 400
+        tok = _token()
+        code = "".join(random.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(4))
+        ROOM = {"code": code, "settings": st, "job": None, "names": None, "spectators": set(),
+                "seats": [{"token": tok, "team": p.get("team") or None, "ready": False, "seen": time.time(),
+                           "manual": _mp_kinds(p.get("manual"))},
+                          {"token": None, "team": None, "ready": False, "seen": 0.0, "manual": _mp_kinds(None)}]}
+    return jsonify(code=code, token=tok)
+
+
+@app.post("/api/mp/join")
+def api_mp_join():
+    """Join with the room code: the free seat, or a spectator's place if both are taken. -> {token, seat}"""
+    p = request.get_json(force=True)
+    with LOCK:
+        r = ROOM
+        if not r or str(p.get("code") or "").strip().upper() != r["code"]:
+            return jsonify(error="No room with that code. Check it on the host's screen."), 404
+        tok = _token()
+        guest = r["seats"][1]
+        if guest["token"] is None:
+            guest.update(token=tok, seen=time.time())
+            return jsonify(token=tok, seat=1)
+        r["spectators"].add(tok)
+        return jsonify(token=tok, seat="spectator")
+
+
+@app.post("/api/mp/lobby")
+def api_mp_lobby():
+    """A seat's lobby changes: {token, team?, manual?, ready?, settings? (host), rematch?, leave?}. Starts the
+    match when both seats have a team and are ready."""
+    global ROOM
+    p = request.get_json(force=True)
+    with LOCK:
+        r, i = _seat(p.get("token"))
+        if r is None or i is None:
+            return jsonify(error="You are not in this room any more."), 404
+        if i == "spectator":
+            return jsonify(error="Spectators can only watch."), 403
+        seat = r["seats"][i]
+        if p.get("leave"):
+            if i == 0:
+                ROOM = None
+            elif not _mp_job() or JOB.status != "running":
+                seat.update(token=None, team=None, ready=False, seen=0.0)
+            return jsonify(ok=True)
+        if p.get("rematch"):
+            if _mp_job() and JOB.status == "running":
+                return jsonify(error="The match is still being played."), 409
+            r["job"] = None
+            return jsonify(ok=True)
+        if _mp_job() and JOB.status == "running":
+            return jsonify(error="The match has started."), 409
+        if "settings" in p and i == 0:
+            st = _mp_settings(p["settings"])
+            if isinstance(st, str):
+                return jsonify(error=st), 400
+            r["settings"] = st
+            for s in r["seats"]:
+                s["ready"] = False         # the conditions changed: both confirm again
+        if "team" in p:
+            seat["team"] = p["team"] or None
+            seat["ready"] = False
+        if "manual" in p:
+            seat["manual"] = _mp_kinds(p["manual"])
+        if "ready" in p:
+            if p["ready"] and not seat["team"]:
+                return jsonify(error="Pick your team first."), 400
+            seat["ready"] = bool(p["ready"])
+        if all(s["ready"] and s["team"] for s in r["seats"]):
+            err = _mp_start()
+            if err:
+                for s in r["seats"]:
+                    s["ready"] = False
+                return jsonify(error=err), 400
+    return jsonify(ok=True)
+
+
+@app.get("/api/mp/state")
+def api_mp_state():
+    """The room as this seat sees it: the lobby, or the match with only this seat's open question."""
+    r, i = _seat(request.args.get("token"))
+    if r is None or i is None:
+        return jsonify(phase="none")
+    now = time.time()
+    if i != "spectator":
+        r["seats"][i]["seen"] = now
+    seats = [{"team": s["team"], "label": _mp_label(s["team"]) if s["team"] else None, "ready": s["ready"],
+              "joined": s["token"] is not None, "here": now - s["seen"] < 10,
+              "manual": sorted(s["manual"])} for s in r["seats"]]
+    out = {"code": r["code"], "you": i, "seats": seats, "settings": r["settings"], "urls": _mp_urls(),
+           "lan": bool(app.config.get("LAN")), "now": now}
+    if not _mp_job():
+        return jsonify(phase="lobby", **out)
+    job = r["job"]
+    out["job"] = job.to_dict()
+    if job.status != "running":
+        return jsonify(phase="over", names=r["names"], **out)
+    ctl = [job.controllers[n] for n in r["names"]]
+    open_ = [c.pending for c in ctl]            # read once: the match thread may close a question meanwhile
+    states = [q["state"] for q in open_ if q and q.get("state") and "runs" in q["state"]]
+    out["latest"] = states[-1] if states else None   # scoreboard while you wait
+    out["names"] = r["names"]
+    if i != "spectator":
+        me, opp = ctl[i], ctl[1 - i]
+        out["me"] = {"team": me.team, "manual": sorted(me.manual_kinds), "home": sorted(me.home_manual),
+                     "pending": open_[i], "skip": (me.skip or {}).get("scope")}
+        gone = now - r["seats"][1 - i]["seen"]
+        out["opp"] = {"team": opp.team, "choosing": (open_[1 - i] or {}).get("kind"), "gone": round(gone),
+                      "can_take": gone > MP_GONE and bool(opp.manual_kinds),
+                      "computer": not opp.manual_kinds}
+    return jsonify(phase="playing", **out)
+
+
+@app.post("/api/mp/decide")
+def api_mp_decide():
+    """This seat's answer: {token, id, choice, auto, skip} (as /api/decide)."""
+    p = request.get_json(force=True)
+    r, i = _seat(p.get("token"))
+    if r is None or i in (None, "spectator") or not _mp_job() or JOB.status != "running":
+        return jsonify(error="No match is waiting for your decision."), 409
+    c = JOB.controllers[r["names"][i]]
+    if not c.answer(int(p.get("id") or 0), p.get("choice"), p.get("auto"), p.get("skip")):
+        return jsonify(error="That decision has already been made."), 409
+    return jsonify(ok=True)
+
+
+@app.post("/api/mp/control")
+def api_mp_control():
+    """{token, who: "me"} takes your decisions back (after a skip or a hand-over to the computer);
+    {token, who: "opponent"} hands a player who has been away for MP_GONE seconds to the computer."""
+    p = request.get_json(force=True)
+    r, i = _seat(p.get("token"))
+    if r is None or i in (None, "spectator") or not _mp_job() or JOB.status != "running":
+        return jsonify(error="No match in progress."), 409
+    if p.get("who") == "opponent":
+        if time.time() - r["seats"][1 - i]["seen"] <= MP_GONE:
+            return jsonify(error="The other player is still here."), 409
+        c = JOB.controllers[r["names"][1 - i]]
+        c.manual_kinds = set()
+        if c.pending:
+            c.answer(c.pending["id"], None)
+    else:
+        c = JOB.controllers[r["names"][i]]
+        c.skip = None
+        c.manual_kinds = set(c.home_manual)
     return jsonify(ok=True)
 
 
@@ -1126,6 +1392,7 @@ def main(argv=None) -> int:
             print("No network address found; is this computer connected to a network?")
         print("If they can't connect, allow Python through Windows Firewall for Private networks "
               "and make sure the Wi-Fi is set to Private.")
+    app.config["LAN"] = args.lan            # two-player rooms show join links only when others can connect
     app.run(host="0.0.0.0" if args.lan else "127.0.0.1", port=args.port, threaded=True)
     return 0
 

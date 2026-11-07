@@ -35,6 +35,15 @@ Python on that network. There is no login, so anyone on the same network can use
 Wi-Fi. Modes:
 
 - **Match / Series:** two saved teams play one match or a series of up to 7.
+- **Two players:** you against a friend on another device on the same Wi-Fi (the host runs `python web_ui.py --lan`).
+  The host sets the conditions and opens a room; the other device opens the link it shows (or types the 4-letter
+  code). Each player picks their own team (a saved team or a nation from any era) and the decisions they make, then
+  both press Ready. Each captains a side: toss, XI, bowlers, next batter, and ball by ball the aggression bars, the
+  batting side for its batters and the fielding side for its bowler, both choosing at once; after each ball both
+  see what the other chose. Either player can skip to the end of the innings or match (the computer plays their
+  side at normal bars) and take their decisions back later. Optional shot clock (10 or 20 seconds a ball). If a
+  player loses contact for a minute the other can hand that side to the computer; reopening the page rejoins.
+  A third device that joins watches the score. Design: `docs/multiplayer_design.md`.
 - **Tournament:** pick teams; single or double round robin, one league or two groups, then semi-finals, IPL-style
   playoffs, a final or none.
 - **Home grounds (Tournament, Classic Tournament, League Season):** each side plays half its league games at its
@@ -377,6 +386,7 @@ tests/             engine and tournament tests
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
+- [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball
 - [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, an international career world
 
 ## Data, credits and licences
