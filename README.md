@@ -29,7 +29,10 @@ python web_ui.py
 ```
 
 This opens **http://localhost:5070** (use `--port` to change it, `--no-browser` to not open a tab). It works
-offline. Modes:
+offline. By default only this computer can open it. To play from another device on the same Wi-Fi, start it with
+`python web_ui.py --lan`: it prints the address to use (e.g. `http://192.168.1.23:5070`). Windows Firewall must allow
+Python on that network. There is no login, so anyone on the same network can use it; don't use `--lan` on public
+Wi-Fi. Modes:
 
 - **Match / Series:** two saved teams play one match or a series of up to 7.
 - **Tournament:** pick teams; single or double round robin, one league or two groups, then semi-finals, IPL-style

@@ -2,6 +2,7 @@
 
     python web_ui.py              # opens http://localhost:5070
     python web_ui.py --no-browser --port 5071
+    python web_ui.py --lan        # also reachable from other devices on the same Wi-Fi
 
 Plain Flask, one background job at a time, the page polls /api/status (no websockets, no CDN scripts, works
 offline). The engine is called directly as a library. Modes: Match / Series, Tournament, Classic Series and
@@ -16,6 +17,7 @@ import argparse
 import json
 import random
 import shutil
+import socket
 import threading
 import time
 import traceback
@@ -1087,16 +1089,44 @@ def api_match(n: int):
     return jsonify(card=card, text=full_text(card), report=match_report(card))
 
 
+def lan_addresses() -> list[str]:
+    """This computer's IPv4 addresses on the local network (best guess, for the --lan message)."""
+    found = []
+    try:  # the address the OS would use to reach the outside; a UDP connect sends no packet
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("192.0.2.1", 80))
+            found.append(s.getsockname()[0])
+    except OSError:
+        pass
+    try:
+        found += socket.gethostbyname_ex(socket.gethostname())[2]
+    except OSError:
+        pass
+    return [ip for ip in dict.fromkeys(found) if not ip.startswith("127.")]
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=5070)  # 5060/5061 are blocked by browsers (SIP)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--lan", action="store_true",
+                    help="also accept connections from other devices on the local network (no login: "
+                         "anyone on the same network can use it)")
     args = ap.parse_args(argv)
     url = f"http://localhost:{args.port}"
     if not args.no_browser:
         threading.Timer(1.2, lambda: webbrowser.open(url)).start()
     print(f"Limited-overs simulator UI on {url}  (Ctrl+C to stop)")
-    app.run(host="127.0.0.1", port=args.port, threaded=True)
+    if args.lan:
+        ips = lan_addresses()
+        if ips:
+            print("Other devices on this network can open: "
+                  + ", ".join(f"http://{ip}:{args.port}" for ip in ips))
+        else:
+            print("No network address found; is this computer connected to a network?")
+        print("If they can't connect, allow Python through Windows Firewall for Private networks "
+              "and make sure the Wi-Fi is set to Private.")
+    app.run(host="0.0.0.0" if args.lan else "127.0.0.1", port=args.port, threaded=True)
     return 0
 
 
