@@ -21,4 +21,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Note: the code is MIT-licensed. Data derived from Cricsheet, Wikipedia and Wikidata keeps its original licences
-(see README, "Data, credits and licences").
+(see README, "Data, credits and licences"). The engine was modelled on Jamie's (Jamee999) Test match cricket
+simulator, https://github.com/Jamee999/cricket. Its code is not included here and is not covered by this licence.

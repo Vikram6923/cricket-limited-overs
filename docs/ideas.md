@@ -128,6 +128,82 @@ Sources: bigant.com, mcvuk.com/development-news/spotlight-nautilus-mobile, digit
 respawn.outlookindia.com (Bat to the Beat), planetcricket.org post 3670139 (Pro World Cricket Manager 3D),
 rawg.io/games/world-cricket-championship-2.
 
+## I. GitHub survey of other cricket projects (2026-11-08)
+
+About 60 GitHub searches (by name, description and topic: simulator, game, auction, draft, manager, Cricsheet, win
+probability, DLS, captain...) and the READMEs of the ~25 closest projects. Judgements come from READMEs and live
+sites, not from running their code. Search only finds public repos whose names or descriptions match, so a few
+good projects may be missing.
+
+### The field
+
+| Project | Stars | What it is | Stronger than us at |
+|---|---:|---|---|
+| [Jamee999/cricket](https://github.com/Jamee999/cricket) | 64 | **The original Test-match simulator this project grew out of** (Python, 2018-23) | Test cricket, alternate history of all Tests (`altcricket.py`) |
+| [Aducj1910/IPLSimulator](https://github.com/Aducj1910/IPLSimulator) | 54 | Ball-by-ball IPL sim from players' IPL data, CLI | Press: Wisden, News18 and others covered its simulated 2021 IPL ("RCB win"). No no-balls or byes. |
+| [Manishrdy/SimCricketX](https://github.com/Manishrdy/SimCricketX) ([simcricketx.app](https://simcricketx.app/)) | 3 | Flask web platform: T20, T10, List A, the Hundred, First-Class; tournaments, tours, live Socket.IO play, accounts, community board, CI | **Closest rival in breadth.** Five formats incl. multi-day with a look-ahead declaration captain, hosted, re-simulate a fixture and the table updates, scorecard image export, story packs. Ratings are hand-set, not fitted from data, and there is no replay-based validation. |
+| [vsharma245-create/spin-xi](https://github.com/vsharma245-create/spin-xi) ([spin-xi.com](https://www.spin-xi.com)) | 0 | Spin for a historical squad-season, draft one player, repeat x11, chase an unbeaten tournament | Ratings from 15,270 real matches, all formats incl. Tests, a 3-minute loop, hosted, friends' leagues and 4-way live draft. Closest to us on data. |
+| [TheJaiv/CricVerse](https://github.com/TheJaiv/CricVerse) | 3 | Discord bot: T20/ODI/Test (pink-ball day-night), tournaments, blind draft, career, Elo ladder | Plays where people already are (Discord), scorecards rendered as images, a **blind knowledge draft** ("name a leg-spinner", ratings hidden). Ratings are hand-set (~1,200 players). |
+| [Shaurya01836/ipl-auction](https://github.com/Shaurya01836/ipl-auction) ([crickauction.in](https://crickauction.in)) | 36 | Real-time multiplayer IPL auction (React, Firebase) | Internet multiplayer auction with synced timers and bots filling empty franchises. No match engine. |
+| [VikashKumarBundela/batnball-cricket](https://github.com/VikashKumarBundela/batnball-cricket) | 1 | One-file phone cricket manager (PWA): leagues, mega/mini auctions, scouting, hidden potential | Installable on a phone, works offline, **daily challenge with streaks**, news feed, Hall of Fame. Fictional players. |
+| [Pravman09/IPLsim](https://github.com/Pravman09/IPLsim), [Parth4Mehta/Cricket_Simulator](https://github.com/Parth4Mehta/Cricket_Simulator), [Loledproski/invincible-ipl-simulator](https://github.com/Loledproski/invincible-ipl-simulator), [Vimal9RAM-NAP/14-zero-cricket-sim](https://github.com/Vimal9RAM-NAP/14-zero-cricket-sim) | 0-3 | Smaller IPL sims and "build an XI, go 14-0" draft games | The "perfect unbeaten run" challenge is clearly a popular, shareable format. |
+| [georgenegus/cricket-win-probability](https://github.com/georgenegus/cricket-win-probability), [aatmanpandya/cricket-win-probability](https://github.com/aatmanpandya/cricket-win-probability) | 0 | Cricsheet win-probability models (XGBoost, Elo) with Monte Carlo match sims | **Out-of-fold / held-out-season evaluation with Brier scores**, men's and women's, the Hundred. |
+| [AdvayMandalia422/cricket-win-probability](https://github.com/AdvayMandalia422/cricket-win-probability) | 0 | Win-probability-added and WAR for every player, pre-registered hypotheses | Finds that "clutch" is not measurable from ball-by-ball data. Prior art for idea 10. |
+| [pratinavseth/cricket-captain-llm](https://github.com/pratinavseth/cricket-captain-llm) | 1 | RL environment that trains an LLM to captain a T20 (1.65M Cricsheet balls) | Uses captaincy as an AI benchmark. |
+| [Kulraj69/chat-cricket-captain](https://github.com/Kulraj69/chat-cricket-captain) | 0 | Twitch chat votes on each shot of a chase; OBS overlay | Audience play. |
+| [mavaali/cricket-mcp](https://github.com/mavaali/cricket-mcp), [naveenpiedy/pitchside](https://github.com/naveenpiedy/pitchside) | 0-3 | Cricsheet in DuckDB behind MCP tools, so Claude can answer stats questions | AI-assistant access. |
+| [Dhaiwat10/cricket07-browser](https://github.com/Dhaiwat10/cricket07-browser) | 211 | EA Cricket 07 statically recompiled to WebAssembly (needs your own game copy) | Most-starred cricket game repo found. Relevant to the parked Cricket 07 front-end idea. |
+
+### Where this project stands
+
+- **Data and validation: ahead of everything found.** No other open simulator both fits ratings for ~7,800 real
+  players across internationals and eleven leagues from Cricsheet with the same model the engine uses, and checks
+  the engine by replaying ~1,500 real matches with their real line-ups. spin-xi is the only one close on data.
+  Everyone else hand-sets ratings or tunes outcome weights until results look plausible.
+- **Captaincy depth: ahead.** Aggression bars fitted from real trade-offs, a captaincy report that values each call
+  in runs, Expert/Average/Easy captains measured over 900 games, a rational Impact Player. Nothing else found
+  values decisions this way.
+- **Modes: level with the best.** Auction with retentions and RTM, multi-season career with ageing and real
+  debutants, league seasons for 11 leagues, rain/DLS, two-player LAN with a draft. Only SimCricketX matches it on
+  breadth, and it covers more formats.
+- **Visibility: behind almost everyone.** 0 stars, no screenshot in the README, no hosted link, no CI badge. The
+  projects that got attention had a play-now link (SimCricketX, spin-xi, crickauction, batnball), an image at the
+  top of the README, or a news hook (IPLSimulator's simulated IPL season).
+- **Formats: behind.** No Tests (which the original simulator, SimCricketX, CricVerse and spin-xi all have), no
+  Hundred or T10, no women's cricket.
+
+### New ideas from the survey (not already listed above)
+
+20. **Show it off: screenshots and a GIF at the top of the README, plus a CI badge.** The cheapest change with the
+    biggest effect on whether anyone looks. Effort: low.
+21. **Test cricket again,** on the new engine: sessions, declarations, follow-on, new ball, draws. A captain that
+    looks ahead for declarations (SimCricketX uses a fitted forecast plus dynamic programming). Cricsheet has
+    Tests, so ratings and calibration work the same way. This brings the project full circle with Jamie's original.
+    Effort: high.
+22. **"Perfect run" challenge** (spin-xi, Invincible, 14-0): spin for a real squad-season, draft one player from
+    it, repeat until you have an XI, then try to go unbeaten through a league. A short loop with a shareable
+    result. Add a **daily challenge** (batnball): the same seed for everyone each day. Effort: low to medium
+    (draft, seasons and engine all exist).
+23. **Blind knowledge draft** for the two-player mode (CricVerse): ratings hidden, each pick answers a prompt
+    ("a leg-spinner", "a finisher who keeps wicket"). It rewards cricket knowledge instead of reading numbers.
+    Effort: low.
+24. **Share a result as an image**: a scorecard or season-summary PNG (CricVerse, SimCricketX). Effort: low.
+25. **Held-out evaluation of the win-probability chart**: Brier score and a calibration plot on a season the
+    ratings never saw, like the win-probability repos above. This would add one more number to "Does it look like
+    real cricket?". Effort: low to medium.
+26. **An MCP server for the engine** (like cricket-mcp and pitchside, but with simulation): "simulate India v
+    Australia at the MCG 1,000 times", "who wins IPL 2027 with these squads?", "what would this saved career's MVP
+    average in 2005?". Effort: low to medium.
+27. **Captaincy as an AI benchmark** (cricket-captain-llm): the controller and the captaincy report already value
+    every call in runs, so "how many runs does an LLM captain cost per match against Expert?" is a ready-made
+    benchmark. Effort: medium.
+28. **Crowd captain**: viewers of a two-player room or a stream vote on the aggression bar for each ball
+    (chat-cricket-captain). Effort: medium.
+29. **Re-simulate one fixture in a finished tournament** and let the table and knockouts update (SimCricketX).
+    Effort: low to medium.
+
+Survey sources: the repo links in the table. Searches run with `gh search repos` on 2026-11-08.
+
 ## Suggested order
 
 1. **Rewind a real match + tournament forecasts** (5, 6). Unique, mostly reuses existing code, and they show off

@@ -10,6 +10,10 @@ The engine is a plain Python library: no prompts, no global state, and a seed ma
 is checked against reality by replaying ~1,500 real matches with their real line-ups (see
 [Does it look like real cricket?](#does-it-look-like-real-cricket)).
 
+This project grew out of **Jamie's ([Jamee999](https://github.com/Jamee999)) Test-match cricket simulator,
+[github.com/Jamee999/cricket](https://github.com/Jamee999/cricket)**. Its match engine was the template for this one,
+and its historical, draft and league modes inspired the modes here. See [Credits](#data-credits-and-licences).
+
 > **Status:** the data pipeline, player ratings, match engine (calibrated), series/tournament runners and a
 > browser UI with historical teams, league seasons, a fantasy draft, rain/DLS and the Impact Player rule are built.
 > See [Roadmap](#roadmap).
@@ -469,7 +473,18 @@ tests/             engine and tournament tests
   rated from franchise-league data and Wikipedia career totals.
 - Player attributes, Afghanistan and pre-2002 career totals, and pre-2002 match summaries:
   [Wikipedia](https://en.wikipedia.org) (CC BY-SA) and [Wikidata](https://www.wikidata.org) (CC0).
-- Inspired by an earlier Test-match simulator by the same author.
+- **Original simulator: Jamie ([Jamee999](https://github.com/Jamee999)),
+  [Test match cricket simulator](https://github.com/Jamee999/cricket).** This project began as a limited-overs
+  rebuild of that program. Its match engine (`callcricketnew.py`) was the template for `engine/`. These ideas were
+  carried over and then rewritten and refitted to Cricsheet data:
+  - the match, innings, over and ball flow, and the batting and bowling objects for each player
+  - the dismissal mix, the extras handling and the pitch factors
+  - the match report narrative and the player-of-the-match pick
+  - the milestone and partnership log
+
+  The Classic Series and Classic Tournament modes follow its `historical.py` and `historicalleague.py`. Fantasy Draft
+  follows its `draft.py`, and Team Builder follows its `custom.py`. Thanks to Jamie for the original program. Jamie's
+  code is not included in this repository. That repository has no licence file, so its terms are Jamie's to set.
 
 Code licence: [MIT](LICENSE). Data keeps the licences of its sources above.
 

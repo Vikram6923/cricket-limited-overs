@@ -4,7 +4,8 @@ Status: **approved 2026-10-02** (decisions in section 9). Build tier by tier wit
 
 ## 1. Summary
 
-- Use `../cricket/callcricketnew.py` as the **template** (match flow, objects, scorecard and match report text, MOTM,
+- Use `../cricket/callcricketnew.py` (from Jamie's Test-match simulator,
+  [github.com/Jamee999/cricket](https://github.com/Jamee999/cricket)) as the **template** (match flow, objects, scorecard and match report text, MOTM,
   milestone/partnership logging, dismissal and extras handling) but **rebuild it as a new package** rather than edit
   a copy in place. Most of its innings logic is Test-only (days, sessions, declarations, follow-on, 80-over new ball,
   rain overs), its probability core is a set of hand-tuned power laws that can't use the step-2 ratings, and it
