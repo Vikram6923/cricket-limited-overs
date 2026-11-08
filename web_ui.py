@@ -348,11 +348,19 @@ def _run(job: Job, params: dict) -> None:
             res = play_tournament(car.specs(), **car.play_args(), rain=rain_, on_match=on_match, control=control,
                                   skill=skill)
             res["career"] = {"id": params["career"], "name": car.name, "season": car.season_label}
+        elif params["mode"] == "mp" and len(params.get("specs") or []) > 2:   # two players' draft + computer teams
+            res = play_tournament(params["specs"], fmt=fmt, comp=comp, year=year, rounds=1,
+                                  knockout=params["knockout"], venues=venues_, seed=seed, rain=rain_,
+                                  on_match=on_match, control=control)
+            res["draft"] = params["draft_info"]
         elif params["mode"] == "mp":           # a single match or a best-of series between the two players
-            res = play_series(team_spec(params["team1"], fmt), team_spec(params["team2"], fmt),
-                              n=int(params.get("series") or 1), best_of=True,
+            a, b = params["specs"] if params.get("specs") else (team_spec(params["team1"], fmt),
+                                                                team_spec(params["team2"], fmt))
+            res = play_series(a, b, n=int(params.get("series") or 1), best_of=True,
                               fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match,
                               control=control)
+            if params.get("draft_info"):
+                res["draft"] = params["draft_info"]
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
                               n=int(params["matches"]),
@@ -872,6 +880,7 @@ MP_GONE = 60          # seconds without a poll before the other player may hand 
 MP_CLOCKS = {"off": None, "10": 10, "20": 20}
 MP_CAPTAIN_CLOCK = 60  # with a shot clock: toss, XI, bowler, batter, Impact Player decisions
 MP_SERIES = (1, 3, 5)  # a single match or best of 3 / 5 (stops once decided)
+MP_CPU = (0, 2, 4, 6)  # draft: computer teams that draft too and then play a league with the two players
 ROOM: dict | None = None
 
 
@@ -907,26 +916,38 @@ def _mp_job() -> bool:
 
 def _mp_record_new() -> dict:
     """Head to head in this room, by seat (the players may change teams between rematches)."""
-    return {"matches": [0, 0], "series": [0, 0], "played": 0}
+    return {"matches": [0, 0], "series": [0, 0], "played": 0, "titles": [0, 0]}
 
 
 def _mp_record(job, res: dict) -> None:
-    """A finished two-player run: add its matches and (best of 3 / 5) its series to the room's head to head."""
+    """A finished two-player run: its matches between the two players, its series (best of 3 / 5) and its
+    title (a draft league with computer teams) go into the room's head to head."""
     r = ROOM
     if not r or r.get("job") is not job or not r.get("names"):
         return
     rec, names = r["record"], r["names"]
-    for w in job.winners:
-        if w in names:
+    for c in res.get("matches") or []:
+        w = c["result"].get("winner")
+        if set(c["teams"]) == set(names) and w in names:
             rec["matches"][names.index(w)] += 1
-    if (res.get("best_of") or 1) > 1:
+    if res.get("kind") == "series" and (res.get("best_of") or 1) > 1:
         rec["played"] += 1
         if res.get("winner") in names:
             rec["series"][names.index(res["winner"])] += 1
+    if res.get("kind") != "series" and res.get("winner") in names:
+        rec.setdefault("titles", [0, 0])[names.index(res["winner"])] += 1
+
+
+def _mp_ko(k: int) -> str:
+    """Knockouts for a draft league of k teams (one round robin first): a final for 4, semi-finals for more."""
+    return "final" if k <= 4 else "semis"
 
 
 def _mp_series(job, open_: list) -> dict:
-    """The series so far: wins by seat, the match being played; a result on screen already counts."""
+    """The series so far: wins by seat, the match being played; a result on screen already counts.
+    A draft league: which match of how many."""
+    if getattr(job, "mp_league", False):
+        return {"league": True, "of": job.total, "match": min(job.done + 1, job.total), "finished": job.done}
     names = ROOM["names"]
     winners = list(job.winners)
     res_q = next((q for q in open_ if q and q.get("kind") == "result"), None)
@@ -948,29 +969,45 @@ def _mp_start() -> str | None:
     global JOB
     r = ROOM
     st = r["settings"]
-    t1, t2 = (s["team"] for s in r["seats"])
-    err = check_entries([t1, t2], st["fmt"])
-    if err:
-        return "Both players picked the same team - one of you choose another." if "picked twice" in err else err
+    d = r.get("draft")                       # drafted squads, or each player's own team
+    t1 = t2 = None
+    if d is None:
+        t1, t2 = (s["team"] for s in r["seats"])
+        err = check_entries([t1, t2], st["fmt"])
+        if err:
+            return "Both players picked the same team - one of you choose another." if "picked twice" in err else err
     if JOB and JOB.status == "running":
         return "Another simulation is running on the host computer."
-    names = [_mp_label(t1), _mp_label(t2)]
+    names = [s["dname"] for s in r["seats"]] if d else [_mp_label(t1), _mp_label(t2)]
+    league = bool(d) and len(d.teams) > 2
     clock = MP_CLOCKS.get(st.get("clock") or "off")
-    n = st.get("series") or 1
+    n = 1 if league else st.get("series") or 1
     ctl = {}
     for name, seat in zip(names, r["seats"]):
-        manual = set(seat["manual"]) | ({"result"} if n > 1 else set())   # a series: a pause between matches
+        # a series or a league: a pause after each of your matches
+        manual = set(seat["manual"]) | ({"result"} if n > 1 or league else set())
         c = WaitingController(name, manual,
                               clock={k: (clock if k == "ball" else MP_CAPTAIN_CLOCK) for k in KINDS} if clock else None)
         c.home_manual = set(manual)
         ctl[name] = c
-    JOB = Job(f"{names[0]} v {names[1]} - two players" + (f", best of {n}" if n > 1 else ""), n)
+    if league:
+        ko = _mp_ko(len(d.teams))
+        JOB = Job(f"Draft league - {len(d.teams)} teams, players from {d.y1}-{d.y2} - two players",
+                  match_count(len(d.teams), 1, None, ko))
+    else:
+        JOB = Job(f"{names[0]} v {names[1]} - two players" + (", drafted squads" if d else "")
+                  + (f", best of {n}" if n > 1 else ""), n)
     JOB.controllers = ctl
+    JOB.mp_league = league
     r["job"], r["names"] = JOB, names
     for s in r["seats"]:
         s["ready"] = False
     params = {"mode": "mp", "team1": t1, "team2": t2, **{k: st[k] for k in ("fmt", "comp", "year", "venues",
                                                                               "seed", "rain", "series")}}
+    if d:
+        params.update(specs=d.team_specs(), knockout=_mp_ko(len(d.teams)),
+                      draft_info={"teams": d.teams, "user": None, "board": d.state()["board"],
+                                  "years": [d.y1, d.y2], "players": names})
     threading.Thread(target=_run, args=(JOB, params), daemon=True).start()
     return None
 
@@ -983,10 +1020,85 @@ def _mp_settings(p: dict) -> dict | str:
         year = int(p.get("year"))
     except (TypeError, ValueError):
         return "Choose a year."
+    teams = "draft" if p.get("teams") == "draft" else "pick"
+    lo, hi = history.first_year(fmt), history.last_year(fmt)
+    try:
+        y1, y2 = int(p.get("y1") or max(lo, hi - 10)), int(p.get("y2") or hi)
+    except (TypeError, ValueError):
+        return "Player pool years must be numbers."
+    if teams == "draft" and (y1 > y2 or y1 < lo or y2 > hi):
+        return f"Choose player pool years within {lo}-{hi}, the start before the end."
+    source = p.get("source") if p.get("source") in ("full", "leagues", "intl") else "full"
+    if source == "leagues" and fmt != "t20":
+        source = "full"
     return {"fmt": fmt, "comp": p.get("comp"), "year": year, "venues": list(p.get("venues") or []),
             "seed": p.get("seed") or "", "rain": bool(p.get("rain")),
             "clock": p.get("clock") if p.get("clock") in MP_CLOCKS else "off",
-            "series": int(p.get("series")) if str(p.get("series")) in map(str, MP_SERIES) else 1}
+            "series": int(p.get("series")) if str(p.get("series")) in map(str, MP_SERIES) else 1,
+            "teams": teams, "y1": y1, "y2": y2, "source": source,
+            "years_mode": "only" if p.get("years_mode") == "only" else "blend",
+            "cpu": int(p.get("cpu")) if str(p.get("cpu")) in map(str, MP_CPU) else 0}
+
+
+def _mp_draft_start() -> str | None:
+    """Both seats ready in a draft room: build the pool and start the snake draft. Error message or None."""
+    r = ROOM
+    st = r["settings"]
+    n1, n2 = (s["dname"] for s in r["seats"])
+    if n1.lower() == n2.lower():
+        return "You both chose the same team name - one of you change it."
+    cpu = [t for t in DEFAULT_TEAMS if t.lower() not in (n1.lower(), n2.lower())][:st["cpu"]]
+    seed = int(st["seed"]) if str(st.get("seed") or "").strip().isdigit() else None
+    try:
+        d = Draft(st["fmt"], st["y1"], st["y2"], [n1, n2] + cpu, source=st["source"], seed=seed,
+                  years_mode=st["years_mode"], users=[n1, n2])
+    except ValueError as e:
+        return str(e)
+    r["draft"], r["draft_t"] = d, time.time()
+    for s in r["seats"]:
+        s["ready"], s["auto"] = False, False
+    _mp_draft_advance(r)
+    return None
+
+
+def _mp_draft_advance(r: dict) -> None:
+    """Computer teams (and a player who chose "auto-draft the rest") pick until it is a person's turn."""
+    d, before = r["draft"], len(r["draft"].log)
+    auto = {s["dname"] for s in r["seats"] if s.get("auto")}
+    while not d.done and (d.current() not in d.users or d.current() in auto):
+        d.cpu_pick()
+    if len(d.log) != before:
+        r["draft_t"] = time.time()
+
+
+def _mp_draft_pick(r: dict, pid: str | None) -> None:
+    """The person whose turn it is picks pid (None: the computer's pick for them), then the computer teams."""
+    d = r["draft"]
+    if pid is None:
+        d.cpu_pick()
+    else:
+        d.pick(pid)
+    r["draft_t"] = time.time()
+    _mp_draft_advance(r)
+
+
+def _mp_draft_state(r: dict, i) -> dict:
+    """The draft as one seat sees it (suggestions only on your own turn)."""
+    d = r["draft"]
+    clock = MP_CLOCKS.get(r["settings"].get("clock") or "off")
+    with LOCK:
+        if clock and not d.done and d.current() in d.users and time.time() - r["draft_t"] > MP_CAPTAIN_CLOCK:
+            _mp_draft_pick(r, None)          # out of time: the computer picks for them
+        ds = d.state()
+        me = r["seats"][i]["dname"] if i != "spectator" else None
+        ds["user"] = me
+        ds["suggestions"] = [p.id for p in d.suggestions(me)] if me and ds["current"] == me else []
+    ds["players"] = [s["dname"] for s in r["seats"]]
+    ds["auto"] = [bool(s.get("auto")) for s in r["seats"]]
+    ds["ready"] = [bool(s["ready"]) for s in r["seats"]]
+    ds["seconds"] = (max(0, round(MP_CAPTAIN_CLOCK - (time.time() - r["draft_t"])))
+                     if clock and not d.done and ds["current"] in d.users else None)
+    return ds
 
 
 @app.post("/api/mp/create")
@@ -1003,10 +1115,11 @@ def api_mp_create():
         tok = _token()
         code = "".join(random.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(4))
         ROOM = {"code": code, "settings": st, "job": None, "names": None, "spectators": set(),
-                "record": _mp_record_new(),
+                "record": _mp_record_new(), "draft": None, "draft_t": 0.0,
                 "seats": [{"token": tok, "team": p.get("team") or None, "ready": False, "seen": time.time(),
-                           "manual": _mp_kinds(p.get("manual"))},
-                          {"token": None, "team": None, "ready": False, "seen": 0.0, "manual": _mp_kinds(None)}]}
+                           "manual": _mp_kinds(p.get("manual")), "dname": None, "auto": False},
+                          {"token": None, "team": None, "ready": False, "seen": 0.0, "manual": _mp_kinds(None),
+                           "dname": None, "auto": False}]}
     return jsonify(code=code, token=tok)
 
 
@@ -1045,7 +1158,9 @@ def api_mp_lobby():
             if i == 0:
                 ROOM = None
             elif not _mp_job() or JOB.status != "running":
-                seat.update(token=None, team=None, ready=False, seen=0.0)
+                seat.update(token=None, team=None, ready=False, seen=0.0, dname=None, auto=False)
+                r["draft"] = None                # their squad goes with them
+                r["seats"][0]["ready"] = False
             return jsonify(ok=True)
         if p.get("rematch"):
             if _mp_job() and JOB.status == "running":
@@ -1054,6 +1169,8 @@ def api_mp_lobby():
             return jsonify(ok=True)
         if _mp_job() and JOB.status == "running":
             return jsonify(error="The match has started."), 409
+        if r.get("draft") is not None:
+            return jsonify(error="The draft has started. The host can start a new draft from the draft room."), 409
         if "settings" in p and i == 0:
             st = _mp_settings(p["settings"])
             if isinstance(st, str):
@@ -1064,14 +1181,19 @@ def api_mp_lobby():
         if "team" in p:
             seat["team"] = p["team"] or None
             seat["ready"] = False
+        if "name" in p:
+            seat["dname"] = " ".join(str(p["name"] or "").split())[:30] or None
+            seat["ready"] = False
         if "manual" in p:
             seat["manual"] = _mp_kinds(p["manual"])
+        draft = r["settings"].get("teams") == "draft"
+        mine = (lambda s: s["dname"]) if draft else (lambda s: s["team"])
         if "ready" in p:
-            if p["ready"] and not seat["team"]:
-                return jsonify(error="Pick your team first."), 400
+            if p["ready"] and not mine(seat):
+                return jsonify(error="Name your team first." if draft else "Pick your team first."), 400
             seat["ready"] = bool(p["ready"])
-        if all(s["ready"] and s["team"] for s in r["seats"]):
-            err = _mp_start()
+        if all(s["ready"] and mine(s) for s in r["seats"]):
+            err = _mp_draft_start() if draft else _mp_start()
             if err:
                 for s in r["seats"]:
                     s["ready"] = False
@@ -1088,13 +1210,21 @@ def api_mp_state():
     now = time.time()
     if i != "spectator":
         r["seats"][i]["seen"] = now
-    seats = [{"team": s["team"], "label": _mp_label(s["team"]) if s["team"] else None, "ready": s["ready"],
-              "joined": s["token"] is not None, "here": now - s["seen"] < 10,
+    draft = r["settings"].get("teams") == "draft"
+    seats = [{"team": s["team"], "label": s["dname"] if draft else _mp_label(s["team"]) if s["team"] else None,
+              "name": s["dname"], "ready": s["ready"], "joined": s["token"] is not None, "here": now - s["seen"] < 10,
               "manual": sorted(s["manual"])} for s in r["seats"]]
     out = {"code": r["code"], "you": i, "seats": seats, "settings": r["settings"], "urls": _mp_urls(),
            "lan": bool(app.config.get("LAN")), "now": now, "record": r["record"]}
     if not _mp_job():
-        return jsonify(phase="lobby", **out)
+        if r.get("draft") is None:
+            return jsonify(phase="lobby", **out)
+        out["draft"] = _mp_draft_state(r, i)
+        if i != "spectator":
+            gone = now - r["seats"][1 - i]["seen"]
+            out["opp_gone"] = round(gone)
+            out["can_take"] = gone > MP_GONE and not r["seats"][1 - i].get("auto") and not r["draft"].done
+        return jsonify(phase="draft", **out)
     job = r["job"]
     out["job"] = job.to_dict()
     if job.status != "running":
@@ -1114,6 +1244,68 @@ def api_mp_state():
                       "can_take": gone > MP_GONE and bool(opp.manual_kinds),
                       "computer": not opp.manual_kinds}
     return jsonify(phase="playing", **out)
+
+
+@app.get("/api/mp/draft/pool")
+def api_mp_draft_pool():
+    """The draft's player pool (sent once; the state carries who is taken)."""
+    r, i = _seat(request.args.get("token"))
+    if r is None or i is None or r.get("draft") is None:
+        return jsonify(error="No draft in this room."), 404
+    return jsonify(pool=[p.row() for p in r["draft"].pool])
+
+
+@app.post("/api/mp/draft")
+def api_mp_draft():
+    """A seat in the draft: {token, id} picks a player on your turn; auto: "one" (the computer's pick for you),
+    "rest" (the computer drafts the rest of your squad), "stop" (back to picking yourself); take: auto-draft for
+    a player who has been away MP_GONE seconds; ready: play with the drafted squads; redo (host): a new draft."""
+    p = request.get_json(force=True)
+    with LOCK:
+        r, i = _seat(p.get("token"))
+        if r is None or i is None:
+            return jsonify(error="You are not in this room any more."), 404
+        if i == "spectator":
+            return jsonify(error="Spectators can only watch."), 403
+        d = r.get("draft")
+        if d is None:
+            return jsonify(error="No draft in this room."), 409
+        if _mp_job() and JOB.status == "running":
+            return jsonify(error="The matches are being played."), 409
+        seat = r["seats"][i]
+        if p.get("redo"):
+            if i != 0:
+                return jsonify(error="Only the host can start a new draft."), 403
+            r["draft"] = None
+            for s in r["seats"]:
+                s["ready"] = s["auto"] = False
+            return jsonify(ok=True)
+        if "ready" in p:
+            if not d.done:
+                return jsonify(error="Finish the draft first."), 400
+            seat["ready"] = bool(p["ready"])
+            if all(s["ready"] for s in r["seats"]):
+                err = _mp_start()
+                if err:
+                    for s in r["seats"]:
+                        s["ready"] = False
+                    return jsonify(error=err), 400
+            return jsonify(ok=True)
+        try:
+            if p.get("take"):
+                if time.time() - r["seats"][1 - i]["seen"] <= MP_GONE:
+                    return jsonify(error="The other player is still here."), 409
+                r["seats"][1 - i]["auto"] = True
+            elif p.get("auto") in ("rest", "stop"):
+                seat["auto"] = p["auto"] == "rest"
+            else:
+                if d.done or d.current() != seat["dname"]:
+                    return jsonify(error="It is not your pick."), 400
+                _mp_draft_pick(r, None if p.get("auto") else p.get("id"))
+        except ValueError as e:
+            return jsonify(error=str(e)), 400
+        _mp_draft_advance(r)
+    return jsonify(ok=True)
 
 
 @app.post("/api/mp/decide")

@@ -51,7 +51,9 @@ bar. It also works on a phone, with a tab bar at the bottom. Modes:
   player loses contact for a minute the other can hand that side to the computer; reopening the page rejoins.
   A third device that joins watches the score. Play a single match or a best of 3 / 5 series (it stops once
   decided, with a result screen for both players between matches); the room keeps a head-to-head record across
-  rematches. Design: `docs/multiplayer_design.md`.
+  rematches. Or **draft squads against each other**: the host sets the player-pool years, you take turns in a
+  snake draft (15 players each, each on your own device), then play your squads - as a match / series, or with
+  2, 4 or 6 computer teams drafting too, as a league with a final or semi-finals. Design: `docs/multiplayer_design.md`.
 - **Tournament:** pick teams; single or double round robin, one league or two groups, then semi-finals, IPL-style
   playoffs, a final or none.
 - **Home grounds (Tournament, Classic Tournament, League Season):** each side plays half its league games at its
@@ -397,7 +399,8 @@ tests/             engine and tournament tests
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
 - [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
       live screen, phone layout
-- [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5
+- [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
+  a draft against each other (optionally with computer teams and a league)
 - [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, an international career world
 
 ## Data, credits and licences

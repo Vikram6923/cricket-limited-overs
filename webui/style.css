@@ -832,3 +832,6 @@ body.mp-on #cap-skip-all{display:none}
 .series-now{margin:10px 0 2px;padding:8px 12px;border-radius:var(--r);background:color-mix(in srgb,var(--brand) 12%,transparent);
   border:1px solid color-mix(in srgb,var(--brand) 35%,transparent);font-family:var(--disp);font-size:1.05rem}
 #cap-progress b{color:var(--text)}
+/* the draft room at tablet / phone width: one column that never grows past the screen (the pool table scrolls) */
+@media (max-width:1000px){.draft-grid{grid-template-columns:minmax(0,1fr)}.draft-grid>div{min-width:0}}
+@media (max-width:760px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}.draft-top{gap:8px}.draft-top .btn{padding:7px 10px}}

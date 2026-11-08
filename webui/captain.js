@@ -224,7 +224,7 @@ function qResult(q) {
 }
 
 /* two players, best of 3 / 5: the series score on the result pause (the match just played counts) */
-function mpSeries() { return mpOn() && MP.series && MP.series.of > 1 ? MP.series : null; }
+function mpSeries() { return mpOn() && MP.series && MP.series.of > 1 && !MP.series.league ? MP.series : null; }
 function mpResultSeries() {
   const sr = mpSeries();
   return sr ? `<div class="series-now">${mpSeriesLine(sr, MP.names, false)}</div>` : '';

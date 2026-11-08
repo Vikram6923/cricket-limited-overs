@@ -154,14 +154,18 @@ def build_pool(fmt: str, y1: int, y2: int, source: str = "full", min_matches: in
 class Draft:
     def __init__(self, fmt: str, y1: int, y2: int, teams: list[str], user: str | None = None,
                  source: str = "full", seed: int | None = None, squad: int = SQUAD, min_matches: int = 10,
-                 years_mode: str = "blend"):
+                 years_mode: str = "blend", users: list | None = None):
+        """user: the one team a person drafts for; users: several (two players), each picking on their turn."""
         if len(teams) < 2:
             raise ValueError("A draft needs at least 2 teams.")
         if len({t.lower() for t in teams}) != len(teams):
             raise ValueError("Team names must be different.")
         if user is not None and user not in teams:
             raise ValueError("Your team must be one of the teams.")
+        if any(u not in teams for u in users or []):
+            raise ValueError("Every player's team must be one of the teams.")
         self.fmt, self.y1, self.y2, self.user, self.source, self.squad = fmt, y1, y2, user, source, squad
+        self.users = set(users or ([user] if user is not None else []))
         self.years_mode = years_mode
         self.seed = seed if seed is not None else random.randrange(1 << 30)
         self.rng = random.Random(self.seed)
@@ -245,8 +249,8 @@ class Draft:
         return best.id
 
     def run_cpu(self) -> None:
-        """Computer teams pick until it is the user's turn or the draft is over."""
-        while not self.done and self.current() != self.user:
+        """Computer teams pick until it is a person's turn or the draft is over."""
+        while not self.done and self.current() not in self.users:
             self.cpu_pick()
 
     # ---------------------------------------------------------------- output

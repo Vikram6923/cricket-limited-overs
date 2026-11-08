@@ -476,6 +476,7 @@ async function startDraft() {
   if (d.state.done && !d.state.user) playDraftLeague();
 }
 async function draftPick(body) {
+  if (mpOn()) return mpDraftSend(body);            // the two-player draft (multiplayer.js)
   $('dr-msg').textContent = '';
   try { const d = await api('/api/draft/pick', body); renderDraft(d.state); }
   catch (e) { $('dr-msg').textContent = e.message; }
@@ -685,7 +686,7 @@ async function showResults(run) {
   if (pos) $('r-pos').innerHTML = `${avatar(pos.name, pos.team, 'sm')} Player of the series <b>${esc(pos.name)}</b> <span class="muted">${esc(dn(pos.team))}</span>`;
   CUR_MATCH = 0;
   $('tab-board').style.display = R.draft ? '' : 'none';
-  if (R.draft) drawBoard($('r-board'), R.draft.teams, R.draft.board, R.draft.user);
+  if (R.draft) drawBoard($('r-board'), R.draft.teams, R.draft.board, R.draft.user || (mpOn() && MP.team) || null);
   $('tab-board').textContent = R.draft && R.draft.auction ? 'Auction squads' : 'Draft board';
   renderSummary(); renderMatchSelect(); renderStatsTables(); renderMVP();
   openTab('p-summary');

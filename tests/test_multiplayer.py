@@ -266,6 +266,121 @@ def test_server_room_series():
     post("/api/mp/lobby", {"token": host, "leave": True})
 
 
+def _draft_room(cl, cpu: int, series: int = 1):
+    """A draft room with both seats named and ready: (post, state, host token, guest token)."""
+    post = lambda path, body: cl.post(path, json=body)
+    state = lambda tok: cl.get("/api/mp/state?token=" + tok).get_json()
+    host = post("/api/mp/create", {"fmt": "t20", "comp": "t20i_full", "year": 2024, "venues": [], "rain": False,
+                                   "seed": "7", "clock": "off", "series": str(series), "teams": "draft",
+                                   "y1": 2016, "y2": 2024, "cpu": cpu}).get_json()["token"]
+    guest = post("/api/mp/join", {"code": state(host)["code"]}).get_json()["token"]
+    assert post("/api/mp/lobby", {"token": host, "ready": True}).status_code == 400        # no name yet
+    post("/api/mp/lobby", {"token": host, "name": "  Riverside ", "manual": [], "ready": True})
+    r = post("/api/mp/lobby", {"token": guest, "name": "riverside", "manual": [], "ready": True})
+    assert r.status_code == 400 and "same team name" in r.get_json()["error"]
+    post("/api/mp/lobby", {"token": host, "ready": True})
+    assert post("/api/mp/lobby", {"token": guest, "name": "Hilltop", "ready": True}).status_code == 200
+    return post, state, host, guest
+
+
+def test_server_draft_then_series():
+    import web_ui
+    tmp = Path(tempfile.mkdtemp())
+    web_ui.LAST = tmp / "last"
+    cl = web_ui.app.test_client()
+    post, state, host, guest = _draft_room(cl, cpu=0, series=3)
+    st = state(host)
+    assert st["phase"] == "draft" and st["draft"]["teams"] == ["Riverside", "Hilltop"]
+    assert post("/api/mp/lobby", {"token": host, "team": "India T20 2024"}).status_code == 409   # the draft is on
+    pool = cl.get("/api/mp/draft/pool?token=" + guest).get_json()["pool"]
+    assert len(pool) >= 30
+    picks = 0
+    while True:
+        sts = {tok: state(tok)["draft"] for tok in (host, guest)}
+        if sts[host]["done"]:
+            break
+        cur = sts[host]["current"]
+        on, off = (host, guest) if cur == "Riverside" else (guest, host)
+        assert sts[on]["user"] == cur and sts[on]["suggestions"] and not sts[off]["suggestions"]
+        sug = sts[on]["suggestions"][0]
+        assert post("/api/mp/draft", {"token": off, "id": sug}).status_code == 400      # not your pick
+        if picks % 3 == 0:
+            assert post("/api/mp/draft", {"token": on, "auto": "one"}).status_code == 200
+        else:
+            assert post("/api/mp/draft", {"token": on, "id": sug}).status_code == 200
+        picks += 1
+    board = state(host)["draft"]["board"]
+    assert picks == 30 and all(len(board[t]) == 15 for t in board)
+    assert post("/api/mp/draft", {"token": guest, "redo": True}).status_code == 403       # host only
+    post("/api/mp/draft", {"token": host, "ready": True})
+    assert state(host)["phase"] == "draft"                                                  # waiting for the guest
+    assert post("/api/mp/draft", {"token": guest, "ready": True}).status_code == 200
+    deadline = time.time() + 120
+    while time.time() < deadline:
+        sts = [state(host), state(guest)]
+        if sts[0]["phase"] == "over":
+            break
+        for tok, s in zip((host, guest), sts):
+            q = (s.get("me") or {}).get("pending")
+            if q:                                                   # the result pauses between matches
+                assert q["kind"] == "result"
+                post("/api/mp/decide", {"token": tok, "id": q["id"], "choice": None})
+        time.sleep(0.005)
+    res = json.loads((tmp / "last" / "summary.json").read_text(encoding="utf-8"))
+    assert res["kind"] == "series" and res["teams"] == ["Riverside", "Hilltop"] and res["best_of"] == 3
+    assert res["draft"]["board"] == board and res["draft"]["players"] == ["Riverside", "Hilltop"]
+    card = json.loads((tmp / "last" / "matches" / "001.json").read_text(encoding="utf-8"))
+    xi = {p["id"] for t in card["xi"].values() for p in t}
+    assert len(xi) == 22, card["xi"]
+    assert xi <= {p["id"] for t in board.values() for p in t}                              # drafted players only
+    post("/api/mp/lobby", {"token": guest, "rematch": True})
+    st = state(host)
+    assert st["phase"] == "draft" and st["draft"]["done"]                                   # same squads again
+    assert post("/api/mp/draft", {"token": host, "redo": True}).status_code == 200
+    assert state(guest)["phase"] == "lobby"
+    post("/api/mp/lobby", {"token": host, "leave": True})
+
+
+def test_server_draft_league_with_computer_teams():
+    import web_ui
+    tmp = Path(tempfile.mkdtemp())
+    web_ui.LAST = tmp / "last"
+    cl = web_ui.app.test_client()
+    post, state, host, guest = _draft_room(cl, cpu=2)
+    d = state(host)["draft"]
+    assert len(d["teams"]) == 4 and d["current"] in d["players"]   # the computer teams have picked up to a person
+    for tok in (host, guest):
+        assert post("/api/mp/draft", {"token": tok, "auto": "rest"}).status_code == 200
+    d = state(host)["draft"]
+    assert d["done"] and d["auto"] == [True, True] and all(len(v) == 15 for v in d["board"].values())
+    for tok in (host, guest):
+        post("/api/mp/draft", {"token": tok, "ready": True})
+    leagues = set()
+    deadline = time.time() + 180
+    while time.time() < deadline:
+        sts = [state(host), state(guest)]
+        if sts[0]["phase"] == "over":
+            break
+        if sts[0]["phase"] == "playing":
+            leagues.add(sts[0]["series"].get("league"))
+        for tok, s in zip((host, guest), sts):
+            q = (s.get("me") or {}).get("pending")
+            if q:
+                post("/api/mp/decide", {"token": tok, "id": q["id"], "choice": None})
+        time.sleep(0.005)
+    st = state(host)
+    assert st["phase"] == "over" and st["job"]["status"] == "done", st
+    assert leagues == {True}
+    res = json.loads((tmp / "last" / "summary.json").read_text(encoding="utf-8"))
+    assert res["kind"] != "series" and len(res["fixtures"]) == 6 + 1 and res["draft"]["teams"][:2] == ["Riverside", "Hilltop"]
+    cards = [json.loads(f.read_text(encoding="utf-8")) for f in sorted((tmp / "last" / "matches").glob("*.json"))]
+    h2h = [c for c in cards if set(c["teams"]) == {"Riverside", "Hilltop"}]
+    rec = st["record"]
+    assert sum(rec["matches"]) == sum(1 for c in h2h if c["result"].get("winner"))
+    assert sum(rec["titles"]) == (1 if res["winner"] in ("Riverside", "Hilltop") else 0) and rec["played"] == 0
+    post("/api/mp/lobby", {"token": host, "leave": True})
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

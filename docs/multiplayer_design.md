@@ -204,3 +204,35 @@ team, skips for both players.
 - **Checked in the browser** (port 5071, two tabs as the two seats): best of 3, result pause on both, Australia won
   2-0 and the series stopped after match 2, results page, back to the room with the record; room and result pause
   at phone width (390 px).
+
+## 11. Two-player draft (2026-11-08, user: "Yes, build it")
+
+- **Room settings (host):** Teams = "Each player picks a team" (as before) or "Draft squads", chosen when hosting
+  and changeable in the room. Draft: player-pool years (default the last ten seasons), pool (full members /
+  + franchise leagues for T20 / all internationals), computer teams 0 / 2 / 4 / 6. Each player names their team
+  instead of picking one; both press Ready and the draft starts.
+- **Draft** (`Draft(..., users=[two names])`, `run_cpu` stops at either person): the existing snake draft, 15
+  players each, order shuffled. Each device shows the draft room (pool, suggestions on your own pick, your squad
+  and needs, the board); only the player whose turn it is can pick. "Pick for me" (one computer pick), "Auto-draft
+  the rest of my squad" / "Pick myself again", host "New draft". With a shot clock on, a pick not made within 60 s
+  is the computer's. A player away for 60 s can be auto-drafted by the other. The pool is sent once
+  (`/api/mp/draft/pool`); the state carries who is taken.
+- **Then:** no computer teams -> the drafted squads play the room's single match / best of 3 / best of 5. With
+  computer teams -> a single round robin, then a final (4 teams) or semi-finals (6, 8); both players' matches
+  against each other are two-player games, a match against a computer team is played by that player alone while
+  the other watches; result pause after each of your matches; "Draft league · match 3 of 7" in the header.
+- After the run, "Back to the room" returns to the finished draft: both press Ready to play the same squads
+  again, or the host starts a new draft. Results carry the draft board (your squad highlighted).
+- **Head to head:** only matches between the two players count; a league title won by a player is counted too.
+- **Server:** room `draft`, `draft_t`, seat `dname`, `auto`; `/api/mp/state` phase "draft" (each seat's own view,
+  suggestions only on your turn, seconds left with a clock); `POST /api/mp/draft` (id / auto one / rest / stop /
+  take / ready / redo). A guest leaving drops the draft.
+- **Also fixed:** the draft room was wider than a phone screen (pool table and board); it now fits at 390 px.
+- **Tests:** `test_server_draft_then_series` (names, same-name check, turns enforced, suggestions only for the
+  player on the clock, 30 picks, host-only new draft, best of 3 with drafted players only, rematch keeps the
+  squads), `test_server_draft_league_with_computer_teams` (2 computer teams pick at once, auto-draft the rest, 4-team
+  league + final = 7 matches, head to head and titles). All other suites pass.
+- **Checked in the browser** (two tabs): room settings, draft with picks from the suggestions and the pool,
+  auto-draft the rest, Ready on both, a 4-team league (the first match two-player, ball by ball on the guest's
+  phone-width screen), results with the draft board, back to the finished draft, New draft -> the room with the
+  record.

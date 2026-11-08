@@ -57,8 +57,10 @@ async function mpInit() {
 
 async function mpCreate() {
   const p = payload();
+  const [lo, hi] = META.years[p.fmt];
   const r = await api('/api/mp/create', {fmt: p.fmt, comp: p.comp, year: p.year, venues: p.venues, seed: p.seed,
-    rain: p.rain, clock: $('mp-clock').value, series: $('mp-series').value});
+    rain: p.rain, clock: $('mp-clock').value, series: $('mp-series').value, teams: $('mp-teams').value,
+    y1: Math.max(lo, hi - 9), y2: hi, source: 'full', cpu: 0});
   mpStore(r.code, r.token); MP.active = true; MP.built = false; mpPoll();
 }
 
@@ -104,6 +106,7 @@ async function mpPoll() {
   $('status-pill').classList.toggle('run', running);
   if (st.phase === 'none') { toast('The room was closed.', true); mpForget(); showView('v-home'); return; }
   if (st.phase === 'lobby') { mpLobby(st); POLL_T = setTimeout(mpPoll, 800); return; }
+  if (st.phase === 'draft') { await mpDraft(st); POLL_T = setTimeout(mpPoll, 700); return; }
   if (st.phase === 'playing') { mpPlaying(st); POLL_T = setTimeout(mpPoll, st.me && st.me.pending ? 700 : 250); return; }
   const j = st.job;                      // the match is over
   MP.built = false;
@@ -116,6 +119,7 @@ async function mpPoll() {
 const MP_SERIES_OPTS = [[1, 'A single match'], [3, 'Best of 3'], [5, 'Best of 5']];
 /* {of, wins: [seat 0, seat 1], match, finished} -> "Best of 3 · Match 2 · India lead 1-0" (names: by seat) */
 function mpSeriesLine(sr, names, withMatch = true) {
+  if (sr && sr.league) return `Draft league · match ${sr.match} of ${sr.of}`;
   if (!sr || sr.of < 2) return '';
   const [a, b] = sr.wins, left = sr.of - sr.finished;
   const nm = i => esc(dn(names[i]));
@@ -132,12 +136,13 @@ function mpCompLabel(s) {
 }
 function mpLobby(st) {
   showView('v-mp');
+  MP.settings = st.settings;
   CAP.qid = null;                        // question ids start again in a rematch
   const s = st.settings, me = st.you;
   $('mp-room-code').textContent = st.code;
   $('mp-cond').textContent = `${s.fmt.toUpperCase()} · conditions of ${mpCompLabel(s)} ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`
     + ` · rain ${s.rain ? 'on' : 'off'} · shot clock ${s.clock === 'off' ? 'off' : s.clock + ' s a ball'}`
-    + ` · ${(MP_SERIES_OPTS.find(o => o[0] === (s.series || 1)) || MP_SERIES_OPTS[0])[1].toLowerCase()}`;
+    + ` · ${mpPlayText(s)}`;
   const joined = st.seats[1].joined;
   const links = me !== 0 || joined ? '' : st.lan
     ? `<div class="lbl">Invite the other player</div><div class="sb-line">On their device (same Wi-Fi), open
@@ -148,11 +153,12 @@ function mpLobby(st) {
        Two players and type the code <b class="mp-code">${esc(st.code)}</b>).</div>`;
   $('mp-links').style.display = links ? '' : 'none';
   $('mp-links').innerHTML = links;
-  const rec = st.record || {matches: [0, 0], series: [0, 0], played: 0};
-  const recLine = i => rec.matches[0] + rec.matches[1] === 0 ? '' : `<div class="h2h">Won here: <b>${rec.matches[i]}</b> match${rec.matches[i] === 1 ? '' : 'es'}${rec.played ? ` · <b>${rec.series[i]}</b> series` : ''}</div>`;
+  const rec = st.record || {matches: [0, 0], series: [0, 0], played: 0, titles: [0, 0]};
+  const titles = rec.titles || [0, 0];
+  const recLine = i => rec.matches[0] + rec.matches[1] + titles[0] + titles[1] === 0 ? '' : `<div class="h2h">Won here: <b>${rec.matches[i]}</b> match${rec.matches[i] === 1 ? '' : 'es'}${rec.played ? ` · <b>${rec.series[i]}</b> series` : ''}${titles[0] + titles[1] ? ` · <b>${titles[i]}</b> league title${titles[i] === 1 ? '' : 's'}` : ''}</div>`;
   $('mp-seats').innerHTML = st.seats.map((x, i) => `<div class="mp-seat ${i === me ? 'me' : ''}" ${x.label ? `style="${tStyle(x.label)}"` : ''}>
     <div class="who">Player ${i + 1}${i === 0 ? ' (host)' : ''}${i === me ? ' · you' : ''}</div>
-    <div class="team">${x.label ? `${badge(x.label, 'sm')} ${esc(x.label)}` : x.joined ? '<span class="muted">picking a team…</span>' : '<span class="muted">not joined yet</span>'}</div>
+    <div class="team">${x.label ? `${badge(x.label, 'sm')} ${esc(x.label)}` : x.joined ? `<span class="muted">${s.teams === 'draft' ? 'naming their team…' : 'picking a team…'}</span>` : '<span class="muted">not joined yet</span>'}</div>
     <div class="small ${x.ready ? 'ok' : 'wait'}">${!x.joined ? '' : x.ready ? '✓ ready' : 'not ready'}${x.joined && !x.here ? ' · <span class="muted">away</span>' : ''}</div>
     ${recLine(i)}</div>`).join('');
   if (me === 'spectator') {
@@ -162,32 +168,94 @@ function mpLobby(st) {
   }
   $('mp-leave').textContent = me === 0 ? 'Close the room' : 'Leave the room';
   const mine = st.seats[me];
-  if (!MP.built) mpBuildMine(st, mine);
-  const ser = $('mp-series-room');
-  if (ser && document.activeElement !== ser) ser.value = String(s.series || 1);
+  if (!MP.built || MP.builtTeams !== (s.teams || 'pick')) mpBuildMine(st, mine);
+  mpSyncHost(s);
   $('mp-ready').textContent = mine.ready ? 'Not ready yet' : "✓ I'm ready";
   $('mp-ready').className = 'btn ' + (mine.ready ? 'sec' : 'go');
   const other = st.seats[1 - me];
   $('mp-ready-note').textContent = mine.ready ? (other.ready ? 'Starting…' : 'Waiting for the other player to be ready.')
-    : 'The match starts when both players are ready.';
+    : s.teams === 'draft' ? 'The draft starts when both players are ready.' : 'The match starts when both players are ready.';
+}
+
+/* what the room plays, in words */
+function mpPlayText(s) {
+  const play = (MP_SERIES_OPTS.find(o => o[0] === (s.series || 1)) || MP_SERIES_OPTS[0])[1].toLowerCase();
+  if (s.teams !== 'draft') return play;
+  const k = 2 + (s.cpu || 0);
+  return `draft squads from ${s.y1}–${s.y2} players · ` + (s.cpu ? `${s.cpu} computer teams draft too, then a ${k}-team league + ${k <= 4 ? 'final' : 'semi-finals'}` : play);
+}
+
+/* the host's room settings: teams picked or drafted, draft pool, computer teams, single match or series */
+function mpHostHTML(s) {
+  const [lo, hi] = META.years[s.fmt] || [2005, 2026];
+  return `<div class="lbl" style="margin-top:14px">Room settings (host)</div>
+    <div class="seg2">
+      <div class="fg"><label>Teams</label><select id="mh-teams"><option value="pick">Each player picks a team</option><option value="draft">Draft squads</option></select></div>
+      <div class="fg" id="mh-play-box"><label>Play</label><select id="mh-series">${MP_SERIES_OPTS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
+    </div>
+    <div id="mh-draft" style="display:none">
+      <div class="seg2">
+        <div class="fg"><label>Player pool years</label><div class="era"><input type="number" id="mh-y1" min="${lo}" max="${hi}"><span class="to">to</span><input type="number" id="mh-y2" min="${lo}" max="${hi}"></div></div>
+        <div class="fg"><label>Computer teams</label><select id="mh-cpu"><option value="0">None - just the two of us</option>
+          <option value="2">2 (a 4-team league)</option><option value="4">4 (a 6-team league)</option><option value="6">6 (an 8-team league)</option></select></div>
+      </div>
+      <div class="fg"><label>Pool</label><select id="mh-src"><option value="full">Full-member internationals</option>
+        ${s.fmt === 't20' ? '<option value="leagues">Full-member internationals + franchise leagues</option>' : ''}
+        <option value="intl">All internationals</option></select></div>
+      <div class="hint" id="mh-note" style="margin:0"></div>
+    </div>`;
+}
+function mpSyncHost(s) {
+  if (!$('mh-teams')) return;
+  const set = (id, v) => { const el = $(id); if (el && document.activeElement !== el && el.value !== String(v)) el.value = String(v); };
+  set('mh-teams', s.teams || 'pick'); set('mh-series', s.series || 1); set('mh-y1', s.y1); set('mh-y2', s.y2);
+  set('mh-cpu', s.cpu || 0); set('mh-src', s.source || 'full');
+  const draft = (s.teams || 'pick') === 'draft';
+  $('mh-draft').style.display = draft ? '' : 'none';
+  $('mh-play-box').style.display = draft && s.cpu ? 'none' : '';
+  $('mh-note').textContent = draft ? (s.cpu ? `A single round robin, then ${2 + s.cpu <= 4 ? 'a final' : 'semi-finals'}. Your matches against each other are two-player games; against the computer teams you play alone while the other player watches.`
+    : 'Snake draft, 15 players each, rated on those years. Then you play your drafted squads.') : '';
 }
 
 function mpBuildMine(st, seat) {
   MP.built = true;
-  const s = st.settings;
+  const s = st.settings, draft = s.teams === 'draft';
+  MP.builtTeams = s.teams || 'pick';
   if ($('c-fmt').value !== s.fmt) { $('c-fmt').value = s.fmt; fillConditions(); }   // classic rows list nations by format
   const impact = s.comp === 'ipl' && s.year >= 2023;
-  $('mp-mine').innerHTML = `<div class="lbl">Your team</div>
-    <div class="fg"><select id="mp-kind"><option value="saved">A saved team</option><option value="classic">A nation from any era</option></select></div>
-    <div class="fg" id="mp-saved-box"><select id="mp-team"></select><div class="roster" id="mp-roster"></div></div>
+  $('mp-mine').innerHTML = `${draft ? `<div class="lbl">Your team's name</div>
+    <div class="fg"><input type="text" id="mp-dname" maxlength="30" placeholder="e.g. ${esc(META.draft_teams[st.you === 0 ? 0 : 1] || 'Riverside')}"></div>`
+    : `<div class="lbl">Your team</div>
+    <div class="fg"><select id="mp-kind"><option value="saved">A saved team</option><option value="classic">A nation from any era</option></select></div>`}
+    <div class="fg" id="mp-saved-box" ${draft ? 'style="display:none"' : ''}><select id="mp-team"></select><div class="roster" id="mp-roster"></div></div>
     <div class="fg" id="mp-classic-box" style="display:none"></div>
     <div class="lbl" style="margin-top:10px">Decisions you make (the rest are the computer's)</div>
     <div class="checks" id="mp-manual">${MP_KINDS.filter(([k]) => k !== 'impact' || impact).map(([k, t]) =>
       `<label><input type="checkbox" value="${k}" ${seat.manual.includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
-    ${st.you === 0 ? `<div class="lbl" style="margin-top:10px">Play</div><div class="fg"><select id="mp-series-room">${MP_SERIES_OPTS.map(([v, t]) =>
-      `<option value="${v}">${t}</option>`).join('')}</select></div>` : ''}
+    ${st.you === 0 ? mpHostHTML(s) : ''}
     <div class="cap-actions"><button class="btn go" id="mp-ready">✓ I'm ready</button></div>
     <div class="hint" id="mp-ready-note"></div>`;
+  if (st.you === 0) {
+    const send = patch => mpLobbySend({settings: {...MP.settings, ...patch}});
+    $('mh-teams').onchange = () => send({teams: $('mh-teams').value});
+    $('mh-series').onchange = () => send({series: $('mh-series').value});
+    $('mh-cpu').onchange = () => send({cpu: $('mh-cpu').value});
+    $('mh-src').onchange = () => send({source: $('mh-src').value});
+    $('mh-y1').onchange = $('mh-y2').onchange = () => send({y1: $('mh-y1').value, y2: $('mh-y2').value});
+  }
+  if (draft) {
+    const nm = () => $('mp-dname').value.trim();
+    const kinds = () => [...$('mp-manual').querySelectorAll('input:checked')].map(i => i.value);
+    $('mp-dname').value = seat.name || '';
+    $('mp-dname').onchange = () => mpLobbySend({name: nm()});
+    $('mp-manual').onchange = () => mpLobbySend({manual: kinds()});
+    $('mp-ready').onclick = () => {
+      const ready = $('mp-ready').textContent.includes("I'm ready");
+      if (ready && !nm()) { toast('Name your team first.', true); $('mp-dname').focus(); return; }
+      mpLobbySend(ready ? {name: nm(), manual: kinds(), ready: true} : {ready: false});
+    };
+    return;
+  }
   const names = META.teams.map(t => t.name);
   fillSelect($('mp-team'), [{v: '', t: '- choose a team -'}, ...names.map(n => ({v: n, t: n}))]);
   const t = seat.team;
@@ -210,15 +278,79 @@ function mpBuildMine(st, seat) {
   $('mp-team').onchange = () => { roster(); mpLobbySend({team: entry()}); };
   $('mp-classic-box').addEventListener('change', () => setTimeout(() => mpLobbySend({team: entry()}), 300));
   $('mp-manual').onchange = () => mpLobbySend({manual: kinds()});
-  if ($('mp-series-room')) {
-    $('mp-series-room').value = String(s.series || 1);
-    $('mp-series-room').onchange = () => mpLobbySend({settings: {...s, series: $('mp-series-room').value}});
-  }
   $('mp-ready').onclick = () => {
     const ready = $('mp-ready').textContent.includes("I'm ready");
     if (ready && !entry()) { toast('Choose your team first.', true); return; }
     mpLobbySend(ready ? {team: entry(), manual: kinds(), ready: true} : {ready: false});
   };
+}
+
+/* ───────── the draft: both players take turns in the draft room ───────── */
+async function mpDraftSend(body) {
+  $('dr-msg').textContent = '';
+  try { await api('/api/mp/draft', {token: MP.token, ...body}); }
+  catch (e) { $('dr-msg').textContent = e.message; toast(e.message, true); }
+  clearTimeout(POLL_T); POLL_T = setTimeout(mpPoll, 50);
+}
+async function mpDraft(st) {
+  const d = st.draft, s = st.settings, me = d.user;
+  const poolKey = JSON.stringify([d.teams, s.y1, s.y2, s.source, s.years_mode, s.fmt]);
+  if (MP.poolKey !== poolKey) {                       // the pool once per draft
+    const p = await api('/api/mp/draft/pool?token=' + encodeURIComponent(MP.token));
+    DPOOL = {list: p.pool, byId: new Map(p.pool.map(x => [x.id, x]))};
+    fillSelect($('dp-role'), [{v: '', t: 'All roles'}, ...['WK', 'Batter', 'All-rounder', 'Pace', 'Spin'].map(r => ({v: r, t: r}))]);
+    fillSelect($('dp-team'), [{v: '', t: 'All teams'}, ...[...new Set(p.pool.map(x => x.team))].sort().map(t => ({v: t, t}))]);
+    ['dp-search', 'dp-role', 'dp-team'].forEach(id => $(id).oninput = drawDraftPool);
+    MP.poolKey = poolKey; MP.draftKey = null;
+  }
+  showView('v-draft'); capHome(); $('dr-cap').classList.remove('cap-panel');
+  MP.built = false;
+  const i = st.you, other = i === 'spectator' ? null : d.players[1 - i];
+  const yours = !d.done && me && d.current === me;
+  const myAuto = i !== 'spectator' && d.auto[i], myReady = i !== 'spectator' && d.ready[i];
+  // the clock and the turn change every poll; the pool and board only when a pick is made
+  $('dr-turn').textContent = d.done ? 'Draft complete' : yours ? `Your pick!${d.seconds !== null ? ` · ${d.seconds}s` : ''}`
+    : `${d.current} to pick${d.current === other ? ' (the other player)' : ''}${d.seconds !== null ? ` · ${d.seconds}s` : ''}`;
+  $('dr-turn').className = 'turn' + (yours ? ' you' : '');
+  const key = JSON.stringify([d.pick_no, d.done, d.current, d.auto, d.ready, st.can_take, i]);
+  if (key === MP.draftKey) return;
+  MP.draftKey = key;
+  DRAFT = d;
+  setDisplayTeams([]);
+  $('dr-title').textContent = me ? `Draft · you are ${me}` : 'Draft · watching';
+  $('dr-progress').textContent = d.done ? `${d.total} picks · players rated on ${d.y1}–${d.y2}` : `Pick ${d.pick_no} of ${d.total} · round ${Math.ceil(d.pick_no / d.teams.length)} of ${d.squad}`;
+  $('dr-auto').textContent = 'Pick for me';
+  $('dr-auto').style.display = yours && !myAuto ? '' : 'none';
+  $('dr-auto').onclick = () => mpDraftSend({auto: 'one'});
+  $('dr-rest').textContent = myAuto ? 'Pick myself again' : 'Auto-draft the rest of my squad';
+  $('dr-rest').style.display = !d.done && me ? '' : 'none';
+  $('dr-rest').onclick = () => mpDraftSend({auto: myAuto ? 'stop' : 'rest'});
+  $('dr-play').textContent = myReady ? 'Not ready' : '▶ Ready to play';
+  $('dr-play').className = 'btn ' + (myReady ? 'sec' : 'go');
+  $('dr-play').style.display = d.done && me ? '' : 'none';
+  $('dr-play').onclick = () => mpDraftSend({ready: !myReady});
+  let extra = document.getElementById('dr-mp-extra');
+  if (!extra) { extra = document.createElement('span'); extra.id = 'dr-mp-extra'; extra.style.display = 'contents'; $('dr-play').after(extra); }
+  extra.innerHTML = (st.can_take ? `<button class="btn sec" id="dr-take">Auto-draft for ${esc(other)} (away)</button>` : '')
+    + (i === 0 ? '<button class="btn sec" id="dr-redo">New draft</button>' : '')
+    + `<button class="btn sec" id="dr-leave">${i === 0 ? 'Close the room' : i === 'spectator' ? 'Stop watching' : 'Leave'}</button>`;
+  if ($('dr-take')) $('dr-take').onclick = () => mpDraftSend({take: true});
+  if ($('dr-redo')) $('dr-redo').onclick = () => { if (confirm('Throw these squads away and go back to the room settings?')) mpDraftSend({redo: true}); };
+  $('dr-leave').onclick = mpLeave;
+  $('dr-msg').textContent = d.done && me ? (myReady ? (d.ready[1 - i] ? 'Starting…' : `Waiting for ${other} to be ready.`)
+    : d.ready[1 - i] ? `${other} is ready to play.` : '') : myAuto ? 'The computer is drafting for you.' : '';
+  $('dr-sugs').innerHTML = d.suggestions.length ? d.suggestions.map(id => { const p = DPOOL.byId.get(id);
+    return `<button class="sug" data-id="${esc(id)}">${esc(p.name)}<small>${esc(p.role)}</small></button>`; }).join('')
+    : `<span class="muted small">${d.done ? (me ? 'All squads are complete. Press “Ready to play” when you are.' : 'All squads are complete.') : 'Suggestions appear when it is your pick.'}</span>`;
+  $('dr-sugs').querySelectorAll('.sug').forEach(b => b.onclick = () => mpDraftSend({id: b.dataset.id}));
+  if (me) {
+    const c = d.needs[me], mine = d.board[me];
+    $('dr-squad-title').textContent = `Your squad (${mine.length}/${d.squad})`;
+    $('dr-roles').innerHTML = Object.entries(d.targets).map(([r, t]) => `<span class="role ${c[r] >= t ? 'ok' : ''}">${NEED_LABEL[r]} ${c[r]}/${t}+</span>`).join('');
+    $('dr-squad').innerHTML = mine.map(p => `<li>${esc(p.name)} <span>${esc((DPOOL.byId.get(p.id) || {}).team || '')} · ${esc(p.role)}</span></li>`).join('') || '<li class="muted">No players yet</li>';
+  } else { $('dr-squad-title').textContent = ''; $('dr-roles').innerHTML = ''; $('dr-squad').innerHTML = ''; }
+  drawBoard($('dr-board'), d.teams, d.board, me);
+  drawDraftPool();
 }
 
 /* ───────── the match ───────── */
