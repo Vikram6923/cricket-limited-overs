@@ -145,7 +145,7 @@ function mpLobby(st) {
     + ` · ${mpPlayText(s)}`;
   const joined = st.seats[1].joined;
   const links = me !== 0 || joined ? '' : st.lan
-    ? `<div class="lbl">Invite the other player</div><div class="sb-line">On their device (same Wi-Fi), open
+    ? `<div class="lbl">Invite the other player</div><div class="sb-line">On their device${st.public ? '' : ' (same Wi-Fi)'}, open
        ${st.urls.map(u => `<span class="mp-link">${esc(u)}</span>`).join(' or ') || 'this page'} - or open this page there,
        choose <b>Two players</b> and type the code <b class="mp-code">${esc(st.code)}</b>.</div>`
     : `<div class="lbl">Invite the other player</div><div class="sb-line bad">This server only accepts this computer. Restart it
