@@ -20,10 +20,12 @@ function capRender(st) {
   if (q.id === CAP.qid) return;
   CAP.qid = q.id; CAP.q = q; CAP.manual = cap.manual; CAP.auto = {};
   const c = q.context || {}, s = q.state || {};
-  $('cap-title').textContent = `${s.match || q.team} — you captain ${q.team}`;
-  $('cap-ctx').textContent = [c.stage, c.match_no ? 'match ' + c.match_no : '', s.venue || 'neutral venue',
+  const tt = capTeams(q); setDisplayTeams(tt.filter(Boolean));
+  $('cap-title').innerHTML = `You captain ${badge(q.team, 'sm')} ${esc(dn(q.team))}`;
+  $('cap-ctx').textContent = [c.stage, c.match_no && c.stage !== 'Match ' + c.match_no ? 'match ' + c.match_no : '', s.venue || 'neutral venue',
     s.pitch ? 'pitch: ' + s.pitch : ''].filter(Boolean).join(' · ');
   $('cap-score').innerHTML = scoreHTML(q);
+  $('cap-bug').innerHTML = bugHTML(q);
   renderAuto();
   ({toss: qToss, xi: qXI, bowler: q2 => qPick(q2, 'bowler'), batter: q2 => qPick(q2, 'batter'), impact: qImpact,
     result: qResult, ball: qBall}[q.kind] || qResult)(q);
@@ -49,40 +51,75 @@ async function capSend(choice, extra = {}) {
   clearTimeout(POLL_T); POLL_T = setTimeout(mp ? mpPoll : poll, 120);
 }
 
-const ballClass = b => /W/.test(b) ? 'W' : b === '4' ? 'b4' : b === '6' ? 'b6' : '';
+const ballClass = b => ballCls(b);
+
+/* the two sides: from "A v B" (the match name) or the question's team and its opponent */
+function capTeams(q) {
+  const s = q.state || {}, m = String(s.match || '').split(' v ');
+  if (m.length === 2) CAP.teams = m;
+  else if (s.opponent) CAP.teams = [q.team, s.opponent];
+  return CAP.teams || [q.team, s.opponent || ''];
+}
+/* broadcast score bar across the top */
+function bugHTML(q) {
+  const s = q.state || {}, [a, b] = capTeams(q);
+  if (s.runs === undefined) {
+    return `<div class="bug pre" style="--bat:${tcol(a).c};--bowl:${tcol(b).c}">
+      <div class="tm">${badge(a, 'md')}<div><div class="lbl">${a === q.team ? 'You' : 'Opponent'}</div><div class="nm">${esc(dn(a))}</div></div></div>
+      <div class="mid"><div class="need">${s.format === 'odi' ? 'ODI' : 'T20'} · ${s.overs} overs a side</div><div class="muted small">${esc(s.venue || 'Neutral venue')} · pitch: ${esc(s.pitch || '–')}</div></div>
+      <div class="tm r">${badge(b, 'md')}<div><div class="lbl">${b === q.team ? 'You' : 'Opponent'}</div><div class="nm">${esc(dn(b))}</div></div></div></div>`;
+  }
+  const bat = s.batting, bowl = bat === a ? b : a;
+  const wp = s.win_prob === null || s.win_prob === undefined ? null : Math.round(100 * s.win_prob);
+  const prev = (s.previous || []).map(x => String(x).startsWith(bowl) ? String(x).slice(bowl.length).trim() : x).join(' · ');
+  const need = s.target ? (s.need <= 0 ? `<b>${esc(dn(bat))}</b> have won` : `${esc(tcol(bat).short)} need <b>${s.need}</b> off <b>${s.balls_left}</b>${s.rrr !== null && s.rrr !== undefined ? ` <span class="rr">RRR ${s.rrr}</span>` : ''}`)
+    : `Innings ${s.innings}${s.crr !== null && s.crr !== undefined ? ` <span class="rr">run rate ${s.crr}</span>` : ''}`;
+  return `<div class="bug" style="--bat:${tcol(bat).c};--bowl:${tcol(bowl).c}">
+    <div class="tm">${badge(bat, 'md')}<div><div class="lbl">${esc(dn(bat))} · batting${bat === q.team ? ' (you)' : ''}</div>
+      <div class="big">${s.runs}/${s.wkts}<small>${esc(s.overs_done)}${s.max_overs ? ' / ' + s.max_overs : ''}</small></div></div></div>
+    <div class="mid"><div class="need">${need}</div>
+      ${wp !== null ? `<div class="wpbar"><i style="background:${tcol(bat).hi};width:${wp}%"></i><i style="background:${tcol(bowl).hi};width:${100 - wp}%"></i></div>
+      <div class="wplab"><span>${esc(tcol(bat).short)} <b>${wp}%</b></span><span>win probability</span><span><b>${100 - wp}%</b> ${esc(tcol(bowl).short)}</span></div>` : ''}
+      <div class="muted small">Partnership ${s.partnership.runs} (${s.partnership.balls})</div></div>
+    <div class="tm r">${badge(bowl, 'md')}<div><div class="lbl">${esc(dn(bowl))} · bowling${bowl === q.team ? ' (you)' : ''}</div>
+      <div class="big dimmed">${prev ? esc(prev) : '<small>yet to bat</small>'}</div></div></div></div>`;
+}
 
 function scoreHTML(q) {
   const s = q.state || {};
   if (s.runs === undefined) {           // before the match: toss and XI
-    return `<div class="cap-panel"><h3>${esc(s.match)}</h3>
-      <div class="sb-line">${s.format === 'odi' ? 'ODI' : 'T20'}, ${s.overs} overs a side · v ${esc(s.opponent)}</div>
+    return `<div class="cap-panel"><h3>${esc(dnText(s.match, capTeams(q)))}</h3>
+      <div class="sb-line">${s.format === 'odi' ? 'ODI' : 'T20'}, ${s.overs} overs a side · v ${esc(dn(s.opponent))}</div>
       <div class="sb-line">Venue: <b>${esc(s.venue || 'neutral')}</b></div>
       <div class="sb-line">Pitch: <b>${esc(s.pitch || '–')}</b></div>
       ${q.toss ? `<div class="sb-line" style="margin-top:6px">${esc(q.toss)}</div>` : ''}
       ${(s.rain || []).map(r => `<div class="sb-line">☂ ${esc(r)}</div>`).join('')}</div>`;
   }
-  const wp = s.win_prob === null || s.win_prob === undefined ? null : Math.round(100 * s.win_prob);
-  const chase = s.target ? `Target <b>${s.target}</b> · need <b>${s.need}</b> off <b>${s.balls_left}</b> balls` +
-    (s.rrr !== null ? ` · required rate <b>${s.rrr}</b>` : '') : `Innings ${s.innings} · ${s.max_overs} overs`;
-  const bat = s.batters.filter(b => b.batted);
-  const yet = s.batters.filter(b => !b.batted).map(b => esc(b.name)).join(', ');
-  const balls = o => { const [a, b] = o.split('.').map(Number); return 6 * a + b; };
-  return `<div class="cap-panel">
-    <div class="sb-line">${esc(s.batting)} batting${s.previous.length ? ' · ' + s.previous.map(esc).join(' · ') : ''}</div>
-    <div class="sb-score">${s.runs}/${s.wkts}<small>${s.overs_done} / ${s.max_overs} ov${s.crr !== null ? ' · run rate ' + s.crr : ''}</small></div>
-    <div class="sb-line">${chase} · partnership ${s.partnership.runs} (${s.partnership.balls})</div>
-    ${wp !== null ? `<div class="wp"><i style="width:${wp}%"></i></div><div class="sb-line">${esc(s.batting)} win probability <b>${wp}%</b></div>` : ''}
+  const [a, b] = capTeams(q), batT = s.batting, bowlT = batT === a ? b : a;
+  const bat = s.batters.filter(x => x.batted);
+  const crease = bat.filter(x => x.at_crease).sort((x, y) => (y.on_strike ? 1 : 0) - (x.on_strike ? 1 : 0));
+  const yet = s.batters.filter(x => !x.batted).map(x => esc(x.name)).join(', ');
+  const balls = o => { const [p, r] = String(o).split('.').map(Number); return 6 * p + (r || 0); };
+  const cur = q.bowler ? s.bowlers.find(x => x.name === q.bowler.name) : null;
+  const pcard = (x, team, fig, sub, on) => `<div class="pc ${on ? 'on' : ''}" style="${tStyle(team)}">${avatar(x.name, team)}
+    <div class="who"><div class="nm">${esc(x.name)}${on ? '<span class="strike">ON STRIKE</span>' : ''}</div><div class="prole">${sub}</div></div>
+    <div class="fig">${fig}</div></div>`;
+  return `<div class="cap-panel live">
+    <div class="pcs">${crease.map(x => pcard(x, batT, `<b>${x.runs}</b><span>${x.balls} ball${x.balls === 1 ? '' : 's'}</span>`,
+      `${x.fours} × 4 · ${x.sixes} × 6 · SR ${x.balls ? (100 * x.runs / x.balls).toFixed(0) : '–'}`, x.on_strike)).join('')}
+    ${cur ? pcard(cur, bowlT, `<b>${cur.wkts}–${cur.runs}</b><span>${esc(cur.overs)} overs</span>`, `bowling${q.bowler.kind ? ' · ' + esc(q.bowler.kind) : ''}`, false) : ''}</div>
+    ${s.recent.length ? `<div class="lbl" style="margin-top:14px">Recent overs</div><div class="overs">${s.recent.map(o => `<div class="orow"><span class="muted">Over ${o.over} · ${esc(o.bowler)}</span>
+      <span class="balls">${o.balls.map(x => chip(x, true)).join('')}</span><b>${o.runs}</b></div>`).join('')}</div>` : ''}
+    ${s.events.length ? `<div class="evs">${s.events.map(e => esc(dnText(e, capTeams(q)))).join('<br>')}</div>` : ''}
+    <details class="fullsc"><summary>Full scorecard · ${esc(dn(batT))}</summary>
     <table class="mini"><tr><th>Batter</th><th></th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr>
-    ${bat.map(b => `<tr class="${b.at_crease ? 'crease' : b.out ? 'dim' : ''}"><td>${esc(b.name)}${b.on_strike ? ' *' : ''}</td>
-      <td class="how">${b.out ? esc(b.how) : b.at_crease ? 'batting' : 'not out'}</td><td>${b.runs}</td><td>${b.balls}</td>
-      <td>${b.fours}</td><td>${b.sixes}</td><td>${b.balls ? (100 * b.runs / b.balls).toFixed(0) : '–'}</td></tr>`).join('')}</table>
+    ${bat.map(x => `<tr class="${x.at_crease ? 'crease' : x.out ? 'dim' : ''}"><td>${esc(x.name)}${x.on_strike ? ' *' : ''}</td>
+      <td class="how">${x.out ? esc(x.how) : x.at_crease ? 'batting' : 'not out'}</td><td>${x.runs}</td><td>${x.balls}</td>
+      <td>${x.fours}</td><td>${x.sixes}</td><td>${x.balls ? (100 * x.runs / x.balls).toFixed(0) : '–'}</td></tr>`).join('')}</table>
     ${yet ? `<div class="sb-line" style="margin-top:6px">Yet to bat: ${yet}</div>` : ''}
     <table class="mini"><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th></tr>
-    ${s.bowlers.map(b => `<tr><td>${esc(b.name)}</td><td>${b.overs}</td><td>${b.maidens}</td><td>${b.runs}</td><td>${b.wkts}</td>
-      <td>${balls(b.overs) ? (6 * b.runs / balls(b.overs)).toFixed(1) : '–'}</td></tr>`).join('')}</table>
-    ${s.recent.length ? `<div class="overs">${s.recent.map(o => `<div><span class="muted">Over ${o.over} (${esc(o.bowler)}):</span>
-      ${o.balls.map(b => `<span class="ball ${ballClass(b)}">${esc(b)}</span>`).join('')} <b>${o.runs}</b></div>`).join('')}</div>` : ''}
-    ${s.events.length ? `<div class="evs">${s.events.map(esc).join('<br>')}</div>` : ''}
+    ${s.bowlers.map(x => `<tr><td>${esc(x.name)}</td><td>${x.overs}</td><td>${x.maidens}</td><td>${x.runs}</td><td>${x.wkts}</td>
+      <td>${balls(x.overs) ? (6 * x.runs / balls(x.overs)).toFixed(1) : '–'}</td></tr>`).join('')}</table></details>
   </div>`;
 }
 
@@ -92,7 +129,7 @@ const optCard = (p, isCpu, extra) => `<button class="opt ${isCpu ? 'cpu' : ''}" 
 const nameOf = (list, id) => (list.find(p => p.id === id) || {}).name || '–';
 
 function qToss(q) {
-  $('cap-q').innerHTML = `<h3>${esc(q.text)} Bat or bowl?</h3>
+  $('cap-q').innerHTML = `<h3>${esc(dnText(q.text, CAP.teams || []))} Bat or bowl?</h3>
     <div class="sb-line">The computer would choose to <b>${esc(q.default)}</b>.</div>
     <div class="opts">${q.options.map(o => `<button class="opt ${o === q.default ? 'cpu' : ''}" data-id="${o}">${cpuTag(o === q.default)}
       <b>${o === 'bat' ? 'Bat first' : 'Bowl first'}</b><span>${o === 'bat' ? 'set a target' : 'chase'}</span></button>`).join('')}</div>`;
@@ -175,8 +212,8 @@ function qImpact(q) {
 }
 
 function qResult(q) {
-  $('cap-q').innerHTML = `<h3>${esc(q.result || 'Match over')}</h3>
-    ${(q.scores || []).map(s => `<div class="sb-line">${esc(s)}</div>`).join('')}
+  $('cap-q').innerHTML = `<h3>${esc(dnText(q.result || 'Match over', CAP.teams || []))}</h3>
+    ${(q.scores || []).map(s => `<div class="sb-line">${esc(dnText(s, CAP.teams || []))}</div>`).join('')}
     ${q.pom && q.pom.name ? `<div class="sb-line">Player of the match: <b>${esc(q.pom.name)}</b> (${esc(q.pom.team)})</div>` : ''}
     <div class="cap-actions"><button class="btn go" id="cap-cont">Continue</button></div>`;
   $('cap-cont').onclick = () => capSend(null);
@@ -203,21 +240,22 @@ function qBall(q) {
       ${bat ? barsHTML(c.id, c.bars, BAT_WORD) : ''}</div>`;
   if (bat) { vals[q.striker.id] = q.striker.bars; vals[q.non_striker.id] = q.non_striker.bars; }
   else vals[q.bowler.id] = q.bowler.bars;
-  const ballsHTML = (q.this_over || []).map(b => `<span class="ball ${ballClass(b)}">${esc(b)}</span>`).join('');
+  const ballsHTML = (q.this_over || []).map(b => chip(b)).join('') + '<span class="ball empty"></span>'.repeat(Math.max(0, 6 - (q.this_over || []).filter(b => !/wd|nb/.test(b)).length));
   const sit = st.target ? `Need <b>${st.need}</b> off <b>${st.balls_left}</b>` : (q.projected ? `Projected score <b>${q.projected}</b>` : '');
   const lb = mpOn() && q.since && q.since.length ? q.since[q.since.length - 1] : null;   // both choices, shown after the ball
   const reveal = lb && lb.bars ? `<div class="mp-reveal">Last ball (${lb.over}.${lb.ball}, ${esc(lb.sym)}): ${esc(lb.batter)} batting
     <b>${lb.bars} · ${BAT_WORD[lb.bars]}</b> v ${esc(lb.bowler)} bowling <b>${lb.plan} · ${BOWL_WORD[lb.plan]}</b></div>` : '';
   $('cap-q').innerHTML = `<div class="hl-box" id="hl-box" style="display:none"></div>
     <h3>Over ${q.over}, ball ${q.ball}: ${esc(q.bowler.name)} to ${esc(q.striker.name)}${q.free_hit ? ' · <span style="color:var(--amber)">FREE HIT</span>' : ''}</h3>${reveal}
-    <div class="sb-line">${sit}${sit ? ' · ' : ''}${esc(q.phase)} overs · this over: <span class="overs">${ballsHTML || '–'}</span></div>
+    <div class="sb-line">${sit}${sit ? ' · ' : ''}${esc(q.phase)} overs</div>
+    <div class="thisover"><span class="lb">This over</span>${ballsHTML}</div>
     <div class="lbl" style="margin-top:10px">${bat ? 'Your batters: aggression' : 'Your bowler: plan'}</div>
     ${who(q.striker, true)}${who(q.non_striker, false)}
     <div class="bb-row"><div class="bb-name"><b>${esc(q.bowler.name)}</b> <span class="muted">${esc(q.bowler.kind || '')} · ${esc(q.bowler.figures)} · expected econ ${n1(q.bowler.econ)}</span></div>
       ${bat ? '' : barsHTML(q.bowler.id, q.bowler.bars, BOWL_WORD)}</div>
     <div class="hint" style="margin-top:6px">${bat ? '5 = how real sides bat in this situation. Higher: more runs and more risk; lower: fewer of both. Far from 5 costs, more so when a wicket is dear.'
       : '5 = a normal plan. Attack takes more wickets but leaks runs; contain saves runs but takes fewer wickets.'} Keys: 1-9 sets ${bat ? 'the striker' : 'the bowler'}, Space = next ball.</div>
-    <div class="cap-actions"><button class="btn go" data-until="ball">Next ball</button>
+    <div class="cap-actions bb-act"><button class="btn go big" data-until="ball">Next ball <kbd>Space</kbd></button>
       <button class="btn sec" data-until="over">Play the over</button>
       <button class="btn sec" data-until="wicket">To the next wicket</button>
       <button class="btn sec" data-until="innings">To the end of the innings</button>
@@ -265,7 +303,7 @@ function qXI(q) {
       <button data-rm="${esc(id)}" title="Drop from the XI">✕</button></li>`; };
     const rest = q.options.filter(p => !xi.includes(p.id));
     $('cap-q').innerHTML = `<h3>Name your XI${nSubs ? ` and ${nSubs} Impact substitutes` : ''}</h3>
-      <div class="sb-line">${esc(q.toss)} You ${q.batting_first ? 'bat' : 'bowl'} first. The computer's picks are marked CPU (listed in its batting order); the order here is your batting order.</div>
+      <div class="sb-line">${esc(dnText(q.toss, CAP.teams || []))} You ${q.batting_first ? 'bat' : 'bowl'} first. The computer's picks are marked CPU (listed in its batting order); the order here is your batting order.</div>
       <div class="xi-cols">
         <div><div class="lbl" style="margin-top:10px">Batting order</div><ul class="xi-list">${xi.map(sel).join('')}</ul></div>
         <div><div class="lbl" style="margin-top:10px">Rest of the squad</div><ul class="xi-list">${rest.map(p => `<li class="${cpu.has(p.id) ? 'cpu' : ''}">

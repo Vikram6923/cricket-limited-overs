@@ -32,7 +32,13 @@ This opens **http://localhost:5070** (use `--port` to change it, `--no-browser` 
 offline. By default only this computer can open it. To play from another device on the same Wi-Fi, start it with
 `python web_ui.py --lan`: it prints the address to use (e.g. `http://192.168.1.23:5070`). Windows Firewall must allow
 Python on that network. There is no login, so anyone on the same network can use it; don't use `--lan` on public
-Wi-Fi. Modes:
+Wi-Fi.
+
+The page opens on a home screen: a one-click quick match and every mode as a tile, plus "jump back in" cards for
+the last results, careers and saved runs. Teams carry their colours and short codes everywhere; results open on
+a scoreboard (series), champion banner, points table with a form guide, and a knockout bracket; each match has a
+match centre (summary, HTML scorecard, ball by ball, charts); the live captain screen is laid out like a TV score
+bar. It also works on a phone, with a tab bar at the bottom. Modes:
 
 - **Match / Series:** two saved teams play one match or a series of up to 7.
 - **Two players:** you against a friend on another device on the same Wi-Fi (the host runs `python web_ui.py --lan`).
@@ -358,7 +364,8 @@ engine/            match engine (library)
   calibrate.py     replay real matches and compare
   fit/             scripts that learn the engine's tables from Cricsheet
 web_ui.py          Flask server for the browser UI
-webui/             the page: index.html, style.css, app.js (no external scripts)
+webui/             the page: index.html, style.css, app.js, teams.js (team colours, badges), one script per room
+                   (captain, auction, career, two players); no external scripts or fonts
 scripts/           data pipeline: download, raw stats, Afghanistan, pre-2002 players, styles, ratings,
                    league presets, validation
 data/              ratings_*.json (+ ratings_*_years.json for year ranges), engine/*.json (fitted tables), raw_stats/ (derived),
@@ -386,6 +393,8 @@ tests/             engine and tournament tests
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
+- [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
+      live screen, phone layout
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball
 - [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, an international career world
 
