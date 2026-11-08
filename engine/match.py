@@ -1266,11 +1266,10 @@ class Match:
             card["turning_point"] = tp
             card["events"].append({"innings": tp["innings"], "over": str(tp["over"]), "score": tp["score"],
                                    "kind": "turning_point", "text": tp["text"]})
-        for t in self.teams:
-            if t.name in self.control:
-                self.ask(t, "result", {"result": result["text"], "pom": card["player_of_match"],
-                                       "scores": [f"{i.bat.name} {i.score_str()} ({i.over_str()} ov)"
-                                                  for i in self.innings]}, self.innings[-1])
+        pause = {"result": result["text"], "winner": result.get("winner"), "pom": card["player_of_match"],
+                 "scores": [f"{i.bat.name} {i.score_str()} ({i.over_str()} ov)" for i in self.innings]}
+        # both people see the result at once (two players), each says when to go on
+        self.ask_all([(t, "result", pause, self.innings[-1]) for t in self.teams if t.name in self.control])
         return card
 
     def chase_overs(self, i1: Innings) -> int:

@@ -72,7 +72,10 @@ function bugHTML(q) {
   const bat = s.batting, bowl = bat === a ? b : a;
   const wp = s.win_prob === null || s.win_prob === undefined ? null : Math.round(100 * s.win_prob);
   const prev = (s.previous || []).map(x => String(x).startsWith(bowl) ? String(x).slice(bowl.length).trim() : x).join(' · ');
-  const need = s.target ? (s.need <= 0 ? `<b>${esc(dn(bat))}</b> have won` : `${esc(tcol(bat).short)} need <b>${s.need}</b> off <b>${s.balls_left}</b>${s.rrr !== null && s.rrr !== undefined ? ` <span class="rr">RRR ${s.rrr}</span>` : ''}`)
+  const over = s.target && s.need > 0 && (s.balls_left <= 0 || s.wkts >= 10);   // the chase has ended short
+  const need = q.kind === 'result' && q.result ? esc(dnText(q.result, [a, b]))
+    : over ? (s.need === 1 ? 'Scores level' : `<b>${esc(dn(bowl))}</b> have won`)
+    : s.target ? (s.need <= 0 ? `<b>${esc(dn(bat))}</b> have won` : `${esc(tcol(bat).short)} need <b>${s.need}</b> off <b>${s.balls_left}</b>${s.rrr !== null && s.rrr !== undefined ? ` <span class="rr">RRR ${s.rrr}</span>` : ''}`)
     : `Innings ${s.innings}${s.crr !== null && s.crr !== undefined ? ` <span class="rr">run rate ${s.crr}</span>` : ''}`;
   return `<div class="bug" style="--bat:${tcol(bat).c};--bowl:${tcol(bowl).c}">
     <div class="tm">${badge(bat, 'md')}<div><div class="lbl">${esc(dn(bat))} · batting${bat === q.team ? ' (you)' : ''}</div>
@@ -214,9 +217,23 @@ function qImpact(q) {
 function qResult(q) {
   $('cap-q').innerHTML = `<h3>${esc(dnText(q.result || 'Match over', CAP.teams || []))}</h3>
     ${(q.scores || []).map(s => `<div class="sb-line">${esc(dnText(s, CAP.teams || []))}</div>`).join('')}
-    ${q.pom && q.pom.name ? `<div class="sb-line">Player of the match: <b>${esc(q.pom.name)}</b> (${esc(q.pom.team)})</div>` : ''}
-    <div class="cap-actions"><button class="btn go" id="cap-cont">Continue</button></div>`;
+    ${q.pom && q.pom.name ? `<div class="sb-line">Player of the match: <b>${esc(q.pom.name)}</b> (${esc(dn(q.pom.team))})</div>` : ''}
+    ${mpResultSeries()}
+    <div class="cap-actions"><button class="btn go" id="cap-cont">${mpResultNext()}</button></div>`;
   $('cap-cont').onclick = () => capSend(null);
+}
+
+/* two players, best of 3 / 5: the series score on the result pause (the match just played counts) */
+function mpSeries() { return mpOn() && MP.series && MP.series.of > 1 ? MP.series : null; }
+function mpResultSeries() {
+  const sr = mpSeries();
+  return sr ? `<div class="series-now">${mpSeriesLine(sr, MP.names, false)}</div>` : '';
+}
+function mpResultNext() {
+  const sr = mpSeries();
+  if (!sr) return 'Continue';
+  const left = sr.of - sr.finished, [a, b] = sr.wins;
+  return Math.abs(a - b) > left || left === 0 ? 'See the series results' : `Next match (${sr.finished + 1} of ${sr.of}) →`;
 }
 
 /* ball by ball: aggression bars (1-9, 5 = as real sides play this situation; docs/match_play_design.md) */

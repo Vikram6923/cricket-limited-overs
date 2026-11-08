@@ -230,6 +230,7 @@ class Job:
         self.cancel = False
         self.controller: WaitingController | None = None   # manual captaincy: the side the person captains
         self.controllers: dict | None = None    # two players: team name -> WaitingController (see ROOM)
+        self.winners: list = []                 # winner of each finished match (None: tie / no result)
 
     def to_dict(self) -> dict:
         d = {"status": self.status, "title": self.title, "done": self.done, "total": self.total,
@@ -298,6 +299,7 @@ def _run(job: Job, params: dict) -> None:
     try:
         def on_match(card):
             job.done += 1
+            job.winners.append(card["result"].get("winner"))
             if job.cancel:
                 raise Stopped()
         fmt, comp, year = params["fmt"], params["comp"], int(params["year"])
@@ -346,8 +348,9 @@ def _run(job: Job, params: dict) -> None:
             res = play_tournament(car.specs(), **car.play_args(), rain=rain_, on_match=on_match, control=control,
                                   skill=skill)
             res["career"] = {"id": params["career"], "name": car.name, "season": car.season_label}
-        elif params["mode"] == "mp":
-            res = play_series(team_spec(params["team1"], fmt), team_spec(params["team2"], fmt), n=1,
+        elif params["mode"] == "mp":           # a single match or a best-of series between the two players
+            res = play_series(team_spec(params["team1"], fmt), team_spec(params["team2"], fmt),
+                              n=int(params.get("series") or 1), best_of=True,
                               fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match,
                               control=control)
         elif params["mode"] == "series":
@@ -374,6 +377,7 @@ def _run(job: Job, params: dict) -> None:
             for r in res["captaincy_by"].values():
                 if r:
                     r["opponents"] = "the other player"
+            _mp_record(job, res)
         _augment(res)
         if LAST.exists():
             shutil.rmtree(LAST)
@@ -867,6 +871,7 @@ def api_decide():
 MP_GONE = 60          # seconds without a poll before the other player may hand that side to the computer
 MP_CLOCKS = {"off": None, "10": 10, "20": 20}
 MP_CAPTAIN_CLOCK = 60  # with a shot clock: toss, XI, bowler, batter, Impact Player decisions
+MP_SERIES = (1, 3, 5)  # a single match or best of 3 / 5 (stops once decided)
 ROOM: dict | None = None
 
 
@@ -900,6 +905,37 @@ def _mp_job() -> bool:
     return bool(r and r.get("job") is not None and JOB is r["job"])
 
 
+def _mp_record_new() -> dict:
+    """Head to head in this room, by seat (the players may change teams between rematches)."""
+    return {"matches": [0, 0], "series": [0, 0], "played": 0}
+
+
+def _mp_record(job, res: dict) -> None:
+    """A finished two-player run: add its matches and (best of 3 / 5) its series to the room's head to head."""
+    r = ROOM
+    if not r or r.get("job") is not job or not r.get("names"):
+        return
+    rec, names = r["record"], r["names"]
+    for w in job.winners:
+        if w in names:
+            rec["matches"][names.index(w)] += 1
+    if (res.get("best_of") or 1) > 1:
+        rec["played"] += 1
+        if res.get("winner") in names:
+            rec["series"][names.index(res["winner"])] += 1
+
+
+def _mp_series(job, open_: list) -> dict:
+    """The series so far: wins by seat, the match being played; a result on screen already counts."""
+    names = ROOM["names"]
+    winners = list(job.winners)
+    res_q = next((q for q in open_ if q and q.get("kind") == "result"), None)
+    if res_q and res_q.get("context", {}).get("match_no") == len(winners) + 1:
+        winners.append(res_q.get("winner"))
+    return {"of": job.total, "wins": [winners.count(n) for n in names], "match": len(job.winners) + 1,
+            "finished": len(winners)}
+
+
 def _mp_urls() -> list[str]:
     port = request.host.rsplit(":", 1)[-1] if ":" in request.host else "80"
     if not app.config.get("LAN"):
@@ -920,19 +956,21 @@ def _mp_start() -> str | None:
         return "Another simulation is running on the host computer."
     names = [_mp_label(t1), _mp_label(t2)]
     clock = MP_CLOCKS.get(st.get("clock") or "off")
+    n = st.get("series") or 1
     ctl = {}
     for name, seat in zip(names, r["seats"]):
-        c = WaitingController(name, seat["manual"],
+        manual = set(seat["manual"]) | ({"result"} if n > 1 else set())   # a series: a pause between matches
+        c = WaitingController(name, manual,
                               clock={k: (clock if k == "ball" else MP_CAPTAIN_CLOCK) for k in KINDS} if clock else None)
-        c.home_manual = set(seat["manual"])
+        c.home_manual = set(manual)
         ctl[name] = c
-    JOB = Job(f"{names[0]} v {names[1]} - two players", 1)
+    JOB = Job(f"{names[0]} v {names[1]} - two players" + (f", best of {n}" if n > 1 else ""), n)
     JOB.controllers = ctl
     r["job"], r["names"] = JOB, names
     for s in r["seats"]:
         s["ready"] = False
     params = {"mode": "mp", "team1": t1, "team2": t2, **{k: st[k] for k in ("fmt", "comp", "year", "venues",
-                                                                              "seed", "rain")}}
+                                                                              "seed", "rain", "series")}}
     threading.Thread(target=_run, args=(JOB, params), daemon=True).start()
     return None
 
@@ -947,7 +985,8 @@ def _mp_settings(p: dict) -> dict | str:
         return "Choose a year."
     return {"fmt": fmt, "comp": p.get("comp"), "year": year, "venues": list(p.get("venues") or []),
             "seed": p.get("seed") or "", "rain": bool(p.get("rain")),
-            "clock": p.get("clock") if p.get("clock") in MP_CLOCKS else "off"}
+            "clock": p.get("clock") if p.get("clock") in MP_CLOCKS else "off",
+            "series": int(p.get("series")) if str(p.get("series")) in map(str, MP_SERIES) else 1}
 
 
 @app.post("/api/mp/create")
@@ -964,6 +1003,7 @@ def api_mp_create():
         tok = _token()
         code = "".join(random.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(4))
         ROOM = {"code": code, "settings": st, "job": None, "names": None, "spectators": set(),
+                "record": _mp_record_new(),
                 "seats": [{"token": tok, "team": p.get("team") or None, "ready": False, "seen": time.time(),
                            "manual": _mp_kinds(p.get("manual"))},
                           {"token": None, "team": None, "ready": False, "seen": 0.0, "manual": _mp_kinds(None)}]}
@@ -982,6 +1022,7 @@ def api_mp_join():
         guest = r["seats"][1]
         if guest["token"] is None:
             guest.update(token=tok, seen=time.time())
+            r["record"] = _mp_record_new()        # a new opponent: a new head to head
             return jsonify(token=tok, seat=1)
         r["spectators"].add(tok)
         return jsonify(token=tok, seat="spectator")
@@ -1051,7 +1092,7 @@ def api_mp_state():
               "joined": s["token"] is not None, "here": now - s["seen"] < 10,
               "manual": sorted(s["manual"])} for s in r["seats"]]
     out = {"code": r["code"], "you": i, "seats": seats, "settings": r["settings"], "urls": _mp_urls(),
-           "lan": bool(app.config.get("LAN")), "now": now}
+           "lan": bool(app.config.get("LAN")), "now": now, "record": r["record"]}
     if not _mp_job():
         return jsonify(phase="lobby", **out)
     job = r["job"]
@@ -1063,6 +1104,7 @@ def api_mp_state():
     states = [q["state"] for q in open_ if q and q.get("state") and "runs" in q["state"]]
     out["latest"] = states[-1] if states else None   # scoreboard while you wait
     out["names"] = r["names"]
+    out["series"] = _mp_series(job, open_)
     if i != "spectator":
         me, opp = ctl[i], ctl[1 - i]
         out["me"] = {"team": me.team, "manual": sorted(me.manual_kinds), "home": sorted(me.home_manual),

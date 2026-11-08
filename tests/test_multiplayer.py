@@ -182,6 +182,90 @@ def test_server_room():
     assert state(guest["token"])["phase"] == "none"
 
 
+def test_best_of_series_stops_when_decided():
+    from engine.tournament import play_series
+    a, b = TEAMS["India T20 2024"], TEAMS["Australia T20 2024"]
+    lengths = set()
+    for seed in range(8):
+        res = play_series(a, b, n=3, fmt="t20", comp="t20i_full", year=2024, seed=seed, best_of=True)
+        ws = [c["result"].get("winner") for c in res["matches"]]
+        lengths.add(len(ws))
+        assert res["best_of"] == 3 and len(ws) in (2, 3)
+        if len(ws) == 2:
+            assert ws[0] == ws[1] and ws[0] is not None, ws
+        assert res["winner"] is None or res["score"][res["winner"]] == 2 or len(ws) == 3
+    assert lengths == {2, 3}, lengths                 # some series are decided early, some go the distance
+    full = play_series(a, b, n=3, fmt="t20", comp="t20i_full", year=2024, seed=0)
+    assert len(full["fixtures"]) == 3 and full["best_of"] is None
+    one = play_series(a, b, n=1, fmt="t20", comp="t20i_full", year=2024, seed=0)
+    assert "series" not in one["result"] and one["result"] == one["matches"][0]["result"]["text"]
+
+
+def test_result_pause_shown_to_both_at_once():
+    from engine.tournament import play_series
+    a, b = TEAMS["India T20 2024"], TEAMS["Australia T20 2024"]
+    log = []
+    ctl = {}
+    for t in (a, b):
+        c = Recorder(t["name"], log)
+        c.manual_kinds = {"result"}
+        ctl[t["name"]] = c
+    res = play_series(a, b, n=2, fmt="t20", comp="t20i_full", year=2024, seed=4, control=ctl)
+    posts = [e for e in log if e[0] == "post"]
+    assert [e[2] for e in posts] == ["result"] * 4
+    assert [e[0] for e in log] == ["post", "post", "wait", "wait"] * 2
+    assert len(res["fixtures"]) == 2
+
+
+def test_server_room_series():
+    import web_ui
+    tmp = Path(tempfile.mkdtemp())
+    web_ui.LAST = tmp / "last"
+    cl = web_ui.app.test_client()
+    post = lambda path, body: cl.post(path, json=body)
+    state = lambda tok: cl.get("/api/mp/state?token=" + tok).get_json()
+    host = post("/api/mp/create", {"fmt": "t20", "comp": "t20i_full", "year": 2024, "venues": [], "rain": False,
+                                   "seed": "5", "clock": "off", "series": "3"}).get_json()["token"]
+    code = state(host)["code"]
+    guest = post("/api/mp/join", {"code": code}).get_json()["token"]
+    assert state(host)["settings"]["series"] == 3
+    # the host changes it in the room: both must say ready again
+    post("/api/mp/lobby", {"token": host, "team": "India T20 2024", "manual": ["toss"], "ready": True})
+    st = dict(state(host)["settings"], series=7)
+    post("/api/mp/lobby", {"token": host, "settings": st})
+    assert state(host)["settings"]["series"] == 1 and not state(host)["seats"][0]["ready"]   # 7 is not offered
+    post("/api/mp/lobby", {"token": host, "settings": dict(st, series=3)})
+    post("/api/mp/lobby", {"token": guest, "team": "Australia T20 2024", "manual": ["toss"], "ready": True})
+    assert post("/api/mp/lobby", {"token": host, "ready": True}).status_code == 200
+    pauses = []
+    deadline = time.time() + 120
+    while time.time() < deadline:
+        sts = [state(host), state(guest)]
+        if sts[0]["phase"] == "over":
+            break
+        mine = [s.get("me", {}).get("pending") for s in sts]
+        if all(q and q["kind"] == "result" for q in mine):        # both see the result together
+            sr = sts[0]["series"]
+            assert sr == sts[1]["series"] and sr["of"] == 3 and sum(sr["wins"]) <= sr["finished"]
+            pauses.append(sr)
+        for tok, q in zip((host, guest), mine):
+            if q:
+                post("/api/mp/decide", {"token": tok, "id": q["id"], "choice": None})
+        time.sleep(0.005)
+    st = state(host)
+    assert st["phase"] == "over" and st["job"]["status"] == "done", st
+    res = json.loads((tmp / "last" / "summary.json").read_text(encoding="utf-8"))
+    n = len(res["fixtures"])
+    assert res["best_of"] == 3 and n in (2, 3) and res["mode"] == "mp"
+    assert [p["finished"] for p in pauses] == list(range(1, n + 1)), pauses
+    rec = st["record"]
+    assert sum(rec["matches"]) == sum(1 for f in res["fixtures"] if f["winner"]) and rec["played"] == 1
+    assert sum(rec["series"]) == (1 if res["winner"] else 0)
+    post("/api/mp/lobby", {"token": guest, "rematch": True})
+    assert state(host)["phase"] == "lobby" and state(host)["record"] == rec      # kept for the rematch
+    post("/api/mp/lobby", {"token": host, "leave": True})
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

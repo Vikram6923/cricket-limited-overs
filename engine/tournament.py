@@ -363,24 +363,31 @@ def _summary_card(c: dict) -> dict:
 
 def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: str | None = None,
                 year: int = 2025, venues: list | None = None, seed: int | None = None, on_match=None,
-                rain: bool = False, control: dict | None = None, skill: dict | None = None) -> dict:
-    """Bilateral series of n matches (all n are played). control, skill: as in play_tournament."""
+                rain: bool = False, control: dict | None = None, skill: dict | None = None,
+                best_of: bool = False) -> dict:
+    """Bilateral series of n matches. All n are played, unless best_of: then it stops as soon as one side can no
+    longer be caught (2-0 in a best of 3). control, skill: as in play_tournament."""
     a, b = team_spec(fmt, team_a), team_spec(fmt, team_b)
     run = _Runner(fmt, comp, year, seed, venues, None, None, rain, control, skill)
     run.on_match = on_match
     for i in range(n):
         run.play(a, b, f"Match {i + 1}")
+        w = _wins(run.cards)
+        if best_of and abs(w.get(a["name"], 0) - w.get(b["name"], 0)) > n - i - 1:
+            break
     wins = _wins(run.cards)
     wa, wb = wins.get(a["name"], 0), wins.get(b["name"], 0)
     text = (f"{a['name']} won the series {wa}-{wb}" if wa > wb else f"{b['name']} won the series {wb}-{wa}"
             if wb > wa else f"Series drawn {wa}-{wb}")
+    if n == 1:                                   # a single match: its own result, not "won the series 1-0"
+        text = run.cards[0]["result"]["text"]
     stats = tournament_stats(run.cards, wins)
     pos = stats["mvp"]["official"][0] if stats["mvp"]["official"] else None
     return {"kind": "series", "format": fmt, "competition": run.comp, "year": year, "seed": run.seed,
             "teams": [a["name"], b["name"]], "score": {a["name"]: wa, b["name"]: wb}, "result": text,
             "winner": a["name"] if wa > wb else b["name"] if wb > wa else None,
             "player_of_series": pos, "fixtures": [_summary_card(c) for c in run.cards],
-            "matches": run.cards, **stats}
+            "matches": run.cards, "best_of": n if best_of else None, **stats}
 
 
 # ------------------------------------------------------------------------------------------------ tournament

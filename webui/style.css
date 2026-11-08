@@ -823,3 +823,12 @@ body.mp-on #cap-skip-all{display:none}
   .filters input,.filters select{min-width:0;flex:1}
   .toast{left:14px;right:14px;bottom:80px}
 }
+
+/* two players: series score and head to head */
+.mp-seat[style]{border-left:4px solid var(--c)}
+.mp-seat .team .badge{vertical-align:middle}
+.mp-seat .h2h{margin-top:6px;font-size:.8rem;color:var(--muted)}
+.mp-seat .h2h b{color:var(--text)}
+.series-now{margin:10px 0 2px;padding:8px 12px;border-radius:var(--r);background:color-mix(in srgb,var(--brand) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--brand) 35%,transparent);font-family:var(--disp);font-size:1.05rem}
+#cap-progress b{color:var(--text)}

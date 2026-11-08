@@ -672,7 +672,7 @@ async function showResults(run) {
   setDisplayTeams(RTEAMS);
   const lead = R.kind === 'series' ? (R.winner || '') : R.winner;
   $('r-hero').setAttribute('style', lead ? tStyle(lead) : '');
-  $('r-kick').textContent = `${fmt} · ${R.competition} ${R.year} conditions · ${R.fixtures.length} match${R.fixtures.length === 1 ? '' : 'es'}`;
+  $('r-kick').textContent = `${fmt} · ${R.competition} ${R.year} conditions · ${R.best_of > 1 ? `best of ${R.best_of} · ` : ''}${R.fixtures.length} match${R.fixtures.length === 1 ? '' : 'es'}`;
   $('r-title').innerHTML = R.kind === 'series' ? esc(dnText(R.result, RTEAMS)) : `${badge(R.winner)} ${esc(dn(R.winner))} win the tournament`;
   $('r-sub').textContent = `${R.title || ''} · seed ${R.seed}`;
   const sv = (META.saved || []).find(s => s.id === R_RUN);

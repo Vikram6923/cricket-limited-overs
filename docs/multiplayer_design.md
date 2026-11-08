@@ -178,4 +178,29 @@ team, skips for both players.
   rematch; lobby at phone width.
 - Not done (decided out of scope): series between the two players, two players in a league / tournament / draft /
   auction, the arcade delivery v shot setting. A single match is labelled "won the series 1-0" on the results page,
-  as one-match Match / Series runs always were.
+  as one-match Match / Series runs always were. (Series and the label: fixed 2026-11-08, section 10.)
+
+## 10. Series between the two players (2026-11-08, user chose it as the first extension)
+
+- **Play:** a single match, best of 3 or best of 5 (default best of 3), chosen when hosting and changeable by the
+  host in the room (both then confirm Ready again). A best-of series stops as soon as one player can no longer be
+  caught: `play_series(..., best_of=True)`. Ties after a super over and no-results count for nobody, so a series
+  can be drawn.
+- **Between matches:** in a series both players get the "result" pause at the same moment (`Match` now posts it
+  through `ask_all`; with one person nothing changes) showing the result, player of the match and the series
+  score, with "Next match (2 of 3)" or "See the series results". The next match starts when both have pressed it
+  (or the clock runs out, if there is one). Each player's toss / XI / bars decisions carry over to every match.
+- **Series score while playing:** `/api/mp/state` returns `series` {of, wins by seat, match, finished}; a result
+  on screen already counts. Shown in the captain screen header and on the result pause.
+- **Head to head:** the room keeps `record` {matches won, series won by seat, series played} across rematches;
+  shown on each seat card in the room. It starts again when a new player takes the guest seat.
+- **Results:** kicker shows "best of 3"; a single match now reads as the match result instead of "won the series
+  1-0" (also in the ordinary Match / Series mode when it plays one match).
+- Also fixed on the live screen: after the last ball the score bar showed "need 27 off 0" instead of the result;
+  short team names in the opponent line and the player of the match.
+- **Tests:** `tests/test_multiplayer.py` adds best-of stops when decided (and a plain series still plays all
+  matches), the result pause posted to both before either is awaited, and a server room playing a best of 3 with
+  the host changing the length in the room, both result pauses, the record and the rematch. All other suites pass.
+- **Checked in the browser** (port 5071, two tabs as the two seats): best of 3, result pause on both, Australia won
+  2-0 and the series stopped after match 2, results page, back to the room with the record; room and result pause
+  at phone width (390 px).

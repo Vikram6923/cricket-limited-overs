@@ -58,7 +58,7 @@ async function mpInit() {
 async function mpCreate() {
   const p = payload();
   const r = await api('/api/mp/create', {fmt: p.fmt, comp: p.comp, year: p.year, venues: p.venues, seed: p.seed,
-    rain: p.rain, clock: $('mp-clock').value});
+    rain: p.rain, clock: $('mp-clock').value, series: $('mp-series').value});
   mpStore(r.code, r.token); MP.active = true; MP.built = false; mpPoll();
 }
 
@@ -112,6 +112,19 @@ async function mpPoll() {
   else { toast('The match was stopped.'); mpRematch(); }
 }
 
+/* ───────── the series between the two players ───────── */
+const MP_SERIES_OPTS = [[1, 'A single match'], [3, 'Best of 3'], [5, 'Best of 5']];
+/* {of, wins: [seat 0, seat 1], match, finished} -> "Best of 3 · Match 2 · India lead 1-0" (names: by seat) */
+function mpSeriesLine(sr, names, withMatch = true) {
+  if (!sr || sr.of < 2) return '';
+  const [a, b] = sr.wins, left = sr.of - sr.finished;
+  const nm = i => esc(dn(names[i]));
+  const done = Math.abs(a - b) > left || left === 0;
+  const score = done ? (a === b ? `series drawn ${a}-${b}` : `<b>${nm(a > b ? 0 : 1)}</b> win the series ${Math.max(a, b)}-${Math.min(a, b)}`)
+    : a === b ? (a ? `level at ${a}-${b}` : 'series level') : `<b>${nm(a > b ? 0 : 1)}</b> lead ${Math.max(a, b)}-${Math.min(a, b)}`;
+  return [`Best of ${sr.of}`, withMatch && !done ? `Match ${sr.match}` : '', score].filter(Boolean).join(' · ');
+}
+
 /* ───────── the room before the match ───────── */
 function mpCompLabel(s) {
   const c = ((META.formats[s.fmt] || {}).competitions || []).find(c => c.id === s.comp);
@@ -123,7 +136,8 @@ function mpLobby(st) {
   const s = st.settings, me = st.you;
   $('mp-room-code').textContent = st.code;
   $('mp-cond').textContent = `${s.fmt.toUpperCase()} · conditions of ${mpCompLabel(s)} ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`
-    + ` · rain ${s.rain ? 'on' : 'off'} · shot clock ${s.clock === 'off' ? 'off' : s.clock + ' s a ball'}`;
+    + ` · rain ${s.rain ? 'on' : 'off'} · shot clock ${s.clock === 'off' ? 'off' : s.clock + ' s a ball'}`
+    + ` · ${(MP_SERIES_OPTS.find(o => o[0] === (s.series || 1)) || MP_SERIES_OPTS[0])[1].toLowerCase()}`;
   const joined = st.seats[1].joined;
   const links = me !== 0 || joined ? '' : st.lan
     ? `<div class="lbl">Invite the other player</div><div class="sb-line">On their device (same Wi-Fi), open
@@ -134,10 +148,13 @@ function mpLobby(st) {
        Two players and type the code <b class="mp-code">${esc(st.code)}</b>).</div>`;
   $('mp-links').style.display = links ? '' : 'none';
   $('mp-links').innerHTML = links;
-  $('mp-seats').innerHTML = st.seats.map((x, i) => `<div class="mp-seat ${i === me ? 'me' : ''}">
+  const rec = st.record || {matches: [0, 0], series: [0, 0], played: 0};
+  const recLine = i => rec.matches[0] + rec.matches[1] === 0 ? '' : `<div class="h2h">Won here: <b>${rec.matches[i]}</b> match${rec.matches[i] === 1 ? '' : 'es'}${rec.played ? ` · <b>${rec.series[i]}</b> series` : ''}</div>`;
+  $('mp-seats').innerHTML = st.seats.map((x, i) => `<div class="mp-seat ${i === me ? 'me' : ''}" ${x.label ? `style="${tStyle(x.label)}"` : ''}>
     <div class="who">Player ${i + 1}${i === 0 ? ' (host)' : ''}${i === me ? ' · you' : ''}</div>
-    <div class="team">${x.label ? esc(x.label) : x.joined ? '<span class="muted">picking a team…</span>' : '<span class="muted">not joined yet</span>'}</div>
-    <div class="small ${x.ready ? 'ok' : 'wait'}">${!x.joined ? '' : x.ready ? '✓ ready' : 'not ready'}${x.joined && !x.here ? ' · <span class="muted">away</span>' : ''}</div></div>`).join('');
+    <div class="team">${x.label ? `${badge(x.label, 'sm')} ${esc(x.label)}` : x.joined ? '<span class="muted">picking a team…</span>' : '<span class="muted">not joined yet</span>'}</div>
+    <div class="small ${x.ready ? 'ok' : 'wait'}">${!x.joined ? '' : x.ready ? '✓ ready' : 'not ready'}${x.joined && !x.here ? ' · <span class="muted">away</span>' : ''}</div>
+    ${recLine(i)}</div>`).join('');
   if (me === 'spectator') {
     $('mp-mine').innerHTML = '<div class="sb-line">You are watching. The match shows here when both players are ready.</div>';
     $('mp-leave').textContent = 'Stop watching';
@@ -146,6 +163,8 @@ function mpLobby(st) {
   $('mp-leave').textContent = me === 0 ? 'Close the room' : 'Leave the room';
   const mine = st.seats[me];
   if (!MP.built) mpBuildMine(st, mine);
+  const ser = $('mp-series-room');
+  if (ser && document.activeElement !== ser) ser.value = String(s.series || 1);
   $('mp-ready').textContent = mine.ready ? 'Not ready yet' : "✓ I'm ready";
   $('mp-ready').className = 'btn ' + (mine.ready ? 'sec' : 'go');
   const other = st.seats[1 - me];
@@ -165,6 +184,8 @@ function mpBuildMine(st, seat) {
     <div class="lbl" style="margin-top:10px">Decisions you make (the rest are the computer's)</div>
     <div class="checks" id="mp-manual">${MP_KINDS.filter(([k]) => k !== 'impact' || impact).map(([k, t]) =>
       `<label><input type="checkbox" value="${k}" ${seat.manual.includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
+    ${st.you === 0 ? `<div class="lbl" style="margin-top:10px">Play</div><div class="fg"><select id="mp-series-room">${MP_SERIES_OPTS.map(([v, t]) =>
+      `<option value="${v}">${t}</option>`).join('')}</select></div>` : ''}
     <div class="cap-actions"><button class="btn go" id="mp-ready">✓ I'm ready</button></div>
     <div class="hint" id="mp-ready-note"></div>`;
   const names = META.teams.map(t => t.name);
@@ -189,6 +210,10 @@ function mpBuildMine(st, seat) {
   $('mp-team').onchange = () => { roster(); mpLobbySend({team: entry()}); };
   $('mp-classic-box').addEventListener('change', () => setTimeout(() => mpLobbySend({team: entry()}), 300));
   $('mp-manual').onchange = () => mpLobbySend({manual: kinds()});
+  if ($('mp-series-room')) {
+    $('mp-series-room').value = String(s.series || 1);
+    $('mp-series-room').onchange = () => mpLobbySend({settings: {...s, series: $('mp-series-room').value}});
+  }
   $('mp-ready').onclick = () => {
     const ready = $('mp-ready').textContent.includes("I'm ready");
     if (ready && !entry()) { toast('Choose your team first.', true); return; }
@@ -201,11 +226,15 @@ function mpPlaying(st) {
   showView('v-captain');
   $('go-btn').disabled = true;
   $('cap-progress').textContent = '';
+  setDisplayTeams(st.names);
+  MP.series = st.series; MP.names = st.names;
+  const serLine = mpSeriesLine(st.series, st.names);
   if (st.you === 'spectator') {
-    $('cap-title').textContent = `${st.names[0]} v ${st.names[1]} - watching`;
+    $('cap-title').innerHTML = `${badge(st.names[0], 'sm')} ${esc(dn(st.names[0]))} v ${badge(st.names[1], 'sm')} ${esc(dn(st.names[1]))} · watching`;
     $('cap-ctx').textContent = 'Two players';
+    $('cap-progress').innerHTML = serLine;
     $('cap-opp').textContent = ''; $('cap-clock').textContent = '';
-    if (st.latest) $('cap-score').innerHTML = scoreHTML({state: st.latest});
+    if (st.latest) { $('cap-score').innerHTML = scoreHTML({state: st.latest}); $('cap-bug').innerHTML = bugHTML({state: st.latest}); }
     $('cap-q').innerHTML = '<div class="muted">You are watching. The scoreboard updates whenever a player has a decision to make.</div>';
     document.querySelector('#v-captain .cap-ctl').style.display = 'none';
     return;
@@ -214,11 +243,11 @@ function mpPlaying(st) {
   const me = st.me, opp = st.opp;
   MP.team = me.team;
   CAP.impact = st.settings.comp === 'ipl' && st.settings.year >= 2023;
-  if (!me.pending) $('cap-title').textContent = `${st.names[0]} v ${st.names[1]} — you captain ${me.team}`;
+  if (!me.pending) $('cap-title').innerHTML = `You captain ${badge(me.team, 'sm')} ${esc(dn(me.team))}`;
   capRender({done: st.job.done, total: st.job.total, captain: {pending: me.pending, manual: me.manual}});
-  $('cap-progress').textContent = '';
+  if ($('cap-progress').innerHTML !== serLine) $('cap-progress').innerHTML = serLine;
   // the other player: what they are doing, and a hand-over if they have gone
-  let o = `${esc(opp.team)}: ${opp.computer ? 'the computer is playing their side' : opp.choosing ? MP_DOING[opp.choosing] + '…' : 'playing'}`;
+  let o = `${esc(dn(opp.team))}: ${opp.computer ? 'the computer is playing their side' : opp.choosing ? MP_DOING[opp.choosing] + '…' : 'playing'}`;
   if (opp.gone > 15 && !opp.computer) o += ` · <span style="color:var(--amber)">no contact for ${opp.gone} s</span>`;
   if (opp.can_take) o += ` <button class="btn sec" id="mp-take" style="width:auto;padding:3px 8px">Hand their side to the computer</button>`;
   if (o !== MP.oppHTML) {
@@ -227,10 +256,10 @@ function mpPlaying(st) {
   }
   $('cap-back').style.display = me.skip || me.manual.length < me.home.length ? '' : 'none';
   if (!me.pending) {
-    if (st.latest) $('cap-score').innerHTML = scoreHTML({state: st.latest});
+    if (st.latest) { $('cap-score').innerHTML = scoreHTML({state: st.latest, team: me.team}); $('cap-bug').innerHTML = bugHTML({state: st.latest, team: me.team}); }
     const w = me.skip ? `Skipping to the end of the ${me.skip === 'innings' ? 'innings' : 'match'}: the computer plays your side.`
       : !me.manual.length ? 'The computer is playing your side.'
-      : opp.choosing && !opp.computer ? `Waiting for ${esc(opp.team)} - ${MP_DOING[opp.choosing]}…` : 'Playing on…';
+      : opp.choosing && !opp.computer ? `Waiting for ${esc(dn(opp.team))} - ${MP_DOING[opp.choosing]}…` : 'Playing on…';
     if (w !== MP.waitHTML || CAP.qid !== 'mpwait') { MP.waitHTML = w; CAP.qid = 'mpwait'; $('cap-q').innerHTML = `<div class="muted">${w}</div>`; }
     MP.deadline = null;
   } else {
