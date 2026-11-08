@@ -27,3 +27,6 @@ data/teams.json
 # Claude Code files (kept locally, not published)
 CLAUDE.md
 .claude/
+
+# Hosting secrets (docker compose reads SITE_PASSWORD from .env)
+.env

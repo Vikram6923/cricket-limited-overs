@@ -136,6 +136,58 @@ optionally venues, a seed and whether rain can interrupt play (on by default). T
 rain notes, run worm, Manhattan, win-probability and partnership charts, scorecard and innings log), sortable batting and bowling tables, the MVP race (official and balanced) and,
 after a draft or an auction, the squads (with prices). Saved teams go in `data/teams.json` (not in git).
 
+### Hosting it for friends
+
+`python web_ui.py --public` runs it as a website that several people can use at once. Each browser is its own
+visitor (a cookie): its own simulation, draft, auction, saved teams, saved runs and careers, kept in
+`results/visitors/<id>/`. Any number of two-player rooms can run at once, and the room shows the site's link to
+send to the other player. Without `--public` nothing changes: one user, the folders above.
+
+- **Password:** set `SITE_PASSWORD` and the browser asks for it once (any user name). Use one on the open internet.
+- **Load:** at most `MAX_JOBS` simulations run at once (default 6); the next person is asked to try again in a
+  minute. It is one Python process, so they share one CPU core: a full IPL season takes about 8 s alone, longer
+  when others are running. Memory: about 300 MB.
+- **Housekeeping:** a run nobody has looked at for 15 minutes is stopped, idle rooms close after 3 hours, and a
+  visitor's folder is deleted 30 days after their last visit. Each visitor keeps up to 100 teams, 30 saved runs and
+  10 careers.
+- **One process only.** Runs in progress live in memory, so don't run several copies behind a load balancer, and
+  don't use hosts that pause or multiply the app between requests (serverless platforms such as Cloud Run or
+  Vercel).
+
+It listens on `$PORT` (or `--port`) on all addresses; `--host 127.0.0.1` keeps it to this computer, for a tunnel.
+It needs HTTPS in front of it (a tunnel or a proxy); it serves plain HTTP itself, with `waitress`.
+
+**On your own server with Docker** (the `Dockerfile` and `docker-compose.yml` here):
+
+```bash
+SITE_PASSWORD='choose-one' docker compose up -d --build
+```
+
+(or put `SITE_PASSWORD=...` in a `.env` file next to `docker-compose.yml`; git ignores it). This runs it as an
+unprivileged user in one container, reachable only from that computer on
+`http://127.0.0.1:5070`, with a 768 MB memory cap and the visitors' folders in a Docker volume (they survive
+restarts and upgrades). To put it on the internet, point a
+[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/) at
+it: give it its own hostname (e.g. `cricket.example.com`), not a path under another site, because the page calls
+`/api/...` from the root. In the tunnel's `config.yml`, before the final 404 rule:
+
+```yaml
+  - hostname: cricket.example.com
+    service: http://localhost:5070
+```
+
+then `cloudflared tunnel route dns <tunnel> cricket.example.com` and restart cloudflared. To upgrade:
+`git pull && docker compose up -d --build`.
+
+**Without a server:** run `python web_ui.py --public --host 127.0.0.1` on your computer and
+`cloudflared tunnel --url http://localhost:5070`, which prints a temporary `https://….trycloudflare.com` link. It
+works while your computer is on.
+
+**On a hosting service:** anything that runs a Dockerfile as one always-on instance with about 512 MB works,
+e.g. Fly.io (a shared-cpu-1x machine with 512 MB; turn off auto-stop and run one machine: `fly deploy --ha=false`)
+or Render (a paid instance: the free one has 0.1 CPU, which makes drafts and seasons slow, and sleeps when idle).
+Without a volume, saved runs are lost when the service restarts.
+
 ### From Python
 
 ```python

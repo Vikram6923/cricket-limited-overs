@@ -3,20 +3,27 @@
     python web_ui.py              # opens http://localhost:5070
     python web_ui.py --no-browser --port 5071
     python web_ui.py --lan        # also reachable from other devices on the same Wi-Fi
+    python web_ui.py --public     # a hosted site: every visitor gets their own runs (see README "Hosting it")
 
-Plain Flask, one background job at a time, the page polls /api/status (no websockets, no CDN scripts, works
+Plain Flask, a background job per visitor, the page polls /api/status (no websockets, no CDN scripts, works
 offline). The engine is called directly as a library. Modes: Match / Series, Tournament, Classic Series and
 Classic Tournament (a nation over a year range, rated on those years), League Season, Fantasy Draft, Auction,
 Career (a league season after season, engine/career.py; kept in results/careers/<id>/), Team Builder.
-Two players (docs/multiplayer_design.md): one match, each side captained by a person on their own device.
-Saved teams live in data/teams.json (created from data/teams_default.json on first run); the last results are
-kept in results/last/ so they survive a restart.
+Two players (docs/multiplayer_design.md): one match, each side captained by a person on their own device; any
+number of rooms at once.
+On your own computer there is one user: saved teams live in data/teams.json (created from data/teams_default.json
+on first run) and the last results in results/last/, so they survive a restart. With --public each browser is a
+visitor (a cookie) with its own job, draft, auction, teams and results under results/visitors/<id>/.
 """
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
+import os
 import random
+import re
+import secrets
 import shutil
 import socket
 import threading
@@ -27,7 +34,7 @@ from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 
-from flask import Flask, abort, jsonify, request, send_from_directory
+from flask import Flask, Response, abort, g, jsonify, request, send_from_directory
 
 from engine.conditions import venue_table
 from engine.control import DEFAULT_KINDS, KINDS, Cancelled, WaitingController
@@ -48,6 +55,7 @@ LAST = ROOT / "results" / "last"
 SAVED = ROOT / "results" / "saved"        # runs the user saved: one folder each (summary.json, matches/, meta.json)
 AUCTION_LAST = ROOT / "results" / "auction_last.json"   # squads of the last finished auction (to retain from)
 CAREERS = ROOT / "results" / "careers"    # one folder per career: career.json, seasons/<season>/
+VISITORS_DIR = ROOT / "results" / "visitors"   # --public: one folder per visitor, laid out like results/
 SEASONS = ROOT / "data" / "league_seasons.json"   # every season of 11 leagues (scripts/build_league_presets.py)
 
 
@@ -75,18 +83,171 @@ KNOCKOUTS = {"semis": "Semi-finals + final", "ipl": "IPL playoffs (Q1, Eliminato
              "final": "Final (top two)", "none": "No knockouts (league winner)"}
 
 app = Flask(__name__, static_folder=None)
+# MULTI (set by --public): every browser is its own visitor. Otherwise everyone shares LOCAL (one person, maybe
+# with a phone on the same Wi-Fi), with the folders above.
+app.config.update(MULTI=False, PASSWORD=None, MAX_JOBS=None, LIMITS=None)
+
+
+# ------------------------------------------------------------------------------------------------ visitors
+
+class Visitor:
+    """One person's state: their job, draft and auction (in memory) and their folders. root None: the local
+    user, whose folders are the module paths (read at call time, so tests can point them elsewhere)."""
+
+    def __init__(self, vid: str, root: Path | None = None):
+        self.id, self.root = vid, root
+        self.job: Job | None = None
+        self.draft: Draft | None = None     # the draft in progress (or just finished, waiting for its league)
+        self.auction: Auction | None = None  # the auction in progress (or just finished, waiting for its league)
+        self.seen = time.time()
+
+    def _p(self, local: Path, name: str) -> Path:
+        return local if self.root is None else self.root / name
+
+    @property
+    def teams_file(self) -> Path:
+        return self._p(TEAMS, "teams.json")
+
+    @property
+    def last(self) -> Path:
+        return self._p(LAST, "last")
+
+    @property
+    def saved(self) -> Path:
+        return self._p(SAVED, "saved")
+
+    @property
+    def careers(self) -> Path:
+        return self._p(CAREERS, "careers")
+
+    @property
+    def auction_last(self) -> Path:
+        return self._p(AUCTION_LAST, "auction_last.json")
+
+    def busy(self) -> bool:
+        return bool(self.job and self.job.status == "running")
+
+
+LOCAL = Visitor("local")
+VISITORS: dict[str, Visitor] = {}      # --public: cookie id -> visitor
+VID = re.compile(r"[A-Za-z0-9_-]{16,40}")
+VLOCK = threading.Lock()
+
+
+def V() -> Visitor:
+    """The visitor making this request."""
+    return g.get("visitor") or LOCAL
+
+
+@app.before_request
+def _before():
+    pw = app.config.get("PASSWORD")
+    if pw:                                 # one shared password (any user name), so strangers and bots stay out
+        a = request.authorization
+        if not a or not hmac.compare_digest(str(a.password or "").encode(), pw.encode()):
+            return Response("This cricket simulator needs the password you were given.", 401,
+                            {"WWW-Authenticate": 'Basic realm="Cricket simulator", charset="UTF-8"'})
+    if not app.config.get("MULTI"):
+        g.visitor = LOCAL
+        return None
+    vid = request.cookies.get("vid") or ""
+    if not VID.fullmatch(vid):
+        vid = g.new_vid = secrets.token_urlsafe(18)
+    with VLOCK:
+        v = VISITORS.get(vid)
+        if v is None:
+            v = VISITORS[vid] = Visitor(vid, VISITORS_DIR / vid)
+            if v.root.exists():            # back after a restart: keep the folder from being cleaned up
+                os.utime(v.root)
+    v.seen = time.time()
+    g.visitor = v
+    return None
+
+
+@app.after_request
+def _after(resp):
+    if g.get("new_vid"):
+        resp.set_cookie("vid", g.new_vid, max_age=400 * 86400, httponly=True, samesite="Lax", secure=request.is_secure)
+    return resp
+
+
+def _limit(kind: str) -> int | None:
+    """--public: how many saved teams / runs / careers one visitor may keep (None: no limit)."""
+    return (app.config.get("LIMITS") or {}).get(kind) if V().root is not None else None
+
+
+def _running_jobs() -> list:
+    jobs = [v.job for v in [LOCAL, *VISITORS.values()]] + [r.get("job") for r in ROOMS.values()]
+    return [j for j in dict.fromkeys(j for j in jobs if j) if j.status == "running"]
+
+
+def _capacity_error() -> str | None:
+    """--public: at most MAX_JOBS simulations at once (one process, so they share one CPU core)."""
+    cap = app.config.get("MAX_JOBS")
+    if cap and len(_running_jobs()) >= cap:
+        return f"The server is busy ({cap} simulations are running). Try again in a minute."
+    return None
+
+
+def _cancel(job) -> None:
+    if job and job.status == "running":
+        job.cancel = True
+        if job.controller:
+            job.controller.cancel()
+        for c in (job.controllers or {}).values():
+            c.cancel()
+
+
+IDLE_CANCEL = 15 * 60     # --public: stop a run nobody has looked at for this long (it would hold a job slot)
+VISITOR_FORGET = 24 * 3600  # drop an idle visitor's in-memory draft / auction
+ROOM_FORGET = 3 * 3600    # close a room neither player has opened for this long
+KEEP_DAYS = 30            # delete a visitor's folder this long after their last visit
+
+
+def _reaper() -> None:
+    """--public housekeeping, once a minute: abandoned runs, idle visitors and rooms, old visitor folders."""
+    while True:
+        time.sleep(60)
+        try:
+            now = time.time()
+            with LOCK:
+                for code, r in list(ROOMS.items()):
+                    seen = max(s["seen"] for s in r["seats"])
+                    if now - seen > IDLE_CANCEL:
+                        _cancel(r.get("job"))
+                    if now - seen > ROOM_FORGET and not (r.get("job") and r["job"].status == "running"):
+                        del ROOMS[code]
+            with VLOCK:
+                for vid, v in list(VISITORS.items()):
+                    if now - v.seen > IDLE_CANCEL:
+                        _cancel(v.job)
+                    if now - v.seen > VISITOR_FORGET and not v.busy():
+                        del VISITORS[vid]
+                    elif v.root.exists() and now - v.seen < 3600:
+                        os.utime(v.root)
+                live = set(VISITORS)
+            if VISITORS_DIR.exists():
+                for d in VISITORS_DIR.iterdir():
+                    if d.name not in live and now - d.stat().st_mtime > KEEP_DAYS * 86400:
+                        shutil.rmtree(d, ignore_errors=True)
+        except Exception:  # noqa: BLE001 - housekeeping must never stop
+            traceback.print_exc()
 
 
 # ------------------------------------------------------------------------------------------------ teams
 
-def load_teams() -> list[dict]:
-    if not TEAMS.exists():
-        shutil.copyfile(TEAMS_DEFAULT, TEAMS)
-    return json.loads(TEAMS.read_text(encoding="utf-8"))
+def load_teams(v: Visitor | None = None) -> list[dict]:
+    p = (v or V()).teams_file
+    if not p.exists():
+        p.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(TEAMS_DEFAULT, p)
+    return json.loads(p.read_text(encoding="utf-8"))
 
 
 def save_teams(teams: list[dict]) -> None:
-    TEAMS.write_text(json.dumps(teams, indent=1, ensure_ascii=False), encoding="utf-8")
+    p = V().teams_file
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(teams, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
 @lru_cache(maxsize=None)
@@ -95,13 +256,13 @@ def home_grounds() -> dict:
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
-def home_ground(entry, fmt: str) -> str | None:
+def home_ground(entry, fmt: str, v: Visitor | None = None) -> str | None:
     """Primary home ground of a tournament side: a franchise's own ground (league presets), else its nation's
     (scripts/build_home_grounds.py): the historical team's nation, or the nation most of a saved team's players play
     for (at least 6). None (neutral venues) for mixed sides such as draft teams."""
     if isinstance(entry, dict):
         return home_grounds().get(fmt, {}).get(entry.get("nation"))
-    saved = next((t for t in load_teams() if t["name"] == entry), None)
+    saved = next((t for t in load_teams(v) if t["name"] == entry), None)
     if not saved:
         return None
     if saved.get("home_venue"):
@@ -113,13 +274,14 @@ def home_ground(entry, fmt: str) -> str | None:
     return home_grounds().get(fmt, {}).get(top[0][0]) if top and top[0][1] >= 6 else None
 
 
-def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SIZE, years_mode: str = "blend") -> dict:
-    """A saved team (by name) or a historical team ({"nation", "y1", "y2"}; squad = the most-capped squad_size,
-    None = everyone who played; years_mode "blend" | "only", see engine/periods.py)."""
+def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SIZE, years_mode: str = "blend",
+              v: Visitor | None = None) -> dict:
+    """A saved team (by name, from v's teams) or a historical team ({"nation", "y1", "y2"}; squad = the most-capped
+    squad_size, None = everyone who played; years_mode "blend" | "only", see engine/periods.py)."""
     if isinstance(entry, dict):
         return history.historical_team(fmt, entry["nation"], int(entry["y1"]), int(entry["y2"]), size=squad_size,
                                        years_mode=years_mode)
-    t = next((t for t in load_teams() if t["name"] == entry), None)
+    t = next((t for t in load_teams(v) if t["name"] == entry), None)
     if not t:
         raise ValueError(f"no saved team called {entry!r}")
     ids = [p["id"] for p in t["players"]]
@@ -130,9 +292,10 @@ def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SI
     return spec
 
 
-def check_entries(entries: list, fmt: str) -> str | None:
-    """Error message for a list of team entries, or None. Historical entries need a nation that played then."""
-    names = {t["name"] for t in load_teams()}
+def check_entries(entries: list, fmt: str, owners: list | None = None) -> str | None:
+    """Error message for a list of team entries, or None. Historical entries need a nation that played then.
+    owners: whose saved teams each entry is (two players: each seat's own; default: this visitor's)."""
+    owners = owners or [V()] * len(entries)
     lo, hi = history.first_year(fmt), history.last_year(fmt)
     seen = set()
     for e in entries:
@@ -149,7 +312,7 @@ def check_entries(entries: list, fmt: str) -> str | None:
                 return f"{e.get('nation')} has too few {fmt.upper()} players in {y1}-{y2}."
             key = history.team_name(e["nation"], y1, y2)
         else:
-            if e not in names:
+            if e not in {t["name"] for t in load_teams(owners[len(seen)])}:
                 return f"No saved team called {e!r}."
             key = e
         if key in seen:
@@ -229,8 +392,9 @@ class Job:
         self.started, self.finished = time.time(), None
         self.cancel = False
         self.controller: WaitingController | None = None   # manual captaincy: the side the person captains
-        self.controllers: dict | None = None    # two players: team name -> WaitingController (see ROOM)
+        self.controllers: dict | None = None    # two players: team name -> WaitingController (see ROOMS)
         self.winners: list = []                 # winner of each finished match (None: tie / no result)
+        self.room: dict | None = None           # two players: the room the match belongs to
 
     def to_dict(self) -> dict:
         d = {"status": self.status, "title": self.title, "done": self.done, "total": self.total,
@@ -243,10 +407,7 @@ class Job:
         return d
 
 
-JOB: Job | None = None
 LOCK = threading.Lock()
-DRAFT: Draft | None = None     # the draft in progress (or just finished, waiting for its league)
-AUCTION: Auction | None = None  # the auction in progress (or just finished, waiting for its league)
 
 
 def _augment(res: dict) -> None:
@@ -294,8 +455,9 @@ def _augment(res: dict) -> None:
         f["winner"] = next((c["result"].get("winner") for c in res["matches"] if c["match_no"] == f["match_no"]), None)
 
 
-def _run(job: Job, params: dict) -> None:
-    global JOB
+def _run(job: Job, params: dict, v: Visitor) -> None:
+    """The run in a background thread, for visitor v (two players: the host). The results go to v's last run
+    (two players: to everyone in the room)."""
     try:
         def on_match(card):
             job.done += 1
@@ -324,14 +486,15 @@ def _run(job: Job, params: dict) -> None:
                                   control=control, skill=skill)
         elif params["mode"] == "draft":
             groups = int(params.get("groups") or 1)
-            res = play_tournament(DRAFT.team_specs(), fmt=fmt, comp=comp, year=year,
+            dr = v.draft
+            res = play_tournament(dr.team_specs(), fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, seed=seed, rain=rain_,
                                   on_match=on_match, control=control, skill=skill)
-            res["draft"] = {"teams": DRAFT.teams, "user": DRAFT.user,
-                            "board": DRAFT.state()["board"], "years": [DRAFT.y1, DRAFT.y2]}
+            res["draft"] = {"teams": dr.teams, "user": dr.user,
+                            "board": dr.state()["board"], "years": [dr.y1, dr.y2]}
         elif params["mode"] == "auction":
-            a = AUCTION
+            a = v.auction
             if a.comp:                         # a real season: its conditions, home grounds and IPL playoffs
                 res = play_tournament(a.team_specs(), fmt="t20", comp=a.comp, year=a.year, rounds=2, knockout="ipl",
                                       home_venues={t: h for t, h in a.homes.items() if h}, seed=seed, rain=rain_,
@@ -344,7 +507,7 @@ def _run(job: Job, params: dict) -> None:
             res["draft"] = {"teams": sm["teams"], "user": sm["user"], "board": sm["board"], "auction": True,
                             "purse": sm["purse"]}
         elif params["mode"] == "career":
-            car = load_career(params["career"])
+            car = load_career(params["career"], v)
             res = play_tournament(car.specs(), **car.play_args(), rain=rain_, on_match=on_match, control=control,
                                   skill=skill)
             res["career"] = {"id": params["career"], "name": car.name, "season": car.season_label}
@@ -354,22 +517,21 @@ def _run(job: Job, params: dict) -> None:
                                   on_match=on_match, control=control)
             res["draft"] = params["draft_info"]
         elif params["mode"] == "mp":           # a single match or a best-of series between the two players
-            a, b = params["specs"] if params.get("specs") else (team_spec(params["team1"], fmt),
-                                                                team_spec(params["team2"], fmt))
+            a, b = params["specs"]
             res = play_series(a, b, n=int(params.get("series") or 1), best_of=True,
                               fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match,
                               control=control)
             if params.get("draft_info"):
                 res["draft"] = params["draft_info"]
         elif params["mode"] == "series":
-            res = play_series(team_spec(params["team1"], fmt, size, ym), team_spec(params["team2"], fmt, size, ym),
+            res = play_series(team_spec(params["team1"], fmt, size, ym, v), team_spec(params["team2"], fmt, size, ym, v),
                               n=int(params["matches"]),
                               fmt=fmt, comp=comp, year=year, venues=venues_, seed=seed, rain=rain_, on_match=on_match,
                               control=control, skill=skill)
         else:
             groups = int(params.get("groups") or 1)
-            specs = [team_spec(t, fmt, size, ym) for t in params["teams"]]
-            homes = {sp["name"]: h for t, sp in zip(params["teams"], specs) if (h := home_ground(t, fmt))}
+            specs = [team_spec(t, fmt, size, ym, v) for t in params["teams"]]
+            homes = {sp["name"]: h for t, sp in zip(params["teams"], specs) if (h := home_ground(t, fmt, v))}
             res = play_tournament(specs, fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, home_venues=homes,
@@ -387,18 +549,25 @@ def _run(job: Job, params: dict) -> None:
                     r["opponents"] = "the other player"
             _mp_record(job, res)
         _augment(res)
-        if LAST.exists():
-            shutil.rmtree(LAST)
-        save(res, LAST)
+        if job.cancel:                         # stopped (or abandoned) after the last match: keep the last run
+            raise Stopped()
+        dests = [v] if job.room is None else _room_visitors(job.room)
+        for i, dv in enumerate(dests):         # two players: everyone in the room sees these results
+            if dv.last.exists():
+                shutil.rmtree(dv.last)
+            if i == 0:
+                save(res, dv.last)
+            else:
+                shutil.copytree(dests[0].last, dv.last)
         if params["mode"] == "career":           # into the career: its season folder, history and statistics
             label = _safe(car.season_label)
-            d = CAREERS / params["career"] / "seasons" / label
+            d = v.careers / params["career"] / "seasons" / label
             if d.exists():
                 shutil.rmtree(d)
-            shutil.copytree(LAST, d)
+            shutil.copytree(v.last, d)
             car.record(res, run=f"career/{params['career']}/{label}")
             car.advance()
-            save_career(params["career"], car)
+            save_career(params["career"], car, v)
         job.status = "done"
     except (Stopped, Cancelled):
         job.status = "stopped"
@@ -434,9 +603,10 @@ def api_meta():
                                             for t in s["teams"]]} for s in lg["seasons"]]}
                     for k, lg in league_seasons().items()],
         "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
-        "teams": load_teams(), "has_results": (LAST / "summary.json").exists(), "saved": saved_runs(),
+        "teams": load_teams(), "has_results": (V().last / "summary.json").exists(), "saved": saved_runs(),
         "careers": careers_list(),
-        "job": JOB.to_dict() if JOB else None,
+        "job": V().job.to_dict() if V().job else None,
+        "public": bool(app.config.get("MULTI")),
     })
 
 
@@ -482,6 +652,8 @@ def api_team_save():
     teams = [t for t in load_teams() if t["name"] != (d.get("replace") or name)]
     if any(t["name"] == name for t in teams):
         return jsonify(error=f"There is already a team called {name!r}."), 400
+    if (cap := _limit("teams")) and len(teams) >= cap:
+        return jsonify(error=f"You can keep up to {cap} teams here: delete one first."), 400
     teams.append({"name": name, "players": [{"id": p["id"], "name": p["name"]} for p in ps]})
     save_teams(teams)
     return jsonify(teams=teams)
@@ -497,11 +669,13 @@ def api_team_delete():
 
 @app.post("/api/run")
 def api_run():
-    global JOB
+    v = V()
     p = request.get_json(force=True)
     with LOCK:
-        if JOB and JOB.status == "running":
+        if v.busy():
             return jsonify(error="A simulation is already running."), 409
+        if err := _capacity_error():
+            return jsonify(error=err), 503
         if p.get("mode") == "league":
             p["fmt"] = "t20"
         fmt = p.get("fmt")
@@ -535,11 +709,12 @@ def api_run():
             if cap:
                 title += f" - you captain {cap}"
         elif p.get("mode") == "draft":
-            if not DRAFT or not DRAFT.done:
+            dr = v.draft
+            if not dr or not dr.done:
                 return jsonify(error="Finish the draft first."), 400
-            if DRAFT.fmt != fmt:
-                return jsonify(error=f"The squads were drafted for {DRAFT.fmt.upper()}."), 400
-            teams = DRAFT.teams
+            if dr.fmt != fmt:
+                return jsonify(error=f"The squads were drafted for {dr.fmt.upper()}."), 400
+            teams = dr.teams
             groups = int(p.get("groups") or 1)
             ko = p.get("knockout") or "semis"
             if ko not in KNOCKOUTS:
@@ -548,10 +723,10 @@ def api_run():
             if len(teams) < need or (groups > 1 and (ko == "ipl" or len(teams) < 4)):
                 return jsonify(error="Not enough teams for these knockouts / groups."), 400
             total = match_count(len(teams), int(p.get("rounds") or 1), groups if groups > 1 else None, ko)
-            title = f"Fantasy draft league - {len(teams)} teams, players from {DRAFT.y1}-{DRAFT.y2}"
+            title = f"Fantasy draft league - {len(teams)} teams, players from {dr.y1}-{dr.y2}"
             sides = list(teams)
         elif p.get("mode") == "auction":
-            a = AUCTION
+            a = v.auction
             if not a or not a.done:
                 return jsonify(error="Finish the auction first."), 400
             if a.comp:
@@ -573,7 +748,7 @@ def api_run():
                 title += f" - you captain {p['captain']}"
         elif p.get("mode") == "career":
             try:
-                car = load_career(p.get("career"))
+                car = load_career(p.get("career"), v)
             except FileNotFoundError:
                 return jsonify(error="Unknown career."), 400
             if car.phase != "season":
@@ -616,28 +791,29 @@ def api_run():
             except (ValueError, IndexError):
                 return jsonify(error="Choose a team from this run to captain."), 400
             title += f" - you captain {cap}"
-        JOB = Job(title, total)
+        job = v.job = Job(title, total)
         if cap:
             manual = set(p["manual"]) & set(KINDS) if isinstance(p.get("manual"), list) else set(DEFAULT_KINDS)
-            JOB.controller = WaitingController(cap, manual)
-        threading.Thread(target=_run, args=(JOB, p), daemon=True).start()
+            job.controller = WaitingController(cap, manual)
+        threading.Thread(target=_run, args=(job, p, v), daemon=True).start()
     return jsonify(ok=True)
 
 
 # ------------------------------------------------------------------------------------------------ draft
 
 def _draft_state() -> dict:
-    return DRAFT.state() if DRAFT else {"current": None, "done": False, "teams": []}
+    dr = V().draft
+    return dr.state() if dr else {"current": None, "done": False, "teams": []}
 
 
 @app.post("/api/draft/start")
 def api_draft_start():
-    global DRAFT
+    v = V()
     d = request.get_json(force=True)
     fmt = d.get("fmt")
     if fmt not in ("t20", "odi"):
         return jsonify(error="Choose T20 or ODI."), 400
-    if JOB and JOB.status == "running":
+    if v.busy():
         return jsonify(error="A simulation is running."), 409
     try:
         y1, y2 = int(d.get("y1")), int(d.get("y2"))
@@ -657,51 +833,54 @@ def api_draft_start():
     try:
         seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
         ym = d.get("years_mode") if d.get("years_mode") in ("blend", "only") else "blend"
-        DRAFT = Draft(fmt, y1, y2, names, user=d.get("user") or None, source=source, seed=seed, years_mode=ym)
+        dr = Draft(fmt, y1, y2, names, user=d.get("user") or None, source=source, seed=seed, years_mode=ym)
     except ValueError as e:
         return jsonify(error=str(e)), 400
-    DRAFT.run_cpu()
-    pool = [p.row() for p in DRAFT.pool]
+    dr.run_cpu()
+    v.draft = dr
+    pool = [p.row() for p in dr.pool]
     return jsonify(state=_draft_state(), pool=pool)
 
 
 @app.get("/api/draft")
 def api_draft():
-    if not DRAFT:
+    dr = V().draft
+    if not dr:
         return jsonify(error="No draft."), 404
-    return jsonify(state=_draft_state(), pool=[p.row() for p in DRAFT.pool])
+    return jsonify(state=_draft_state(), pool=[p.row() for p in dr.pool])
 
 
 @app.post("/api/draft/pick")
 def api_draft_pick():
-    if not DRAFT or DRAFT.done:
+    dr = V().draft
+    if not dr or dr.done:
         return jsonify(error="No draft in progress."), 400
     d = request.get_json(force=True)
     try:
         if d.get("auto") == "rest":
-            while not DRAFT.done:
-                DRAFT.cpu_pick()
+            while not dr.done:
+                dr.cpu_pick()
         elif d.get("auto"):
-            if DRAFT.current() != DRAFT.user:
+            if dr.current() != dr.user:
                 raise ValueError("It is not your pick.")
-            DRAFT.cpu_pick()
+            dr.cpu_pick()
         else:
-            if DRAFT.current() != DRAFT.user:
+            if dr.current() != dr.user:
                 raise ValueError("It is not your pick.")
-            DRAFT.pick(d.get("id"))
+            dr.pick(d.get("id"))
     except ValueError as e:
         return jsonify(error=str(e)), 400
-    DRAFT.run_cpu()
+    dr.run_cpu()
     return jsonify(state=_draft_state())
 
 
 # ------------------------------------------------------------------------------------------------ auction
 
 def _auction_reply(pool: bool = False):
-    a = AUCTION
+    a = V().auction
     if a.done and a.user is not None and not getattr(a, "_saved", False) and not getattr(a, "career_id", None):     # retain from it next time
-        AUCTION_LAST.parent.mkdir(parents=True, exist_ok=True)
-        AUCTION_LAST.write_text(json.dumps({"label": a.label, "fmt": a.fmt, "squads": a.squad,
+        V().auction_last.parent.mkdir(parents=True, exist_ok=True)
+        V().auction_last.write_text(json.dumps({"label": a.label, "fmt": a.fmt, "squads": a.squad,
                                             "prices": _board_prices(a.board())}), encoding="utf-8")
         a._saved = True
     out = {"state": {**a.state(), "career": getattr(a, "career_id", None)}, "to_you": a.to_you()}
@@ -720,7 +899,7 @@ def _board_prices(board: dict) -> dict:
 
 def _last_auction() -> dict:
     try:
-        return json.loads(AUCTION_LAST.read_text(encoding="utf-8"))
+        return json.loads(V().auction_last.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
 
@@ -737,9 +916,9 @@ def api_auction_start():
     user, retain: "previous" | "last" | "saved:<id>" | "none", kind: "mega" | "mini", seed}
     A mini auction keeps the retention source's squads at their prices (from an auction: what it paid; a real
     season's squads: expected prices, as the engine estimates them) and the teams release players instead."""
-    global AUCTION
+    v = V()
     d = request.get_json(force=True)
-    if JOB and JOB.status == "running":
+    if v.busy():
         return jsonify(error="A simulation is running."), 409
     try:
         seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
@@ -782,8 +961,8 @@ def api_auction_start():
             if not set(prev) & set(pool["teams"]):
                 return jsonify(error="Your last auction had none of these teams."), 400
         elif retain.startswith("saved:"):
-            sd = SAVED / retain[6:]
-            if sd.parent != SAVED or not (sd / "summary.json").exists():
+            sd = v.saved / retain[6:]
+            if sd.parent != v.saved or not (sd / "summary.json").exists():
                 return jsonify(error="That saved run no longer exists."), 400
             prev = _run_meta(sd)["squads"]
             board = (json.loads((sd / "summary.json").read_text(encoding="utf-8")).get("draft") or {}).get("board")
@@ -795,7 +974,7 @@ def api_auction_start():
             pool["kept"] = {t: {pid: (prices.get(t) or {}).get(pid) for pid in ids}
                             for t, ids in prev.items() if t in pool["teams"]}
             prev = {}
-        AUCTION = Auction(pool, user=d.get("user") or None, prev=prev, seed=seed)
+        v.auction = Auction(pool, user=d.get("user") or None, prev=prev, seed=seed)
     except (TypeError, ValueError) as e:
         return jsonify(error=str(e) or "Check the settings."), 400
     return _auction_reply(pool=True)
@@ -803,7 +982,7 @@ def api_auction_start():
 
 @app.get("/api/auction")
 def api_auction():
-    if not AUCTION:
+    if not V().auction:
         return jsonify(error="No auction."), 404
     return _auction_reply(pool=True)
 
@@ -812,14 +991,15 @@ def api_auction():
 def api_auction_act():
     """The user's answer to the open question, or {auto: "set" | "all" | "wish" | "ask"} (the computer, or the
     wishlist, bids for the user; "ask": the user is asked again)."""
-    if not AUCTION or AUCTION.done:
+    a = V().auction
+    if not a or a.done:
         return jsonify(error="No auction in progress."), 400
     d = request.get_json(force=True)
     try:
         if d.get("auto") in ("set", "all", "wish", "ask"):
-            AUCTION.auto(d["auto"])
+            a.auto(d["auto"])
         else:
-            AUCTION.act(d.get("answer") or {})
+            a.act(d.get("answer") or {})
     except (TypeError, ValueError) as e:
         return jsonify(error=str(e)), 400
     return _auction_reply()
@@ -828,33 +1008,30 @@ def api_auction_act():
 @app.post("/api/auction/wish")
 def api_auction_wish():
     """Wishlist: {id, max (lakh or null), ask} for one player, and/or {pause: bool} (stop before each set)."""
-    if not AUCTION or AUCTION.done or not AUCTION.user:
+    a = V().auction
+    if not a or a.done or not a.user:
         return jsonify(error="No auction in progress."), 400
     d = request.get_json(force=True)
     try:
         if d.get("id"):
             top = d.get("max")
-            AUCTION.set_wish(d["id"], None if top in (None, "") else int(top), bool(d.get("ask")))
+            a.set_wish(d["id"], None if top in (None, "") else int(top), bool(d.get("ask")))
         if "pause" in d:
-            AUCTION.pause_sets = bool(d["pause"])
+            a.pause_sets = bool(d["pause"])
     except (TypeError, ValueError) as e:
         return jsonify(error=str(e)), 400
-    return jsonify(wish=AUCTION.wish, pause_sets=AUCTION.pause_sets)
+    return jsonify(wish=a.wish, pause_sets=a.pause_sets)
 
 
 @app.get("/api/status")
 def api_status():
-    return jsonify(JOB.to_dict() if JOB else {"status": "idle"})
+    job = V().job
+    return jsonify(job.to_dict() if job else {"status": "idle"})
 
 
 @app.post("/api/stop")
 def api_stop():
-    if JOB and JOB.status == "running":
-        JOB.cancel = True
-        if JOB.controller:
-            JOB.controller.cancel()
-        for c in (JOB.controllers or {}).values():
-            c.cancel()
+    _cancel(V().job)
     return jsonify(ok=True)
 
 
@@ -863,7 +1040,8 @@ def api_decide():
     """The captain's answer to the open question: {id, choice (None = the computer's), auto: {kind: bool},
     skip: "innings" | "match" | "all"}."""
     p = request.get_json(force=True)
-    c = JOB.controller if JOB and JOB.status == "running" else None
+    job = V().job
+    c = job.controller if job and job.status == "running" else None
     if not c:
         return jsonify(error="No match is waiting for a decision."), 409
     if not c.answer(int(p.get("id") or 0), p.get("choice"), p.get("auto"), p.get("skip")):
@@ -872,32 +1050,39 @@ def api_decide():
 
 
 # ------------------------------------------------------------------------------------------------ two players
-# docs/multiplayer_design.md. One room at a time: the host creates it (conditions + their team), the second device
-# joins with the code and picks its own team, both say ready, and the match runs as an ordinary job with one
-# WaitingController per side. Every call carries the seat's secret token; a seat sees only its own question.
+# docs/multiplayer_design.md. Any number of rooms (by code): the host creates one (conditions + their team), the
+# second device joins with the code and picks its own team, both say ready, and the match runs as the room's job with
+# one WaitingController per side. Every call carries the seat's secret token; a seat sees only its own question.
+# On your own computer a new room replaces the previous one.
 
 MP_GONE = 60          # seconds without a poll before the other player may hand that side to the computer
 MP_CLOCKS = {"off": None, "10": 10, "20": 20}
 MP_CAPTAIN_CLOCK = 60  # with a shot clock: toss, XI, bowler, batter, Impact Player decisions
 MP_SERIES = (1, 3, 5)  # a single match or best of 3 / 5 (stops once decided)
 MP_CPU = (0, 2, 4, 6)  # draft: computer teams that draft too and then play a league with the two players
-ROOM: dict | None = None
+ROOMS: dict[str, dict] = {}   # code -> room
 
 
 def _token() -> str:
-    import secrets
     return secrets.token_urlsafe(12)
 
 
 def _seat(token: str | None):
-    """(room, seat index 0/1, or "spectator") for a token; (room, None) when the token isn't in this room."""
-    r = ROOM
-    if not r or not token:
-        return r, None
-    for i, s in enumerate(r["seats"]):
-        if s["token"] == token:
-            return r, i
-    return r, "spectator" if token in r["spectators"] else None
+    """(room, seat index 0/1, or "spectator") for a token; (None, None) when no room has it."""
+    if not token:
+        return None, None
+    for r in list(ROOMS.values()):
+        for i, s in enumerate(r["seats"]):
+            if s["token"] == token:
+                return r, i
+        if token in r["spectators"]:
+            return r, "spectator"
+    return None, None
+
+
+def _room_visitors(r: dict) -> list:
+    """Everyone in the room (the seats, then the spectators): they all get the results."""
+    return list(dict.fromkeys([s["visitor"] for s in r["seats"] if s["visitor"]] + list(r["spectators"].values())))
 
 
 def _mp_label(e) -> str:
@@ -908,10 +1093,13 @@ def _mp_kinds(kinds) -> set:
     return set(kinds) & set(KINDS) - {"result"} if isinstance(kinds, list) else set(DEFAULT_KINDS) - {"result"} | {"ball"}
 
 
-def _mp_job() -> bool:
-    """Is the room's match the job that is running (or just finished)?"""
-    r = ROOM
-    return bool(r and r.get("job") is not None and JOB is r["job"])
+def _mp_job(r: dict) -> bool:
+    """Has the room's match started (it is running or just finished)?"""
+    return r.get("job") is not None
+
+
+def _mp_running(r: dict) -> bool:
+    return _mp_job(r) and r["job"].status == "running"
 
 
 def _mp_record_new() -> dict:
@@ -922,7 +1110,7 @@ def _mp_record_new() -> dict:
 def _mp_record(job, res: dict) -> None:
     """A finished two-player run: its matches between the two players, its series (best of 3 / 5) and its
     title (a draft league with computer teams) go into the room's head to head."""
-    r = ROOM
+    r = job.room
     if not r or r.get("job") is not job or not r.get("names"):
         return
     rec, names = r["record"], r["names"]
@@ -948,7 +1136,7 @@ def _mp_series(job, open_: list) -> dict:
     A draft league: which match of how many."""
     if getattr(job, "mp_league", False):
         return {"league": True, "of": job.total, "match": min(job.done + 1, job.total), "finished": job.done}
-    names = ROOM["names"]
+    names = job.room["names"]
     winners = list(job.winners)
     res_q = next((q for q in open_ if q and q.get("kind") == "result"), None)
     if res_q and res_q.get("context", {}).get("match_no") == len(winners) + 1:
@@ -957,27 +1145,29 @@ def _mp_series(job, open_: list) -> dict:
             "finished": len(winners)}
 
 
-def _mp_urls() -> list[str]:
-    port = request.host.rsplit(":", 1)[-1] if ":" in request.host else "80"
+def _mp_urls(r: dict) -> list[str]:
+    """Join links for the other player: this site's address when hosted, the LAN addresses with --lan."""
+    if app.config.get("MULTI"):
+        return [f"{request.host_url}?join={r['code']}"]
     if not app.config.get("LAN"):
         return []
-    return [f"http://{ip}:{port}/?join={ROOM['code']}" for ip in lan_addresses()]
+    port = request.host.rsplit(":", 1)[-1] if ":" in request.host else "80"
+    return [f"http://{ip}:{port}/?join={r['code']}" for ip in lan_addresses()]
 
 
-def _mp_start() -> str | None:
+def _mp_start(r: dict) -> str | None:
     """Both seats ready: check the teams and start the match. Error message or None."""
-    global JOB
-    r = ROOM
     st = r["settings"]
     d = r.get("draft")                       # drafted squads, or each player's own team
     t1 = t2 = None
     if d is None:
         t1, t2 = (s["team"] for s in r["seats"])
-        err = check_entries([t1, t2], st["fmt"])
+        owners = [s["visitor"] for s in r["seats"]]     # a saved team is from that player's own teams
+        err = check_entries([t1, t2], st["fmt"], owners)
         if err:
             return "Both players picked the same team - one of you choose another." if "picked twice" in err else err
-    if JOB and JOB.status == "running":
-        return "Another simulation is running on the host computer."
+    if err := _capacity_error():
+        return err
     names = [s["dname"] for s in r["seats"]] if d else [_mp_label(t1), _mp_label(t2)]
     league = bool(d) and len(d.teams) > 2
     clock = MP_CLOCKS.get(st.get("clock") or "off")
@@ -992,23 +1182,25 @@ def _mp_start() -> str | None:
         ctl[name] = c
     if league:
         ko = _mp_ko(len(d.teams))
-        JOB = Job(f"Draft league - {len(d.teams)} teams, players from {d.y1}-{d.y2} - two players",
+        job = Job(f"Draft league - {len(d.teams)} teams, players from {d.y1}-{d.y2} - two players",
                   match_count(len(d.teams), 1, None, ko))
     else:
-        JOB = Job(f"{names[0]} v {names[1]} - two players" + (", drafted squads" if d else "")
+        job = Job(f"{names[0]} v {names[1]} - two players" + (", drafted squads" if d else "")
                   + (f", best of {n}" if n > 1 else ""), n)
-    JOB.controllers = ctl
-    JOB.mp_league = league
-    r["job"], r["names"] = JOB, names
+    job.controllers = ctl
+    job.mp_league = league
+    job.room = r
+    r["job"], r["names"] = job, names
     for s in r["seats"]:
         s["ready"] = False
-    params = {"mode": "mp", "team1": t1, "team2": t2, **{k: st[k] for k in ("fmt", "comp", "year", "venues",
-                                                                              "seed", "rain", "series")}}
+    params = {"mode": "mp", **{k: st[k] for k in ("fmt", "comp", "year", "venues", "seed", "rain", "series")}}
     if d:
         params.update(specs=d.team_specs(), knockout=_mp_ko(len(d.teams)),
                       draft_info={"teams": d.teams, "user": None, "board": d.state()["board"],
                                   "years": [d.y1, d.y2], "players": names})
-    threading.Thread(target=_run, args=(JOB, params), daemon=True).start()
+    else:
+        params["specs"] = [team_spec(t, st["fmt"], v=s["visitor"]) for t, s in zip((t1, t2), r["seats"])]
+    threading.Thread(target=_run, args=(job, params, r["seats"][0]["visitor"]), daemon=True).start()
     return None
 
 
@@ -1040,9 +1232,8 @@ def _mp_settings(p: dict) -> dict | str:
             "cpu": int(p.get("cpu")) if str(p.get("cpu")) in map(str, MP_CPU) else 0}
 
 
-def _mp_draft_start() -> str | None:
+def _mp_draft_start(r: dict) -> str | None:
     """Both seats ready in a draft room: build the pool and start the snake draft. Error message or None."""
-    r = ROOM
     st = r["settings"]
     n1, n2 = (s["dname"] for s in r["seats"])
     if n1.lower() == n2.lower():
@@ -1104,22 +1295,25 @@ def _mp_draft_state(r: dict, i) -> dict:
 @app.post("/api/mp/create")
 def api_mp_create():
     """The host opens a room: conditions, their team and the decisions they make. -> {code, token}"""
-    global ROOM
+    v = V()
     p = request.get_json(force=True)
     with LOCK:
-        if JOB and JOB.status == "running":
-            return jsonify(error="A simulation is already running."), 409
         st = _mp_settings(p)
         if isinstance(st, str):
             return jsonify(error=st), 400
+        for c, old in list(ROOMS.items()):    # this host's earlier rooms that aren't playing
+            if old["seats"][0]["visitor"] is v and not _mp_running(old):
+                del ROOMS[c]
         tok = _token()
-        code = "".join(random.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(4))
-        ROOM = {"code": code, "settings": st, "job": None, "names": None, "spectators": set(),
-                "record": _mp_record_new(), "draft": None, "draft_t": 0.0,
-                "seats": [{"token": tok, "team": p.get("team") or None, "ready": False, "seen": time.time(),
-                           "manual": _mp_kinds(p.get("manual")), "dname": None, "auto": False},
-                          {"token": None, "team": None, "ready": False, "seen": 0.0, "manual": _mp_kinds(None),
-                           "dname": None, "auto": False}]}
+        code = None
+        while code is None or code in ROOMS:
+            code = "".join(random.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(4))
+        ROOMS[code] = {"code": code, "settings": st, "job": None, "names": None, "spectators": {},
+                       "record": _mp_record_new(), "draft": None, "draft_t": 0.0,
+                       "seats": [{"token": tok, "team": p.get("team") or None, "ready": False, "seen": time.time(),
+                                  "manual": _mp_kinds(p.get("manual")), "dname": None, "auto": False, "visitor": v},
+                                 {"token": None, "team": None, "ready": False, "seen": 0.0, "manual": _mp_kinds(None),
+                                  "dname": None, "auto": False, "visitor": None}]}
     return jsonify(code=code, token=tok)
 
 
@@ -1128,16 +1322,16 @@ def api_mp_join():
     """Join with the room code: the free seat, or a spectator's place if both are taken. -> {token, seat}"""
     p = request.get_json(force=True)
     with LOCK:
-        r = ROOM
-        if not r or str(p.get("code") or "").strip().upper() != r["code"]:
+        r = ROOMS.get(str(p.get("code") or "").strip().upper())
+        if not r:
             return jsonify(error="No room with that code. Check it on the host's screen."), 404
         tok = _token()
         guest = r["seats"][1]
         if guest["token"] is None:
-            guest.update(token=tok, seen=time.time())
+            guest.update(token=tok, seen=time.time(), visitor=V())
             r["record"] = _mp_record_new()        # a new opponent: a new head to head
             return jsonify(token=tok, seat=1)
-        r["spectators"].add(tok)
+        r["spectators"][tok] = V()
         return jsonify(token=tok, seat="spectator")
 
 
@@ -1145,7 +1339,6 @@ def api_mp_join():
 def api_mp_lobby():
     """A seat's lobby changes: {token, team?, manual?, ready?, settings? (host), rematch?, leave?}. Starts the
     match when both seats have a team and are ready."""
-    global ROOM
     p = request.get_json(force=True)
     with LOCK:
         r, i = _seat(p.get("token"))
@@ -1156,18 +1349,19 @@ def api_mp_lobby():
         seat = r["seats"][i]
         if p.get("leave"):
             if i == 0:
-                ROOM = None
-            elif not _mp_job() or JOB.status != "running":
-                seat.update(token=None, team=None, ready=False, seen=0.0, dname=None, auto=False)
+                ROOMS.pop(r["code"], None)
+                _cancel(r.get("job"))
+            elif not _mp_running(r):
+                seat.update(token=None, team=None, ready=False, seen=0.0, dname=None, auto=False, visitor=None)
                 r["draft"] = None                # their squad goes with them
                 r["seats"][0]["ready"] = False
             return jsonify(ok=True)
         if p.get("rematch"):
-            if _mp_job() and JOB.status == "running":
+            if _mp_running(r):
                 return jsonify(error="The match is still being played."), 409
             r["job"] = None
             return jsonify(ok=True)
-        if _mp_job() and JOB.status == "running":
+        if _mp_running(r):
             return jsonify(error="The match has started."), 409
         if r.get("draft") is not None:
             return jsonify(error="The draft has started. The host can start a new draft from the draft room."), 409
@@ -1193,7 +1387,7 @@ def api_mp_lobby():
                 return jsonify(error="Name your team first." if draft else "Pick your team first."), 400
             seat["ready"] = bool(p["ready"])
         if all(s["ready"] and mine(s) for s in r["seats"]):
-            err = _mp_draft_start() if draft else _mp_start()
+            err = _mp_draft_start(r) if draft else _mp_start(r)
             if err:
                 for s in r["seats"]:
                     s["ready"] = False
@@ -1214,9 +1408,10 @@ def api_mp_state():
     seats = [{"team": s["team"], "label": s["dname"] if draft else _mp_label(s["team"]) if s["team"] else None,
               "name": s["dname"], "ready": s["ready"], "joined": s["token"] is not None, "here": now - s["seen"] < 10,
               "manual": sorted(s["manual"])} for s in r["seats"]]
-    out = {"code": r["code"], "you": i, "seats": seats, "settings": r["settings"], "urls": _mp_urls(),
-           "lan": bool(app.config.get("LAN")), "now": now, "record": r["record"]}
-    if not _mp_job():
+    out = {"code": r["code"], "you": i, "seats": seats, "settings": r["settings"], "urls": _mp_urls(r),
+           "lan": bool(app.config.get("LAN") or app.config.get("MULTI")), "public": bool(app.config.get("MULTI")),
+           "now": now, "record": r["record"]}
+    if not _mp_job(r):
         if r.get("draft") is None:
             return jsonify(phase="lobby", **out)
         out["draft"] = _mp_draft_state(r, i)
@@ -1270,7 +1465,7 @@ def api_mp_draft():
         d = r.get("draft")
         if d is None:
             return jsonify(error="No draft in this room."), 409
-        if _mp_job() and JOB.status == "running":
+        if _mp_running(r):
             return jsonify(error="The matches are being played."), 409
         seat = r["seats"][i]
         if p.get("redo"):
@@ -1285,7 +1480,7 @@ def api_mp_draft():
                 return jsonify(error="Finish the draft first."), 400
             seat["ready"] = bool(p["ready"])
             if all(s["ready"] for s in r["seats"]):
-                err = _mp_start()
+                err = _mp_start(r)
                 if err:
                     for s in r["seats"]:
                         s["ready"] = False
@@ -1313,9 +1508,9 @@ def api_mp_decide():
     """This seat's answer: {token, id, choice, auto, skip} (as /api/decide)."""
     p = request.get_json(force=True)
     r, i = _seat(p.get("token"))
-    if r is None or i in (None, "spectator") or not _mp_job() or JOB.status != "running":
+    if r is None or i in (None, "spectator") or not _mp_running(r):
         return jsonify(error="No match is waiting for your decision."), 409
-    c = JOB.controllers[r["names"][i]]
+    c = r["job"].controllers[r["names"][i]]
     if not c.answer(int(p.get("id") or 0), p.get("choice"), p.get("auto"), p.get("skip")):
         return jsonify(error="That decision has already been made."), 409
     return jsonify(ok=True)
@@ -1327,17 +1522,17 @@ def api_mp_control():
     {token, who: "opponent"} hands a player who has been away for MP_GONE seconds to the computer."""
     p = request.get_json(force=True)
     r, i = _seat(p.get("token"))
-    if r is None or i in (None, "spectator") or not _mp_job() or JOB.status != "running":
+    if r is None or i in (None, "spectator") or not _mp_running(r):
         return jsonify(error="No match in progress."), 409
     if p.get("who") == "opponent":
         if time.time() - r["seats"][1 - i]["seen"] <= MP_GONE:
             return jsonify(error="The other player is still here."), 409
-        c = JOB.controllers[r["names"][1 - i]]
+        c = r["job"].controllers[r["names"][1 - i]]
         c.manual_kinds = set()
         if c.pending:
             c.answer(c.pending["id"], None)
     else:
-        c = JOB.controllers[r["names"][i]]
+        c = r["job"].controllers[r["names"][i]]
         c.skip = None
         c.manual_kinds = set(c.home_manual)
     return jsonify(ok=True)
@@ -1349,19 +1544,20 @@ def _safe(name: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in str(name))[:60] or "x"
 
 
-def _career_path(cid: str | None) -> Path:
-    d = CAREERS / _safe(cid or "")
-    if d.parent != CAREERS:
+def _career_path(cid: str | None, v: Visitor | None = None) -> Path:
+    root = (v or V()).careers
+    d = root / _safe(cid or "")
+    if d.parent != root:
         raise FileNotFoundError(cid)
     return d / "career.json"
 
 
-def load_career(cid: str | None) -> Career:
-    return Career.from_json(json.loads(_career_path(cid).read_text(encoding="utf-8")))
+def load_career(cid: str | None, v: Visitor | None = None) -> Career:
+    return Career.from_json(json.loads(_career_path(cid, v).read_text(encoding="utf-8")))
 
 
-def save_career(cid: str, c: Career) -> None:
-    p = _career_path(cid)
+def save_career(cid: str, c: Career, v: Visitor | None = None) -> None:
+    p = _career_path(cid, v)
     p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(c.to_json()), encoding="utf-8")
@@ -1370,8 +1566,9 @@ def save_career(cid: str, c: Career) -> None:
 
 def careers_list() -> list[dict]:
     out = []
-    if CAREERS.exists():
-        for d in CAREERS.iterdir():
+    root = V().careers
+    if root.exists():
+        for d in root.iterdir():
             p = d / "career.json"
             if p.exists():
                 c = json.loads(p.read_text(encoding="utf-8"))
@@ -1388,7 +1585,7 @@ def _career_reply(cid: str, c: Career | None = None):
 
 
 def _busy() -> bool:
-    return bool(JOB and JOB.status == "running")
+    return V().busy()
 
 
 @app.get("/api/careers")
@@ -1408,6 +1605,8 @@ def api_career_new():
                    name=" ".join(str(d.get("name") or "").split())[:80] or None)
     except (ValueError, KeyError, StopIteration) as e:
         return jsonify(error=str(e) or "Could not start the career."), 400
+    if (cap := _limit("careers")) and len(careers_list()) >= cap:
+        return jsonify(error=f"You can keep up to {cap} careers here: delete one first."), 400
     cid = _safe(f"{c.league}-{c.start_season}-{time.strftime('%Y%m%d-%H%M%S')}")
     save_career(cid, c)
     return _career_reply(cid, c)
@@ -1441,7 +1640,7 @@ def api_career_delete():
 @app.post("/api/career/auction")
 def api_career_auction():
     """Open the career's auction in the auction room (auto=true: the computer decides everything)."""
-    global AUCTION
+    v = V()
     d = request.get_json(force=True)
     if _busy():
         return jsonify(error="A simulation is running."), 409
@@ -1452,15 +1651,15 @@ def api_career_auction():
         c.auto_auction()
         save_career(d["id"], c)
         return _career_reply(d["id"], c)
-    AUCTION = c.auction()
-    AUCTION.career_id = d["id"]
+    v.auction = c.auction()
+    v.auction.career_id = d["id"]
     return _auction_reply(pool=True)
 
 
 @app.post("/api/career/auction_done")
 def api_career_auction_done():
     d = request.get_json(force=True)
-    a = AUCTION
+    a = V().auction
     if not a or getattr(a, "career_id", None) != d.get("id") or not a.done:
         return jsonify(error="Finish the auction first."), 400
     c = load_career(d["id"])
@@ -1475,16 +1674,17 @@ def api_career_auction_done():
 
 def _run_dir(run: str | None) -> Path:
     """The last run, a saved one (by folder name) or a career's season ("career/<id>/<season>")."""
+    v = V()
     if not run:
-        return LAST
+        return v.last
     if run.startswith("career/"):
         parts = run.split("/")
-        d = CAREERS / parts[1] / "seasons" / parts[-1] if len(parts) == 3 else None
-        if not d or d.parent.parent.parent != CAREERS or not (d / "summary.json").exists():
+        d = v.careers / parts[1] / "seasons" / parts[-1] if len(parts) == 3 else None
+        if not d or d.parent.parent.parent != v.careers or not (d / "summary.json").exists():
             abort(404)
         return d
-    d = SAVED / run
-    if d.parent != SAVED or not (d / "summary.json").exists():
+    d = v.saved / run
+    if d.parent != v.saved or not (d / "summary.json").exists():
         abort(404)
     return d
 
@@ -1521,10 +1721,11 @@ def _run_meta(d: Path) -> dict:
 
 
 def saved_runs() -> list[dict]:
-    if not SAVED.exists():
+    root = V().saved
+    if not root.exists():
         return []
     out = []
-    for d in SAVED.iterdir():
+    for d in root.iterdir():
         if (d / "summary.json").exists():
             m = _run_meta(d)
             out.append({k: v for k, v in m.items() if k != "squads"} | {"teams": sorted(m["squads"])})
@@ -1539,17 +1740,20 @@ def api_saved():
 @app.post("/api/saved")
 def api_save():
     """Save the last run under a name (a copy of results/last; the next run no longer overwrites it)."""
-    if not (LAST / "summary.json").exists():
+    v = V()
+    if not (v.last / "summary.json").exists():
         return jsonify(error="No results to save."), 400
     name = " ".join(str(request.get_json(force=True).get("name") or "").split())
     name = "".join(ch for ch in name if ch.isalnum() or ch in " -_.,()'&+")[:80].strip(" .")
     if not name:
         return jsonify(error="Give the run a name."), 400
-    d = SAVED / name
+    d = v.saved / name
     if d.exists():
         return jsonify(error=f"There is already a saved run called {name!r}."), 400
-    SAVED.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(LAST, d)
+    if (cap := _limit("saved")) and len(saved_runs()) >= cap:
+        return jsonify(error=f"You can keep up to {cap} saved runs here: delete one first."), 400
+    v.saved.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(v.last, d)
     m = _run_meta(d)
     m["name"] = name
     (d / "meta.json").write_text(json.dumps(m), encoding="utf-8")
@@ -1605,14 +1809,45 @@ def lan_addresses() -> list[str]:
     return [ip for ip in dict.fromkeys(found) if not ip.startswith("127.")]
 
 
+def serve_public(host: str, port: int, password: str | None, max_jobs: int) -> None:
+    """--public: a hosted site. Every browser is its own visitor; one process (the runs live in memory) with a
+    thread per request, behind a proxy that terminates HTTPS (Cloudflare Tunnel, Fly.io, Render...)."""
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.config.update(MULTI=True, PASSWORD=password or None, MAX_JOBS=max_jobs,
+                      LIMITS={"teams": 100, "saved": 30, "careers": 10}, MAX_CONTENT_LENGTH=2 << 20)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)   # https links and secure cookies
+    threading.Thread(target=_reaper, daemon=True).start()
+    print(f"Limited-overs simulator, public mode, on http://{host}:{port}  (Ctrl+C to stop)")
+    print(f"  every visitor gets their own runs (in {VISITORS_DIR}); at most {max_jobs} simulations at once; "
+          + ("password required" if password else "NO password: set SITE_PASSWORD to require one"), flush=True)
+    try:
+        from waitress import serve
+    except ImportError:
+        print("  (waitress is not installed: using Flask's own server. pip install waitress)")
+        app.run(host=host, port=port, threaded=True)
+        return
+    # waitress would drop the proxy's X-Forwarded-* headers; ProxyFix above reads them (one proxy in front)
+    serve(app, host=host, port=port, threads=32, ident=None, clear_untrusted_proxy_headers=False)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--port", type=int, default=5070)  # 5060/5061 are blocked by browsers (SIP)
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 5070))  # 5060/5061: blocked (SIP)
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--lan", action="store_true",
                     help="also accept connections from other devices on the local network (no login: "
                          "anyone on the same network can use it)")
+    ap.add_argument("--public", action="store_true",
+                    help="run as a hosted site: each visitor gets their own runs, saved teams and careers; "
+                         "password from SITE_PASSWORD, simulation limit from MAX_JOBS (default 6)")
+    ap.add_argument("--host", default=None,
+                    help="address to listen on (--public: 0.0.0.0, e.g. in Docker; use 127.0.0.1 behind a tunnel "
+                         "on the same computer)")
     args = ap.parse_args(argv)
+    if args.public:
+        serve_public(args.host or "0.0.0.0", args.port, os.environ.get("SITE_PASSWORD"),
+                     int(os.environ.get("MAX_JOBS") or 6))
+        return 0
     url = f"http://localhost:{args.port}"
     if not args.no_browser:
         threading.Timer(1.2, lambda: webbrowser.open(url)).start()
@@ -1627,7 +1862,7 @@ def main(argv=None) -> int:
         print("If they can't connect, allow Python through Windows Firewall for Private networks "
               "and make sure the Wi-Fi is set to Private.")
     app.config["LAN"] = args.lan            # two-player rooms show join links only when others can connect
-    app.run(host="0.0.0.0" if args.lan else "127.0.0.1", port=args.port, threaded=True)
+    app.run(host=args.host or ("0.0.0.0" if args.lan else "127.0.0.1"), port=args.port, threaded=True)
     return 0
 
 

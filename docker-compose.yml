@@ -1,0 +1,22 @@
+# Run the hosted site on your own server:   SITE_PASSWORD=... docker compose up -d --build
+# It listens on this computer only (127.0.0.1:5070); put a tunnel or reverse proxy with HTTPS in front of it
+# (README "Hosting it for friends"). Keep it to one container: the runs in progress live in its memory.
+services:
+  cricket:
+    build: .
+    container_name: cricket
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5070:8080"
+    environment:
+      SITE_PASSWORD: ${SITE_PASSWORD:-}   # the password you give your friends (any user name); empty = none
+      MAX_JOBS: ${MAX_JOBS:-6}            # simulations running at once
+    volumes:
+      - cricket-results:/app/results     # visitors' saved runs, teams and careers survive restarts
+    mem_limit: 768m
+    cpus: 2
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  cricket-results:

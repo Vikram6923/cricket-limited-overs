@@ -107,7 +107,7 @@ run rates, wickets) before use. Suggested: off by default, labelled "Arcade".
 | Two-player auction | Both bid live in the auction room; computer bidders fill the other teams. `engine/auction.py` takes one user; needs a second, plus raise / pass from two devices. Probably the most fun extension. | medium-large |
 | Two-player draft | Snake draft, turn-based, the easiest of the three. | small |
 | Pass and play on one device | Both seats on one screen, choices hidden behind a "hand the laptop over" screen. | small |
-| Over the internet | Not through code: use a private network tunnel such as Tailscale between the two laptops. Opening a port to the public internet is not recommended (Flask's dev server, no login). | none |
+| Over the internet | Done: `python web_ui.py --public` behind HTTPS (README "Hosting it for friends"): any number of rooms, each visitor with their own runs, an optional site password. | done |
 | Phones | The ball screen should work at phone width so a phone can be the second device. | small-medium |
 
 ## 6. Build order and effort
