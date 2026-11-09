@@ -417,13 +417,24 @@ async function init() {
   const sumObs = new MutationObserver(syncSum);
   document.querySelectorAll('#v-setup .total').forEach(t => sumObs.observe(t, {subtree: true, childList: true, characterData: true}));
   document.querySelectorAll('.tab').forEach(t => t.onclick = () => openTab(t.dataset.pane));
-  $('c-fmt').onchange = () => { fillConditions(); refreshClassic(); fillTeams(); };
-  $('c-comp').onchange = checkYear; $('c-year').oninput = checkYear;
+  $('c-fmt').onchange = e => { if (e.isTrusted) COND.fmt = true; fillConditions(); refreshClassic(); fillTeams(); autoConds(); };
+  $('c-comp').onchange = e => { if (e.isTrusted) COND.user = true; checkYear(); condLine(); };
+  $('c-year').oninput = e => { if (e.isTrusted) COND.user = true; checkYear(); condLine(); };
   $('c-vsearch').oninput = filterVenues;
+  $('c-vclear').onclick = () => { [...$('c-venues').options].forEach(o => o.selected = false); $('c-vsearch').value = ''; drawVenues(); };
   fillSelect($('t-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
   ['t-rounds', 't-groups', 't-ko'].forEach(id => $(id).onchange = updateTournamentTotal);
   $('t-search').oninput = filterTeams;
   fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initCareerForm(); initLeague(); initBuilder(); initMatchNav();
+  document.querySelectorAll('input[data-chips]').forEach(numChips);
+  presetChips($('t-preset'), 't'); presetChips($('ct-preset'), 'ct');
+  const teamsChanged = () => { capOptions(); autoConds(); };      // the captain chips list the teams chosen
+  ['s-t1', 's-t2'].forEach(id => $(id).addEventListener('change', teamsChanged));
+  $('t-list').addEventListener('change', teamsChanged);
+  ['cs-r1', 'cs-r2', 'ct-rows'].forEach(id => $(id).addEventListener('change', () => setTimeout(teamsChanged, 400)));
+  $('ct-add').addEventListener('click', () => setTimeout(teamsChanged, 400));
+  ['d-ya', 'd-yb', 'a-ya', 'a-yb'].forEach(id => $(id).addEventListener('change', autoConds));
+  mpSetupInit();
   $('go-btn').onclick = start;
   $('g-captain').onfocus = capOptions; $('g-captain').onmousedown = capOptions;
   $('g-captain').onchange = capBoxes; ['c-comp', 'c-year'].forEach(id => $(id).addEventListener('change', capBoxes));
@@ -431,6 +442,7 @@ async function init() {
   $('r-career').onclick = () => openCareer(R.career.id);
   if (META.has_results) $('last-btn').style.display = '';
   initPickers();
+  picker($('g-captain'), o => o.value === '' ? 'Just watch' : esc(pickName(o.text.replace(/ \(your drafted team\)$/, ''), capSides())), 'chips wrap');
   document.querySelector('.view.on').classList.remove('on'); showView('v-home');
   if (await mpInit()) return;          // two players: a room this browser is in, or a ?join= link
   if (META.job && META.job.status === 'running') poll();
@@ -443,9 +455,12 @@ function setMode(m, show = true) {
   if (m === 'saved') drawSaved();
   if (m === 'career') drawCareers();
   $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' || m === 'career' ? 'none' : '';
+  $('mp-clock-box').style.display = m === 'mp' ? '' : 'none';
+  if (m === 'mp') mpPane('');
   if (m === 'auction') aRefresh();
   capHome();
   capOptions();
+  autoConds();
   $('go-err').textContent = '';
   const M = MODES[m] || {t: m, s: ''};
   $('su-title').textContent = M.t; $('su-blurb').textContent = M.s; $('su-ic').outerHTML = modeIcon(m, 'big').replace('class="mic', 'id="su-ic" class="mic');
@@ -468,11 +483,89 @@ function fillConditions() {
   const f = META.formats[$('c-fmt').value];
   fillSelect($('c-comp'), f.competitions.map(c => ({v: c.id, t: `${c.label} (${c.first}–${c.last})`})), true);
   $('c-venues').innerHTML = f.venues.map(v => `<option value="${esc(v.name)}" data-k="${esc(v.name.toLowerCase())}">${esc(v.name)} (${v.matches} games${v.runs >= 1.03 ? ', high-scoring' : v.runs <= 0.97 ? ', low-scoring' : ''})</option>`).join('');
-  filterVenues(); checkYear();
+  drawVenues(); checkYear(); condLine();
 }
+/* the venues: a searchable tick list in front of the hidden <select multiple> (phones can't Ctrl+click); ticked
+   grounds first */
+function drawVenues() {
+  const vs = META.formats[$('c-fmt').value].venues, opts = [...$('c-venues').options];
+  const order = vs.map((v, i) => i).sort((a, b) => (opts[b].selected ? 1 : 0) - (opts[a].selected ? 1 : 0));
+  $('c-vlist').innerHTML = order.map(i => { const v = vs[i];
+    return `<label data-k="${esc(v.name.toLowerCase())}"><input type="checkbox" data-i="${i}" ${opts[i].selected ? 'checked' : ''}> <span>${esc(v.name)}
+      <span class="muted small full-only">(${v.matches} games${v.runs >= 1.03 ? ', high-scoring' : v.runs <= 0.97 ? ', low-scoring' : ''})</span></span></label>`; }).join('');
+  $('c-vlist').querySelectorAll('input').forEach(c => c.onchange = () => { opts[+c.dataset.i].selected = c.checked; venueCount(); });
+  filterVenues(); venueCount();
+}
+function venueCount() { const n = $('c-venues').selectedOptions.length; $('c-vcount').textContent = n ? `· ${n} ticked` : ''; }
 function filterVenues() {
   const q = $('c-vsearch').value.toLowerCase();
   [...$('c-venues').options].forEach(o => o.style.display = o.dataset.k.includes(q) ? '' : 'none');
+  $('c-vlist').querySelectorAll('label').forEach(l => l.style.display = l.dataset.k.includes(q) ? '' : 'none');
+}
+/* era & grounds (and the format) follow the teams chosen until you change them yourself under More options */
+const COND = {user: false, fmt: false, auto: false};
+const teamFmt = n => / ODI \d{4}$/.test(n) ? 'odi' : / T20 \d{4}$/.test(n) || isFranchise(n) ? 't20' : null;
+function condTeams() {
+  if (MODE === 'series') return [$('s-t1').value, $('s-t2').value];
+  if (MODE === 'tournament') return [...document.querySelectorAll('#t-list input:checked')].map(i => i.value);
+  return [];
+}
+function condYears() {
+  const rows = MODE === 'classic' ? [$('cs-r1').firstChild, $('cs-r2').firstChild] : MODE === 'classic_t' ? [...$('ct-rows').children] : [];
+  if (rows.length) return rows.filter(r => r && r.entry).map(r => r.entry().y2);
+  if (MODE === 'draft') return [+$('d-yb').value];
+  if (MODE === 'auction' && $('a-pool').value === 'years') return [+$('a-yb').value];
+  return [];
+}
+function autoConds() {
+  if (META && MODE === 'mp') {                        // a room: T20, international, the latest year, unless you chose
+    if (!COND.fmt && $('c-fmt').value !== 't20') { $('c-fmt').value = 't20'; $('c-fmt').dispatchEvent(new Event('change')); return; }
+    const c = META.formats[$('c-fmt').value].competitions, i = c.find(x => /_full$/.test(x.id)) || c[0];
+    if (!COND.user) { $('c-comp').value = i.id; $('c-year').value = i.last; checkYear(); }
+    COND.auto = false; condLine(); return;
+  }
+  if (!META || !['series', 'tournament', 'classic', 'classic_t', 'draft', 'auction'].includes(MODE)) { COND.auto = false; condLine(); return; }
+  const tt = condTeams(), fmts = [...new Set(tt.map(teamFmt).filter(Boolean))];
+  if (!COND.fmt && fmts.length === 1 && fmts[0] !== $('c-fmt').value) { $('c-fmt').value = fmts[0]; $('c-fmt').dispatchEvent(new Event('change')); return; }
+  if (COND.user) { COND.auto = false; condLine(); return; }
+  const fmt = $('c-fmt').value, comps = META.formats[fmt].competitions;
+  let cond = null;
+  if (tt.length) cond = quickConds(tt.length > 1 ? tt : [tt[0], tt[0]], fmt);
+  else {
+    const ys = condYears().filter(Boolean), id = fmt === 'odi' ? 'odi_full' : 't20i_full';
+    const c = comps.find(x => x.id === id) || comps[0];
+    if (ys.length) cond = {comp: c.id, year: Math.max(c.first, Math.min(c.last, Math.max(...ys)))};
+  }
+  COND.auto = !!cond;
+  if (cond) { $('c-comp').value = cond.comp; $('c-year').value = cond.year; checkYear(); }
+  condLine();
+}
+function condLine() {
+  const fmt = $('c-fmt').value;
+  $('c-auto').textContent = `· ${+$('c-year').value || ''} ${compName(fmt, $('c-comp').value)}${COND.auto ? ', from the teams' : ''}`;
+}
+/* number chips (Matches: 1 3 5 7) in front of a hidden number input */
+function numChips(inp) {
+  const vals = inp.dataset.chips.split(','), box = document.createElement('div');
+  box.className = 'picker chips'; inp.after(box); inp.classList.add('picked');
+  const draw = () => { box.innerHTML = vals.map(v => `<button type="button" class="${String(+inp.value) === v ? 'on' : ''}" data-v="${v}">${v}</button>`).join(''); };
+  box.onclick = e => { const b = e.target.closest('button'); if (!b) return; inp.value = b.dataset.v; inp.dispatchEvent(new Event('change')); inp.dispatchEvent(new Event('input')); draw(); };
+  inp.addEventListener('change', draw); draw();
+}
+/* tournament formats as named presets; the rounds / groups / knockouts selects stay under More options */
+const TPRESETS = [['League + semi-finals', '1', '1', 'semis'], ['League + final', '1', '1', 'final'], ['Two groups + semi-finals', '1', '2', 'semis']];
+function presetChips(box, pre) {
+  const ids = ['-rounds', '-groups', '-ko'].map(x => pre + x);
+  const draw = () => {
+    box.innerHTML = TPRESETS.map(([t, ...v], i) => `<button type="button" data-i="${i}" class="${ids.every((id, k) => $(id).value === v[k]) ? 'on' : ''}">${t}</button>`).join('');
+  };
+  box.onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const v = TPRESETS[+b.dataset.i].slice(1);
+    ids.forEach((id, k) => { $(id).value = v[k]; });
+    $(ids[2]).dispatchEvent(new Event('change'));
+  };
+  ids.forEach(id => $(id).addEventListener('change', draw)); draw();
 }
 function checkYear() {
   const f = META.formats[$('c-fmt').value], c = f.competitions.find(c => c.id === $('c-comp').value), y = +$('c-year').value;
@@ -501,7 +594,7 @@ function fillTeams() {
 function showRoster(selId, outId) {
   const t = META.teams.find(t => t.name === $(selId).value);
   $(outId).innerHTML = t ? `<div class="rhead">${badge(t.name)}<span class="muted small full-only">${t.players.length} players</span></div>
-    <div class="pchips">${t.players.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : '';
+    <div class="pchips full-only">${t.players.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : '';
 }
 function filterTeams() {
   const q = $('t-search').value.toLowerCase();
@@ -761,11 +854,11 @@ function capSides() {
   return [];
 }
 function capOptions() {
-  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE);
+  const sides = capSides();
+  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE) && sides.length > 0;   // a draft: once it is done
   $('g-cap-box').style.display = show ? '' : 'none';
   if (!show) { $('g-manual-box').style.display = 'none'; return; }
   const sel = $('g-captain'), keep = sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : '';
-  const sides = capSides();
   fillSelect(sel, [{v: '', t: MODE === 'draft' ? 'None - the computer captains every team' : 'None - the computer plays everything'},
     ...sides.map((t, i) => ({v: String(i), t: MODE === 'draft' ? `${t} (your drafted team)` : t}))]);
   const k = [...sel.options].findIndex(o => o.text === keep);

@@ -56,13 +56,19 @@ innings / end of the match, the highlights level, *My decisions*, the full score
 also works on a phone, with a tab bar at the bottom. A **Simple / Full stats** switch in the top bar
 decides how much you see: Simple (the default) keeps the screens to scores, names and plain words; Full stats adds
 the model's numbers (expected economy and strike rate, how settled a batter is, the replay code, the MVP formula).
-Each setup screen shows only the choices most people change; year, grounds, venues, rain, the replay code and
-the decisions you make yourself are under **More options**, which remembers whether you left it open. Modes:
+Each setup screen shows at most four choices (the teams, how many matches as 1 / 3 / 5 / 7 chips, a tournament's
+format as named presets, and which side you captain); the format, *Era & grounds*, venues, rain, the replay code
+and the decisions you make yourself are under **More options**, which remembers whether you left it open. The
+format and *Era & grounds* follow the teams you pick (two ODI sides play ODI conditions, two IPL franchises IPL
+conditions in their own year) until you change them yourself; venues are a tick list you can search, so they work
+on a phone too. Modes:
 
 - **Match / Series:** two saved teams play one match or a series of up to 7.
 - **Two players:** you against a friend on another device on the same Wi-Fi (the host runs `python web_ui.py --lan`).
-  The host sets the conditions and opens a room; the other device opens the link it shows (or types the 4-letter
-  code). Each player picks their own team (a saved team or a nation from any era) and the decisions they make, then
+  The mode opens on two buttons, *Host a game* and *Join with a code*. The host chooses how you get teams (pick a
+  team each, draft or auction) and how many matches, and opens a room; the room shows its 4-letter code big, with
+  *Copy link* and *Share*. Your friend opens the link and types a name, or taps *Join with a code* and types the
+  code and a name; names show on the seats. Each player picks their own team (a saved team or a nation from any era) and the decisions they make, then
   both press Ready. Each captains a side: toss, XI, bowlers, next batter, and ball by ball the aggression bars, the
   batting side for its batters and the fielding side for its bowler, both choosing at once; after each ball both
   see what the other chose. Either player can skip to the end of the innings or match (the computer plays their
@@ -485,6 +491,9 @@ tests/             engine and tournament tests
       toss, Continue, four doors; a single match opens on its match centre
 - [x] UI simplification phase 3: phone-first live screen (score bug, permanent field, striker's bars, action bar),
       every ball plays fast, decision sheets (bowler, next batter, Impact Player, result), XI with Use this XI
+- [x] UI simplification phase 4: setup screens with at most four choices (the rest under More options), venues as
+      a searchable tick list, Era & grounds from the teams; Two players opens on Host / Join, joining is code +
+      name + Join, and the room shows the code big with Copy link and Share
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
   a draft against each other (optionally with computer teams and a league); a live auction against each other
   and the computer franchises, then a league or a series

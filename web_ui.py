@@ -1090,6 +1090,11 @@ def _mp_label(e) -> str:
     return history.team_name(e["nation"], int(e["y1"]), int(e["y2"])) if isinstance(e, dict) else e
 
 
+def _mp_pname(p: dict) -> str | None:
+    """A player's own name for the room (shown on the seats), at most 20 characters; None if not given."""
+    return " ".join(str(p.get("name") or "").split())[:20] or None
+
+
 def _mp_kinds(kinds) -> set:
     return set(kinds) & set(KINDS) - {"result"} if isinstance(kinds, list) else set(DEFAULT_KINDS) - {"result"} | {"ball"}
 
@@ -1464,15 +1469,17 @@ def api_mp_create():
         ROOMS[code] = {"code": code, "settings": st, "job": None, "names": None, "spectators": {},
                        "record": _mp_record_new(), "draft": None, "draft_t": 0.0, "auction": None,
                        "seats": [{"token": tok, "team": p.get("team") or None, "ready": False, "seen": time.time(),
-                                  "manual": _mp_kinds(p.get("manual")), "dname": None, "auto": False, "visitor": v},
+                                  "manual": _mp_kinds(p.get("manual")), "dname": None, "auto": False, "visitor": v,
+                                  "pname": _mp_pname(p)},
                                  {"token": None, "team": None, "ready": False, "seen": 0.0, "manual": _mp_kinds(None),
-                                  "dname": None, "auto": False, "visitor": None}]}
+                                  "dname": None, "auto": False, "visitor": None, "pname": None}]}
     return jsonify(code=code, token=tok)
 
 
 @app.post("/api/mp/join")
 def api_mp_join():
-    """Join with the room code: the free seat, or a spectator's place if both are taken. -> {token, seat}"""
+    """Join with the room code (and the player's name, optional): the free seat, or a spectator's place if both
+    are taken. -> {token, seat}"""
     p = request.get_json(force=True)
     with LOCK:
         r = ROOMS.get(str(p.get("code") or "").strip().upper())
@@ -1481,7 +1488,7 @@ def api_mp_join():
         tok = _token()
         guest = r["seats"][1]
         if guest["token"] is None:
-            guest.update(token=tok, seen=time.time(), visitor=V())
+            guest.update(token=tok, seen=time.time(), visitor=V(), pname=_mp_pname(p))
             r["record"] = _mp_record_new()        # a new opponent: a new head to head
             return jsonify(token=tok, seat=1)
         r["spectators"][tok] = V()
@@ -1505,7 +1512,7 @@ def api_mp_lobby():
                 ROOMS.pop(r["code"], None)
                 _cancel(r.get("job"))
             elif not _mp_running(r):
-                seat.update(token=None, team=None, ready=False, seen=0.0, dname=None, auto=False, visitor=None)
+                seat.update(token=None, team=None, ready=False, seen=0.0, dname=None, auto=False, visitor=None, pname=None)
                 r["draft"] = r["auction"] = None  # their squad goes with them
                 r["seats"][0]["ready"] = False
             return jsonify(ok=True)
@@ -1565,7 +1572,7 @@ def api_mp_state():
     draft = r["settings"].get("teams") == "draft" or r["settings"].get("teams") == "auction" \
         and r["settings"].get("a_pool") == "years"
     seats = [{"team": s["team"], "label": s["dname"] if draft else _mp_label(s["team"]) if s["team"] else None,
-              "name": s["dname"], "ready": s["ready"], "joined": s["token"] is not None, "here": now - s["seen"] < 10,
+              "name": s["dname"], "player": s.get("pname"), "ready": s["ready"], "joined": s["token"] is not None, "here": now - s["seen"] < 10,
               "manual": sorted(s["manual"])} for s in r["seats"]]
     out = {"code": r["code"], "you": i, "seats": seats, "settings": r["settings"], "urls": _mp_urls(r),
            "lan": bool(app.config.get("LAN") or app.config.get("MULTI")), "public": bool(app.config.get("MULTI")),
