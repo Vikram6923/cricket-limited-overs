@@ -36,6 +36,54 @@ function fillSelect(sel, items, keep) {
   if (old !== null && [...sel.options].some(o => o.value === old)) sel.value = old;
 }
 
+/* names for people: competitions, preset teams, detail level */
+const COMP_NAME = {t20i_full: 'international', t20i: 'international (all teams)', odi_full: 'international', odi: 'international (all teams)',
+  ipl: 'IPL', bbl: 'BBL', psl: 'PSL', cpl: 'CPL', sat: 'SA20', ilt: 'ILT20', bpl: 'BPL', lpl: 'LPL', mlc: 'MLC', ntb: 'T20 Blast', ssm: 'Super Smash'};
+function compName(fmt, id) {
+  if (!id) return '';
+  if (COMP_NAME[id]) return COMP_NAME[id];
+  const c = META && META.formats[fmt] && META.formats[fmt].competitions.find(c => c.id === id);
+  return c ? c.label : String(id).replace(/_/g, ' ');
+}
+/* "India T20 2024" -> "India", unless another team in the list has the same name without its year */
+function pickName(name, all) {
+  const k = teamKey(name);
+  if (k === name) return name;
+  const same = (all || []).filter(n => teamKey(n) === k);
+  if (same.length < 2) return k;
+  // two presets of one nation (India T20 2024, India ODI 2023): the one in the chosen format keeps the plain name
+  const fm = ($('c-fmt') ? $('c-fmt').value : '').toUpperCase(), inFmt = n => new RegExp(`\\b${fm}\\b`, 'i').test(n.slice(k.length));
+  return fm && inFmt(name) && same.filter(inFmt).length === 1 ? k : `${k} (${name.slice(k.length).trim()})`;
+}
+const DETAIL_KEY = 'lo.detail', MORE_KEY = 'lo.more.';
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window: not remembered */ } }
+function setDetail(d) {
+  d = d === 'full' ? 'full' : 'simple';
+  document.body.classList.toggle('detail-full', d === 'full'); document.body.classList.toggle('detail-simple', d !== 'full');
+  document.querySelectorAll('#detail-sw button').forEach(b => b.classList.toggle('on', b.dataset.d === d));
+  lsSet(DETAIL_KEY, d);
+}
+function initDetail() {
+  setDetail(lsGet(DETAIL_KEY) || 'simple');
+  document.querySelectorAll('#detail-sw button').forEach(b => b.onclick = () => setDetail(b.dataset.d));
+  document.querySelectorAll('details.more').forEach(d => {
+    if (lsGet(MORE_KEY + d.id) === '1') d.open = true;
+    d.addEventListener('toggle', () => lsSet(MORE_KEY + d.id, d.open ? '1' : '0'));
+  });
+}
+initDetail();
+/* the top-bar pill only while something runs: "Live: IND v AUS" (click to go back to it) */
+function livePill(running, st) {
+  const p = $('status-pill');
+  p.style.display = running ? '' : 'none';
+  p.classList.toggle('run', running);
+  if (!running) return;
+  const tm = (typeof CAP !== 'undefined' && CAP.teams) || [];
+  const vs = tm.length === 2 && tm.every(Boolean) ? ': ' + tm.map(t => tcol(t).short).join(' v ') : '';
+  p.innerHTML = '<i></i>' + (st && st.captain ? 'Live' + vs : 'Simulating');
+}
+
 /* generic sortable table (from the Test sim) */
 function table(el, cols, rows, opt = {}) {
   el._cols = cols; el._rows = rows; el._opt = opt;
@@ -111,7 +159,7 @@ const MODES = {
   classic: {t: 'Classic series', s: 'Any nation, any era: Australia 2003–07 v India 2011', g: 'History', c: '#f6c453'},
   classic_t: {t: 'Classic tournament', s: 'Great sides from different eras', g: 'History', c: '#2ee88a'},
   builder: {t: 'Team builder', s: 'Pick 11–15 from about 6,500 rated players', g: 'Tools', c: '#3d8bff'},
-  saved: {t: 'Saved runs', s: 'Seasons and series you kept', g: 'Tools', c: '#8d9bb5'}};
+  saved: {t: 'Saved', s: 'Seasons and series you kept', g: 'Tools', c: '#8d9bb5'}};
 const modeIcon = (m, cls = '') => `<span class="mic ${cls}" style="--mc:${MODES[m].c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[m]}</svg></span>`;
 function drawModeTiles() {
   const groups = {};
@@ -127,8 +175,8 @@ function drawHero() {
   const side = (id, name, right) => {
     const t = META.teams.find(x => x.name === name) || {players: []};
     return `<div class="side ${right ? 'r' : ''}">${badge(name, 'lg')}<div class="who">
-      <select class="tsel" id="${id}" title="Choose a team">${names.map(n => `<option ${n === name ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
-      <div class="sub">${t.players.length} players${t.players.length > 11 ? ' · the XI is picked per match' : ''}</div>
+      <select class="tsel" id="${id}" title="Choose a team">${names.map(n => `<option value="${esc(n)}" ${n === name ? 'selected' : ''}>${esc(pickName(n, names))}</option>`).join('')}</select>
+      <div class="sub full-only">${t.players.length} players</div>
       <div class="keys">${t.players.slice(0, 6).map(p => esc(p.name)).join(' · ')}</div></div></div>`;
   };
   const fmt = $('c-fmt').value, comp = $('c-comp').selectedOptions[0];
@@ -146,10 +194,10 @@ function drawHero() {
       <div class="vs">${side('h-t1', t1, false)}<div class="vsx">VS</div>${side('h-t2', t2, true)}</div>
       <div class="ctl">
         <div class="seg" id="h-fmt"><button data-f="t20" class="${fmt === 't20' ? 'on' : ''}">T20</button><button data-f="odi" class="${fmt === 'odi' ? 'on' : ''}">ODI</button></div>
-        <span class="meta">Conditions <b>${esc(comp ? comp.text.replace(/ \(\d{4}–\d{4}\)$/, '') : '')} ${esc($('c-year').value)}</b> · <a class="lnk" data-mode="series">change</a></span>
+        <span class="meta">Era &amp; grounds <b>${esc(compName(fmt, $('c-comp').value))} ${esc($('c-year').value)}</b> · <a class="lnk" data-mode="series">change</a></span>
         <label class="toggle ${HERO.cap ? 'on' : ''}" id="h-cap"><i></i>Captain ${esc(teamKey(t1))}</label>
         <label class="toggle ${HERO.ball ? 'on' : ''} ${HERO.cap ? '' : 'off'}" id="h-ball"><i></i>Ball by ball</label>
-        <button class="btn go big" id="h-play">&#9654;&nbsp; Play match</button>
+        <button class="btn go big" id="h-play">&#9654;&nbsp; ${HERO.cap ? 'Play' : 'Simulate'}</button>
       </div><div class="err" id="h-err" style="text-align:center"></div>
     </div>`;
   ['h-t1', 'h-t2'].forEach((id, i) => $(id).onchange = () => { $('s-t' + (i + 1)).value = $(id).value; showRoster('s-t' + (i + 1), 's-r' + (i + 1)); drawHero(); });
@@ -181,9 +229,9 @@ async function drawHomeCont() {
       const f = r.fixtures[r.fixtures.length - 1];
       const title = r.kind === 'series' ? dnText(r.result, r.teams) : `${dn(r.winner)} won`;
       cards.push(`<button class="card ccard" data-home="last" style="${tStyle(r.winner || (f && f.winner) || '')}"><span class="stripe"></span>
-        <div class="kicker">Last run · ${esc((r.format || '').toUpperCase())} · ${esc(r.competition || '')} ${esc(r.year || '')}</div>
+        <div class="kicker">Last run · ${esc((r.format || '').toUpperCase())} · ${esc(compName(r.format, r.competition))} ${esc(r.year || '')}</div>
         <div class="row">${(r.kind === 'series' ? r.teams : [r.winner]).filter(Boolean).map(t => badge(t)).join('')}<span class="sc">${esc(title)}</span></div>
-        <div class="res">${esc(r.fixtures.length)} match${r.fixtures.length === 1 ? '' : 'es'}${r.player_of_series ? ' · player of the series ' + esc(r.player_of_series.name) : ''}</div></button>`);
+        <div class="res">${esc(r.fixtures.length)} match${r.fixtures.length === 1 ? '' : 'es'}${r.player_of_series ? ` · player of the ${r.fixtures.length === 1 ? 'match' : 'series'} ` + esc(r.player_of_series.name) : ''}</div></button>`);
     } catch (e) { /* no last run */ }
   }
   (META.careers || []).slice(0, 1).forEach(c => cards.push(`<button class="card ccard" data-career="${esc(c.id)}" style="${tStyle(c.user || '')}"><span class="stripe"></span>
@@ -257,7 +305,7 @@ async function init() {
   const sumObs = new MutationObserver(syncSum);
   document.querySelectorAll('#v-setup .total').forEach(t => sumObs.observe(t, {subtree: true, childList: true, characterData: true}));
   document.querySelectorAll('.tab').forEach(t => t.onclick = () => openTab(t.dataset.pane));
-  $('c-fmt').onchange = () => { fillConditions(); refreshClassic(); };
+  $('c-fmt').onchange = () => { fillConditions(); refreshClassic(); fillTeams(); };
   $('c-comp').onchange = checkYear; $('c-year').oninput = checkYear;
   $('c-vsearch').oninput = filterVenues;
   fillSelect($('t-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
@@ -297,7 +345,11 @@ function setMode(m, show = true) {
   else showView('v-setup');
 }
 /* the captain boxes live in the conditions panel; the draft room borrows them once the draft is done */
-function capHome() { const a = $('cap-anchor'); if (a && $('g-cap-box').parentNode !== a.parentNode) { a.after($('g-manual-box')); a.after($('g-cap-box')); } }
+function capHome() {
+  const a = $('cap-anchor'), m = $('cap-more-anchor');
+  if (a && $('g-cap-box').previousElementSibling !== a) a.after($('g-cap-box'));
+  if (m && $('g-manual-box').previousElementSibling !== m) m.after($('g-manual-box'));
+}
 
 /* conditions: format, competition, year, venues */
 function fillConditions() {
@@ -318,7 +370,8 @@ function checkYear() {
 /* teams (series + tournament) */
 function fillTeams() {
   const names = META.teams.map(t => t.name);
-  fillSelect($('s-t1'), names, true); fillSelect($('s-t2'), names, true);
+  const opts = names.map(n => ({v: n, t: pickName(n, names)}));
+  fillSelect($('s-t1'), opts, true); fillSelect($('s-t2'), opts, true);
   if (!$('s-t1')._init) {
     $('s-t1').value = names.includes('India T20 2024') ? 'India T20 2024' : names[0];
     $('s-t2').value = names.includes('Australia T20 2024') ? 'Australia T20 2024' : names[Math.min(1, names.length - 1)];
@@ -329,13 +382,13 @@ function fillTeams() {
   const checked = new Set([...document.querySelectorAll('#t-list input:checked')].map(i => i.value));
   const first = !$('t-list').children.length;
   $('t-list').innerHTML = META.teams.map(t =>
-    `<label data-name="${esc(t.name.toLowerCase())}"><input type="checkbox" value="${esc(t.name)}" ${checked.has(t.name) || (first && / T20 2024$/.test(t.name)) ? 'checked' : ''}> ${esc(t.name)} <span class="muted small">(${t.players.length})</span></label>`).join('');
+    `<label data-name="${esc(t.name.toLowerCase())}"><input type="checkbox" value="${esc(t.name)}" ${checked.has(t.name) || (first && / T20 2024$/.test(t.name)) ? 'checked' : ''}> ${esc(pickName(t.name, names))} <span class="muted small full-only">(${t.players.length})</span></label>`).join('');
   $('t-list').querySelectorAll('input').forEach(i => i.onchange = updateTournamentTotal);
   updateTournamentTotal(); drawSavedTeams();
 }
 function showRoster(selId, outId) {
   const t = META.teams.find(t => t.name === $(selId).value);
-  $(outId).innerHTML = t ? `<div class="rhead">${badge(t.name)}<span class="muted small">${t.players.length} players${t.players.length > 11 ? ' · the XI is picked per match' : ''}</span></div>
+  $(outId).innerHTML = t ? `<div class="rhead">${badge(t.name)}<span class="muted small full-only">${t.players.length} players</span></div>
     <div class="pchips">${t.players.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : '';
 }
 function filterTeams() {
@@ -540,7 +593,7 @@ async function saveRun() {
     META.saved = (await api('/api/saved', {name})).saved;
     const sv = META.saved.find(s => s.name === name.trim()) || META.saved[0];
     $('r-save').style.display = 'none'; $('r-saved').textContent = `Saved as “${sv.name}”`;
-    toast('Saved. Find it under “Saved runs”.'); aRefresh();
+    toast('Saved. Find it under “Saved”.'); aRefresh();
   } catch (e) { toast(e.message, true); }
 }
 function drawSaved() {
@@ -635,8 +688,7 @@ async function poll() {
   let st;
   try { st = await api('/api/status'); } catch (e) { POLL_T = setTimeout(poll, 1500); return; }
   const running = st.status === 'running';
-  $('status-pill').innerHTML = running ? '<i></i>' + (st.captain ? 'Live' : 'Running') : '<i></i>Idle';
-  $('status-pill').classList.toggle('run', running);
+  livePill(running, st);
   $('go-btn').disabled = running;
   if (running && st.captain && st.captain.skip !== 'all') {
     showView('v-captain');
@@ -673,9 +725,9 @@ async function showResults(run) {
   setDisplayTeams(RTEAMS);
   const lead = R.kind === 'series' ? (R.winner || '') : R.winner;
   $('r-hero').setAttribute('style', lead ? tStyle(lead) : '');
-  $('r-kick').textContent = `${fmt} · ${R.competition} ${R.year} conditions · ${R.best_of > 1 ? `best of ${R.best_of} · ` : ''}${R.fixtures.length} match${R.fixtures.length === 1 ? '' : 'es'}`;
+  $('r-kick').textContent = `${fmt} · ${compName(R.format, R.competition)} conditions ${R.year} · ${R.best_of > 1 ? `best of ${R.best_of} · ` : ''}${R.fixtures.length} match${R.fixtures.length === 1 ? '' : 'es'}`;
   $('r-title').innerHTML = R.kind === 'series' ? esc(dnText(R.result, RTEAMS)) : `${badge(R.winner)} ${esc(dn(R.winner))} win the tournament`;
-  $('r-sub').textContent = `${R.title || ''} · seed ${R.seed}`;
+  $('r-sub').innerHTML = `${esc(dnt(R.title || ''))}<span class="full-only"> · replay code ${esc(R.seed)}</span>`;
   const sv = (META.saved || []).find(s => s.id === R_RUN);
   $('r-save').style.display = R_RUN || R.career ? 'none' : '';
   $('r-career').style.display = R.career ? '' : 'none';
@@ -683,7 +735,7 @@ async function showResults(run) {
   if (!R.career) $('r-saved').textContent = sv ? `Saved run: ${sv.name} (${sv.saved})` : '';
   const pos = R.player_of_series;
   $('r-pos').style.display = pos ? '' : 'none';
-  if (pos) $('r-pos').innerHTML = `${avatar(pos.name, pos.team, 'sm')} Player of the series <b>${esc(pos.name)}</b> <span class="muted">${esc(dn(pos.team))}</span>`;
+  if (pos) $('r-pos').innerHTML = `${avatar(pos.name, pos.team, 'sm')} Player of the ${R.fixtures.length === 1 ? 'match' : 'series'} <b>${esc(pos.name)}</b> <span class="muted">${esc(dn(pos.team))}</span>`;
   CUR_MATCH = 0;
   $('tab-board').style.display = R.draft ? '' : 'none';
   if (R.draft) drawBoard($('r-board'), R.draft.teams, R.draft.board, R.draft.user || (mpOn() && MP.team) || null);
@@ -1105,9 +1157,10 @@ function renderMVP() {
     : 'The engine\'s own measure: <b>win probability added</b>, summed over every ball a player batted or bowled (1.00 = one whole match won). It also picks the player of each match and of the series.';
   const legend = alt ? 'Bar: <span style="color:var(--blue)">■ runs</span> <span style="color:var(--green)">■ wickets</span> <span style="color:#c678dd">■ catches</span> <span style="color:var(--amber)">■ team wins</span>.' : '';
   el.innerHTML = `<div class="seg" id="mvp-kind">
-      <button data-k="official" class="${alt ? '' : 'on'}">Official (impact)</button>
-      <button data-k="balanced" class="${alt ? 'on' : ''}">Balanced ranking</button></div>
-    <p class="muted small" style="margin:10px 0 12px">${formula} ${legend}</p>
+      <button data-k="official" class="${alt ? '' : 'on'}">Official</button>
+      <button data-k="balanced" class="${alt ? 'on' : ''}">Balanced</button></div> <span class="muted small">Points</span>
+    <p class="muted small simple-only" style="margin:10px 0 12px">${alt ? 'Runs, wickets, catches and team wins.' : 'How much each player swung the result.'}</p>
+    <p class="muted small full-only" style="margin:10px 0 12px">${formula} ${legend}</p>
     <div class="filters"><input type="text" id="mvp-q" placeholder="Search player…"><select id="mvp-team"></select></div>
     <div class="tbl" id="mvp-table"></div>`;
   el.querySelectorAll('#mvp-kind button').forEach(b => b.onclick = () => { MVP_KIND = b.dataset.k; renderMVP(); });

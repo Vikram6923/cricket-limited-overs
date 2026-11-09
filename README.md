@@ -42,7 +42,11 @@ The page opens on a home screen: a one-click quick match and every mode as a til
 the last results, careers and saved runs. Teams carry their colours and short codes everywhere; results open on
 a scoreboard (series), champion banner, points table with a form guide, and a knockout bracket; each match has a
 match centre (summary, HTML scorecard, ball by ball, charts); the live captain screen is laid out like a TV score
-bar. It also works on a phone, with a tab bar at the bottom. Modes:
+bar. It also works on a phone, with a tab bar at the bottom. A **Simple / Full stats** switch in the top bar
+decides how much you see: Simple (the default) keeps the screens to scores, names and plain words; Full stats adds
+the model's numbers (expected economy and strike rate, how settled a batter is, the replay code, the MVP formula).
+Each setup screen shows only the choices most people change; year, grounds, venues, rain, the replay code and
+the decisions you make yourself are under **More options**, which remembers whether you left it open. Modes:
 
 - **Match / Series:** two saved teams play one match or a series of up to 7.
 - **Two players:** you against a friend on another device on the same Wi-Fi (the host runs `python web_ui.py --lan`).
@@ -51,7 +55,7 @@ bar. It also works on a phone, with a tab bar at the bottom. Modes:
   both press Ready. Each captains a side: toss, XI, bowlers, next batter, and ball by ball the aggression bars, the
   batting side for its batters and the fielding side for its bowler, both choosing at once; after each ball both
   see what the other chose. Either player can skip to the end of the innings or match (the computer plays their
-  side at normal bars) and take their decisions back later. Optional shot clock (10 or 20 seconds a ball). If a
+  side at normal bars) and take their decisions back later. Optional time per ball (10 or 20 seconds). If a
   player loses contact for a minute the other can hand that side to the computer; reopening the page rejoins.
   A third device that joins watches the score. Play a single match or a best of 3 / 5 series (it stops once
   decided, with a result screen for both players between matches); the room keeps a head-to-head record across
@@ -89,8 +93,9 @@ bar. It also works on a phone, with a tab bar at the bottom. Modes:
   team) in the "Captain a team" box under the conditions. Built on a generic controller (`engine/control.py`).
   - **Ball by ball with aggression bars (League Season and Career, Cricket Captain style):** set each batter's
     aggression and each bowler's plan on 9 bars and play a ball, an over, to the next wicket or to the end of the
-    innings, with a settled meter for each batter and the projected score or chase. Bar 5 is how real sides play
-    that situation (the engine as calibrated). The trade-off comes from real ball-by-ball data: across match
+    innings, with a settled meter for each batter (Full stats; Simple marks a new batter NEW) and the projected score or chase. Bar 5 is how real sides play
+    that situation (the engine as calibrated); the bars run Block, Defend, Careful, Steady, Normal, Positive, Attack,
+    Hit out, Slog. The trade-off comes from real ball-by-ball data: across match
     situations, how fours, sixes and dots move with the scoring rate, and how far each bar reaches (the range real
     sides show, plus one bar beyond it at each end). Each bar's wicket cost is set so that bar 5 is best on
     average, so the right setting depends on the moment: going hard pays when a wicket is cheap and costs when it
@@ -140,7 +145,7 @@ bar. It also works on a phone, with a tab bar at the bottom. Modes:
   each match) and save the team. Ten preset national squads are included.
 
 For every run choose the format, the year and whose conditions to play in (full-member internationals or a league),
-optionally venues, a seed and whether rain can interrupt play (on by default). The results page has a summary
+optionally venues, a replay code (the seed) and whether rain can interrupt play (on by default). The results page has a summary
 (points tables with net run rate, knockouts, top performers, records), every match (Previous / Next, match report,
 rain notes, run worm, Manhattan, win-probability and partnership charts, scorecard and innings log), sortable batting and bowling tables, the MVP race (official and balanced) and,
 after a draft or an auction, the squads (with prices). Saved teams go in `data/teams.json` (not in git).
@@ -460,6 +465,7 @@ tests/             engine and tournament tests
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
 - [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
       live screen, phone layout
+- [x] UI simplification phase 1: Simple / Full stats switch, More options folds, plain words
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
   a draft against each other (optionally with computer teams and a league); a live auction against each other
   and the computer franchises, then a league or a series

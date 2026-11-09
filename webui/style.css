@@ -538,7 +538,7 @@ details>summary{cursor:pointer}
 .xi-list li .st{color:var(--muted);font-size:.72rem}
 .xi-list li button{border:1px solid var(--border2);border-radius:6px;color:var(--muted);padding:1px 7px;font-size:.75rem}
 .xi-list li button:hover{border-color:var(--brand);color:var(--text)}
-.xi-list li.cpu .nm::after{content:" CPU";font-size:.6rem;color:var(--amber);vertical-align:super}
+.xi-list li.cpu .nm::after{content:" SUGGESTED";font-size:.6rem;color:var(--amber);vertical-align:super}
 .xi-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .xi-status{font-size:.82rem;margin-top:8px}
 .xi-status .bad{color:var(--red)}
@@ -842,3 +842,23 @@ body.mp-on #cap-skip-all{display:none}
 .ar-tc.rival{outline:1px dashed var(--amber)}
 .ar-rcard.rival{border-color:var(--amber)}
 .turn.low{color:var(--red)}
+
+/* ── detail level: Simple hides model numbers and long explanations ── */
+body.detail-simple .full-only{display:none!important}
+body.detail-full .simple-only{display:none!important}
+.detail-sw{flex:0 0 auto}
+.detail-sw button{padding:5px 11px;font-size:.78rem}
+#status-pill{cursor:pointer}
+details.more{margin:6px 0 14px;border-top:1px solid var(--border);padding-top:10px}
+details.more>summary{cursor:pointer;color:var(--brand);font-size:.86rem;font-weight:600;width:max-content;list-style:none;margin-bottom:6px}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:"›";display:inline-block;margin-right:6px;transition:transform .15s}
+details.more[open]>summary::before{transform:rotate(90deg)}
+details.how ul{margin:8px 0 0 18px;max-width:760px;line-height:1.6}
+.new-tag{display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.06em;color:#061;background:var(--brand);border-radius:99px;padding:0 6px;margin-left:6px;vertical-align:middle}
+.bb-hint-short{margin-top:6px}
+@media (max-width:760px){
+  .detail-sw{margin-left:auto}
+  .detail-sw button{padding:4px 8px;font-size:.72rem}
+  #status-pill{display:none!important}
+}

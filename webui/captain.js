@@ -3,7 +3,7 @@
 'use strict';
 
 const KIND_LABEL = {toss: 'Toss', xi: 'Playing XI', bowler: 'Bowlers', batter: 'Next batter', impact: 'Impact Player',
-  result: 'Pause after matches', ball: 'Ball by ball'};
+  result: 'Stop after each of my matches', ball: 'Ball by ball'};
 const CAP = {qid: null, q: null, auto: {}, manual: [], impact: true};
 const n1 = v => v === null || v === undefined ? '–' : v;
 const statLine = p => [p.role + (p.kind && p.role !== 'Batter' && p.role !== 'WK' ? ` (${p.kind})` : ''),
@@ -12,7 +12,8 @@ const osTag = p => p.overseas ? '<span class="os-tag">OS</span>' : '';
 
 function capRender(st) {
   const cap = st.captain, q = cap.pending;
-  $('cap-progress').textContent = `${st.done} of ${st.total} matches played`;
+  $('cap-progress').textContent = st.total > 1 ? `${st.done} of ${st.total} matches played` : '';
+  $('cap-skip-all').style.display = st.total > 1 ? '' : 'none';      // no "rest of the season" in a single match
   if (!q) {
     if (CAP.qid !== 'wait') { CAP.qid = 'wait'; $('cap-q').innerHTML = '<div class="muted">Playing on…</div>'; }
     return;
@@ -37,7 +38,7 @@ function renderAuto() {
     && (k !== 'result' || !mpOn())
     && (k !== 'ball' || CAP.ballOn));
   const computer = k => CAP.auto[k] !== undefined ? CAP.auto[k] : !CAP.manual.includes(k);
-  $('cap-auto').innerHTML = kinds.map(k => `<button class="tog ${computer(k) ? 'on' : ''}" data-k="${k}"
+  $('cap-auto').innerHTML = kinds.map(k => `<button class="tog ${computer(k) ? '' : 'on'}" data-k="${k}"
     title="${computer(k) ? 'The computer decides - click to decide yourself' : 'You decide - click to leave it to the computer'}">${KIND_LABEL[k]}${computer(k) ? ' · computer' : ''}</button>`).join('');
   $('cap-auto').querySelectorAll('.tog').forEach(b => b.onclick = () => { CAP.auto[b.dataset.k] = !computer(b.dataset.k); renderAuto(); });
 }
@@ -126,14 +127,14 @@ function scoreHTML(q) {
   </div>`;
 }
 
-const cpuTag = on => on ? '<span class="cpu-tag">COMPUTER</span>' : '';
+const cpuTag = on => on ? '<span class="cpu-tag">SUGGESTED</span>' : '';
 const optCard = (p, isCpu, extra) => `<button class="opt ${isCpu ? 'cpu' : ''}" data-id="${esc(p.id)}">${cpuTag(isCpu)}
   <b>${esc(p.name)}${osTag(p)}</b>${extra}</button>`;
 const nameOf = (list, id) => (list.find(p => p.id === id) || {}).name || '–';
 
 function qToss(q) {
   $('cap-q').innerHTML = `<h3>${esc(dnText(q.text, CAP.teams || []))} Bat or bowl?</h3>
-    <div class="sb-line">The computer would choose to <b>${esc(q.default)}</b>.</div>
+    <div class="sb-line">Suggested: <b>${esc(q.default)}</b>.</div>
     <div class="opts">${q.options.map(o => `<button class="opt ${o === q.default ? 'cpu' : ''}" data-id="${o}">${cpuTag(o === q.default)}
       <b>${o === 'bat' ? 'Bat first' : 'Bowl first'}</b><span>${o === 'bat' ? 'set a target' : 'chase'}</span></button>`).join('')}</div>`;
   $('cap-q').querySelectorAll('.opt').forEach(b => b.onclick = () => capSend(b.dataset.id));
@@ -143,8 +144,8 @@ function qToss(q) {
 function impactBoxHTML(imp, standalone) {
   if (!imp) return '';
   const all = [...imp.ins, ...imp.outs], sg = imp.suggestion;
-  const say = sg ? `The computer would bring in <b>${esc(nameOf(all, sg.in))}</b> for <b>${esc(nameOf(all, sg.out))}</b> now (worth about ${sg.gain} runs).`
-    : 'The computer would not use the Impact Player now.';
+  const say = sg ? `Suggested: <b>${esc(nameOf(all, sg.in))}</b> for <b>${esc(nameOf(all, sg.out))}</b> now (worth about ${sg.gain} runs).`
+    : 'Suggested: not now.';
   return `<div class="${standalone ? '' : 'impact-box'}">
     ${standalone ? '' : '<div class="lbl">Impact Player (not used yet)</div>'}
     <div class="sb-line">${say}</div>
@@ -171,9 +172,9 @@ function qPick(q, kind) {
   const fig = p => q.state.bowlers.find(b => b.name === p.name) || {overs: '0.0', maidens: 0, runs: 0, wkts: 0};
   const extra = p => kind === 'bowler'
     ? `<span>${esc(p.kind || p.role)} · usually ${p.overs_per_match} ov/match</span><span>today ${fig(p).overs}-${fig(p).maidens}-${fig(p).runs}-${fig(p).wkts} · ${p.quota_left} ov left</span>
-       <span>expected econ${ph ? ' (' + ph + ')' : ''} <b>${n1(p.phase_econ)}</b> · career ${n1(p.bowl_econ)}</span>`
+       <span class="full-only">expected econ${ph ? ' (' + ph + ')' : ''} <b>${n1(p.phase_econ)}</b> · career ${n1(p.bowl_econ)}</span>`
     : `<span>${esc(p.role)}${p.hand ? ' · ' + esc(p.hand) + 'HB' : ''}${p.slot ? ' · usually #' + p.slot : ''}</span>
-       <span>avg ${n1(p.bat_avg)} · SR ${n1(p.bat_sr)}</span><span>expected SR${ph ? ' (' + ph + ')' : ''} <b>${n1(p.phase_sr)}</b></span>`;
+       <span>avg ${n1(p.bat_avg)} · SR ${n1(p.bat_sr)}</span><span class="full-only">expected SR${ph ? ' (' + ph + ')' : ''} <b>${n1(p.phase_sr)}</b></span>`;
   const draw = () => {
     const use = $('ib-use') && $('ib-use').checked, ic = use ? impactChoice(imp) : null;
     let opts = q.options;
@@ -193,9 +194,9 @@ function qPick(q, kind) {
     });
   };
   $('cap-q').innerHTML = `<h3>${kind === 'bowler' ? `Who bowls over ${q.over}?` : 'Wicket! Who goes in next?'}</h3>
-    <div class="sb-line">The computer's choice: <b>${esc(nameOf(q.options, q.default))}</b>${imp && imp.suggestion ? ', with the Impact substitution below' : ''}. Click a player to choose.</div>
+    <div class="sb-line">Suggested: <b>${esc(nameOf(q.options, q.default))}</b>${imp && imp.suggestion ? ', with the Impact substitution below' : ''}.</div>
     <div class="opts" id="cap-opts"></div>${impactBoxHTML(imp, false)}
-    <div class="cap-actions"><button class="btn sec" id="cap-cpu">Use the computer's choice</button></div>`;
+    <div class="cap-actions"><button class="btn sec" id="cap-cpu">Use the suggestion</button></div>`;
   draw();
   ['ib-use', 'ib-in', 'ib-out'].forEach(id => { if ($(id)) $(id).onchange = draw; });
   $('cap-cpu').onclick = () => capSend(null);
@@ -207,7 +208,7 @@ function qImpact(q) {
     <div class="sb-line">The substitute can bat and bowl a full quota; the player replaced takes no further part.</div>
     ${impactBoxHTML(imp, true)}
     <div class="cap-actions"><button class="btn go" id="ib-make">Make this substitution</button>
-      <button class="btn sec" id="ib-cpu">${imp.suggestion ? "Computer's call (its substitution)" : "Computer's call (wait)"}</button>
+      <button class="btn sec" id="ib-cpu">${imp.suggestion ? 'Use the suggestion' : 'Use the suggestion (wait)'}</button>
       <button class="btn sec" id="ib-wait">Not now</button></div>`;
   $('ib-make').onclick = () => { const c = impactChoice(imp); if (c && c !== 'bad') capSend(c); };
   $('ib-cpu').onclick = () => capSend(null);
@@ -237,8 +238,8 @@ function mpResultNext() {
 }
 
 /* ball by ball: aggression bars (1-9, 5 = as real sides play this situation; docs/match_play_design.md) */
-const BAT_WORD = {1: 'Block', 2: 'Very careful', 3: 'Careful', 4: 'Steady', 5: 'Normal', 6: 'Positive', 7: 'Attack',
-  8: 'Very aggressive', 9: 'All out'};
+const BAT_WORD = {1: 'Block', 2: 'Defend', 3: 'Careful', 4: 'Steady', 5: 'Normal', 6: 'Positive', 7: 'Attack',
+  8: 'Hit out', 9: 'Slog'};
 const BOWL_WORD = {1: 'Contain', 2: 'Very tight', 3: 'Tight', 4: 'Steady', 5: 'Normal', 6: 'Probing', 7: 'Attack',
   8: 'Very attacking', 9: 'All-out attack'};
 function barsHTML(key, val, words) {
@@ -251,9 +252,9 @@ function qBall(q) {
   const vals = {};
   const pct = c => Math.round(100 * c.settled);
   const who = (c, strike) => `<div class="bb-row">
-      <div class="bb-name"><b>${esc(c.name)}${strike ? ' *' : ''}</b> <span class="muted">${c.runs} (${c.balls})</span>
-        <div class="settle" title="How far his scoring has picked up since his first ball (the fitted settling-in curve)"><i style="width:${pct(c)}%"></i></div>
-        <span class="muted small">settled ${pct(c)}% · usual SR in these overs ${n1(c.sr)}</span></div>
+      <div class="bb-name"><b>${esc(c.name)}${strike ? ' *' : ''}</b> <span class="muted">${c.runs} (${c.balls})</span>${c.balls < 10 ? '<span class="new-tag simple-only" title="New at the crease: still playing himself in">NEW</span>' : ''}
+        <div class="settle full-only" title="How far his scoring has picked up since his first ball (the fitted settling-in curve)"><i style="width:${pct(c)}%"></i></div>
+        <span class="muted small full-only">settled ${pct(c)}% · usual SR in these overs ${n1(c.sr)}</span></div>
       ${bat ? barsHTML(c.id, c.bars, BAT_WORD) : ''}</div>`;
   if (bat) { vals[q.striker.id] = q.striker.bars; vals[q.non_striker.id] = q.non_striker.bars; }
   else vals[q.bowler.id] = q.bowler.bars;
@@ -268,14 +269,15 @@ function qBall(q) {
     <div class="thisover"><span class="lb">This over</span>${ballsHTML}</div>
     <div class="lbl" style="margin-top:10px">${bat ? 'Your batters: aggression' : 'Your bowler: plan'}</div>
     ${who(q.striker, true)}${who(q.non_striker, false)}
-    <div class="bb-row"><div class="bb-name"><b>${esc(q.bowler.name)}</b> <span class="muted">${esc(q.bowler.kind || '')} · ${esc(q.bowler.figures)} · expected econ ${n1(q.bowler.econ)}</span></div>
+    <div class="bb-row"><div class="bb-name"><b>${esc(q.bowler.name)}</b> <span class="muted">${esc(q.bowler.kind || '')} · ${esc(q.bowler.figures)}<span class="full-only"> · expected econ ${n1(q.bowler.econ)}</span></span></div>
       ${bat ? '' : barsHTML(q.bowler.id, q.bowler.bars, BOWL_WORD)}</div>
-    <div class="hint" style="margin-top:6px">${bat ? '5 = how real sides bat in this situation. Higher: more runs and more risk; lower: fewer of both. Far from 5 costs, more so when a wicket is dear.'
+    <div class="hint bb-hint-short simple-only">${bat ? 'Higher = more runs, more risk.' : 'Higher = more wickets, more runs.'} Keys 1–9, Space = next ball.</div>
+    <div class="hint full-only" style="margin-top:6px">${bat ? '5 = how real sides bat in this situation. Higher: more runs and more risk; lower: fewer of both. Far from 5 costs, more so when a wicket is dear.'
       : '5 = a normal plan. Attack takes more wickets but leaks runs; contain saves runs but takes fewer wickets.'} Keys: 1-9 sets ${bat ? 'the striker' : 'the bowler'}, Space = next ball.</div>
     <div class="cap-actions bb-act"><button class="btn go big" data-until="ball">Next ball <kbd>Space</kbd></button>
-      <button class="btn sec" data-until="over">Play the over</button>
-      <button class="btn sec" data-until="wicket">To the next wicket</button>
-      <button class="btn sec" data-until="innings">To the end of the innings</button>
+      <button class="btn sec" data-until="over">Sim over</button>
+      <button class="btn sec" data-until="wicket">Sim to wicket</button>
+      <button class="btn sec" data-until="innings">Sim innings</button>
       ${HL.selectHTML()}</div>`;
   const el = $('cap-q');
   $('hl-level').onchange = ev => { HL.setLevel(ev.target.value); HL.play(q.since, $('hl-box')); };
@@ -320,7 +322,7 @@ function qXI(q) {
       <button data-rm="${esc(id)}" title="Drop from the XI">✕</button></li>`; };
     const rest = q.options.filter(p => !xi.includes(p.id));
     $('cap-q').innerHTML = `<h3>Name your XI${nSubs ? ` and ${nSubs} Impact substitutes` : ''}</h3>
-      <div class="sb-line">${esc(dnText(q.toss, CAP.teams || []))} You ${q.batting_first ? 'bat' : 'bowl'} first. The computer's picks are marked CPU (listed in its batting order); the order here is your batting order.</div>
+      <div class="sb-line">${esc(dnText(q.toss, CAP.teams || []))} You ${q.batting_first ? 'bat' : 'bowl'} first.</div>
       <div class="xi-cols">
         <div><div class="lbl" style="margin-top:10px">Batting order</div><ul class="xi-list">${xi.map(sel).join('')}</ul></div>
         <div><div class="lbl" style="margin-top:10px">Rest of the squad</div><ul class="xi-list">${rest.map(p => `<li class="${cpu.has(p.id) ? 'cpu' : ''}">
@@ -331,7 +333,7 @@ function qXI(q) {
       <div class="xi-status">${xi.length}/11 · overseas ${os}${maxOS !== null ? '/' + maxOS : ''} · keeper ${esc((by[keeper] || {}).name || '–')}${nSubs ? ` · substitutes ${subs.length}/${nSubs}` : ''}
         ${errs.length ? `<div class="bad">${errs.join('; ')}</div>` : ''}</div>
       <div class="cap-actions"><button class="btn go" id="xi-ok" ${errs.length ? 'disabled' : ''}>Confirm XI</button>
-        <button class="btn sec" id="xi-cpu">Use the computer's XI</button></div>`;
+        <button class="btn sec" id="xi-cpu">Use the suggested XI</button></div>`;
     const el = $('cap-q');
     el.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const i = +b.dataset.up; if (i > 0) { [xi[i - 1], xi[i]] = [xi[i], xi[i - 1]]; draw(); } });
     el.querySelectorAll('[data-dn]').forEach(b => b.onclick = () => { const i = +b.dataset.dn; if (i < xi.length - 1) { [xi[i + 1], xi[i]] = [xi[i], xi[i + 1]]; draw(); } });

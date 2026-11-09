@@ -104,8 +104,7 @@ async function mpPoll() {
   MP.you = st.you;
   document.body.classList.toggle('mp-on', st.phase === 'playing');
   const running = st.phase === 'playing';
-  $('status-pill').textContent = running ? 'Running' : 'Idle';
-  $('status-pill').classList.toggle('run', running);
+  livePill(running, {captain: running});
   if (st.phase === 'none') { toast('The room was closed.', true); mpForget(); showView('v-home'); return; }
   if (st.phase === 'lobby') { mpLobby(st); POLL_T = setTimeout(mpPoll, 800); return; }
   if (st.phase !== 'auction') MP.auV = null;
@@ -137,10 +136,7 @@ function mpSeriesLine(sr, names, withMatch = true) {
 }
 
 /* ───────── the room before the match ───────── */
-function mpCompLabel(s) {
-  const c = ((META.formats[s.fmt] || {}).competitions || []).find(c => c.id === s.comp);
-  return c ? c.label : s.comp;
-}
+function mpCompLabel(s) { return compName(s.fmt, s.comp); }
 function mpLobby(st) {
   showView('v-mp');
   MP.settings = st.settings;
@@ -149,8 +145,8 @@ function mpLobby(st) {
   $('mp-room-code').textContent = st.code;
   const realSeason = s.teams === 'auction' && s.a_pool === 'season' && mpSeason(s);
   $('mp-cond').textContent = (realSeason ? `T20 · ${(mpLeague(s) || {}).label} ${realSeason.season} conditions${s.after === 'league' ? ' and home grounds' : ''}`
-    : `${s.fmt.toUpperCase()} · conditions of ${mpCompLabel(s)} ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`)
-    + ` · rain ${s.rain ? 'on' : 'off'} · shot clock ${s.clock === 'off' ? 'off' : s.clock + ' s a ball'}`
+    : `${s.fmt.toUpperCase()} · ${mpCompLabel(s)} conditions ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`)
+    + ` · rain ${s.rain ? 'on' : 'off'} · time per ball ${s.clock === 'off' ? 'off' : s.clock + ' s'}`
     + ` · ${mpPlayText(s)}`;
   const joined = st.seats[1].joined;
   const links = me !== 0 || joined ? '' : st.lan
