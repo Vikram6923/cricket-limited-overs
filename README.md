@@ -38,10 +38,16 @@ offline. By default only this computer can open it. To play from another device 
 Python on that network. There is no login, so anyone on the same network can use it; don't use `--lan` on public
 Wi-Fi.
 
-The page opens on a home screen: a one-click quick match and every mode as a tile, plus "jump back in" cards for
-the last results, careers and saved runs. Teams carry their colours and short codes everywhere; results open on
-a scoreboard (series), champion banner, points table with a form guide, and a knockout bracket; each match has a
-match centre (summary, HTML scorecard, ball by ball, charts); the live captain screen is laid out like a TV score
+The page opens on a home screen with one way in: two team badges (tap one to pick a nation, a franchise or your
+own team), T20 / ODI and **Play**. Play means you captain the left team, ball by ball: a pre-match card shows the
+suggested XI (Change XI lets you pick it after the toss) and you call the toss; if you win you choose to bat or
+bowl. You set the bars every ball and pick the bowler each over; the computer picks the XI, the next batter and
+the Impact Player. *Just simulate the result* plays the match without you. Under it, a Continue row shows the one
+thing in progress (a live match you left, or a career), and four doors lead to everything else: Play a friend,
+Seasons & careers, Auction & draft, and a What-if sandbox (match or series, tournaments, classic sides, team
+builder). Full stats also shows the old grid of every mode. Teams carry their colours and short codes everywhere;
+a single match opens on its match centre, a series on a scoreboard, a tournament on a champion banner, points
+table with a form guide, and a knockout bracket; each match has a match centre (summary, HTML scorecard, ball by ball, charts); the live captain screen is laid out like a TV score
 bar. It also works on a phone, with a tab bar at the bottom. A **Simple / Full stats** switch in the top bar
 decides how much you see: Simple (the default) keeps the screens to scores, names and plain words; Full stats adds
 the model's numbers (expected economy and strike rate, how settled a batter is, the replay code, the MVP formula).
@@ -466,6 +472,8 @@ tests/             engine and tournament tests
 - [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
       live screen, phone layout
 - [x] UI simplification phase 1: Simple / Full stats switch, More options folds, plain words
+- [x] UI simplification phase 2: home with one Play button (you captain, ball by ball), pre-match card and coin
+      toss, Continue, four doors; a single match opens on its match centre
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
   a draft against each other (optionally with computer teams and a league); a live auction against each other
   and the computer franchises, then a league or a series

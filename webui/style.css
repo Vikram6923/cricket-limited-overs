@@ -862,3 +862,78 @@ details.how ul{margin:8px 0 0 18px;max-width:760px;line-height:1.6}
   .detail-sw button{padding:4px 8px;font-size:.72rem}
   #status-pill{display:none!important}
 }
+
+/* ── UI v2 phase 2: one way in, four doors, pre-match card, team sheet ── */
+#last-btn{display:none!important}                 /* past results live under Results */
+.view>.wrap.home2{max-width:980px}
+.qh{position:relative;text-align:center;padding:26px 24px 18px;border-radius:24px;border:1px solid var(--border);
+  background:radial-gradient(520px 240px at 50% 0,rgba(46,232,138,.11),transparent 70%),linear-gradient(180deg,var(--panel),var(--bg2))}
+.qh-tag{font-size:1.15rem;font-weight:600;margin-bottom:16px}
+.qh-vs{display:flex;align-items:center;justify-content:center;gap:28px;margin-bottom:14px}
+.qh-team{display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 10px;border-radius:18px;min-width:132px;transition:background .15s}
+.qh-team:hover{background:rgba(255,255,255,.04)}
+.qh-nm{font-weight:650;font-size:1.05rem;display:inline-flex;align-items:center;gap:6px}
+.qh-nm::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-3px)}
+.qh-v{font-family:var(--disp);color:var(--dim);font-size:1.2rem}
+.qh-fmt{margin-bottom:16px}
+.qh-play{max-width:420px;width:100%;margin:0 auto;display:flex;min-height:56px;font-size:1.2rem}
+.qh-sim{display:inline-block;margin-top:10px;color:var(--muted);font-size:.88rem;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(141,155,181,.4)}
+.qh-sim:hover{color:var(--text)}
+.cont1{display:flex;align-items:center;gap:10px;width:100%;margin-top:14px;padding:13px 16px;border-radius:14px;text-align:left;font-size:.92rem;
+  border:1px solid var(--border2);background:var(--panel)}
+.cont1.live{border-color:rgba(255,64,97,.4);background:rgba(255,64,97,.07)}
+.cont1 .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex:0 0 auto}
+.cont1.live .dot{background:var(--live);animation:ping 1.6s infinite}
+.cont1 .go{margin-left:auto;color:var(--muted);font-size:1.3rem;line-height:1}
+.doors{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+.door{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;text-align:left;min-height:104px;transition:.18s}
+.door:hover{transform:translateY(-2px);border-color:var(--border2)}
+.door b{font-size:.98rem;font-weight:640;line-height:1.25}
+.door b span{display:block;font-weight:500;color:var(--muted);font-size:.84rem}
+.view>.wrap.door-wrap,.view>.wrap.pre-wrap{max-width:640px}
+.door-h{font-family:var(--disp);font-size:1.7rem;font-weight:650;margin:2px 0 14px}
+.door-list .tile{min-height:74px;align-items:center}
+.door-list .tile span{font-size:.86rem}
+/* pre-match card */
+.pre-card{padding:22px 18px 16px;text-align:center}
+.pre-teams{display:flex;justify-content:center;align-items:center;gap:22px;margin-bottom:12px}
+.pre-line{color:var(--muted)}.pre-line b{color:var(--text);font-weight:600}
+.pre-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:12px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--border)}
+.ok{color:var(--brand)}
+.pre-toss{margin-top:12px;padding:22px 18px;text-align:center}
+.coin{width:96px;height:96px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-family:var(--disp);font-size:2.1rem;font-weight:700;color:#5a4410;
+  background:radial-gradient(circle at 35% 30%,#ffe9a3,#e0b13c 55%,#a87a12);box-shadow:inset 0 0 0 4px rgba(255,255,255,.25),0 12px 26px -10px #000}
+.coin.spin{animation:coinspin .45s linear infinite}
+.coin.land{animation:coinland .5s cubic-bezier(.3,1.5,.5,1)}
+@keyframes coinspin{0%{transform:translateY(-18px) rotateX(0)}100%{transform:translateY(-18px) rotateX(360deg)}}
+@keyframes coinland{0%{transform:translateY(-18px) scale(1.05)}100%{transform:none}}
+.pre-q{font-weight:650;font-size:1.08rem;min-height:1.5em;margin-bottom:12px}
+.pre-b{display:flex;gap:10px;justify-content:center}
+.pre-b .btn{flex:1;max-width:220px;min-height:50px;font-size:1.05rem}
+.pre-b .pre-sug{font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.75;margin-left:4px}
+/* bottom sheet (phone) / centred card (desktop) */
+.sheet-dim{position:fixed;inset:0;z-index:80;background:rgba(2,4,9,.6);opacity:0;pointer-events:none;transition:opacity .2s}
+.sheet-dim.on{opacity:1;pointer-events:auto}
+.bsheet{position:fixed;z-index:81;left:50%;bottom:0;width:min(560px,100%);max-height:82vh;overflow-y:auto;transform:translate(-50%,105%);
+  transition:transform .25s cubic-bezier(.3,.8,.4,1);background:linear-gradient(180deg,#121c2f,#0a101c);border:1px solid var(--border2);border-bottom:0;
+  border-radius:22px 22px 0 0;padding:8px 16px calc(18px + env(safe-area-inset-bottom))}
+.bsheet.on{transform:translate(-50%,0)}
+.bsheet .grab{width:42px;height:4px;border-radius:9px;background:var(--border2);margin:2px auto 10px}
+.bsheet h3{font-family:var(--disp);font-size:1.3rem;font-weight:650;margin:0 0 6px}
+.bs-sec{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:650;margin:14px 0 6px}
+.bs-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.bs-list button{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;text-align:left;font-weight:600;min-height:56px;border:1px solid transparent}
+.bs-list button:hover{background:var(--panel)}
+.bs-list button.on{border-color:rgba(46,232,138,.5);background:rgba(46,232,138,.08)}
+.bs-list button .ok{margin-left:auto}
+@media (max-width:760px){
+  .qh{padding:20px 14px 14px;border-radius:20px}
+  .qh-tag{font-size:1.02rem;margin-bottom:12px}
+  .qh-vs{gap:10px}.qh-team{min-width:0;flex:1}
+  .qh .badge.lg,.pre-teams .badge.lg{width:74px;height:84px;font-size:1.3rem;border-radius:16px 16px 34px 34px}
+  .doors{grid-template-columns:1fr 1fr;gap:10px}
+  .door{min-height:92px;padding:13px}
+  .bs-list{grid-template-columns:1fr}
+}
+body.detail-simple .logo .word small{display:none}   /* the format chips on home say T20 / ODI already */
+body[data-view="v-home"] #status-pill{display:none!important}   /* home shows the live match as its Continue row */

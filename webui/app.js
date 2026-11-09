@@ -23,7 +23,7 @@ function showView(id) {
   if (id !== 'v-auction') document.body.classList.remove('au-fold');     // the auction room folds the sidebar away
   if (!was || was.id !== id) window.scrollTo(0, 0);
   const nav = {'v-home': 'home', 'v-setup': MODE === 'saved' ? 'saved' : MODE === 'career' ? 'careers' : 'home', 'v-results': 'results',
-    'v-builder': 'builder', 'v-career': 'careers', 'v-captain': 'live', 'v-running': 'live', 'v-mp': 'live'}[id] || '';
+    'v-builder': 'builder', 'v-career': 'careers', 'v-captain': 'live', 'v-running': 'live', 'v-mp': 'live', 'v-door': 'home', 'v-pre': 'home'}[id] || '';
   document.querySelectorAll('[data-nav]').forEach(b => { if (b.closest('#nav,#tabbar')) b.classList.toggle('on', b.dataset.nav === nav); });
   document.body.dataset.view = id;
   if (id === 'v-home' && META && (!was || was.id !== id)) { drawHero(); drawHomeCont(); }
@@ -168,86 +168,188 @@ function drawModeTiles() {
     `<button class="card tile mode ${MODES[k].feat ? 'feat' : ''}" data-mode="${k}">${modeIcon(k)}<div><b>${esc(MODES[k].t)}</b><span>${esc(MODES[k].s)}</span></div></button>`).join('')}</div>`).join('');
 }
 
-/* home: a one-click match between two saved teams */
+/* home: one way in. Play = you captain the left team, ball by ball; the computer picks
+   the XI, the next batter and the Impact Player (6.3). The two teams live in the Match or series form (s-t1 / s-t2). */
+const heroTeams = () => { const n = META.teams.map(t => t.name); return [$('s-t1').value || n[0], $('s-t2').value || n[1] || n[0]]; };
 function drawHero() {
-  const names = META.teams.map(t => t.name);
-  const t1 = $('s-t1').value || names[0], t2 = $('s-t2').value || names[1] || names[0];
-  const side = (id, name, right) => {
-    const t = META.teams.find(x => x.name === name) || {players: []};
-    return `<div class="side ${right ? 'r' : ''}">${badge(name, 'lg')}<div class="who">
-      <select class="tsel" id="${id}" title="Choose a team">${names.map(n => `<option value="${esc(n)}" ${n === name ? 'selected' : ''}>${esc(pickName(n, names))}</option>`).join('')}</select>
-      <div class="sub full-only">${t.players.length} players</div>
-      <div class="keys">${t.players.slice(0, 6).map(p => esc(p.name)).join(' · ')}</div></div></div>`;
-  };
-  const fmt = $('c-fmt').value, comp = $('c-comp').selectedOptions[0];
-  $('hero').innerHTML = `<svg class="ground" viewBox="0 0 1300 520" aria-hidden="true"><defs>
-      <radialGradient id="hgr" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#1e7a4a"/><stop offset="1" stop-color="#0b2a1b"/></radialGradient>
-      <pattern id="hmow" width="80" height="520" patternUnits="userSpaceOnUse"><rect width="40" height="520" fill="rgba(255,255,255,.035)"/></pattern></defs>
-      <ellipse cx="650" cy="300" rx="640" ry="250" fill="url(#hgr)"/><ellipse cx="650" cy="300" rx="640" ry="250" fill="url(#hmow)"/>
-      <ellipse cx="650" cy="300" rx="300" ry="118" fill="none" stroke="rgba(255,255,255,.25)" stroke-dasharray="6 9"/>
-      <rect x="628" y="215" width="44" height="170" rx="4" fill="#b9a77a" opacity=".5"/>
-      <ellipse cx="650" cy="300" rx="636" ry="246" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/></svg>
-    <div class="inner">
-      <div class="kicker" style="color:var(--brand)">Quick match</div>
-      <h1>Who wins <em>tonight?</em></h1>
-      <p class="lead">Ball-by-ball T20 and ODI cricket with every player rated from real data. Pick two sides and play, or captain one yourself.</p>
-      <div class="vs">${side('h-t1', t1, false)}<div class="vsx">VS</div>${side('h-t2', t2, true)}</div>
-      <div class="ctl">
-        <div class="seg" id="h-fmt"><button data-f="t20" class="${fmt === 't20' ? 'on' : ''}">T20</button><button data-f="odi" class="${fmt === 'odi' ? 'on' : ''}">ODI</button></div>
-        <span class="meta">Era &amp; grounds <b>${esc(compName(fmt, $('c-comp').value))} ${esc($('c-year').value)}</b> · <a class="lnk" data-mode="series">change</a></span>
-        <label class="toggle ${HERO.cap ? 'on' : ''}" id="h-cap"><i></i>Captain ${esc(teamKey(t1))}</label>
-        <label class="toggle ${HERO.ball ? 'on' : ''} ${HERO.cap ? '' : 'off'}" id="h-ball"><i></i>Ball by ball</label>
-        <button class="btn go big" id="h-play">&#9654;&nbsp; ${HERO.cap ? 'Play' : 'Simulate'}</button>
-      </div><div class="err" id="h-err" style="text-align:center"></div>
-    </div>`;
-  ['h-t1', 'h-t2'].forEach((id, i) => $(id).onchange = () => { $('s-t' + (i + 1)).value = $(id).value; showRoster('s-t' + (i + 1), 's-r' + (i + 1)); drawHero(); });
-  $('h-fmt').querySelectorAll('button').forEach(b => b.onclick = () => { $('c-fmt').value = b.dataset.f; $('c-fmt').dispatchEvent(new Event('change')); drawHero(); });
-  $('h-cap').onclick = () => { HERO.cap = !HERO.cap; drawHero(); };
-  $('h-ball').onclick = () => { if (HERO.cap) { HERO.ball = !HERO.ball; drawHero(); } };
-  $('h-play').onclick = quickMatch;
+  const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, tt = heroTeams();
+  const side = i => `<button class="qh-team" data-side="${i}" title="Change team">${badge(tt[i], 'lg')}
+    <span class="qh-nm">${esc(pickName(tt[i], names))}</span></button>`;
+  $('hero').innerHTML = `<p class="qh-tag">Captain a real ${fmt === 'odi' ? 'ODI' : 'T20'} side, ball by ball.</p>
+    <div class="qh-vs">${side(0)}<span class="qh-v">v</span>${side(1)}</div>
+    <div class="seg qh-fmt" id="h-fmt"><button data-f="t20" class="${fmt === 't20' ? 'on' : ''}">T20</button><button data-f="odi" class="${fmt === 'odi' ? 'on' : ''}">ODI</button></div>
+    <button class="btn go big qh-play" id="h-play">&#9654;&nbsp; Play</button>
+    <button class="lnk qh-sim" id="h-sim">Just simulate the result &rsaquo;</button>
+    <div class="err" id="h-err"></div>`;
+  $('hero').querySelectorAll('.qh-team').forEach(b => b.onclick = () => teamSheet(+b.dataset.side));
+  $('h-fmt').querySelectorAll('button').forEach(b => b.onclick = () => heroFormat(b.dataset.f));
+  $('h-play').onclick = openPre;
+  $('h-sim').onclick = simulateQuick;
 }
-const HERO = {cap: false, ball: true};
-async function quickMatch() {
-  setMode('series', false);
-  $('s-n').value = 1;
-  capOptions();
-  $('g-captain').value = HERO.cap ? '0' : '';
-  $('g-manual').querySelectorAll('input').forEach(i => { if (i.value === 'ball') i.checked = HERO.ball; });
-  capBoxes();
-  $('h-err').textContent = '';
-  try { await api('/api/run', {...payload(), ...capPayload()}); poll(); }
-  catch (e) { $('h-err').textContent = e.message; }
+function setHeroTeam(i, name) {
+  const id = 's-t' + (i + 1);
+  $(id).value = name; showRoster(id, 's-r' + (i + 1)); drawHero();
+}
+/* T20 <-> ODI: a nation's preset follows the format when the other one exists ("India T20 2024" -> "India ODI 2023") */
+function heroFormat(f) {
+  $('c-fmt').value = f; $('c-fmt').dispatchEvent(new Event('change'));
+  const names = META.teams.map(t => t.name), want = f === 'odi' ? 'ODI' : 'T20';
+  heroTeams().forEach((n, i) => {
+    if (!isNationPreset(n) || n.includes(' ' + want + ' ')) return;
+    const alt = names.find(x => teamKey(x) === teamKey(n) && x.includes(' ' + want + ' '));
+    if (alt) $('s-t' + (i + 1)).value = alt;
+  });
+  drawHero();
+}
+/* the team sheet: nations, franchises and your own teams, big rows */
+const isNationPreset = n => / (T20|ODI) \d{4}$/.test(n);
+const isFranchise = n => !isNationPreset(n) && / (19|20)\d{2}$/.test(n) && !!TEAM_ID[teamKey(n)];
+function teamSheet(side) {
+  const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, cur = heroTeams()[side];
+  const mine = n => (fmt === 'odi') === n.includes(' ODI ');
+  const nat = names.filter(isNationPreset).sort((a, b) => (mine(b) ? 1 : 0) - (mine(a) ? 1 : 0));
+  const fr = names.filter(isFranchise), own = names.filter(n => !nat.includes(n) && !fr.includes(n));
+  const yr = fr.length ? (fr[0].match(/\d{4}$/) || [''])[0] : '';
+  const grp = (t, list) => list.length ? `<div class="bs-sec">${t}</div><div class="bs-list">${list.map(n => `<button data-n="${esc(n)}" class="${n === cur ? 'on' : ''}">${badge(n, 'md')}
+    <span>${esc(pickName(n, names))}</span>${n === cur ? '<b class="ok">&#10003;</b>' : ''}</button>`).join('')}</div>` : '';
+  openSheet(`<h3>${side ? 'Opponent' : 'Your team'}</h3>${grp('Nations', nat)}${grp(`Franchises ${yr}`, fr)}${grp('My teams', own)}`);
+  $('bsheet-in').querySelectorAll('[data-n]').forEach(b => b.onclick = () => { closeSheet(); setHeroTeam(side, b.dataset.n); });
+}
+function openSheet(html) {
+  $('bsheet-in').innerHTML = html; $('bsheet').scrollTop = 0;
+  $('bsheet').classList.add('on'); $('sheet-dim').classList.add('on');
+}
+function closeSheet() { if (!$('bsheet')) return; $('bsheet').classList.remove('on'); $('sheet-dim').classList.remove('on'); }
+/* era & grounds for a quick match, from the teams: two franchises play in their league's conditions, else
+   international; the year is the teams' own (clamped to the data) */
+function quickConds(tt, fmt) {
+  const comps = META.formats[fmt].competitions;
+  const comp = fmt === 't20' && tt.every(isFranchise) && comps.some(c => c.id === 'ipl') ? 'ipl' : fmt === 'odi' ? 'odi_full' : 't20i_full';
+  const c = comps.find(x => x.id === comp) || comps[0];
+  const ys = tt.map(n => +((n.match(/(19|20)\d{2}$/) || [])[0] || 0)).filter(Boolean);
+  const y = ys.length ? Math.max(...ys) : +$('c-year').value || c.last;
+  return {comp: c.id, year: Math.max(c.first, Math.min(c.last, y))};
+}
+function quickPayload(cap) {
+  const tt = heroTeams(), fmt = $('c-fmt').value, cond = quickConds(tt, fmt);
+  const p = {mode: 'series', fmt, comp: cond.comp, year: cond.year, venues: [], seed: '', rain: $('c-rain').checked,
+    team1: tt[0], team2: tt[1], matches: 1};
+  if (cap) Object.assign(p, {captain_i: 0, opponents: $('g-opp').value || 'expert',
+    manual: ['toss', 'bowler', 'ball', ...(PRE.xi ? ['xi'] : [])]});
+  return p;
+}
+async function simulateQuick() {
+  setMode('series', false); $('h-err').textContent = ''; LIVE_AWAY = false;
+  try { await api('/api/run', quickPayload(false)); poll(); } catch (e) { $('h-err').textContent = e.message; }
 }
 
-/* home: last results, careers and saved runs */
-async function drawHomeCont() {
-  const cards = [];
-  if (META.has_results) {
-    try {
-      const r = await api('/api/results');
-      setDisplayTeams(r.teams && r.teams.length ? r.teams : r.fixtures.flatMap(f => f.teams));
-      const f = r.fixtures[r.fixtures.length - 1];
-      const title = r.kind === 'series' ? dnText(r.result, r.teams) : `${dn(r.winner)} won`;
-      cards.push(`<button class="card ccard" data-home="last" style="${tStyle(r.winner || (f && f.winner) || '')}"><span class="stripe"></span>
-        <div class="kicker">Last run · ${esc((r.format || '').toUpperCase())} · ${esc(compName(r.format, r.competition))} ${esc(r.year || '')}</div>
-        <div class="row">${(r.kind === 'series' ? r.teams : [r.winner]).filter(Boolean).map(t => badge(t)).join('')}<span class="sc">${esc(title)}</span></div>
-        <div class="res">${esc(r.fixtures.length)} match${r.fixtures.length === 1 ? '' : 'es'}${r.player_of_series ? ` · player of the ${r.fixtures.length === 1 ? 'match' : 'series'} ` + esc(r.player_of_series.name) : ''}</div></button>`);
-    } catch (e) { /* no last run */ }
+/* pre-match card: the XI is suggested, the toss is one tap; the run starts on the call. The engine tosses the coin:
+   it lands on your call when your side won the toss (then Bat / Bowl), else on the other face. */
+const PRE = {on: false, call: null, xi: false, phase: '', t0: 0};
+function openPre() {
+  setMode('series', false);
+  const tt = heroTeams(), fmt = $('c-fmt').value, cond = quickConds(tt, fmt);
+  Object.assign(PRE, {on: false, call: null, xi: false, phase: ''});
+  setDisplayTeams(tt);
+  $('pre-teams').innerHTML = `${badge(tt[0], 'lg')}<span class="qh-v">v</span>${badge(tt[1], 'lg')}`;
+  $('pre-line').innerHTML = `<b>${esc(dn(tt[0]))}</b> v <b>${esc(dn(tt[1]))}</b> · ${fmt === 'odi' ? 'ODI' : 'T20'} · ${esc(compName(fmt, cond.comp))} ${cond.year}`;
+  preXI(false); $('pre-xi').style.display = ''; $('pre-xi').disabled = false;
+  $('pre-coin').className = 'coin'; $('pre-coin').textContent = 'H';
+  $('pre-err').textContent = '';
+  preButtons();
+  showView('v-pre');
+}
+function preXI(pick) {
+  PRE.xi = pick;
+  $('pre-xi-t').innerHTML = pick ? 'Your XI: you pick it after the toss' : 'Your XI: suggested <b class="ok">&#10003;</b>';
+  $('pre-xi').textContent = pick ? 'Use the suggested XI' : 'Change XI';
+  $('pre-xi').onclick = () => preXI(!PRE.xi);
+}
+function preButtons() {
+  $('pre-q').textContent = 'Call the toss';
+  $('pre-b').innerHTML = ['Heads', 'Tails'].map(c => `<button class="btn go" data-call="${c}">${c}</button>`).join('');
+  $('pre-b').querySelectorAll('button').forEach(b => b.onclick = () => preCall(b.dataset.call));
+}
+async function preCall(call) {
+  LIVE_AWAY = false;
+  Object.assign(PRE, {call, phase: 'wait', t0: Date.now()});
+  $('pre-b').innerHTML = ''; $('pre-q').textContent = ''; $('pre-err').textContent = '';
+  $('pre-xi').disabled = true;
+  $('pre-coin').className = 'coin spin';
+  try { await api('/api/run', quickPayload(true)); PRE.on = true; poll(); }
+  catch (e) { PRE.phase = ''; $('pre-coin').className = 'coin'; $('pre-err').textContent = e.message; $('pre-xi').disabled = false; preButtons(); }
+}
+/* called by poll() while the pre-match card is up */
+function preRender(st) {
+  const q = st.captain.pending;
+  if (!q || PRE.phase !== 'wait' || Date.now() - PRE.t0 < 900) return;
+  const won = q.kind === 'toss', other = PRE.call === 'Heads' ? 'Tails' : 'Heads', face = won ? PRE.call : other;
+  const tt = heroTeams();
+  $('pre-coin').className = 'coin land'; $('pre-coin').textContent = face[0];
+  $('pre-xi').disabled = false; $('pre-xi').style.display = 'none';
+  if (won) {
+    PRE.phase = 'choose';
+    $('pre-q').textContent = `${face}. You won the toss.`;
+    $('pre-b').innerHTML = q.options.map(o => `<button class="btn ${o === q.default ? 'go' : 'sec'}" data-d="${o}">${o === 'bat' ? 'Bat first' : 'Bowl first'}${o === q.default ? ' <small class="pre-sug">Suggested</small>' : ''}</button>`).join('');
+    $('pre-b').querySelectorAll('button').forEach(b => b.onclick = async () => {
+      $('pre-b').innerHTML = '';
+      try { await api('/api/decide', {id: q.id, choice: b.dataset.d, auto: {}}); } catch (e) { toast(e.message, true); }
+      preDone();
+    });
+    return;
   }
-  (META.careers || []).slice(0, 1).forEach(c => cards.push(`<button class="card ccard" data-career="${esc(c.id)}" style="${tStyle(c.user || '')}"><span class="stripe"></span>
-    <div class="kicker">Career · ${esc(c.league)}</div><div class="row">${c.user ? badge(c.user) : ''}<span class="sc">${esc(c.name)}</span></div>
-    <div class="res">${c.played} season${c.played === 1 ? '' : 's'} played${c.user ? ` · ${c.titles} title${c.titles === 1 ? '' : 's'}` : ''} · next: ${esc(c.season)} ${c.phase === 'auction' ? 'auction' : 'season'}</div></button>`));
-  (META.saved || []).slice(0, 3 - cards.length).forEach(s => cards.push(`<button class="card ccard" data-saved="${esc(s.id)}" style="${tStyle(s.winner || '')}"><span class="stripe"></span>
-    <div class="kicker">Saved run · ${esc((s.fmt || '').toUpperCase())} · saved ${esc((s.saved || '').slice(0, 10))}</div>
-    <div class="row">${s.winner ? badge(s.winner) : ''}<span class="sc">${esc(s.name)}</span></div>
-    <div class="res">${s.winner ? 'Winner: ' + esc(s.winner) : esc(s.title || '')}</div></button>`));
-  $('home-cont').innerHTML = cards.length ? `<div class="sec-h"><h2>Jump back in</h2></div><div class="cont">${cards.join('')}</div>` : '';
-  $('home-cont').querySelectorAll('[data-home]').forEach(b => b.onclick = () => showResults());
-  $('home-cont').querySelectorAll('[data-saved]').forEach(b => b.onclick = () => showResults(b.dataset.saved));
+  PRE.phase = 'lost';
+  const s = q.state || {};
+  const d = q.toss ? (/chose to bat/.test(q.toss) ? 'bat' : 'bowl') : s.innings === 1 ? (s.batting === q.team ? 'bowl' : 'bat') : 'bowl';
+  $('pre-q').textContent = `${face}. ${dn(tt[1])} won the toss and chose to ${d}. You ${d === 'bat' ? 'bowl' : 'bat'}.`;
+  setTimeout(preDone, 1700);
+}
+function preDone() { PRE.on = false; PRE.phase = ''; $('pre-xi').style.display = ''; clearTimeout(POLL_T); poll(); }
+
+/* home: the one thing in progress (a live match or a career); past results are under Results */
+async function drawHomeCont() {
+  let row = '';
+  try {
+    const st = await api('/api/status');
+    if (st.status === 'running' && !PRE.on) {
+      const title = String(st.title || 'Match').split(' - ')[0], tt = title.split(' v ');
+      setDisplayTeams(tt);
+      row = `<button class="cont1 live" data-nav="live"><span class="dot"></span><span>Continue: <b>${esc(dnText(title, tt))}</b> · live</span><span class="go">&rsaquo;</span></button>`;
+    }
+  } catch (e) { /* offline */ }
+  const c = (META.careers || [])[0];
+  if (!row && c) row = `<button class="cont1" data-career="${esc(c.id)}"><span class="dot"></span><span>Continue: <b>${esc(c.name)}</b> · ${esc(c.league)} ${esc(c.season)} ${c.phase === 'auction' ? 'auction' : 'season'}</span><span class="go">&rsaquo;</span></button>`;
+  $('home-cont').innerHTML = row;
   $('home-cont').querySelectorAll('[data-career]').forEach(b => b.onclick = () => openCareer(b.dataset.career));
 }
-function goHome() { const on = $('v-home').classList.contains('on'); showView('v-home'); if (on) { drawHero(); drawHomeCont(); } }
+/* four doors instead of eleven tiles; each opens a chooser with 2-5 big cards */
+const DOORS = [
+  {t: 'Play a friend', s: 'on two phones', ic: 'mp', modes: ['mp']},
+  {t: 'Seasons & careers', ic: 'league', modes: ['league', 'career']},
+  {t: 'Auction & draft', ic: 'auction', modes: ['auction', 'draft']},
+  {t: 'What-if sandbox', ic: 'classic', modes: ['series', 'tournament', 'classic', 'classic_t', 'builder']}];
+const DOOR_LINE = {league: 'Any season of 11 leagues, real squads.', career: 'Run a franchise, year after year.',
+  auction: 'Bid for a squad, then play.', draft: 'Pick players in turns, then a league.',
+  series: 'Two teams, one to seven matches.', tournament: 'Your own World Cup or league.',
+  classic: 'Great sides from any era.', classic_t: 'Eras meet in one tournament.', builder: 'Make and save your own XI.'};
+function drawDoors() {
+  $('home-doors').innerHTML = DOORS.map((d, i) => `<button class="card door" data-door="${i}">${modeIcon(d.ic)}
+    <b>${esc(d.t)}${d.s ? `<span> ${esc(d.s)}</span>` : ''}</b></button>`).join('');
+  $('home-doors').querySelectorAll('.door').forEach(b => b.onclick = () => openDoor(+b.dataset.door));
+}
+function openDoor(i) {
+  const d = DOORS[i];
+  if (d.modes.length === 1) return setMode(d.modes[0]);
+  $('door-title').textContent = d.t;
+  $('door-list').innerHTML = d.modes.map(k => `<button class="card tile mode" data-mode="${k}">${modeIcon(k)}<div><b>${esc(MODES[k].t)}</b><span>${esc(DOOR_LINE[k])}</span></div></button>`).join('');
+  $('door-list').querySelectorAll('.mode').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  showView('v-door');
+}
+function goHome() { closeSheet(); const on = $('v-home').classList.contains('on'); showView('v-home'); if (on) { drawHero(); drawHomeCont(); } }
+/* leaving the live screen (top bar, tab bar) keeps the match waiting: the pill and Continue lead back to it */
+let LIVE_AWAY = false;
 function navTo(k) {
+  LIVE_AWAY = k !== 'live';
   if (k === 'home') goHome();
   else if (k === 'results') { if (META.has_results || R) showResults(R_RUN || undefined); else toast('No results yet. Play something first.'); }
   else if (k === 'saved') setMode('saved');
@@ -296,7 +398,9 @@ function syncSum() {
 
 async function init() {
   META = await api('/api/meta');
-  drawModeTiles();
+  drawModeTiles(); drawDoors();
+  $('sheet-dim').onclick = closeSheet;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
   document.querySelectorAll('.mode').forEach(b => b.onclick = () => setMode(b.dataset.mode));
   document.addEventListener('click', e => {
     const n = e.target.closest('[data-nav]'); if (n) { e.preventDefault(); navTo(n.dataset.nav); }
@@ -671,7 +775,7 @@ function capPayload() {
     manual: [...$('g-manual').querySelectorAll('input:checked')].map(x => x.value).filter(k => k !== 'impact' || CAP.impact)};
 }
 async function start() {
-  $('go-err').textContent = ''; $('go-btn').disabled = true;
+  $('go-err').textContent = ''; $('go-btn').disabled = true; LIVE_AWAY = false;
   try {
     if (MODE === 'draft') { await startDraft(); return; }
     if (MODE === 'auction') { await startAuction(); return; }
@@ -689,11 +793,12 @@ async function poll() {
   try { st = await api('/api/status'); } catch (e) { POLL_T = setTimeout(poll, 1500); return; }
   const running = st.status === 'running';
   livePill(running, st);
+  if (PRE.on && running && st.captain) { preRender(st); POLL_T = setTimeout(poll, 250); return; }
+  PRE.on = false;
   $('go-btn').disabled = running;
   if (running && st.captain && st.captain.skip !== 'all') {
-    showView('v-captain');
-    capRender(st);
-    POLL_T = setTimeout(poll, st.captain.pending ? 700 : 200);
+    if (!LIVE_AWAY) { showView('v-captain'); capRender(st); }
+    POLL_T = setTimeout(poll, LIVE_AWAY ? 1500 : st.captain.pending ? 700 : 200);
   } else if (running) {
     showView('v-running');
     $('run-title').textContent = st.title || 'Simulating…';
@@ -741,7 +846,12 @@ async function showResults(run) {
   if (R.draft) drawBoard($('r-board'), R.draft.teams, R.draft.board, R.draft.user || (mpOn() && MP.team) || null);
   $('tab-board').textContent = R.draft && R.draft.auction ? 'Auction squads' : 'Draft board';
   renderSummary(); renderMatchSelect(); renderStatsTables(); renderMVP();
-  openTab('p-summary');
+  /* one match shows a match: the match centre, without the series tabs */
+  const single = R.fixtures.length === 1;
+  ['p-summary', 'p-bat', 'p-bowl', 'p-mvp'].forEach(id => { document.querySelector(`.tab[data-pane="${id}"]`).style.display = single ? 'none' : ''; });
+  $('r-tabs').style.display = single && !R.draft ? 'none' : '';
+  document.querySelector('#p-matches .mnav').style.display = single ? 'none' : '';
+  openTab(single ? 'p-matches' : 'p-summary');
 }
 function openTab(id) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.pane === id));

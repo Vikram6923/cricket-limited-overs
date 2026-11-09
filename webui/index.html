@@ -321,12 +321,36 @@
   </div></section>
 
   <!-- home: quick match, jump back in, every mode -->
-  <section class="view on" id="v-home"><div class="wrap">
-    <div class="hero" id="hero"></div>
+  <section class="view on" id="v-home"><div class="wrap home2">
+    <div class="qh" id="hero"></div>
     <div id="home-cont"></div>
-    <div class="sec-h"><h2>All modes</h2></div>
-    <div class="groups" id="home-modes"></div>
+    <div class="doors" id="home-doors"></div>
+    <div class="full-only"><div class="sec-h"><h2>All modes</h2></div>
+    <div class="groups" id="home-modes"></div></div>
     <p class="small muted" id="home-note" style="margin-top:18px"></p>
+  </div></section>
+
+  <!-- a door from home: 2-5 big cards -->
+  <section class="view" id="v-door"><div class="wrap door-wrap">
+    <button class="crumb" data-nav="home">&lsaquo; Home</button>
+    <h1 class="door-h" id="door-title"></h1>
+    <div class="door-list" id="door-list"></div>
+  </div></section>
+
+  <!-- quick match: the pre-match card and the toss (6.3) -->
+  <section class="view" id="v-pre"><div class="wrap pre-wrap">
+    <button class="crumb" data-nav="home">&lsaquo; Home</button>
+    <div class="card pre-card">
+      <div class="pre-teams" id="pre-teams"></div>
+      <div class="pre-line" id="pre-line"></div>
+    </div>
+    <div class="pre-row"><span id="pre-xi-t">Your XI: suggested <b class="ok">&#10003;</b></span><button class="btn sec sm" id="pre-xi">Change XI</button></div>
+    <div class="card pre-toss">
+      <div class="coin" id="pre-coin">H</div>
+      <div class="pre-q" id="pre-q">Call the toss</div>
+      <div class="pre-b" id="pre-b"><button class="btn go" data-call="Heads">Heads</button><button class="btn go" data-call="Tails">Tails</button></div>
+      <div class="err" id="pre-err"></div>
+    </div>
   </div></section>
 
   <!-- running -->
@@ -536,6 +560,8 @@
   <button data-nav="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Saved</button>
 </nav>
 <div class="toast" id="toast"></div>
+<div class="sheet-dim" id="sheet-dim"></div>
+<div class="bsheet" id="bsheet"><div class="grab"></div><div id="bsheet-in"></div></div>
 <div id="popover"></div>
 <script src="/ui/teams.js"></script>
 <script src="/ui/highlight.js"></script>
