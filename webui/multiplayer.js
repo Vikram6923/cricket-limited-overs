@@ -492,8 +492,8 @@ function mpPlaying(st) {
     $('cap-ctx').textContent = 'Two players';
     $('cap-progress').innerHTML = serLine;
     $('cap-opp').textContent = ''; $('cap-clock').textContent = '';
-    if (st.latest) { $('cap-score').innerHTML = scoreHTML({state: st.latest}); $('cap-bug').innerHTML = bugHTML({state: st.latest}); }
-    $('cap-q').innerHTML = '<div class="muted">You are watching. The scoreboard updates whenever a player has a decision to make.</div>';
+    capShowState(st.latest, null);
+    capWait('Watching: the score updates at each decision');
     document.querySelector('#v-captain .cap-ctl').style.display = 'none';
     return;
   }
@@ -514,11 +514,11 @@ function mpPlaying(st) {
   }
   $('cap-back').style.display = me.skip || me.manual.length < me.home.length ? '' : 'none';
   if (!me.pending) {
-    if (st.latest) { $('cap-score').innerHTML = scoreHTML({state: st.latest, team: me.team}); $('cap-bug').innerHTML = bugHTML({state: st.latest, team: me.team}); }
+    if (CAP.qid !== 'sent' || Date.now() - CAP.sentAt > 1500) capShowState(st.latest, me.team);
     const w = me.skip ? `Skipping to the end of the ${me.skip === 'innings' ? 'innings' : 'match'}: the computer plays your side.`
       : !me.manual.length ? 'The computer is playing your side.'
       : opp.choosing && !opp.computer ? `Waiting for ${esc(dn(opp.team))} - ${MP_DOING[opp.choosing]}…` : 'Playing on…';
-    if (w !== MP.waitHTML || CAP.qid !== 'mpwait') { MP.waitHTML = w; CAP.qid = 'mpwait'; $('cap-q').innerHTML = `<div class="muted">${w}</div>`; }
+    if ((w !== MP.waitHTML || CAP.qid !== 'mpwait') && (CAP.qid !== 'sent' || Date.now() - CAP.sentAt > 1500)) { MP.waitHTML = w; CAP.qid = 'mpwait'; capWait(w); }
     MP.deadline = null;
   } else {
     MP.waitHTML = '';

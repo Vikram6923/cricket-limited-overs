@@ -215,11 +215,19 @@ function teamSheet(side) {
   openSheet(`<h3>${side ? 'Opponent' : 'Your team'}</h3>${grp('Nations', nat)}${grp(`Franchises ${yr}`, fr)}${grp('My teams', own)}`);
   $('bsheet-in').querySelectorAll('[data-n]').forEach(b => b.onclick = () => { closeSheet(); setHeroTeam(side, b.dataset.n); });
 }
+/* elements lent to a sheet (data-home = the id of the element they live in) go back before it changes */
+function sheetRescue() { document.querySelectorAll('#bsheet-in [data-home]').forEach(n => $(n.dataset.home).appendChild(n)); }
 function openSheet(html) {
+  sheetRescue();
   $('bsheet-in').innerHTML = html; $('bsheet').scrollTop = 0;
   $('bsheet').classList.add('on'); $('sheet-dim').classList.add('on');
 }
-function closeSheet() { if (!$('bsheet')) return; $('bsheet').classList.remove('on'); $('sheet-dim').classList.remove('on'); }
+function closeSheet() {
+  if (!$('bsheet')) return;
+  $('bsheet').classList.remove('on'); $('sheet-dim').classList.remove('on');
+  sheetRescue();
+  if (typeof CAP !== 'undefined') CAP.sheetKind = null;
+}
 /* era & grounds for a quick match, from the teams: two franchises play in their league's conditions, else
    international; the year is the teams' own (clamped to the data) */
 function quickConds(tt, fmt) {

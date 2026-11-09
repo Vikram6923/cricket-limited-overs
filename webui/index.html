@@ -374,32 +374,55 @@
     <div class="cap-panel" id="mp-mine"></div>
   </section>
 
+  <!-- the live screen: score bug, a permanent field, this over and the players,
+       the bars, and the action bar; decisions open as sheets over it. Before the first ball (toss, XI) the
+       question fills the screen instead (#cap-pre). -->
   <section class="view" id="v-captain">
     <div class="cap-head">
-      <div><h2 id="cap-title">Captain</h2><div class="muted small" id="cap-ctx"></div></div>
+      <div class="full-only"><h2 id="cap-title">Captain</h2><div class="muted small" id="cap-ctx"></div></div>
       <span style="flex:1"></span>
       <span class="muted small" id="cap-opp"></span>
       <span class="mp-clock" id="cap-clock"></span>
       <span class="muted small" id="cap-progress"></span>
-      <button class="btn stop" onclick="stopJob()">■ Stop</button>
+      <button class="btn stop full-only" id="cap-stop" onclick="stopJob()">■ Stop</button>
     </div>
     <div id="cap-bug"></div>
-    <div class="cap-grid">
-      <div id="cap-score"></div>
-      <div>
-        <div class="cap-panel" id="cap-q"></div>
-        <div class="cap-panel cap-ctl">
-          <div class="lbl">My decisions</div>
-          <div class="cap-auto" id="cap-auto"></div>
-          <div class="lbl" style="margin-top:12px">Sim</div>
-          <div class="cap-skip">
-            <button class="btn sec" data-skip="innings">Sim innings</button>
-            <button class="btn sec" data-skip="match">Sim match</button>
-            <button class="btn sec" data-skip="all" id="cap-skip-all">Sim season</button>
-          </div>
-          <button class="btn sec" id="cap-back" style="display:none;margin-top:8px">Take back my decisions</button>
+    <div class="cap-pre" id="cap-pre"><div class="cap-panel" id="cap-q"></div></div>
+    <div class="cap-live" id="cap-live">
+      <div class="cl-field"><div class="hl-box" id="hl-box"></div><div class="cl-toast" id="cap-toast"></div></div>
+      <div class="cl-side">
+        <div class="cl-over"><span class="lb">This over</span><span class="cl-chips" id="cap-over"></span></div>
+        <div class="cl-cards" id="cap-cards"></div>
+        <div class="cl-bars" id="cap-bars"></div>
+        <div class="cl-act" id="cap-act">
+          <button class="btn go" id="cap-main">&#9654;&nbsp; Next ball <kbd class="full-only">Space</kbd></button>
+          <button class="btn sec" id="cap-over-btn">Sim over</button>
+          <button class="btn sec" id="cap-more-btn">More &#9662;</button>
         </div>
       </div>
+    </div>
+    <!-- the More sheet's contents, and the full scorecard, wait here while the sheet is shut -->
+    <div class="cap-hold" id="cap-hold">
+      <div class="cap-ctl" id="cap-more" data-home="cap-hold">
+        <h3>More</h3>
+        <div class="sh-btns cap-skip">
+          <button class="btn sec" id="cap-sim-wkt">Sim to next wicket</button>
+          <button class="btn sec" data-skip="innings">Sim to end of innings</button>
+          <button class="btn sec" data-skip="match">Sim to end of match</button>
+          <button class="btn sec" data-skip="all" id="cap-skip-all">Sim the rest of the season</button>
+        </div>
+        <div class="bs-sec">Highlights</div><div id="cap-hl"></div>
+        <div class="bs-sec">My decisions</div>
+        <div class="cap-auto" id="cap-auto"></div>
+        <button class="btn sec" id="cap-back" style="display:none;margin-top:8px">Take back my decisions</button>
+        <div class="bs-sec">Detail</div>
+        <div class="seg cap-detail"><button data-d="simple">Simple</button><button data-d="full">Full stats</button></div>
+        <div class="sh-btns" style="margin-top:16px">
+          <button class="btn sec" id="cap-card-btn">Full scorecard</button>
+          <button class="btn sec cap-stop2" id="cap-stop-btn">Stop match</button>
+        </div>
+      </div>
+      <div id="cap-score" data-home="cap-hold"></div>
     </div>
   </section>
 

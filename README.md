@@ -47,8 +47,13 @@ thing in progress (a live match you left, or a career), and four doors lead to e
 Seasons & careers, Auction & draft, and a What-if sandbox (match or series, tournaments, classic sides, team
 builder). Full stats also shows the old grid of every mode. Teams carry their colours and short codes everywhere;
 a single match opens on its match centre, a series on a scoreboard, a tournament on a champion banner, points
-table with a form guide, and a knockout bracket; each match has a match centre (summary, HTML scorecard, ball by ball, charts); the live captain screen is laid out like a TV score
-bar. It also works on a phone, with a tab bar at the bottom. A **Simple / Full stats** switch in the top bar
+table with a form guide, and a knockout bracket; each match has a match centre (summary, HTML scorecard, ball by ball, charts). The live screen is built for a
+phone first: a TV-style score bug with the win bar, the field where every ball plays, this over and one line for
+each batter and the bowler, your striker's bars, and *Next ball*, *Sim over* and *More* at the bottom, all on one
+screen without scrolling (on a desktop the field sits on the left). Who bowls, who goes in next, the Impact Player
+and the result open as sheets over it, with the suggestion first; *More* holds Sim to the next wicket / end of the
+innings / end of the match, the highlights level, *My decisions*, the full scorecard and Stop. The rest of the site
+also works on a phone, with a tab bar at the bottom. A **Simple / Full stats** switch in the top bar
 decides how much you see: Simple (the default) keeps the screens to scores, names and plain words; Full stats adds
 the model's numbers (expected economy and strike rate, how settled a batter is, the replay code, the MVP formula).
 Each setup screen shows only the choices most people change; year, grounds, venues, rain, the replay code and
@@ -99,15 +104,19 @@ the decisions you make yourself are under **More options**, which remembers whet
   team) in the "Captain a team" box under the conditions. Built on a generic controller (`engine/control.py`).
   - **Ball by ball with aggression bars (League Season and Career, Cricket Captain style):** set each batter's
     aggression and each bowler's plan on 9 bars and play a ball, an over, to the next wicket or to the end of the
-    innings, with a settled meter for each batter (Full stats; Simple marks a new batter NEW) and the projected score or chase. Bar 5 is how real sides play
+    innings (only the striker's bars show; a chip opens the non-striker's, and a toast says when the strike
+    changes), with a settled meter for each batter (Full stats; Simple marks a new batter NEW) and the projected score or chase. Bar 5 is how real sides play
     that situation (the engine as calibrated); the bars run Block, Defend, Careful, Steady, Normal, Positive, Attack,
     Hit out, Slog. The trade-off comes from real ball-by-ball data: across match
     situations, how fours, sixes and dots move with the scoring rate, and how far each bar reaches (the range real
     sides show, plus one bar beyond it at each end). Each bar's wicket cost is set so that bar 5 is best on
     average, so the right setting depends on the moment: going hard pays when a wicket is cheap and costs when it
     is dear. See [docs/match_play_design.md](docs/match_play_design.md).
-  - **Highlights:** on that screen the balls since your last pause replay as a 2D ball tracker (off / wickets and
-    boundaries / every ball): the ball's path on a top-down ground with the field, fielders chasing, runners, flying
+  - **Highlights:** on that screen the balls since your last pause replay as a 2D ball tracker in a field that
+    is always there (every ball, fast, by default: about 0.8 s, and the full replay for a four, a six or a wicket;
+    or wickets and boundaries; or off). The outcome shows big in the field (a dot, the runs, FOUR, SIX, OUT!), a
+    boundary flashes the batting side's colour and a wicket shakes the field; reduced motion is respected. The
+    last ball of an over plays before the bowler sheet opens. The ball's path on a top-down ground with the field, fielders chasing, runners, flying
     bails, the catcher's name, and a side-on strip for the length. The engine decides what happened; the direction,
     length and field are drawn by rules (Cricsheet records none of them), and the field follows the phase and your
     bowling plan.
@@ -474,6 +483,8 @@ tests/             engine and tournament tests
 - [x] UI simplification phase 1: Simple / Full stats switch, More options folds, plain words
 - [x] UI simplification phase 2: home with one Play button (you captain, ball by ball), pre-match card and coin
       toss, Continue, four doors; a single match opens on its match centre
+- [x] UI simplification phase 3: phone-first live screen (score bug, permanent field, striker's bars, action bar),
+      every ball plays fast, decision sheets (bowler, next batter, Impact Player, result), XI with Use this XI
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
   a draft against each other (optionally with computer teams and a league); a live auction against each other
   and the computer franchises, then a league or a series
