@@ -356,6 +356,7 @@
       <div class="pre-line" id="pre-line"></div>
     </div>
     <div class="pre-row"><span id="pre-xi-t">Your XI: suggested <b class="ok">&#10003;</b></span><button class="btn sec sm" id="pre-xi">Change XI</button></div>
+    <div class="pre-row"><span>Length</span><div class="seg" id="pre-len"><button data-l="key" title="You play the first over, the over after a wicket and the last 3 overs">Key moments</button><button data-l="all">Every ball</button></div></div>
     <div class="card pre-toss">
       <div class="coin" id="pre-coin">H</div>
       <div class="pre-q" id="pre-q">Call the toss</div>
@@ -400,7 +401,8 @@
     <div id="cap-bug"></div>
     <div class="cap-pre" id="cap-pre"><div class="cap-panel" id="cap-q"></div></div>
     <div class="cap-live" id="cap-live">
-      <div class="cl-field"><div class="hl-box" id="hl-box"></div><div class="cl-toast" id="cap-toast"></div></div>
+      <div class="cl-field"><div class="hl-box" id="hl-box"></div><div class="cl-toast" id="cap-toast"></div>
+        <div class="cl-gap" id="cap-gap" hidden></div></div>
       <div class="cl-side">
         <div class="cl-over"><span class="lb">This over</span><span class="cl-chips" id="cap-over"></span></div>
         <div class="cl-cards" id="cap-cards"></div>
@@ -422,6 +424,8 @@
           <button class="btn sec" data-skip="match">Sim to end of match</button>
           <button class="btn sec" data-skip="all" id="cap-skip-all">Sim the rest of the season</button>
         </div>
+        <div class="bs-sec">Length</div>
+        <div class="seg cap-len"><button data-l="key" title="You play the first over, the over after a wicket and the last 3 overs">Key moments</button><button data-l="all">Every ball</button></div>
         <div class="bs-sec">Highlights</div><div id="cap-hl"></div>
         <div class="bs-sec">My decisions</div>
         <div class="cap-auto" id="cap-auto"></div>
@@ -430,6 +434,7 @@
         <div class="seg cap-detail"><button data-d="simple">Simple</button><button data-d="full">Full stats</button></div>
         <div class="sh-btns" style="margin-top:16px">
           <button class="btn sec" id="cap-card-btn">Full scorecard</button>
+          <button class="btn sec" id="cap-tips"><span class="q-ic">?</span> Show tips again</button>
           <button class="btn sec cap-stop2" id="cap-stop-btn">Stop match</button>
         </div>
       </div>
@@ -599,6 +604,7 @@
 <div class="sheet-dim" id="sheet-dim"></div>
 <div class="bsheet" id="bsheet"><div class="grab"></div><div id="bsheet-in"></div></div>
 <div id="popover"></div>
+<div class="coach" id="coach" role="dialog" aria-live="polite" hidden></div>
 <script src="/ui/teams.js"></script>
 <script src="/ui/highlight.js"></script>
 <script src="/ui/captain.js"></script>

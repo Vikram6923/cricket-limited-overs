@@ -21,6 +21,9 @@ from .situation import NORMAL_BARS, Situation, bat_quality, depth_table
 
 KIND_TEXT = {"bowled": "b", "lbw": "lbw", "caught_fielder": "c", "caught_keeper": "c", "caught_bowler": "c & b",
              "stumped": "st", "hit_wicket": "hit wicket", "run_out": "run out"}
+# Key moments (Match.key_moment): the overs a person plays at the start and the end of each innings, and the balls
+# after a wicket; tune here
+KEY_FIRST_OVERS, KEY_LAST_OVERS, KEY_AFTER_WICKET = 1, 3, 6
 
 
 @dataclass
@@ -638,7 +641,7 @@ class Match:
         self.captain_log = {t.name: [] for t in self.teams if t.name in self.control}   # the person's calls, valued
         # aggression dials (docs/match_play_design.md): team -> player id -> bars, for the person's side only;
         # everyone else plays at NORMAL_BARS (the engine as calibrated). pace: how far to play before the next
-        # ball-by-ball pause ({"until": "over" | "wicket" | "innings", ...})
+        # ball-by-ball pause ({"until": "over" | "wicket" | "innings" | "key", ...})
         self.bars = {t.name: {} for t in self.teams if t.name in self.control}
         self.pace: dict = {}
         self.seen: dict = {}      # team -> (innings, balls of its ball_log already shown to the person)
@@ -895,7 +898,8 @@ class Match:
             if pc and pc["inn"] == inn.number and (
                     pc["until"] == "innings"
                     or (pc["until"] == "over" and pc["over"] == inn.legal // 6)
-                    or (pc["until"] == "wicket" and inn.wkts == pc["wkts"])):
+                    or (pc["until"] == "wicket" and inn.wkts == pc["wkts"])
+                    or (pc["until"] == "key" and not self.key_moment(inn))):
                 continue
             batting = team is inn.bat
             mine = self.bars[team.name]
@@ -930,8 +934,27 @@ class Match:
                     except (TypeError, ValueError):
                         pass
             u = ans.get("until")
-            self.pace[team.name] = None if u not in ("over", "wicket", "innings") else {
+            self.pace[team.name] = None if u not in ("over", "wicket", "innings", "key") else {
                 "until": u, "inn": inn.number, "over": inn.legal // 6, "wkts": inn.wkts}
+
+    def key_moment(self, inn: "Innings") -> bool:
+        """A Key-moments match (pause "key"): is the coming ball one the person plays?
+        The first over, the KEY_AFTER_WICKET balls after a wicket and the last KEY_LAST_OVERS overs of each innings
+        (all of a super over); the rest plays on. Presentation pace only: the balls themselves are unchanged."""
+        if inn.super_over:
+            return True
+        n = inn.legal
+        if n < 6 * KEY_FIRST_OVERS or n >= 6 * (inn.max_overs - KEY_LAST_OVERS):
+            return True
+        if inn.fow:                               # "4.3": the legal balls bowled when the last wicket fell
+            o, b = inn.fow[-1]["over"].split(".")
+            return n - (6 * int(o) + int(b)) < KEY_AFTER_WICKET
+        return False
+
+    def key_skip(self, team: Team, inn: "Innings") -> bool:
+        """Key moments: the person's side plays on through this ball (and its over's bowler question)."""
+        pc = self.pace.get(team.name)
+        return bool(pc and pc["until"] == "key" and pc["inn"] == inn.number and not self.key_moment(inn))
 
     def pre_state(self, team: Team) -> dict:
         a, b = self.teams
@@ -1113,7 +1136,7 @@ class Match:
                 sugg = {"out": pick[1].id, "in": pick[2].id, "gain": round(pick[0], 1), "for": pick[3]}
         opts = valid()
         block = self.impact_block(team, inn, sugg, False) if imp_ok else None
-        asked = self.manual(team, "bowler", inn) and (len(opts) > 1 or sugg)
+        asked = self.manual(team, "bowler", inn) and (len(opts) > 1 or sugg) and not self.key_skip(team, inn)
         if asked:
             ans = self.ask(team, "bowler", {"options": [dict(self.pinfo(p, ph), quota_left=quota_left.get(p, 0))
                                                         for p in opts],

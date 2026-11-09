@@ -268,6 +268,7 @@ const HL = (() => {
         } else if (t < T_RUN + T_DEL + T_SHOT + T_HOLD) {
           if (!d.flash.innerHTML) land(d, e, s, onLand);
         } else {
+          if (!d.flash.innerHTML) land(d, e, s, onLand);   // a late frame (tab in the background) still lands the ball
           return done(true);
         }
         requestAnimationFrame(frame);

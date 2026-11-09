@@ -1152,3 +1152,23 @@ input.picked{display:none}
   .stat-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tl{grid-template-columns:34px 52px 1fr;gap:8px}
 }
+
+/* ---- UI v2 phase 6: Key moments and coach marks ---- */
+.cl-gap{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:calc(100% - 24px);z-index:3;pointer-events:none;
+  background:rgba(15,23,38,.92);border:1px solid var(--border2);border-radius:999px;padding:6px 14px;font-size:.84rem;
+  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.cl-gap b{color:var(--brand)}
+.cl-gap[hidden]{display:none}
+.coach{position:absolute;z-index:95;width:min(300px,calc(100vw - 16px));padding:12px 14px 10px;border-radius:14px;
+  background:var(--panel3);border:1px solid var(--brand);color:var(--text);box-shadow:0 12px 30px rgba(0,0,0,.45);font-size:.95rem}
+.coach[hidden]{display:none}
+.coach p{margin:0 0 8px;line-height:1.35}
+.coach::after{content:"";position:absolute;left:var(--ax,50%);bottom:-7px;width:12px;height:12px;margin-left:-6px;
+  background:var(--panel3);border-right:1px solid var(--brand);border-bottom:1px solid var(--brand);transform:rotate(45deg)}
+.coach.below::after{bottom:auto;top:-7px;transform:rotate(225deg)}
+.coach .cm-b{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.coach .lnk{font-size:.82rem;color:var(--muted)}
+.coach-on{outline:2px solid var(--brand);outline-offset:3px;border-radius:12px}
+.q-ic{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
+  border:1px solid currentColor;font-size:.75rem;font-weight:700;margin-right:4px}
+.pre-row .seg button{padding:6px 12px}

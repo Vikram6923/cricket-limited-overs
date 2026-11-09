@@ -2,7 +2,9 @@
    /api/status (captain.pending); the answer goes to /api/decide. Every screen shows the computer's choice.
    The live screen: a score bug, a permanent field where each ball plays, this
    over and the players, the striker's bars and an action bar; the bowler, next batter, Impact Player and the
-   result open as sheets over it. Before the first ball (toss, XI) the question fills the screen (#cap-pre). */
+   result open as sheets over it. Before the first ball (toss, XI) the question fills the screen (#cap-pre).
+   Key moments (6.3): Next ball says "until key", so the engine plays on to the next key moment; a line over the
+   field sums up what was played meanwhile. Coach marks (6.9): three tips on the first balls, one on the bowler. */
 'use strict';
 
 const KIND_LABEL = {toss: 'Toss', xi: 'Playing XI', bowler: 'Bowlers', batter: 'Next batter', impact: 'Impact Player',
@@ -31,6 +33,7 @@ function capRender(st) {
     return;
   }
   if (q.id === CAP.qid) return;
+  const prev = CAP.q;
   CAP.qid = q.id; CAP.q = q; CAP.manual = cap.manual; CAP.auto = {};
   CAP.land = null;                            // a replay still playing from the last question must not land on this one
   const c = q.context || {}, s = q.state || {};
@@ -49,7 +52,7 @@ function capRender(st) {
     return;
   }
   capMode(true);
-  capReplay(q, ask);
+  capReplay(q, ask, prev);
 }
 
 /* the live layout on or off (#cap-live vs the full-screen question #cap-pre) */
@@ -65,8 +68,10 @@ function capMode(live) {
    quick play never needs two presses. */
 const MAIN_LABEL = {ball: '&#9654;&nbsp; Next ball <kbd class="full-only">Space</kbd>', bowler: 'Choose the bowler',
   batter: 'Choose the batter', impact: 'Impact Player'};
-function capReplay(q, ask) {
-  const evs = q.since || [];
+function capReplay(q, ask, prev) {
+  const gap = gapLine(prev, q);
+  $('cap-gap').innerHTML = gap; $('cap-gap').hidden = !gap;
+  const evs = gap && capLen() === 'key' ? (q.since || []).slice(-1) : q.since || [];   // the summary says the rest
   const land = now => {
     if (CAP.land !== land) return;
     CAP.land = null; CAP.keys = null;
@@ -88,6 +93,28 @@ function capReplay(q, ask) {
   };
   if (!evs.length) { land(); if (q.kind === 'ball') HL.idle($('hl-box'), nextBall(q)); return; }
   HL.play(evs, $('hl-box'), {onLand: () => land(false)});
+}
+/* after a stretch played on (Key moments, a Sim): one line over the field, e.g. "Wicket · Overs 2–5: 43/1 ·
+   Kohli 27*". It starts after the person's own last ball when that ball is in `since`. */
+const ballsOf = o => { const [p, r] = String(o).split('.').map(Number); return 6 * p + (r || 0); };
+const ballNo = n => `${Math.floor((n - 1) / 6)}.${(n - 1) % 6 + 1}`;
+function gapLine(prev, q) {
+  const a = prev && prev.state, s = q.state || {};
+  if (!a || a.runs === undefined || s.runs === undefined || a.innings !== s.innings) return '';
+  let la = ballsOf(a.overs_done), runs = a.runs, wkts = a.wkts;
+  const lb = ballsOf(s.overs_done);
+  if (lb - la <= 6) return '';
+  const own = prev.kind === 'ball' ? (q.since || []).filter(e => e.innings === s.innings && 6 * (e.over - 1) + e.ball - 1 === la) : [];
+  if (own.length) {
+    [runs, wkts] = String(own[own.length - 1].score).split('/').map(Number);
+    la += own.filter(e => !/wd|nb/.test(e.sym)).length;
+  }
+  const f = la + 1;
+  const span = (f - 1) % 6 === 0 && lb % 6 === 0
+    ? ((f - 1) / 6 + 1 === lb / 6 ? `Over ${lb / 6}` : `Overs ${(f - 1) / 6 + 1}–${lb / 6}`) : `${ballNo(f)}–${ballNo(lb)}`;
+  const bat = (s.batters || []).filter(x => x.at_crease).sort((x, y) => y.runs - x.runs).map(x => `${esc(sur(x.name))} ${x.runs}*`).join(', ');
+  const why = s.max_overs && lb >= 6 * (s.max_overs - 3) ? 'Last 3 overs' : s.wkts > wkts ? 'Wicket' : '';
+  return `${why ? `<b>${why}</b> · ` : ''}${span}: <b>${s.runs - runs}/${s.wkts - wkts}</b>${bat ? ` · ${bat}` : ''}`;
 }
 function nextBall(q) {
   return {phase: q.phase, plan: q.side === 'bowl' ? (q.bowler.bars || 5) : 5, bowl_type: isSpin(q.bowler.kind) ? 'spin' : 'pace',
@@ -180,6 +207,7 @@ async function capSend(choice, extra = {}) {
   const mp = mpOn();
   if (CAP.land) { HL.stop(); CAP.land = null; liveState(CAP.q); }   // pressed during the replay: the ball lands at once
   CAP.keys = null; CAP.qid = 'sent'; CAP.sentAt = Date.now();
+  coachHide(true); $('cap-gap').hidden = true;
   btns(true); closeSheet();
   try { await api(mp ? '/api/mp/decide' : '/api/decide', {id: CAP.q.id, choice, auto: CAP.auto, ...extra, ...(mp ? {token: MP.token} : {})}); }
   catch (e) { toast(e.message, true); }
@@ -342,6 +370,7 @@ function qPick(q, kind) {
     ${imp ? `<details class="ib-fold"><summary>Impact Player${imp.suggestion ? '<span class="tag-s">SUGGESTED</span>' : ''}</summary>${impactBoxHTML(imp, false)}</details>` : ''}`,
     kind === 'bowler' ? 'Choose the bowler' : 'Choose the batter');
   draw();
+  if (kind === 'bowler') coachBowler();
   $('cap-all').onclick = () => { all = true; draw(); };
   ['ib-use', 'ib-in', 'ib-out'].forEach(id => { if ($(id)) $(id).onchange = draw; });
 }
@@ -404,15 +433,17 @@ function qBall(q) {
   else CAP.vals[q.bowler.id] = q.bowler.bars;
   drawBars();
   const send = until => { CAP.keys = null; HL.stop(); capSend(bat ? {bat: CAP.vals, until} : {bowl: CAP.vals, until}); };
-  actMain(MAIN_LABEL.ball, () => send('ball'), true);
+  const next = () => send(capLen() === 'key' ? 'key' : 'ball');     // Key moments: the engine plays on between them
+  actMain(MAIN_LABEL.ball, next, true);
   btns(false);
   $('cap-over-btn').onclick = () => send('over');
   $('cap-sim-wkt').onclick = () => { closeSheet(); send('wicket'); };
   CAP.keys = e => {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || sheetOpen()) return;
     if (/^[1-9]$/.test(e.key)) setBars(+e.key);
-    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); send('ball'); }
+    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); next(); }
   };
+  coachBall(q);
 }
 function drawBars() {
   const q = CAP.q, bat = q.side === 'bat';
@@ -508,6 +539,9 @@ function moreSheet() {
   $('cap-hl').innerHTML = HL.segHTML();
   $('cap-hl').querySelectorAll('button').forEach(b => b.onclick = () => {
     HL.setLevel(b.dataset.h); $('cap-hl').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); });
+  const len = () => $('cap-more').querySelectorAll('.cap-len button').forEach(b => b.classList.toggle('on', b.dataset.l === capLen()));
+  $('cap-more').querySelectorAll('.cap-len button').forEach(b => b.onclick = () => { setLen(b.dataset.l); len(); });
+  len();
   const det = () => $('cap-more').querySelectorAll('.cap-detail button').forEach(b => b.classList.toggle('on', document.body.classList.contains('detail-full') === (b.dataset.d === 'full')));
   $('cap-more').querySelectorAll('.cap-detail button').forEach(b => b.onclick = () => { setDetail(b.dataset.d); det(); });
   det();
@@ -520,4 +554,60 @@ document.addEventListener('DOMContentLoaded', () => {
   $('cap-more-btn').onclick = moreSheet;
   $('cap-card-btn').onclick = () => { CAP.sheetKind = 'card'; openSheet(''); $('bsheet-in').appendChild($('cap-score')); };
   $('cap-stop-btn').onclick = () => { if (confirm('Stop this match?')) { closeSheet(); stopJob(); } };
+  $('cap-tips').onclick = () => {
+    lsSet(COACH_KEY, '0'); lsSet(COACH_KEY + '.b', ''); closeSheet();
+    if (CAP.q && CAP.qid === CAP.q.id) { if (CAP.q.kind === 'ball') coachBall(CAP.q); else if (CAP.q.kind === 'bowler') coachBowler(); }
+  };
+  window.addEventListener('resize', () => { if (COACH.cur) coachPlace(); });
 });
+
+/* coach marks: one tip at a time next to what it names, each shown until it is
+   dismissed or the person plays on, never again (More > Show tips again replays them). No overlay: the screen
+   underneath still works. */
+const COACH_KEY = 'lo.coach';                   // how many of the 3 ball tips are done; .b: the bowler tip
+const COACH = {cur: null, steps: [
+  {sel: '#cap-bars', text: q => q.side === 'bowl' ? 'Set your bowler’s plan. Higher = more wickets, more runs.'
+    : 'Set your batter’s approach. Higher = more runs, more risk.'},
+  {sel: '#cap-main', text: () => 'Bowl the next ball. Space works too.'},
+  {sel: '#cap-over-btn', text: () => 'Skip ahead whenever you like. You can always take over.'}]};
+function coachBall(q) {
+  const n = +lsGet(COACH_KEY) || 0;
+  if (n >= COACH.steps.length) return;
+  const st = COACH.steps[n];
+  coachShow(st.sel, st.text(q), () => lsSet(COACH_KEY, String(n + 1)), () => { if (CAP.q === q && CAP.qid === q.id) coachBall(q); });
+}
+function coachBowler() {
+  if (lsGet(COACH_KEY + '.b') === '1') return;
+  coachShow('#cap-opts', 'Pick who bowls this over.', () => lsSet(COACH_KEY + '.b', '1'), null, '#bsheet');   // above the sheet
+}
+function coachShow(sel, text, done, next, anchor) {
+  const t = document.querySelector(sel);
+  if (!t || !t.offsetParent) return;
+  coachHide(false);
+  COACH.cur = {t, done, at: anchor ? document.querySelector(anchor) : t};
+  const c = $('coach');
+  c.innerHTML = `<p>${esc(text)}</p><div class="cm-b"><button class="lnk" id="cm-x">Skip tips</button><button class="btn go sm" id="cm-ok">Got it</button></div>`;
+  c.hidden = false; t.classList.add('coach-on');
+  coachPlace(); setTimeout(coachPlace, 260);      // again once a sheet has slid in
+  $('cm-ok').onclick = () => { coachHide(true); if (next) next(); };
+  $('cm-x').onclick = () => { coachHide(false); lsSet(COACH_KEY, '9'); lsSet(COACH_KEY + '.b', '1'); };
+}
+function coachPlace() {
+  const c = $('coach'), t = COACH.cur && COACH.cur.at;
+  if (!t) return;
+  const r = t.getBoundingClientRect(), w = c.offsetWidth, h = c.offsetHeight;
+  const above = r.top - h - 14 > 8;
+  const left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+  c.style.left = left + scrollX + 'px';
+  c.style.top = (above ? r.top - h - 14 : r.bottom + 14) + scrollY + 'px';
+  c.style.setProperty('--ax', Math.max(16, Math.min(w - 16, r.left + r.width / 2 - left)) + 'px');
+  c.classList.toggle('below', !above);
+}
+/* hide the tip; `seen` counts it as done (Got it, or the person played on) */
+function coachHide(seen) {
+  const cur = COACH.cur;
+  if (!cur) return;
+  COACH.cur = null;
+  cur.t.classList.remove('coach-on'); $('coach').hidden = true;
+  if (seen) cur.done();
+}

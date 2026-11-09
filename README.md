@@ -40,9 +40,13 @@ Wi-Fi.
 
 The page opens on a home screen with one way in: two team badges (tap one to pick a nation, a franchise or your
 own team), T20 / ODI and **Play**. Play means you captain the left team, ball by ball: a pre-match card shows the
-suggested XI (Change XI lets you pick it after the toss) and you call the toss; if you win you choose to bat or
-bowl. You set the bars every ball and pick the bowler each over; the computer picks the XI, the next batter and
-the Impact Player. *Just simulate the result* plays the match without you. Under it, a Continue row shows the one
+suggested XI (Change XI lets you pick it after the toss), the match length and you call the toss; if you win you
+choose to bat or bowl. **Key moments** (the default, about 5 minutes for a T20) has you play the first over, the
+6 balls after each wicket and the last 3 overs of each innings, and the rest plays on with a one-line summary over
+the field ("Wicket · 0.6–10.2: 85/1 · Jaiswal 43*, Kohli 0*"); **Every ball** plays them all. You set the bars
+each ball you play and pick the bowler for those overs; the computer picks the XI, the next batter and the
+Impact Player. In your first match three short tips point at the bars, *Next ball* and *Sim over* (one more on
+the first bowler sheet); *More > Show tips again* replays them. *Just simulate the result* plays the match without you. Under it, a Continue row shows the one
 thing in progress (a live match you left, or a career), and four doors lead to everything else: Play a friend,
 Seasons & careers, Auction & draft, and a What-if sandbox (match or series, tournaments, classic sides, team
 builder). Full stats also shows the old grid of every mode. Teams carry their colours and short codes everywhere;
@@ -57,7 +61,8 @@ phone first: a TV-style score bug with the win bar, the field where every ball p
 each batter and the bowler, your striker's bars, and *Next ball*, *Sim over* and *More* at the bottom, all on one
 screen without scrolling (on a desktop the field sits on the left). Who bowls, who goes in next, the Impact Player
 and the result open as sheets over it, with the suggestion first; *More* holds Sim to the next wicket / end of the
-innings / end of the match, the highlights level, *My decisions*, the full scorecard and Stop. The rest of the site
+innings / end of the match, the length (Key moments / Every ball), the highlights level, *My decisions*, the full
+scorecard, Show tips again and Stop. The rest of the site
 also works on a phone, with a tab bar at the bottom. A **Simple / Full stats** switch in the top bar
 decides how much you see: Simple (the default) keeps the screens to scores, names and plain words; Full stats adds
 the model's numbers (expected economy and strike rate, how settled a batter is, the replay code, the MVP formula).
@@ -502,6 +507,9 @@ tests/             engine and tournament tests
 - [x] UI simplification phase 5: results fit the run (one match: the match centre only; 2 matches: no records
       or Best players), the result as the headline with the replay code behind Run details (Full), a shorter
       match summary (tiles, win chart, 2-sentence report) and a key-moments timeline with short lines
+- [x] UI simplification phase 6: Key moments match length (the engine's `until: "key"` pause plays on between
+      the first over, the 6 balls after a wicket and the last 3 overs; a summary line after each stretch) and
+      three coach marks in the first captained match, plus one on the bowler sheet
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
   a draft against each other (optionally with computer teams and a league); a live auction against each other
   and the computer franchises, then a league or a series

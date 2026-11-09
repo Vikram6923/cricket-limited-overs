@@ -58,6 +58,13 @@ function pickName(name, all) {
 const DETAIL_KEY = 'lo.detail', MORE_KEY = 'lo.more.';
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window: not remembered */ } }
+/* match length when you play ball by ball: Key moments (default) or Every ball */
+const LEN_KEY = 'lo.len';
+const capLen = () => lsGet(LEN_KEY) === 'all' ? 'all' : 'key';
+function setLen(v) {
+  lsSet(LEN_KEY, v === 'all' ? 'all' : 'key');
+  document.querySelectorAll('#pre-len button').forEach(b => b.classList.toggle('on', b.dataset.l === capLen()));
+}
 function setDetail(d) {
   d = d === 'full' ? 'full' : 'simple';
   document.body.classList.toggle('detail-full', d === 'full'); document.body.classList.toggle('detail-simple', d !== 'full');
@@ -218,6 +225,7 @@ function teamSheet(side) {
 /* elements lent to a sheet (data-home = the id of the element they live in) go back before it changes */
 function sheetRescue() { document.querySelectorAll('#bsheet-in [data-home]').forEach(n => $(n.dataset.home).appendChild(n)); }
 function openSheet(html) {
+  if (typeof coachHide === 'function') coachHide(false);
   sheetRescue();
   $('bsheet-in').innerHTML = html; $('bsheet').scrollTop = 0;
   $('bsheet').classList.add('on'); $('sheet-dim').classList.add('on');
@@ -264,6 +272,8 @@ function openPre() {
   preXI(false); $('pre-xi').style.display = ''; $('pre-xi').disabled = false;
   $('pre-coin').className = 'coin'; $('pre-coin').textContent = 'H';
   $('pre-err').textContent = '';
+  document.querySelectorAll('#pre-len button').forEach(b => b.onclick = () => setLen(b.dataset.l));
+  setLen(capLen());
   preButtons();
   showView('v-pre');
 }
