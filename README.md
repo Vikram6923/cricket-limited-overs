@@ -46,8 +46,13 @@ the Impact Player. *Just simulate the result* plays the match without you. Under
 thing in progress (a live match you left, or a career), and four doors lead to everything else: Play a friend,
 Seasons & careers, Auction & draft, and a What-if sandbox (match or series, tournaments, classic sides, team
 builder). Full stats also shows the old grid of every mode. Teams carry their colours and short codes everywhere;
-a single match opens on its match centre, a series on a scoreboard, a tournament on a champion banner, points
-table with a form guide, and a knockout bracket; each match has a match centre (summary, HTML scorecard, ball by ball, charts). The live screen is built for a
+results fit the run: a single match opens on its match centre, a series on a scoreboard (records and *Best players*
+from 3 matches up), a tournament on a champion banner, points table with a form guide, and a knockout bracket.
+Each match has a match centre (summary, HTML scorecard, ball by ball, charts) whose summary leads with the player
+of the match, four stat tiles and the win-probability chart, then two sentences of the report (*Read more*) and a
+key-moments timeline (OUT, 50, big over, turning point; partnerships and new batters in Full stats). The result
+is the headline, with the format and conditions under it; the replay code sits behind *Run details* (i) in Full
+stats. The live screen is built for a
 phone first: a TV-style score bug with the win bar, the field where every ball plays, this over and one line for
 each batter and the bowler, your striker's bars, and *Next ball*, *Sim over* and *More* at the bottom, all on one
 screen without scrolling (on a desktop the field sits on the left). Who bowls, who goes in next, the Impact Player
@@ -168,7 +173,7 @@ on a phone too. Modes:
 For every run choose the format, the year and whose conditions to play in (full-member internationals or a league),
 optionally venues, a replay code (the seed) and whether rain can interrupt play (on by default). The results page has a summary
 (points tables with net run rate, knockouts, top performers, records), every match (Previous / Next, match report,
-rain notes, run worm, Manhattan, win-probability and partnership charts, scorecard and innings log), sortable batting and bowling tables, the MVP race (official and balanced) and,
+rain notes, run worm, Manhattan, win-probability and partnership charts, scorecard and innings log), sortable batting and bowling tables, *Best players* (points: official and balanced) and,
 after a draft or an auction, the squads (with prices). Saved teams go in `data/teams.json` (not in git).
 
 ### Hosting it for friends
@@ -494,6 +499,9 @@ tests/             engine and tournament tests
 - [x] UI simplification phase 4: setup screens with at most four choices (the rest under More options), venues as
       a searchable tick list, Era & grounds from the teams; Two players opens on Host / Join, joining is code +
       name + Join, and the room shows the code big with Copy link and Share
+- [x] UI simplification phase 5: results fit the run (one match: the match centre only; 2 matches: no records
+      or Best players), the result as the headline with the replay code behind Run details (Full), a shorter
+      match summary (tiles, win chart, 2-sentence report) and a key-moments timeline with short lines
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
   a draft against each other (optionally with computer teams and a league); a live auction against each other
   and the computer franchises, then a league or a series

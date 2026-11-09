@@ -1120,3 +1120,35 @@ input.picked{display:none}
 }
 @media (max-width:760px){.setup-grid>.setup-main{align-self:stretch}}
 #cond:has(>#g-cap-box[style*="none"])>details.more{border-top:0;padding-top:0;margin:0}
+
+/* ── UI v2 phase 5: results that fit the run ── */
+.r-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px}
+.r-line .info{width:22px;height:22px;font-size:.7rem}
+.r-details{margin-top:6px}
+.r-details b{color:var(--text);font-family:var(--disp)}
+.stat-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.stat-tile{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat-tile .k{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stat-tile b{font-family:var(--disp);font-size:1.15rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-tile b small{font-size:.78rem;color:var(--muted);font-weight:500}
+.stat-tile .s{font-size:.78rem;color:#c3cde0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-tile .s:empty{display:none}
+.report .more-btn{background:none;border:0;color:var(--brand);font-weight:600;padding:0 0 0 6px;cursor:pointer;font-size:inherit}
+.wp-first{display:none}
+@media (max-width:1000px){.wp-first{display:block}.wp-side{display:none}}
+.tl{grid-template-columns:40px 58px 1fr}
+.tl::before{display:none}
+.tl .tg{justify-self:start;align-self:start;font-family:var(--disp);font-size:.66rem;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:6px;
+  background:var(--panel3);color:var(--muted);border:1px solid var(--border2);white-space:nowrap;margin-top:1px}
+.tl.wicket .tg{background:var(--wkt);border-color:var(--wkt);color:#fff}
+.tl.milestone .tg,.tl.big_over .tg,.tl.hat_trick .tg,.tl.five_wickets .tg{background:var(--six);border-color:var(--six);color:#fff}
+.tl.partnership .tg{background:var(--four);border-color:var(--four);color:#fff}
+.tl.turning_point .tg{background:var(--amber);border-color:var(--amber);color:#1a1300}
+.tl.end_of_innings .tg{background:var(--text);color:var(--bg);border-color:var(--text)}
+.tl .tx b{font-weight:600}
+.mvp-why{margin:10px 0 12px;display:grid;gap:2px}
+#mvp-info{vertical-align:middle;margin-left:4px;width:22px;height:22px;font-size:.7rem}
+@media (max-width:760px){
+  .stat-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tl{grid-template-columns:34px 52px 1fr;gap:8px}
+}
