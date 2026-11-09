@@ -14,7 +14,7 @@ from engine.tournament import play_tournament  # noqa: E402
 
 
 def check(a: Auction) -> None:
-    assert a.done and a.question is None
+    assert a.done and a.question is None and not a.questions
     seen = set()
     for t in a.teams:
         sq = a.squad[t]
@@ -28,38 +28,36 @@ def check(a: Auction) -> None:
             assert a.lots[i].buyer == t and a.lots[i].status in ("sold", "retained")
 
 
+def random_answer(a: Auction, u: str, q: dict, rng: random.Random) -> dict:
+    k = q["kind"]
+    if k == "retain":
+        ids = [c["id"] for c in q["candidates"] if rng.random() < 0.4]
+        return {"ids": q["suggested"] if a.retain_error(u, ids) else ids}
+    if k == "bid":
+        r = rng.random()
+        if r < 0.01:
+            return {"skip": "set"}
+        if r < 0.05 and q["cap"] >= q["next"]:
+            return {"max": rng.randint(q["next"], q["cap"])}
+        return {"bid": r < 0.6 and q["next"] <= q["cap"]}
+    if k == "release":
+        ids = [c["id"] for c in q["squad"] if rng.random() < 0.4]
+        return {"ids": q["suggested"] if a.release_error(u, ids) else ids}
+    if k == "nominate":
+        return {"ids": [c["id"] for c in q["players"] if rng.random() < 0.3]}
+    if k == "set":
+        return {"self": rng.random() < 0.1}
+    if k == "rtm_raise":
+        return {"amount": rng.randint(q["price"], q["cap"])}
+    return {"yes": rng.random() < 0.5}
+
+
 def random_user(a: Auction, rng: random.Random) -> set:
     kinds = set()
     while a.question:
         q = a.question
         kinds.add(q["kind"])
-        k = q["kind"]
-        if k == "retain":
-            ids = [c["id"] for c in q["candidates"] if rng.random() < 0.4]
-            if a.retain_error(a.user, ids):
-                ids = q["suggested"]
-            a.act({"ids": ids})
-        elif k == "bid":
-            r = rng.random()
-            if r < 0.01:
-                a.act({"skip": "set"})
-            elif r < 0.05 and q["cap"] >= q["next"]:
-                a.act({"max": rng.randint(q["next"], q["cap"])})
-            else:
-                a.act({"bid": r < 0.6 and q["next"] <= q["cap"]})
-        elif k == "release":
-            ids = [c["id"] for c in q["squad"] if rng.random() < 0.4]
-            if a.release_error(a.user, ids):
-                ids = q["suggested"]
-            a.act({"ids": ids})
-        elif k == "nominate":
-            a.act({"ids": [c["id"] for c in q["players"] if rng.random() < 0.3]})
-        elif k == "set":
-            a.act({"self": rng.random() < 0.1})
-        elif k == "rtm_raise":
-            a.act({"amount": rng.randint(q["price"], q["cap"])})
-        else:
-            a.act({"yes": rng.random() < 0.5})
+        a.act(random_answer(a, a.user, q, rng))
     return kinds
 
 
@@ -158,6 +156,77 @@ def test_mini_auction():
     assert len(b.suggest_release(me)) >= 1
     random_user(b, random.Random(2))
     check(b)
+
+
+def test_two_users():
+    """Two people in one auction: asked at once, the first answer counts (a late answer to an old price is
+    refused), each sees only their own question / wishlist / advice, skips are per person; squads keep the rules."""
+    pool = season_pool("ipl", "2025")
+    me, you = pool["teams"][0], pool["teams"][1]
+    a = Auction(pool, users=[me, you], seed=3)
+    assert a.user is None and a.question is None
+    assert set(a.questions) == {me, you} and all(q["kind"] == "retain" for q in a.questions.values())
+    a.act({"ids": []}, user=me)                         # the retentions wait for both
+    assert set(a.questions) == {you} and a.state(me)["question"] is None and a.state(me)["waiting"] == [you]
+    keep = [c["id"] for c in a.questions[you]["candidates"]][:2]
+    assert not a.retain_error(you, keep)
+    a.act({"ids": keep}, user=you)
+    assert a.phase == "auction" and a.retained[you] and not a.retained[me]
+    # a lot both are asked about: the first paddle up leads, the other is asked at the next price
+    while set(a.questions) != {me, you} or a.questions[me]["kind"] != "bid":
+        u = next(iter(a.questions))
+        a.act({"bid": False} if a.questions[u]["kind"] == "bid" else random_answer(a, u, a.questions[u], random.Random(0)), user=u)
+    q_me, q_you = a.questions[me], a.questions[you]
+    assert q_me["next"] == q_you["next"] and q_me["player"]["id"] == q_you["player"]["id"]
+    a.act({"bid": True, "seq": q_you["seq"]}, user=you)
+    assert a.lot["leader"] == you and you not in a.questions
+    try:
+        a.act({"bid": True, "seq": q_me["seq"]}, user=me)     # pressed at the old price: too late
+        raise AssertionError("a stale bid was accepted")
+    except ValueError as e:
+        assert "Too late" in str(e)
+    assert a.questions[me]["next"] > q_me["next"]
+    a.act({"bid": True, "seq": a.questions[me]["seq"]}, user=me)
+    assert a.lot["leader"] == me
+    # what each sees
+    a.set_wish(a.lot["id"], 5000, user=you)
+    s_me, s_you = a.state(me), a.state(you)
+    assert s_me["user"] == me and not s_me["wish"] and s_you["wish"] and s_you["planner"]["xi"]
+    assert a.to_you(me) and a.to_you(you)
+    # skips are per person: one hands the rest of the auction to the computer, the other keeps bidding
+    a.auto("all", user=me)
+    rng, kinds = random.Random(3), set()
+    while a.questions:
+        assert me not in a.questions or a.questions[me]["kind"] in ("rtm_use", "rtm_match", "rtm_raise")
+        u = rng.choice(sorted(a.questions))
+        kinds.add(a.questions[u]["kind"])
+        a.act(random_answer(a, u, a.questions[u], rng), user=u)
+    check(a)
+    assert "bid" in kinds and a.summary()["users"] == [me, you]
+
+
+def test_two_users_random():
+    """Both people answering at random, in random order, in season and years pools; a seeded run reproduces."""
+    for seed in range(3):
+        runs = []
+        for _ in range(2):
+            if seed == 2:
+                pool = years_pool("t20", 2018, 2022, ["A", "B", "C", "D"], home="India")
+                a = Auction(pool, users=["A", "B"], prev={"A": [x.id for x in pool["lots"][:10]],
+                                                         "B": [x.id for x in pool["lots"][10:20]]}, seed=seed)
+            else:
+                pool = season_pool("ipl", "2024")
+                a = Auction(pool, users=pool["teams"][seed:seed + 2], seed=seed)
+            rng, kinds, both = random.Random(seed), set(), 0
+            while a.questions:
+                both += len(a.questions) == 2
+                u = rng.choice(sorted(a.questions))
+                kinds.add(a.questions[u]["kind"])
+                a.act(random_answer(a, u, a.questions[u], rng), user=u)
+            check(a)
+            assert {"retain", "bid"} <= kinds and both, (kinds, both)
+            runs.append((a.squad, a.purse))
+        assert runs[0] == runs[1]
 
 
 if __name__ == "__main__":

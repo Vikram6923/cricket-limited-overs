@@ -835,3 +835,10 @@ body.mp-on #cap-skip-all{display:none}
 /* the draft room at tablet / phone width: one column that never grows past the screen (the pool table scrolls) */
 @media (max-width:1000px){.draft-grid{grid-template-columns:minmax(0,1fr)}.draft-grid>div{min-width:0}}
 @media (max-width:760px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}.draft-top{gap:8px}.draft-top .btn{padding:7px 10px}}
+
+/* two-player auction: the other person's team */
+.ar-tcard.rival{border-color:var(--amber);border-style:dashed}
+.ar-tcard.rival:not(.lead)::after{content:"RIVAL";position:absolute;top:-7px;right:6px;font-size:.6rem;font-weight:700;background:var(--panel2);color:var(--amber);border:1px solid var(--amber);border-radius:3px;padding:0 4px}
+.ar-tc.rival{outline:1px dashed var(--amber)}
+.ar-rcard.rival{border-color:var(--amber)}
+.turn.low{color:var(--red)}

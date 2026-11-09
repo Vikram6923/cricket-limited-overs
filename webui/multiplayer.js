@@ -1,6 +1,7 @@
 /* Two players (docs/multiplayer_design.md): a room with two seats, usually on two devices on the same Wi-Fi.
    Each seat polls /api/mp/state with its secret token and answers only its own questions through /api/mp/decide;
-   the question screens are captain.js's. The token is kept per tab (sessionStorage) so two tabs can test both
+   the question screens are captain.js's; the draft and auction rooms are app.js's / auction_room.js's, fed by
+   the room's state (each seat sees only its own question, wishlist and advice). The token is kept per tab (sessionStorage) so two tabs can test both
    seats, with localStorage as the fallback when the tab was closed. */
 'use strict';
 
@@ -31,7 +32,8 @@ function mpSaved() {
   }
   return null;
 }
-const mpQ = () => '/api/mp/state?token=' + encodeURIComponent(MP.token);
+const mpQ = () => '/api/mp/state?token=' + encodeURIComponent(MP.token)
+  + (MP.auV !== null && MP.auV !== undefined && $('v-auction').classList.contains('on') ? '&v=' + MP.auV : '');
 
 /* on page load: back into a room this tab (or browser) was in, or join from a ?join=CODE link */
 async function mpInit() {
@@ -106,7 +108,12 @@ async function mpPoll() {
   $('status-pill').classList.toggle('run', running);
   if (st.phase === 'none') { toast('The room was closed.', true); mpForget(); showView('v-home'); return; }
   if (st.phase === 'lobby') { mpLobby(st); POLL_T = setTimeout(mpPoll, 800); return; }
+  if (st.phase !== 'auction') MP.auV = null;
   if (st.phase === 'draft') { await mpDraft(st); POLL_T = setTimeout(mpPoll, 700); return; }
+  if (st.phase === 'auction') {
+    try { await mpAuction(st); } catch (e) { console.error(e); }      // keep polling whatever the screen did
+    POLL_T = setTimeout(mpPoll, 500); return;
+  }
   if (st.phase === 'playing') { mpPlaying(st); POLL_T = setTimeout(mpPoll, st.me && st.me.pending ? 700 : 250); return; }
   const j = st.job;                      // the match is over
   MP.built = false;
@@ -119,7 +126,7 @@ async function mpPoll() {
 const MP_SERIES_OPTS = [[1, 'A single match'], [3, 'Best of 3'], [5, 'Best of 5']];
 /* {of, wins: [seat 0, seat 1], match, finished} -> "Best of 3 · Match 2 · India lead 1-0" (names: by seat) */
 function mpSeriesLine(sr, names, withMatch = true) {
-  if (sr && sr.league) return `Draft league · match ${sr.match} of ${sr.of}`;
+  if (sr && sr.league) return `League · match ${sr.match} of ${sr.of}`;
   if (!sr || sr.of < 2) return '';
   const [a, b] = sr.wins, left = sr.of - sr.finished;
   const nm = i => esc(dn(names[i]));
@@ -140,7 +147,9 @@ function mpLobby(st) {
   CAP.qid = null;                        // question ids start again in a rematch
   const s = st.settings, me = st.you;
   $('mp-room-code').textContent = st.code;
-  $('mp-cond').textContent = `${s.fmt.toUpperCase()} · conditions of ${mpCompLabel(s)} ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`
+  const realSeason = s.teams === 'auction' && s.a_pool === 'season' && mpSeason(s);
+  $('mp-cond').textContent = (realSeason ? `T20 · ${(mpLeague(s) || {}).label} ${realSeason.season} conditions${s.after === 'league' ? ' and home grounds' : ''}`
+    : `${s.fmt.toUpperCase()} · conditions of ${mpCompLabel(s)} ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`)
     + ` · rain ${s.rain ? 'on' : 'off'} · shot clock ${s.clock === 'off' ? 'off' : s.clock + ' s a ball'}`
     + ` · ${mpPlayText(s)}`;
   const joined = st.seats[1].joined;
@@ -158,7 +167,7 @@ function mpLobby(st) {
   const recLine = i => rec.matches[0] + rec.matches[1] + titles[0] + titles[1] === 0 ? '' : `<div class="h2h">Won here: <b>${rec.matches[i]}</b> match${rec.matches[i] === 1 ? '' : 'es'}${rec.played ? ` · <b>${rec.series[i]}</b> series` : ''}${titles[0] + titles[1] ? ` · <b>${titles[i]}</b> league title${titles[i] === 1 ? '' : 's'}` : ''}</div>`;
   $('mp-seats').innerHTML = st.seats.map((x, i) => `<div class="mp-seat ${i === me ? 'me' : ''}" ${x.label ? `style="${tStyle(x.label)}"` : ''}>
     <div class="who">Player ${i + 1}${i === 0 ? ' (host)' : ''}${i === me ? ' · you' : ''}</div>
-    <div class="team">${x.label ? `${badge(x.label, 'sm')} ${esc(x.label)}` : x.joined ? `<span class="muted">${s.teams === 'draft' ? 'naming their team…' : 'picking a team…'}</span>` : '<span class="muted">not joined yet</span>'}</div>
+    <div class="team">${x.label ? `${badge(x.label, 'sm')} ${esc(x.label)}` : x.joined ? `<span class="muted">${mpNamed(s) ? 'naming their team…' : s.teams === 'auction' ? 'choosing a franchise…' : 'picking a team…'}</span>` : '<span class="muted">not joined yet</span>'}</div>
     <div class="small ${x.ready ? 'ok' : 'wait'}">${!x.joined ? '' : x.ready ? '✓ ready' : 'not ready'}${x.joined && !x.here ? ' · <span class="muted">away</span>' : ''}</div>
     ${recLine(i)}</div>`).join('');
   if (me === 'spectator') {
@@ -168,18 +177,33 @@ function mpLobby(st) {
   }
   $('mp-leave').textContent = me === 0 ? 'Close the room' : 'Leave the room';
   const mine = st.seats[me];
-  if (!MP.built || MP.builtTeams !== (s.teams || 'pick')) mpBuildMine(st, mine);
+  if (!MP.built || MP.builtTeams !== mpBuildKey(s)) mpBuildMine(st, mine);
   mpSyncHost(s);
   $('mp-ready').textContent = mine.ready ? 'Not ready yet' : "✓ I'm ready";
   $('mp-ready').className = 'btn ' + (mine.ready ? 'sec' : 'go');
   const other = st.seats[1 - me];
   $('mp-ready-note').textContent = mine.ready ? (other.ready ? 'Starting…' : 'Waiting for the other player to be ready.')
-    : s.teams === 'draft' ? 'The draft starts when both players are ready.' : 'The match starts when both players are ready.';
+    : s.teams === 'draft' ? 'The draft starts when both players are ready.'
+    : s.teams === 'auction' ? 'The auction starts when both players are ready.' : 'The match starts when both players are ready.';
 }
+/* each player names a team (draft, auction from player-pool years) rather than picking one */
+const mpNamed = s => s.teams === 'draft' || (s.teams === 'auction' && s.a_pool !== 'season');
+const mpBuildKey = s => [s.teams || 'pick', s.a_pool, s.league, s.season].join('|');
+const mpLeague = s => (META.leagues || []).find(l => l.id === s.league);
+function mpSeason(s) { const l = mpLeague(s); return l ? (l.seasons.find(x => x.season === s.season) || l.seasons[0]) : null; }
 
 /* what the room plays, in words */
 function mpPlayText(s) {
   const play = (MP_SERIES_OPTS.find(o => o[0] === (s.series || 1)) || MP_SERIES_OPTS[0])[1].toLowerCase();
+  if (s.teams === 'auction') {
+    const se = s.a_pool === 'season' ? mpSeason(s) : null, l = mpLeague(s);
+    const k = se ? se.teams.length : 2 + (s.cpu || 0);
+    const what = se ? `auction for ${l.label} ${se.season} (${k} franchises${s.retain ? ', with retentions' : ''})`
+      : `auction of ${s.y1}–${s.y2} players${s.cpu ? ` with ${s.cpu} computer teams` : ''}`;
+    const then = s.after === 'league' && k > 2 ? (se ? 'then the season: double round robin + playoffs' : `then a ${k}-team league + ${k <= 4 ? 'final' : 'semi-finals'}`)
+      : 'then ' + play + ' between the two of you';
+    return `${what} · ${then}`;
+  }
   if (s.teams !== 'draft') return play;
   const k = 2 + (s.cpu || 0);
   return `draft squads from ${s.y1}–${s.y2} players · ` + (s.cpu ? `${s.cpu} computer teams draft too, then a ${k}-team league + ${k <= 4 ? 'final' : 'semi-finals'}` : play);
@@ -190,8 +214,19 @@ function mpHostHTML(s) {
   const [lo, hi] = META.years[s.fmt] || [2005, 2026];
   return `<div class="lbl" style="margin-top:14px">Room settings (host)</div>
     <div class="seg2">
-      <div class="fg"><label>Teams</label><select id="mh-teams"><option value="pick">Each player picks a team</option><option value="draft">Draft squads</option></select></div>
+      <div class="fg"><label>Teams</label><select id="mh-teams"><option value="pick">Each player picks a team</option><option value="draft">Draft squads</option><option value="auction">Auction</option></select></div>
       <div class="fg" id="mh-play-box"><label>Play</label><select id="mh-series">${MP_SERIES_OPTS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
+    </div>
+    <div id="mh-auction" style="display:none">
+      <div class="seg2">
+        <div class="fg"><label>Players</label><select id="mh-apool"><option value="season">A real league season</option><option value="years">Players from a span of years</option></select></div>
+        <div class="fg"><label>Then</label><select id="mh-after"><option value="league">A league with the computer teams</option><option value="series">A match / series between the two of us</option></select></div>
+      </div>
+      <div class="seg2" id="mh-season-box">
+        <div class="fg"><label>League</label><select id="mh-league">${(META.leagues || []).map(l => `<option value="${esc(l.id)}">${esc(l.label)}</option>`).join('')}</select></div>
+        <div class="fg"><label>Season</label><select id="mh-season"></select></div>
+      </div>
+      <label class="small" id="mh-retain-box"><input type="checkbox" id="mh-retain"> Retentions and Right to Match from the season before</label>
     </div>
     <div id="mh-draft" style="display:none">
       <div class="seg2">
@@ -210,24 +245,41 @@ function mpSyncHost(s) {
   const set = (id, v) => { const el = $(id); if (el && document.activeElement !== el && el.value !== String(v)) el.value = String(v); };
   set('mh-teams', s.teams || 'pick'); set('mh-series', s.series || 1); set('mh-y1', s.y1); set('mh-y2', s.y2);
   set('mh-cpu', s.cpu || 0); set('mh-src', s.source || 'full');
-  const draft = (s.teams || 'pick') === 'draft';
-  $('mh-draft').style.display = draft ? '' : 'none';
-  $('mh-play-box').style.display = draft && s.cpu ? 'none' : '';
+  const draft = (s.teams || 'pick') === 'draft', auction = s.teams === 'auction', season = auction && s.a_pool === 'season';
+  set('mh-apool', s.a_pool || 'season'); set('mh-after', s.after || 'league'); set('mh-league', s.league || 'ipl');
+  const l = mpLeague(s), seasons = l ? l.seasons.map(x => x.season) : [];
+  if ($('mh-season').dataset.l !== (s.league || '')) {
+    $('mh-season').dataset.l = s.league || '';
+    $('mh-season').innerHTML = seasons.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  }
+  set('mh-season', s.season || seasons[0] || '');
+  $('mh-retain').checked = !!s.retain;
+  $('mh-auction').style.display = auction ? '' : 'none';
+  $('mh-season-box').style.display = $('mh-retain-box').style.display = season ? '' : 'none';
+  $('mh-draft').style.display = draft || (auction && !season) ? '' : 'none';
+  const se = season ? mpSeason(s) : null, k = se ? se.teams.length : 2 + (s.cpu || 0);
+  const league = auction ? s.after === 'league' && k > 2 : draft && s.cpu;
+  $('mh-play-box').style.display = league ? 'none' : '';
   $('mh-note').textContent = draft ? (s.cpu ? `A single round robin, then ${2 + s.cpu <= 4 ? 'a final' : 'semi-finals'}. Your matches against each other are two-player games; against the computer teams you play alone while the other player watches.`
-    : 'Snake draft, 15 players each, rated on those years. Then you play your drafted squads.') : '';
+    : 'Snake draft, 15 players each, rated on those years. Then you play your drafted squads.')
+    : auction ? 'Each team bids with ₹120 cr for a squad of 18–25. Computer teams bid for what a player adds to their XI.' : '';
 }
 
 function mpBuildMine(st, seat) {
   MP.built = true;
-  const s = st.settings, draft = s.teams === 'draft';
-  MP.builtTeams = s.teams || 'pick';
+  const s = st.settings, draft = mpNamed(s), franchise = s.teams === 'auction' && !draft;
+  MP.builtTeams = mpBuildKey(s);
   if ($('c-fmt').value !== s.fmt) { $('c-fmt').value = s.fmt; fillConditions(); }   // classic rows list nations by format
-  const impact = s.comp === 'ipl' && s.year >= 2023;
-  $('mp-mine').innerHTML = `${draft ? `<div class="lbl">Your team's name</div>
+  const se = franchise ? mpSeason(s) : null;
+  const impact = franchise ? s.league === 'ipl' && se && +se.season.slice(0, 4) >= 2023 : s.comp === 'ipl' && s.year >= 2023;
+  $('mp-mine').innerHTML = `${franchise ? `<div class="lbl">Your franchise</div>
+    <div class="fg"><select id="mp-fr"><option value="">- choose a franchise -</option>${(se ? se.teams : []).map(t => t.franchise || t.name)
+      .map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select></div>`
+    : draft ? `<div class="lbl">Your team's name</div>
     <div class="fg"><input type="text" id="mp-dname" maxlength="30" placeholder="e.g. ${esc(META.draft_teams[st.you === 0 ? 0 : 1] || 'Riverside')}"></div>`
     : `<div class="lbl">Your team</div>
     <div class="fg"><select id="mp-kind"><option value="saved">A saved team</option><option value="classic">A nation from any era</option></select></div>`}
-    <div class="fg" id="mp-saved-box" ${draft ? 'style="display:none"' : ''}><select id="mp-team"></select><div class="roster" id="mp-roster"></div></div>
+    <div class="fg" id="mp-saved-box" ${draft || franchise ? 'style="display:none"' : ''}><select id="mp-team"></select><div class="roster" id="mp-roster"></div></div>
     <div class="fg" id="mp-classic-box" style="display:none"></div>
     <div class="lbl" style="margin-top:10px">Decisions you make (the rest are the computer's)</div>
     <div class="checks" id="mp-manual">${MP_KINDS.filter(([k]) => k !== 'impact' || impact).map(([k, t]) =>
@@ -238,10 +290,28 @@ function mpBuildMine(st, seat) {
   if (st.you === 0) {
     const send = patch => mpLobbySend({settings: {...MP.settings, ...patch}});
     $('mh-teams').onchange = () => send({teams: $('mh-teams').value});
+    $('mh-apool').onchange = () => send({a_pool: $('mh-apool').value});
+    $('mh-after').onchange = () => send({after: $('mh-after').value});
+    $('mh-league').onchange = () => send({league: $('mh-league').value, season: ''});
+    $('mh-season').onchange = () => send({season: $('mh-season').value});
+    $('mh-retain').onchange = () => send({retain: $('mh-retain').checked});
     $('mh-series').onchange = () => send({series: $('mh-series').value});
     $('mh-cpu').onchange = () => send({cpu: $('mh-cpu').value});
     $('mh-src').onchange = () => send({source: $('mh-src').value});
     $('mh-y1').onchange = $('mh-y2').onchange = () => send({y1: $('mh-y1').value, y2: $('mh-y2').value});
+  }
+  if (franchise) {
+    const fr = () => $('mp-fr').value;
+    const kinds = () => [...$('mp-manual').querySelectorAll('input:checked')].map(i => i.value);
+    $('mp-fr').value = seat.team && typeof seat.team === 'string' ? seat.team : '';
+    $('mp-fr').onchange = () => mpLobbySend({team: fr() || null});
+    $('mp-manual').onchange = () => mpLobbySend({manual: kinds()});
+    $('mp-ready').onclick = () => {
+      const ready = $('mp-ready').textContent.includes("I'm ready");
+      if (ready && !fr()) { toast('Choose your franchise first.', true); return; }
+      mpLobbySend(ready ? {team: fr(), manual: kinds(), ready: true} : {ready: false});
+    };
+    return;
   }
   if (draft) {
     const nm = () => $('mp-dname').value.trim();
@@ -351,6 +421,66 @@ async function mpDraft(st) {
   } else { $('dr-squad-title').textContent = ''; $('dr-roles').innerHTML = ''; $('dr-squad').innerHTML = ''; }
   drawBoard($('dr-board'), d.teams, d.board, me);
   drawDraftPool();
+}
+
+/* ───────── the auction: both players bid in the auction room ───────── */
+async function mpAuctionSend(body) {
+  $('au-msg').textContent = '';
+  let d = null;
+  try { d = await api('/api/mp/auction', {token: MP.token, ...body}); }
+  catch (e) { $('au-msg').textContent = e.message; if (!/Too late/.test(e.message)) toast(e.message, true); }
+  clearTimeout(POLL_T); POLL_T = setTimeout(mpPoll, 30);
+  return d;
+}
+async function mpAuction(st) {
+  const A = st.auction;
+  if (MP.auId !== A.id || !APOOL) {                    // the players once per auction
+    const p = await api('/api/mp/auction/pool?token=' + encodeURIComponent(MP.token));
+    openAuctionRoom({pool: p.pool, to_you: {}, state: null});
+    MP.auId = A.id; MP.auV = null;
+    if (A.same) return;                                // the next poll brings the whole state
+  }
+  MP.built = false;
+  MP.au = st;
+  if (!A.same) {
+    MP.auV = A.v;
+    for (const [id, c] of Object.entries(A.changes)) { const p = APOOL.get(id); if (p) Object.assign(p, c); }
+    TOYOU = A.to_you || {};
+    renderAuction({...A.state, mp: true});
+  }
+  mpAuctionBar(st);
+}
+/* the room's own bits: whose call it is (with the clock), Ready / New auction / Leave, an absent player's hand-over */
+function mpAuctionBar(st) {
+  const A = st.auction, s = AU, i = st.you, me = s.user, other = i === 'spectator' ? null : A.players[1 - i];
+  const secs = A.seconds || {}, q = s.question;
+  if (!s.done) {
+    const w = (s.waiting || []).filter(u => u !== me);
+    let t = q ? (RP.busy ? 'Bidding…' : 'Your call!') : w.length ? `Waiting for ${w.join(' and ')}…` : 'Bidding…';
+    if (q && secs[me] !== null && secs[me] !== undefined && !RP.busy) t += ` · ${secs[me]}s`;
+    else if (!q && w.length && secs[w[0]] !== null && secs[w[0]] !== undefined) t += ` · ${secs[w[0]]}s`;
+    $('au-turn').textContent = t;
+    $('au-turn').className = 'turn' + (q && !RP.busy ? ' you' : '');
+    if ($('au-turn').classList.contains('you') && secs[me] !== null && secs[me] !== undefined) $('au-turn').classList.toggle('low', secs[me] <= 3);
+  }
+  const myReady = i !== 'spectator' && A.ready[i];
+  $('au-play').style.display = s.done && me ? '' : 'none';
+  $('au-play').textContent = myReady ? 'Not ready' : '▶ Ready to play';
+  $('au-play').className = 'btn ' + (myReady ? 'sec' : 'go');
+  const key = JSON.stringify([s.done, A.ready, st.can_take, i, other]);
+  let extra = document.getElementById('au-mp-extra');
+  if (!extra) { extra = document.createElement('span'); extra.id = 'au-mp-extra'; extra.style.display = 'contents'; $('au-play').after(extra); }
+  if (extra.dataset.key === key) return;
+  extra.dataset.key = key;
+  const play = mpPlayText(st.settings).split(' · ').pop();
+  extra.innerHTML = (s.done && me ? `<span class="muted small">${myReady ? (A.ready[1 - i] ? 'Starting…' : `Waiting for ${esc(other)} to be ready.`)
+      : A.ready[1 - i] ? `${esc(other)} is ready to play.` : esc(play[0].toUpperCase() + play.slice(1)) + '.'}</span>` : '')
+    + (st.can_take ? `<button class="btn sec" id="au-take" style="width:auto">Let the computer bid for ${esc(other)} (away)</button>` : '')
+    + (i === 0 ? '<button class="btn sec" id="au-redo" style="width:auto">New auction</button>' : '')
+    + `<button class="btn sec" id="au-leave" style="width:auto">${i === 0 ? 'Close the room' : i === 'spectator' ? 'Stop watching' : 'Leave'}</button>`;
+  if ($('au-take')) $('au-take').onclick = () => mpAuctionSend({take: true});
+  if ($('au-redo')) $('au-redo').onclick = () => { if (confirm('Throw this auction away and go back to the room settings?')) mpAuctionSend({redo: true}); };
+  $('au-leave').onclick = mpLeave;
 }
 
 /* ───────── the match ───────── */

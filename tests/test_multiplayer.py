@@ -381,6 +381,140 @@ def test_server_draft_league_with_computer_teams():
     post("/api/mp/lobby", {"token": host, "leave": True})
 
 
+def _play_out(post, state, host, guest, limit=300) -> dict:
+    """Answer every result pause until the run is over; the host's last state."""
+    deadline = time.time() + limit
+    while time.time() < deadline:
+        sts = [state(host), state(guest)]
+        if sts[0]["phase"] == "over":
+            return sts[0]
+        for tok, s in zip((host, guest), sts):
+            q = (s.get("me") or {}).get("pending")
+            if q:
+                post("/api/mp/decide", {"token": tok, "id": q["id"], "choice": None})
+        time.sleep(0.005)
+    raise AssertionError("the run did not finish")
+
+
+def test_server_auction_then_series():
+    """Player-pool years, no computer teams: both bid live (asked at once, first paddle up wins, a late press is
+    refused), wishlists and advice stay private, a version number spares unchanged polls; then a best of 3 with
+    the bought squads."""
+    import web_ui
+    tmp = Path(tempfile.mkdtemp())
+    web_ui.LAST = tmp / "last"
+    cl = web_ui.app.test_client()
+    post = lambda path, body: cl.post(path, json=body)
+    state = lambda tok, v="": cl.get(f"/api/mp/state?token={tok}&v={v}").get_json()
+    host = post("/api/mp/create", {"fmt": "t20", "comp": "t20i_full", "year": 2024, "venues": [], "rain": False,
+                                   "seed": "5", "clock": "off", "series": "3", "teams": "auction", "a_pool": "years",
+                                   "y1": 2016, "y2": 2024, "cpu": 0, "after": "league"}).get_json()["token"]
+    guest = post("/api/mp/join", {"code": state(host)["code"]}).get_json()["token"]
+    room = web_ui.ROOMS[state(host)["code"]]
+    assert post("/api/mp/lobby", {"token": host, "ready": True}).status_code == 400        # no name yet
+    post("/api/mp/lobby", {"token": host, "name": "Riverside", "manual": [], "ready": True})
+    post("/api/mp/lobby", {"token": guest, "name": "Hilltop", "manual": [], "ready": True})
+    st = state(host)
+    assert st["phase"] == "auction" and st["auction"]["players"] == ["Riverside", "Hilltop"]
+    assert post("/api/mp/lobby", {"token": host, "name": "X"}).status_code == 409          # the auction is on
+    pool = cl.get("/api/mp/auction/pool?token=" + guest).get_json()["pool"]
+    assert len(pool) >= 36
+    v = st["auction"]["v"]
+    assert state(host, v)["auction"]["same"]                                                # nothing new
+    # the first lot both are asked about: the guest's paddle is up first
+    a = room["auction"]
+    while set(a.questions) != {"Riverside", "Hilltop"}:
+        u = next(iter(a.questions))
+        post("/api/mp/auction", {"token": host if u == "Riverside" else guest, "answer": {"bid": False}})
+    qh, qg = (state(t)["auction"]["state"]["question"] for t in (host, guest))
+    assert qh["kind"] == qg["kind"] == "bid" and qh["next"] == qg["next"]
+    assert post("/api/mp/auction", {"token": guest, "answer": {"bid": True, "seq": qg["seq"]}}).status_code == 200
+    r = post("/api/mp/auction", {"token": host, "answer": {"bid": True, "seq": qh["seq"]}})
+    assert r.status_code == 400 and "Too late" in r.get_json()["error"]
+    sh, sg = state(host)["auction"]["state"], state(guest)["auction"]["state"]
+    assert sh["lot"]["leader"] == "Hilltop" and sh["question"]["next"] > qh["next"] and sg["question"] is None
+    assert sg["waiting"] == ["Riverside"]
+    # a wishlist is private
+    pid = sh["upcoming"][0]
+    assert post("/api/mp/auction", {"token": guest, "wish": {"id": pid, "max": 5000}}).status_code == 200
+    assert pid in state(guest)["auction"]["state"]["wish"] and not state(host)["auction"]["state"]["wish"]
+    assert state(host)["auction"]["to_you"]                                                  # your advice
+    assert post("/api/mp/auction", {"token": host, "ready": True}).status_code == 400       # not finished
+    # the computer bids for both for the rest of the auction
+    post("/api/mp/auction", {"token": host, "auto": "all"})
+    while room["auction"].questions:
+        u = next(iter(room["auction"].questions))
+        post("/api/mp/auction", {"token": guest if u == "Hilltop" else host, "auto": "all"})
+    st = state(host)["auction"]
+    assert st["state"]["done"] and st["state"]["report"] and st["auto"] == [True, True]
+    board = st["state"]["board"]
+    assert post("/api/mp/auction", {"token": guest, "redo": True}).status_code == 403        # host only
+    post("/api/mp/auction", {"token": host, "ready": True})
+    assert state(host)["phase"] == "auction"                                                 # waiting for the guest
+    post("/api/mp/auction", {"token": guest, "ready": True})
+    _play_out(post, state, host, guest)
+    res = json.loads((tmp / "last" / "summary.json").read_text(encoding="utf-8"))
+    assert res["kind"] == "series" and res["teams"] == ["Riverside", "Hilltop"] and res["best_of"] == 3
+    assert res["draft"]["auction"] and res["draft"]["players"] == ["Riverside", "Hilltop"]
+    card = json.loads((tmp / "last" / "matches" / "001.json").read_text(encoding="utf-8"))
+    xi = {p["id"] for t in card["xi"].values() for p in t}
+    assert len(xi) == 22 and xi <= {p["id"] for t in board.values() for p in t}             # bought players only
+    post("/api/mp/lobby", {"token": guest, "rematch": True})
+    st = state(host)
+    assert st["phase"] == "auction" and st["auction"]["state"]["done"]                      # same squads again
+    assert post("/api/mp/auction", {"token": host, "redo": True}).status_code == 200
+    assert state(guest)["phase"] == "lobby"
+    post("/api/mp/lobby", {"token": host, "leave": True})
+
+
+def test_server_auction_real_season_league():
+    """A real IPL season: each player picks a franchise, retentions asked of both at once, an absent player
+    handed to the computer, then the season's league and playoffs with the eight computer franchises."""
+    import web_ui
+    tmp = Path(tempfile.mkdtemp())
+    web_ui.LAST = tmp / "last"
+    cl = web_ui.app.test_client()
+    post = lambda path, body: cl.post(path, json=body)
+    state = lambda tok: cl.get(f"/api/mp/state?token={tok}").get_json()
+    host = post("/api/mp/create", {"fmt": "t20", "comp": "t20i_full", "year": 2024, "venues": [], "rain": False,
+                                   "seed": "3", "clock": "off", "series": "1", "teams": "auction", "a_pool": "season",
+                                   "league": "ipl", "season": "2025", "retain": True,
+                                   "after": "league"}).get_json()["token"]
+    guest = post("/api/mp/join", {"code": state(host)["code"]}).get_json()["token"]
+    room = web_ui.ROOMS[state(host)["code"]]
+    teams = web_ui.league_season("ipl", "2025")["teams"]
+    f1, f2 = teams[0]["franchise"], teams[1]["franchise"]
+    post("/api/mp/lobby", {"token": host, "team": f1, "manual": [], "ready": True})
+    r = post("/api/mp/lobby", {"token": guest, "team": f1, "manual": [], "ready": True})
+    assert r.status_code == 400 and "same franchise" in r.get_json()["error"]
+    post("/api/mp/lobby", {"token": host, "ready": True})
+    post("/api/mp/lobby", {"token": guest, "team": f2, "ready": True})
+    sh, sg = state(host)["auction"]["state"], state(guest)["auction"]["state"]
+    assert sh["question"]["kind"] == sg["question"]["kind"] == "retain" and sh["user"] == f1 and sg["user"] == f2
+    assert post("/api/mp/auction", {"token": host, "answer": {"ids": []}}).status_code == 200
+    assert state(host)["auction"]["state"]["waiting"] == [f2] and state(host)["auction"]["state"]["phase"] == "retain"
+    assert post("/api/mp/auction", {"token": host, "take": True}).status_code == 409         # the guest is here
+    room["seats"][1]["seen"] = 0.0                                                     # ... and now away
+    assert state(host)["can_take"]
+    assert post("/api/mp/auction", {"token": host, "take": True}).status_code == 200
+    a = room["auction"]
+    assert a.autos[f2] == "all" and a.phase != "retain"           # the guest's retentions: the computer's choice
+    post("/api/mp/auction", {"token": host, "auto": "all"})
+    while a.questions:                                         # Right to Match etc. for either: the computer's call
+        u = next(iter(a.questions))
+        web_ui._mp_auction_default(a, u)
+    assert a.done
+    for tok in (host, guest):
+        post("/api/mp/auction", {"token": tok, "ready": True})
+    st = _play_out(post, state, host, guest, limit=600)
+    assert st["job"]["status"] == "done", st["job"]
+    res = json.loads((tmp / "last" / "summary.json").read_text(encoding="utf-8"))
+    assert res["kind"] != "series" and len(res["draft"]["teams"]) == 10 and res["draft"]["auction"]
+    cards = [json.loads(f.read_text(encoding="utf-8")) for f in sorted((tmp / "last" / "matches").glob("*.json"))]
+    assert len(cards) == 94 and sum(1 for c in cards if set(c["teams"]) == {f1, f2}) >= 2
+    post("/api/mp/lobby", {"token": host, "leave": True})
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

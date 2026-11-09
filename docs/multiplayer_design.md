@@ -236,3 +236,105 @@ team, skips for both players.
   auto-draft the rest, Ready on both, a 4-team league (the first match two-player, ball by ball on the guest's
   phone-width screen), results with the draft board, back to the finished draft, New draft -> the room with the
   record.
+
+## 12. Two-player auction (2026-11-08, user chose it as the next extension)
+
+Both players bid live in the auction room, each on their own device, against computer bidders for the other teams;
+then the bought squads play.
+
+**What exists.** `engine/auction.py` runs a whole auction as a generator with one user: retentions (or releases in a
+mini auction), sets with live bidding (the user is asked "bid at X?" at each step while not leading; computer teams
+bid by what a player adds to their best XI, priced by a market rate), Right to Match, an accelerated round, fill-up,
+wishlists and "the computer bids for me" skips, a report card. The room (`webui/auction_room.js`) replays the
+computer bids, then puts the user's question on the stage. It only talks to the server after the user acts; nothing
+polls, because nothing happens while the user thinks.
+
+**Proposal.**
+
+- **Room setting:** Teams = pick / draft / **auction**. Pool, as in the one-player auction:
+  - a real league season (IPL etc.): each player chooses a franchise, the other franchises are computer bidders;
+    retentions from the season before (optional);
+  - or player-pool years (as the draft): each player names a team, plus 2 / 4 / 6 computer teams (or none: just
+    the two of you bidding against each other).
+  - Mega auction only (a mini auction needs last season's bought squads; can come later).
+- **Engine:** `Auction(users=[a, b])`. Everything that is "the user's" becomes per user: wishlist, skips
+  ("computer bids for me to the end of the set / auction"), retention / nomination questions, planner, advice.
+  Questions are asked of both at once where both have one (retentions, the accelerated round's names, a bid when
+  neither of you leads). The generator gets the first answer to arrive and asks again whoever is still to answer.
+- **Bidding between two people:** both are asked at each price while neither leads. If both raise their paddle at
+  the same price, **the first press wins** the bid, and the other is asked at the next step right away (as in a
+  real auction room). Pass = out of this player. Computer bidders join in at each step as now.
+- **Room screen:** the existing auction room, each device seeing its own team, purse, wishlist, advice and
+  planner; the other player's team appears as a rival paddle on the strip (their colours), their wishlist and
+  advice are never shown. The room polls every second during the auction, so the other player's bids show up
+  live. "Waiting for <name>..." when the other person holds the lot up.
+- **Clock:** with the room's shot clock on, 15 s per bid decision (out of time = pass) and 60 s for retentions /
+  names (out of time = the computer's suggestion). Clock off: a player away for 60 s can be handed to the
+  computer by the other, as in matches and the draft.
+- **After the auction:** the room settings choose either a **league** (real season: its fixtures, home grounds and
+  playoffs; years pool: single round robin + final / semis, as the draft league) or a **series between the two of
+  you** (1 / 3 / 5 with your bought squads). Matches between the two players are two-player matches; a match
+  against a computer team is played by that player while the other watches.
+- **Results:** the report card (both players' teams marked), squads with prices on the results page, head-to-head
+  record and titles in the room. Rematch: "Back to the room" -> play the same squads again, or the host starts a
+  new auction.
+- **Tests:** engine with two scripted users (both asked at once, first press wins, pass, skips per user, RTM
+  between a person and a computer team and between the two people, nothing about one user leaked to the other);
+  a server room through auction -> series and auction -> league; the existing one-player auction tests unchanged.
+
+**Effort:** medium-large. Most of the work is in `engine/auction.py` (one user -> several) and the auction room
+(per-seat view, polling, the rival's paddle). The match side is already done (draft league / series).
+
+**Decisions for the user:**
+1. Pools: real league season, player-pool years, or both?
+2. Both raise at the same price: first press wins (proposed), or a random one of the two?
+3. After the auction: league, series between the two, or a choice of both (proposed)?
+4. Per-user wishlist and "bid for me" skips: keep them (proposed), or plain live bidding only?
+
+**Decisions (user, 2026-11-08):** all as proposed: 1. both pools (real league season and player-pool years);
+2. first press wins; 3. the host chooses league or series between the two; 4. each player keeps a wishlist and
+"bid for me" skips.
+
+**Build log (2026-11-08):**
+
+- **Engine** (`engine/auction.py`): `Auction(..., users=[a, b])`. The flow now yields `{user: question}` for everyone
+  asked at that moment and is resumed with `(user, answer)`; `act(answer, user=)`, `auto(scope, user=)`,
+  `set_wish(..., user=)`, `to_you(user)`, `state(viewer)`. Wishlists, skips and set pauses are per user
+  (`wishes`, `autos`, `pauses`). Retentions / releases, the set pause and the accelerated round's names are asked of
+  both at once (`_ask_all`); a bid is asked of every person not leading at once and the first answer counts; Right
+  to Match questions go to one person at a time (`_ask_one`). Each question carries a number (`seq`, kept while the
+  question is unchanged); an answer that names an old one is refused ("Too late: the bidding has moved on"), so a
+  paddle pressed after the other player's bid does not bid at the new price. The one-player API is unchanged
+  (`user`, `question`, `user_auto`, `wish`, `pause_sets` map to the single user): a seeded one-player auction gives
+  the same sales as before. The report card is worked out once the auction is over.
+- **Server** (`web_ui.py`): room setting Teams = "auction" with `a_pool` (season | years; a real season by default),
+  `league`, `season`, `retain`, `after` (league | series), plus the draft's years / pool / computer teams for a years
+  pool. Both ready -> `_mp_auction_start` (franchises must differ; named teams for a years pool).
+  `/api/mp/state` phase "auction": that seat's view (`state(viewer)`, its advice, lot changes), a version number
+  (`v`; a poll that sends the version it has gets `{same: true}`), seconds left per player with a clock.
+  `GET /api/mp/auction/pool`, `POST /api/mp/auction` (answer with seq / auto / wish / pause / take / ready / redo).
+  Clock on: 15 s per bid (then a pass), 60 s for other questions (then the computer's choice). After the auction
+  `_mp_auction_play`: league (real season: double round robin, home grounds, IPL playoffs; years: single round robin +
+  final / semis) or the room's single match / best of 3 / 5 between the two squads. `_mp_controllers` is shared with
+  the pick / draft start. A guest leaving drops the auction; "Back to the room" returns to the finished auction.
+- **Room screen:** the one-player auction room, fed by the poll (`mpAuction`, `mpAuctionBar` in
+  `webui/multiplayer.js`; `auAct` / `setWish` / `setPause` go to the room's endpoint). The other player's team is
+  marked RIVAL on the strip (dashed amber) and named in the title and report card. While the other player decides,
+  the lot stays on the stage with the bids so far ("Waiting for Mumbai Indians to decide..."). A question still open
+  keeps its screen when the other player moves (ticked retentions survive), and a top bid being typed in the
+  wishlist is not redrawn. "Ready to play" / "New auction" (host) / "Let the computer bid for X (away)" / Leave in the
+  top bar. Lobby: franchise chooser for a real season, the auction settings for the host, the room line names the
+  season's conditions.
+- **Tests:** `tests/test_auction.py` `test_two_users` (asked at once, first answer counts, stale press refused,
+  private wishlist / planner, per-person skips) and `test_two_users_random` (random answers in random order, season
+  and years pools, seeded runs reproduce); `tests/test_multiplayer.py` `test_server_auction_then_series` (years pool:
+  live race over HTTP, version polls, private wishlist, auto, ready, best of 3 with bought players only, rematch,
+  new auction) and `test_server_auction_real_season_league` (IPL 2025: same-franchise check, retentions for both, an
+  away player handed to the computer, 94-match season). All suites pass.
+- **Checked in the browser** (port 5071, two tabs): IPL 2026, Punjab Kings v Mumbai Indians with retentions:
+  retentions on both screens (ticks kept while the other confirmed), both asked about N Pooran, the guest's bid
+  first and the host asked at the next price, RIVAL / LEAD on the strip, both handed to the computer, report,
+  Ready on both, best of 3 (MI won 2-0), results with the auction squads, back to the room, New auction -> lobby
+  with the record; the room at phone width (375 px, no sideways scroll).
+- **Fixed during the check:** an unchanged poll left out who was ready (the screen stopped updating); the auction
+  poll now keeps going if drawing fails.

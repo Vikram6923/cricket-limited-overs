@@ -74,9 +74,10 @@ function renderAuction(st) {
     buildColours(st.teams);
     document.body.classList.add('au-fold');
   }
-  showView('v-auction'); $('go-btn').disabled = false;
+  showView('v-auction'); $('go-btn').disabled = !!st.mp;
   const me = st.user, q = st.question;
-  $('au-title').innerHTML = `${esc(st.label)} ${st.kind === 'mini' ? 'mini ' : ''}auction` + (me ? ` <span class="muted small">you bid for</span> ${tc(me)}` : '');
+  $('au-title').innerHTML = `${esc(st.label)} ${st.kind === 'mini' ? 'mini ' : ''}auction` + (me ? ` <span class="muted small">you bid for</span> ${tc(me)}` : '')
+    + (st.mp ? rivalsHTML(st) : '');
   $('au-turn').textContent = st.done ? 'Auction complete' : q ? 'Your call!' : st.phase === 'retain' ? 'Retentions'
     : st.phase === 'release' ? 'Releases' : 'Bidding…';
   $('au-turn').className = 'turn' + (q ? ' you' : '');
@@ -84,7 +85,8 @@ function renderAuction(st) {
   drawMode(st);
   $('au-play').style.display = st.done ? '' : 'none';
   $('au-play').textContent = st.career ? '✔ Save the squads and go back to the career' : '▶ Play the league';
-  drawSets(st); drawStrip(); drawFeed(st); drawUpcoming(st); drawTeam(); drawWish(); drawReport();
+  drawSets(st); drawStrip(); drawFeed(st); drawUpcoming(st); drawTeam(); drawReport();
+  if (!st.mp || !($('au-wlist') && $('au-wlist').contains(document.activeElement))) drawWish();   // keep a top bid being typed
   drawBoard($('au-board'), st.teams, st.board, me);
   drawAuctionPool(); drawTabs(st);
   drawStage(st);
@@ -110,6 +112,10 @@ function drawMode(st) {
     auAct({auto: k});
   });
 }
+
+/* two players: the other person's team, named in the title and marked on the strip */
+const rivals = st => (st.users || []).filter(u => u !== st.user);
+const rivalsHTML = st => rivals(st).map(u => ` <span class="muted small">${st.user ? 'against' : ''}</span> ${tc(u, 'rival')}`).join('');
 
 /* the side panel's tabs */
 const TABS = [['team', 'Your team'], ['wish', 'Wishlist'], ['players', 'Players'], ['sales', 'Sales'], ['squads', 'Squads']];
@@ -159,10 +165,10 @@ function drawStrip(live) {      // live: {in: Set, lead} while a lot is being bi
   const st = AU;
   $('au-strip').innerHTML = st.teams.map(t => {
     const c = col(t), sq = st.board[t].length, os = st.board[t].filter(p => p.overseas).length;
-    const cls = [t === st.user ? 'me' : '', live && live.in.has(t) && live.in.size < st.teams.length ? 'in' : '', live && live.lead === t ? 'lead' : '',
+    const cls = [t === st.user ? 'me' : '', rivals(st).includes(t) ? 'rival' : '', live && live.in.has(t) && live.in.size < st.teams.length ? 'in' : '', live && live.lead === t ? 'lead' : '',
       live && !live.in.has(t) ? 'out' : ''].join(' ');
     const rtm = st.has_prev && st.phase === 'auction' && st.rtm[t] ? st.rtm[t] : 0;
-    const tip = `${t}${t === st.user ? ' (you)' : ''}\n${cr(st.purse[t])} left · ${sq} of ${st.squad_max} players · ${st.overseas_max - os} overseas places left`
+    const tip = `${t}${t === st.user ? ' (you)' : rivals(st).includes(t) ? ' (the other player)' : ''}\n${cr(st.purse[t])} left · ${sq} of ${st.squad_max} players · ${st.overseas_max - os} overseas places left`
       + (rtm ? ` · ${rtm} Right to Match card${rtm > 1 ? 's' : ''}` : '') + (needsText(t) ? `\nXI ${needsText(t)}` : '');
     return `<div class="ar-tcard ${cls}" style="--c:${c.hi}" title="${esc(tip)}">
       <div class="hd">${tc(t)}<b>${cr(st.purse[t])}</b></div>
@@ -226,9 +232,14 @@ function drawTeam() {
 const LOT_KINDS = ['bid', 'rtm_use', 'rtm_raise', 'rtm_match'];
 function drawStage(st) {
   const q = st.question, box = $('au-q');
+  // two players: the same question still open (the other player moved, not you) keeps its screen and ticks
+  if (st.mp && q && RP.qseq === q.seq && !st.done) return;
+  RP.qseq = q ? q.seq : null;
   clearTimeout(RP.timer); RP.busy = false;
   if (st.done) { box.innerHTML = doneHTML(st); RP.lot = null; return; }
-  if (!q) { box.innerHTML = '<div class="muted">The computer is bidding for you…</div>'; return; }
+  if (!q && st.mp && st.lot && ['auction', 'accelerated'].includes(st.phase)) { watchLot(st); return; }
+  if (!q) { box.innerHTML = `<div class="muted">${st.mp && (st.waiting || []).length ? `Waiting for ${esc(st.waiting.join(' and '))}…`
+    : st.user ? 'The computer is bidding for you…' : 'The computer teams are bidding…'}</div>`; return; }
   if (!LOT_KINDS.includes(q.kind)) { box.innerHTML = questionHTML(q, st); wireQuestion(q); return; }
   const lot = st.lot, prevId = RP.lot, sp = SPEED[replaySpeed()];
   const prevRow = prevId && prevId !== lot.id ? APOOL.get(prevId) : null;
@@ -241,6 +252,20 @@ function drawStage(st) {
     replay(from, () => hammer(prevRow, () => showQuestion(st, 0)));
   } else if (finished && sp) showQuestion(st, 0, prevRow);
   else showQuestion(st, prevId === lot.id ? RP.shown : 0);
+}
+function watchLot(st) {               // two players: the lot while the other player decides (or you are out of it)
+  const lot = st.lot, from = RP.lot === lot.id ? RP.shown : 0;
+  const who = (st.waiting || []).filter(u => u !== st.user);
+  showLot(st, {kind: 'watch', player: lot.player, who}, lot);
+  replay(from, () => {
+    clearTimeout(RP.timer);
+    RP.shown = lot.log.length;
+    if (lot.log.length) showBid(lot.log.length - 1); else drawStrip();
+    setBusy(false);
+    $('au-turn').textContent = who.length ? `Waiting for ${who.join(' and ')}…` : 'Bidding…'; $('au-turn').className = 'turn';
+    $('ar-call').className = 'ar-call';
+    $('ar-call').textContent = who.length ? `${who.join(' and ')} to bid or pass` : '';
+  });
 }
 function showLot(st, q, lot) {        // put a lot on the stage: the question's, or one being watched
   RP.view = lot; RP.lot = lot.id;
@@ -301,7 +326,8 @@ function priceBarHTML(q, p, lot) {   // marks on the bar, their values in a lege
 
 function controlsHTML(q, st) {
   const adv = q.advice;
-  if (q.kind === 'watch') return `<div class="ar-q muted">The bidding goes on without you…</div>`;
+  if (q.kind === 'watch') return `<div class="ar-q muted">${q.who && q.who.length ? `Waiting for ${esc(q.who.join(' and '))} to decide…`
+    : 'The bidding goes on without you…'}</div>`;
   if (q.kind === 'bid') {
     if (q.next > q.cap) return `<div class="ar-ctl"><button class="btn go" disabled>Bid ${cr(q.next)}</button><button class="btn sec" data-a="pass">Pass<kbd>P</kbd></button></div>
       <div class="ar-hint">You can't afford the next bid and still fill your squad (up to ${cr(q.cap)}).</div>`;
@@ -417,7 +443,8 @@ function doneHTML(st) {
   const me = st.user;
   return `<h3>Auction complete</h3><p class="muted small" style="margin:6px 0">${st.n_sold} players bought for ${cr(st.spent)}.
     ${me ? `Your squad: ${st.board[me].length} players, ${cr(st.purse[me])} left.` : ''} ${st.news.map(esc).join(' ')}
-    ${st.career ? 'Save the squads to go back to the career and play the season.'
+    ${st.mp ? 'Press “Ready to play” when you are; the matches start when both players are ready.'
+      : st.career ? 'Save the squads to go back to the career and play the season.'
       : `Press “Play the league” for the season${me && $('a-captain').checked ? `, with you as captain of ${esc(me)}` : ''}.`}</p>
     <p class="muted small">The report card is below.</p>`;
 }
@@ -430,14 +457,15 @@ function drawReport() {
   const me = st.user, pred = r.scale !== null, p5 = pred ? Math.round(100 / (1 + Math.exp(-5 / r.scale))) : null;
   const deal = d => d ? `${esc(d.name)} ${cr(d.price)} <span class="${d.diff >= 0 ? 'w' : 'l'}">${d.diff >= 0 ? '−' : '+'}${cr(Math.abs(d.diff))}</span>` : '–';
   const sgn = v => `${v >= 0 ? '+' : ''}${fmtNum(v, 1)}`;
-  const card = (t, place) => `<div class="ar-rcard ${t.team === me ? 'me' : ''} ${place ? 'p' + place : ''}" style="--c:${col(t.team).hi}">
-    <div class="hd">${place ? `<span class="pl">${place}</span>` : ''}${tc(t.team)}<b>${esc(t.team)}${t.team === me ? ' (you)' : ''}</b></div>
+  const rv = rivals(st);
+  const card = (t, place) => `<div class="ar-rcard ${t.team === me ? 'me' : ''} ${rv.includes(t.team) ? 'rival' : ''} ${place ? 'p' + place : ''}" style="--c:${col(t.team).hi}">
+    <div class="hd">${place ? `<span class="pl">${place}</span>` : ''}${tc(t.team)}<b>${esc(t.team)}${t.team === me ? ' (you)' : rv.includes(t.team) ? ' (other player)' : ''}</b></div>
     <div class="nums"><div><b>${fmtNum(t.strength, 1)} <span class="${t.vs_avg >= 0 ? 'w' : 'l'}">${sgn(t.vs_avg)}</span></b>strength</div>
       ${pred ? `<div><b>${fmtNum(t.wins, 1)}</b>of ${t.games} wins</div><div><b>${t.top}%</b>top ${r.top_n}</div><div><b>${t.first}%</b>top</div>`
         : `<div><b>#${t.rank}</b>by strength</div>`}</div>
     <div class="ln">Spent ${cr(t.spent)}${t.retained ? ` (${cr(t.retained)} kept)` : ''} · ${cr(t.purse)} left · ${t.players} players, ${t.overseas} overseas</div>
     <div class="ln">Best buy: ${deal(t.best)}</div><div class="ln">Dearest: ${deal(t.dear)}</div></div>`;
-  const top = r.teams.slice(0, 3), mine = me && !top.some(t => t.team === me) ? r.teams.find(t => t.team === me) : null;
+  const top = r.teams.slice(0, 3), extra = [me, ...rv].filter(u => u && !top.some(t => t.team === u)).map(u => r.teams.find(t => t.team === u));
   const list = (xs, t) => `<div class="cap-panel"><h3>${t}</h3><div class="au-feed">${xs.map(d =>
     `<div class="ar-sale ${d.team === me && me ? 'me' : ''}" style="--c:${col(d.team).hi}">${tc(d.team)}<div><div class="nm">${esc(d.name)}</div>
       <div class="rl">${esc(d.role)} · expected ${cr(d.est)}</div></div><div class="pr">${cr(d.price)} <span class="${d.diff >= 0 ? 'w' : 'l'} small">${d.diff >= 0 ? '−' : '+'}${cr(Math.abs(d.diff))}</span></div></div>`).join('')}</div></div>`;
@@ -446,10 +474,10 @@ function drawReport() {
     ${pred ? `Predicted table: a double round robin played many times over, each match's win chance from the strength gap (fitted on simulated matches: a side 5 runs a match stronger wins ${p5}%).`
       : 'No predicted table: in simulated matches this strength measure did not clearly predict results.'}
     Best buy / dearest: price against what the auction expected him to fetch.</p>
-    <div class="ar-podium">${top.map((t, i) => card(t, i + 1)).join('')}${mine ? card(mine, 0) : ''}</div>
+    <div class="ar-podium">${top.map((t, i) => card(t, i + 1)).join('')}${extra.map(t => card(t, 0)).join('')}</div>
     <div class="ar-scroll"><table class="mini" style="margin-top:12px"><tr><th>Team</th><th>Strength</th><th>Rank</th>${pred ? `<th>Wins (of ${r.teams[0].games})</th><th>Top ${r.top_n}</th><th>Top</th>` : ''}
       <th>Spent</th><th>Left</th><th>Players</th></tr>
-    ${r.teams.map(t => `<tr class="${t.team === me && me ? 'crease' : ''}"><td>${tc(t.team)} ${esc(t.team)}${t.team === me ? ' (you)' : ''}</td>
+    ${r.teams.map(t => `<tr class="${t.team === me && me ? 'crease' : ''}"><td>${tc(t.team)} ${esc(t.team)}${t.team === me ? ' (you)' : rv.includes(t.team) ? ' (other player)' : ''}</td>
       <td>${fmtNum(t.strength, 1)} <span class="muted small">${sgn(t.vs_avg)}</span></td><td>${t.rank}</td>
       ${pred ? `<td>${fmtNum(t.wins, 1)}</td><td>${t.top}%</td><td>${t.first}%</td>` : ''}<td>${cr(t.spent)}</td><td>${cr(t.purse)}</td>
       <td>${t.players} <span class="muted small">${t.overseas} OS</span></td></tr>`).join('')}</table></div></div>

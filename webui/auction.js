@@ -83,8 +83,9 @@ async function startAuction() {
   Object.assign(body, {user: $('a-user').value, retain: $('a-retain').value, kind: $('a-kind').value, seed: $('a-seed').value.trim()});
   openAuctionRoom(await api('/api/auction/start', body));
 }
-function openAuctionRoom(d) {
+function openAuctionRoom(d) {          // d.state null: the two-player room renders when its state arrives
   APOOL = new Map(d.pool.map(p => [p.id, p]));
+  RP.qseq = null;
   fillSelect($('ap-role'), [{v: '', t: 'All roles'}, ...['Batter', 'WK', 'All-rounder', 'Pace', 'Spin'].map(r => ({v: r, t: r}))]);
   fillSelect($('ap-status'), [{v: 'sale', t: 'For sale'}, {v: '', t: 'Everyone'}, {v: 'pool', t: 'Still to come'}, {v: 'sold', t: 'Sold'},
     {v: 'retained', t: 'Retained'}, {v: 'unsold', t: 'Unsold'}]);
@@ -105,10 +106,15 @@ function openAuctionRoom(d) {
     });
   }
   TOYOU = d.to_you || {};
-  $('au-play').onclick = () => AU.career ? careerAuctionDone() : playAuctionLeague();
-  renderAuction(d.state);
+  $('au-play').onclick = () => mpOn() ? mpAuctionSend({ready: !(MP.au && MP.au.auction.ready[MP.au.you])})
+    : AU.career ? careerAuctionDone() : playAuctionLeague();
+  if (d.state) renderAuction(d.state);
 }
 async function auAct(body) {
+  if (mpOn()) {                        // two players: the room's endpoint (an answer names its question)
+    if (body.answer && AU.question) body = {...body, answer: {...body.answer, seq: AU.question.seq}};
+    return mpAuctionSend(body);
+  }
   $('au-msg').textContent = '';
   try {
     const d = await api('/api/auction/act', body);
@@ -120,7 +126,8 @@ async function auAct(body) {
 const answer = a => auAct({answer: a});
 async function setWish(id, max, ask) {
   $('au-msg').textContent = '';
-  try { const d = await api('/api/auction/wish', {id, max, ask}); AU.wish = d.wish; }
+  if (mpOn()) { const d = await mpAuctionSend({wish: {id, max, ask}}); if (d) AU.wish = d.wish; }
+  else try { const d = await api('/api/auction/wish', {id, max, ask}); AU.wish = d.wish; }
   catch (e) { $('au-msg').textContent = e.message; }
   drawWish(); drawAuctionPool(); drawUpcoming(AU); drawTabs(AU);
 }
@@ -141,7 +148,8 @@ function toggleWish(id) {           // a new entry's top bid: what he is worth t
   });
 }
 async function setPause(on) {
-  try { const d = await api('/api/auction/wish', {pause: on}); AU.pause_sets = d.pause_sets; } catch (e) { $('au-msg').textContent = e.message; }
+  if (mpOn()) { const d = await mpAuctionSend({pause: on}); if (d) AU.pause_sets = d.pause_sets; }
+  else try { const d = await api('/api/auction/wish', {pause: on}); AU.pause_sets = d.pause_sets; } catch (e) { $('au-msg').textContent = e.message; }
   drawWish();
 }
 function wishCell(p) {

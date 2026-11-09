@@ -47,16 +47,17 @@
 
   <!-- Two players (docs/multiplayer_design.md) -->
   <div class="form" id="f-mp">
-    <details class="how"><summary>How it works</summary><p>A match or a best-of series against a friend on another device, with teams you each pick
-      or squads you draft against each other. Each of you
+    <details class="how"><summary>How it works</summary><p>A match or a best-of series against a friend on another device, with teams you each pick,
+      squads you draft against each other, or squads you buy at an auction. Each of you
       captains a side; when you bat you set your batters' aggression, when you bowl your bowler's plan, both at once,
       and you see each other's choice after the ball. On a hosted site, send your friend the link or the room code.
       At home, on the same Wi-Fi, the host computer must run <code>python web_ui.py --lan</code>.</p></details>
     <div class="box"><div class="lbl">Host a match</div>
       <div class="hint" style="margin-top:0">Set the format and conditions below and press Start to open a room. Each player picks their own team in the room.</div>
       <div class="fg"><label>Teams</label><select id="mp-teams"><option value="pick">Each player picks a team</option>
-        <option value="draft">Draft squads against each other</option></select>
-        <div class="hint" style="margin:4px 0 0">Draft: take turns picking 15 players each from one era (computer teams can join and make it a league). Set the years in the room.</div></div>
+        <option value="draft">Draft squads against each other</option><option value="auction">Buy squads at an auction</option></select>
+        <div class="hint" style="margin:4px 0 0">Draft: take turns picking 15 players each from one era (computer teams can join and make it a league).
+          Auction: bid live against each other and computer teams, from a real league season or one era. Set the details in the room.</div></div>
       <div class="fg"><label>Play</label><select id="mp-series"><option value="1">A single match</option>
         <option value="3" selected>Best of 3</option><option value="5">Best of 5</option></select>
         <div class="hint" style="margin:4px 0 0">A series stops as soon as it is decided. You can change it in the room.</div></div>

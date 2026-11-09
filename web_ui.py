@@ -511,10 +511,10 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             res = play_tournament(car.specs(), **car.play_args(), rain=rain_, on_match=on_match, control=control,
                                   skill=skill)
             res["career"] = {"id": params["career"], "name": car.name, "season": car.season_label}
-        elif params["mode"] == "mp" and len(params.get("specs") or []) > 2:   # two players' draft + computer teams
-            res = play_tournament(params["specs"], fmt=fmt, comp=comp, year=year, rounds=1,
-                                  knockout=params["knockout"], venues=venues_, seed=seed, rain=rain_,
-                                  on_match=on_match, control=control)
+        elif params["mode"] == "mp" and len(params.get("specs") or []) > 2:   # two players + computer teams
+            res = play_tournament(params["specs"], fmt=fmt, comp=comp, year=year, rounds=int(params.get("rounds") or 1),
+                                  knockout=params["knockout"], venues=venues_, home_venues=params.get("homes") or None,
+                                  seed=seed, rain=rain_, on_match=on_match, control=control)
             res["draft"] = params["draft_info"]
         elif params["mode"] == "mp":           # a single match or a best-of series between the two players
             a, b = params["specs"]
@@ -1059,7 +1059,8 @@ MP_GONE = 60          # seconds without a poll before the other player may hand 
 MP_CLOCKS = {"off": None, "10": 10, "20": 20}
 MP_CAPTAIN_CLOCK = 60  # with a shot clock: toss, XI, bowler, batter, Impact Player decisions
 MP_SERIES = (1, 3, 5)  # a single match or best of 3 / 5 (stops once decided)
-MP_CPU = (0, 2, 4, 6)  # draft: computer teams that draft too and then play a league with the two players
+MP_CPU = (0, 2, 4, 6)  # draft / auction: computer teams that pick or bid too, then play a league with the two players
+MP_BID_CLOCK = 15     # auction with a shot clock: seconds per bid (then a pass); other auction questions 60 s
 ROOMS: dict[str, dict] = {}   # code -> room
 
 
@@ -1158,6 +1159,8 @@ def _mp_urls(r: dict) -> list[str]:
 def _mp_start(r: dict) -> str | None:
     """Both seats ready: check the teams and start the match. Error message or None."""
     st = r["settings"]
+    if r.get("auction") is not None:         # squads bought at an auction
+        return _mp_auction_play(r)
     d = r.get("draft")                       # drafted squads, or each player's own team
     t1 = t2 = None
     if d is None:
@@ -1170,16 +1173,8 @@ def _mp_start(r: dict) -> str | None:
         return err
     names = [s["dname"] for s in r["seats"]] if d else [_mp_label(t1), _mp_label(t2)]
     league = bool(d) and len(d.teams) > 2
-    clock = MP_CLOCKS.get(st.get("clock") or "off")
     n = 1 if league else st.get("series") or 1
-    ctl = {}
-    for name, seat in zip(names, r["seats"]):
-        # a series or a league: a pause after each of your matches
-        manual = set(seat["manual"]) | ({"result"} if n > 1 or league else set())
-        c = WaitingController(name, manual,
-                              clock={k: (clock if k == "ball" else MP_CAPTAIN_CLOCK) for k in KINDS} if clock else None)
-        c.home_manual = set(manual)
-        ctl[name] = c
+    ctl = _mp_controllers(r, names, league, n)
     if league:
         ko = _mp_ko(len(d.teams))
         job = Job(f"Draft league - {len(d.teams)} teams, players from {d.y1}-{d.y2} - two players",
@@ -1204,6 +1199,58 @@ def _mp_start(r: dict) -> str | None:
     return None
 
 
+def _mp_controllers(r: dict, names: list, league: bool, n: int) -> dict:
+    """Each player's controller: their decisions, a result pause after each of their matches in a series or a
+    league, the room's clock."""
+    clock = MP_CLOCKS.get(r["settings"].get("clock") or "off")
+    ctl = {}
+    for name, seat in zip(names, r["seats"]):
+        manual = set(seat["manual"]) | ({"result"} if n > 1 or league else set())
+        c = WaitingController(name, manual,
+                              clock={k: (clock if k == "ball" else MP_CAPTAIN_CLOCK) for k in KINDS} if clock else None)
+        c.home_manual = set(manual)
+        ctl[name] = c
+    return ctl
+
+
+def _mp_auction_play(r: dict) -> str | None:
+    """Both ready after the auction: the bought squads play a league with the computer teams, or a series between
+    the two players (the room's setting; with no computer teams it is a series)."""
+    st, a = r["settings"], r["auction"]
+    if err := _capacity_error():
+        return err
+    names = list(a.users)
+    league = st["after"] == "league" and len(a.teams) > 2
+    n = 1 if league else st.get("series") or 1
+    fmt, comp, year = (a.fmt, a.comp, a.year) if a.comp else (st["fmt"], st["comp"], st["year"])
+    specs = {sp["name"]: sp for sp in a.team_specs()}
+    params = {"mode": "mp", "fmt": fmt, "comp": comp, "year": year, "seed": st["seed"], "rain": st["rain"],
+              "venues": [] if a.comp else st["venues"], "series": n,
+              "draft_info": {"teams": a.teams, "user": None, "board": a.board(), "auction": True, "purse": a.purse,
+                             "players": names, **({"years": list(a.years)} if a.years else {})}}
+    if league:
+        real = bool(a.comp)                 # a real season: its double round robin, home grounds and playoffs
+        ko = "ipl" if real and len(a.teams) >= 4 else _mp_ko(len(a.teams))
+        rounds = 2 if real else 1
+        params.update(specs=[specs[t] for t in a.teams], knockout=ko, rounds=rounds,
+                      homes={t: h for t, h in a.homes.items() if h} if real else None)
+        title = f"Auction league - {a.label}, {len(a.teams)} teams - two players"
+        total = match_count(len(a.teams), rounds, None, ko)
+    else:
+        params["specs"] = [specs[t] for t in names]
+        title = f"{names[0]} v {names[1]} - two players, auction squads" + (f", best of {n}" if n > 1 else "")
+        total = n
+    job = Job(title, total)
+    job.controllers = _mp_controllers(r, names, league, n)
+    job.mp_league = league
+    job.room = r
+    r["job"], r["names"] = job, names
+    for s_ in r["seats"]:
+        s_["ready"] = False
+    threading.Thread(target=_run, args=(job, params, r["seats"][0]["visitor"]), daemon=True).start()
+    return None
+
+
 def _mp_settings(p: dict) -> dict | str:
     fmt = p.get("fmt")
     if fmt not in ("t20", "odi"):
@@ -1212,13 +1259,20 @@ def _mp_settings(p: dict) -> dict | str:
         year = int(p.get("year"))
     except (TypeError, ValueError):
         return "Choose a year."
-    teams = "draft" if p.get("teams") == "draft" else "pick"
+    teams = p.get("teams") if p.get("teams") in ("draft", "auction") else "pick"
+    a_pool = "years" if p.get("a_pool") == "years" else "season"     # an auction: a real season unless asked
+    league, season = p.get("league") or "ipl", p.get("season") or None
+    if teams == "auction" and a_pool == "season":
+        s_ = league_season(league, season)
+        if not s_:
+            return "Choose a league season for the auction."
+        season = s_["season"]
     lo, hi = history.first_year(fmt), history.last_year(fmt)
     try:
         y1, y2 = int(p.get("y1") or max(lo, hi - 10)), int(p.get("y2") or hi)
     except (TypeError, ValueError):
         return "Player pool years must be numbers."
-    if teams == "draft" and (y1 > y2 or y1 < lo or y2 > hi):
+    if (teams == "draft" or teams == "auction" and a_pool == "years") and (y1 > y2 or y1 < lo or y2 > hi):
         return f"Choose player pool years within {lo}-{hi}, the start before the end."
     source = p.get("source") if p.get("source") in ("full", "leagues", "intl") else "full"
     if source == "leagues" and fmt != "t20":
@@ -1229,7 +1283,9 @@ def _mp_settings(p: dict) -> dict | str:
             "series": int(p.get("series")) if str(p.get("series")) in map(str, MP_SERIES) else 1,
             "teams": teams, "y1": y1, "y2": y2, "source": source,
             "years_mode": "only" if p.get("years_mode") == "only" else "blend",
-            "cpu": int(p.get("cpu")) if str(p.get("cpu")) in map(str, MP_CPU) else 0}
+            "cpu": int(p.get("cpu")) if str(p.get("cpu")) in map(str, MP_CPU) else 0,
+            "a_pool": a_pool, "league": league, "season": season, "retain": p.get("retain") is not False,
+            "after": "series" if p.get("after") == "series" else "league"}
 
 
 def _mp_draft_start(r: dict) -> str | None:
@@ -1292,6 +1348,103 @@ def _mp_draft_state(r: dict, i) -> dict:
     return ds
 
 
+def _mp_auction_start(r: dict) -> str | None:
+    """Both seats ready in an auction room: build the pool and open the auction. Error message or None."""
+    st = r["settings"]
+    if st["a_pool"] == "season":
+        names = [s["team"] for s in r["seats"]]
+        if names[0] == names[1]:
+            return "You both chose the same franchise - one of you choose another."
+    else:
+        names = [s["dname"] for s in r["seats"]]
+        if names[0].lower() == names[1].lower():
+            return "You both chose the same team name - one of you change it."
+    seed = int(st["seed"]) if str(st.get("seed") or "").strip().isdigit() else None
+    try:
+        if st["a_pool"] == "season":
+            pool = season_pool(st["league"], st["season"])
+            if any(n not in pool["teams"] for n in names):
+                return "Choose franchises from this season."
+            prev = None if st["retain"] else {}           # None: the season before's squads (retentions, RTM)
+        else:
+            cpu = [t for t in DEFAULT_TEAMS if t.lower() not in (names[0].lower(), names[1].lower())][:st["cpu"]]
+            pool = years_pool(st["fmt"], st["y1"], st["y2"], names + cpu, st["source"], None, st["years_mode"])
+            prev = {}
+        a = Auction(pool, users=names, prev=prev, seed=seed)
+    except (KeyError, ValueError) as e:
+        return str(e) or "Check the auction settings."
+    r["auction"], r["auction_v"], r["auction_q"] = a, 0, {}
+    r["auction_id"] = r.get("auction_id", 0) + 1
+    for s in r["seats"]:
+        s["ready"], s["auto"] = False, False
+    _mp_auction_changed(r)
+    return None
+
+
+def _mp_auction_changed(r: dict) -> None:
+    """After every change: a new version for the pollers, and when each open question was first asked (clock)."""
+    r["auction_v"] += 1
+    now, old, new = time.time(), r["auction_q"], {}
+    for u, q in r["auction"].questions.items():
+        o = old.get(u)
+        new[u] = o if o and o[0] == q["seq"] else (q["seq"], now)
+    r["auction_q"] = new
+
+
+def _mp_auction_default(a: Auction, u: str) -> None:
+    """Answer user u's open question as the computer would (out of time, or handed over)."""
+    q = a.questions.get(u)
+    if not q:
+        return
+    k = q["kind"]
+    a.act({"ids": q["suggested"]} if k in ("retain", "release", "nominate") else {"go": True} if k == "set"
+          else {"bid": False} if k == "bid" else {"auto": True}, user=u)
+
+
+def _mp_auction_clock(r: dict) -> None:
+    """With a shot clock: a bid not made in MP_BID_CLOCK seconds is a pass, any other question not answered in
+    MP_CAPTAIN_CLOCK seconds gets the computer's answer."""
+    if not MP_CLOCKS.get(r["settings"].get("clock") or "off"):
+        return
+    a, now, moved = r["auction"], time.time(), False
+    for u, (seq, t0) in list(r["auction_q"].items()):
+        q = a.questions.get(u)
+        if q and q["seq"] == seq and now - t0 > (MP_BID_CLOCK if q["kind"] == "bid" else MP_CAPTAIN_CLOCK):
+            _mp_auction_default(a, u)
+            moved = True
+    if moved:
+        _mp_auction_changed(r)
+
+
+def _mp_auction_seconds(r: dict, u: str) -> int | None:
+    q = r["auction"].questions.get(u)
+    if not q or not MP_CLOCKS.get(r["settings"].get("clock") or "off") or u not in r["auction_q"]:
+        return None
+    lim = MP_BID_CLOCK if q["kind"] == "bid" else MP_CAPTAIN_CLOCK
+    return max(0, round(lim - (time.time() - r["auction_q"][u][1])))
+
+
+def _mp_auction_state(r: dict, i, v: int | None) -> dict:
+    """The auction as one seat sees it (only their question, wishlist and advice), or {same: true} when nothing
+    has changed since version v."""
+    with LOCK:
+        _mp_auction_clock(r)
+        a = r["auction"]
+        me = a.users[i] if i != "spectator" else None
+        secs = {u: _mp_auction_seconds(r, u) for u in a.users}
+        out = {"v": r["auction_v"], "seconds": secs, "id": r["auction_id"], "players": list(a.users),
+               "ready": [bool(s["ready"]) for s in r["seats"]], "auto": [a.autos.get(u) == "all" for u in a.users]}
+        if v is not None and v == r["auction_v"]:
+            return {**out, "same": True}
+        st = a.state(me)
+        if me is None:                           # a spectator sees no one's wishlist or advice
+            st["user"] = None
+        out.update(state=st, to_you=a.to_you(me) if me else {},
+                   changes={pid: {"status": x.status, "buyer": x.buyer, "price": x.price, "set": x.set, "fee": x.fee}
+                            for pid, x in a.lots.items()})
+    return out
+
+
 @app.post("/api/mp/create")
 def api_mp_create():
     """The host opens a room: conditions, their team and the decisions they make. -> {code, token}"""
@@ -1309,7 +1462,7 @@ def api_mp_create():
         while code is None or code in ROOMS:
             code = "".join(random.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(4))
         ROOMS[code] = {"code": code, "settings": st, "job": None, "names": None, "spectators": {},
-                       "record": _mp_record_new(), "draft": None, "draft_t": 0.0,
+                       "record": _mp_record_new(), "draft": None, "draft_t": 0.0, "auction": None,
                        "seats": [{"token": tok, "team": p.get("team") or None, "ready": False, "seen": time.time(),
                                   "manual": _mp_kinds(p.get("manual")), "dname": None, "auto": False, "visitor": v},
                                  {"token": None, "team": None, "ready": False, "seen": 0.0, "manual": _mp_kinds(None),
@@ -1353,7 +1506,7 @@ def api_mp_lobby():
                 _cancel(r.get("job"))
             elif not _mp_running(r):
                 seat.update(token=None, team=None, ready=False, seen=0.0, dname=None, auto=False, visitor=None)
-                r["draft"] = None                # their squad goes with them
+                r["draft"] = r["auction"] = None  # their squad goes with them
                 r["seats"][0]["ready"] = False
             return jsonify(ok=True)
         if p.get("rematch"):
@@ -1365,6 +1518,8 @@ def api_mp_lobby():
             return jsonify(error="The match has started."), 409
         if r.get("draft") is not None:
             return jsonify(error="The draft has started. The host can start a new draft from the draft room."), 409
+        if r.get("auction") is not None:
+            return jsonify(error="The auction has started. The host can start a new one from the auction room."), 409
         if "settings" in p and i == 0:
             st = _mp_settings(p["settings"])
             if isinstance(st, str):
@@ -1380,14 +1535,17 @@ def api_mp_lobby():
             seat["ready"] = False
         if "manual" in p:
             seat["manual"] = _mp_kinds(p["manual"])
-        draft = r["settings"].get("teams") == "draft"
-        mine = (lambda s: s["dname"]) if draft else (lambda s: s["team"])
+        mode = r["settings"].get("teams")
+        named = mode == "draft" or mode == "auction" and r["settings"]["a_pool"] == "years"
+        mine = (lambda s: s["dname"]) if named else (lambda s: s["team"])
         if "ready" in p:
             if p["ready"] and not mine(seat):
-                return jsonify(error="Name your team first." if draft else "Pick your team first."), 400
+                return jsonify(error="Name your team first." if named else
+                               "Choose your franchise first." if mode == "auction" else "Pick your team first."), 400
             seat["ready"] = bool(p["ready"])
         if all(s["ready"] and mine(s) for s in r["seats"]):
-            err = _mp_draft_start(r) if draft else _mp_start(r)
+            err = _mp_draft_start(r) if mode == "draft" else _mp_auction_start(r) if mode == "auction" \
+                else _mp_start(r)
             if err:
                 for s in r["seats"]:
                     s["ready"] = False
@@ -1404,7 +1562,8 @@ def api_mp_state():
     now = time.time()
     if i != "spectator":
         r["seats"][i]["seen"] = now
-    draft = r["settings"].get("teams") == "draft"
+    draft = r["settings"].get("teams") == "draft" or r["settings"].get("teams") == "auction" \
+        and r["settings"].get("a_pool") == "years"
     seats = [{"team": s["team"], "label": s["dname"] if draft else _mp_label(s["team"]) if s["team"] else None,
               "name": s["dname"], "ready": s["ready"], "joined": s["token"] is not None, "here": now - s["seen"] < 10,
               "manual": sorted(s["manual"])} for s in r["seats"]]
@@ -1412,6 +1571,18 @@ def api_mp_state():
            "lan": bool(app.config.get("LAN") or app.config.get("MULTI")), "public": bool(app.config.get("MULTI")),
            "now": now, "record": r["record"]}
     if not _mp_job(r):
+        if r.get("auction") is not None:
+            try:
+                v = int(request.args["v"]) if request.args.get("v") else None
+            except ValueError:
+                v = None
+            out["auction"] = _mp_auction_state(r, i, v)
+            if i != "spectator":
+                gone = now - r["seats"][1 - i]["seen"]
+                out["opp_gone"] = round(gone)
+                out["can_take"] = gone > MP_GONE and r["auction"].autos.get(r["auction"].users[1 - i]) != "all" \
+                    and not r["auction"].done
+            return jsonify(phase="auction", **out)
         if r.get("draft") is None:
             return jsonify(phase="lobby", **out)
         out["draft"] = _mp_draft_state(r, i)
@@ -1501,6 +1672,79 @@ def api_mp_draft():
             return jsonify(error=str(e)), 400
         _mp_draft_advance(r)
     return jsonify(ok=True)
+
+
+@app.get("/api/mp/auction/pool")
+def api_mp_auction_pool():
+    """The auction's players (sent once; the state carries what has changed)."""
+    r, i = _seat(request.args.get("token"))
+    if r is None or i is None or r.get("auction") is None:
+        return jsonify(error="No auction in this room."), 404
+    with LOCK:
+        return jsonify(pool=[x.row() for x in r["auction"].lots.values()])
+
+
+@app.post("/api/mp/auction")
+def api_mp_auction():
+    """A seat in the auction: {token, answer} (with the question's seq: a bid pressed after the other player's is
+    refused), {auto: "set" | "all" | "wish" | "ask"}, {wish: {id, max, ask}}, {pause: bool}; take: hand a player
+    who has been away MP_GONE seconds to the computer; ready: play with the bought squads; redo (host): a new
+    auction."""
+    p = request.get_json(force=True)
+    with LOCK:
+        r, i = _seat(p.get("token"))
+        if r is None or i is None:
+            return jsonify(error="You are not in this room any more."), 404
+        if i == "spectator":
+            return jsonify(error="Spectators can only watch."), 403
+        a = r.get("auction")
+        if a is None:
+            return jsonify(error="No auction in this room."), 409
+        if _mp_running(r):
+            return jsonify(error="The matches are being played."), 409
+        seat, me = r["seats"][i], a.users[i]
+        if p.get("redo"):
+            if i != 0:
+                return jsonify(error="Only the host can start a new auction."), 403
+            r["auction"] = None
+            for s in r["seats"]:
+                s["ready"] = s["auto"] = False
+            return jsonify(ok=True)
+        if "ready" in p:
+            if not a.done:
+                return jsonify(error="Finish the auction first."), 400
+            seat["ready"] = bool(p["ready"])
+            if all(s["ready"] for s in r["seats"]):
+                err = _mp_start(r)
+                if err:
+                    for s in r["seats"]:
+                        s["ready"] = False
+                    return jsonify(error=err), 400
+            return jsonify(ok=True)
+        if a.done:
+            return jsonify(error="The auction is over."), 400
+        try:
+            if p.get("take"):
+                if time.time() - r["seats"][1 - i]["seen"] <= MP_GONE:
+                    return jsonify(error="The other player is still here."), 409
+                other = a.users[1 - i]
+                a.auto("all", user=other)
+                _mp_auction_default(a, other)
+            elif p.get("auto") in ("set", "all", "wish", "ask"):
+                a.auto(p["auto"], user=me)
+            elif isinstance(p.get("wish"), dict):
+                w = p["wish"]
+                top = w.get("max")
+                a.set_wish(w.get("id"), None if top in (None, "") else int(top), bool(w.get("ask")), user=me)
+            elif "pause" in p:
+                a.pauses[me] = bool(p["pause"])
+            else:
+                a.act(p.get("answer") or {}, user=me)
+        except (TypeError, ValueError) as e:
+            _mp_auction_changed(r)
+            return jsonify(error=str(e)), 400
+        _mp_auction_changed(r)
+        return jsonify(ok=True, v=r["auction_v"], wish=a.wishes[me], pause_sets=a.pauses[me])
 
 
 @app.post("/api/mp/decide")

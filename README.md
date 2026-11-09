@@ -53,7 +53,12 @@ bar. It also works on a phone, with a tab bar at the bottom. Modes:
   decided, with a result screen for both players between matches); the room keeps a head-to-head record across
   rematches. Or **draft squads against each other**: the host sets the player-pool years, you take turns in a
   snake draft (15 players each, each on your own device), then play your squads - as a match / series, or with
-  2, 4 or 6 computer teams drafting too, as a league with a final or semi-finals. Design: `docs/multiplayer_design.md`.
+  2, 4 or 6 computer teams drafting too, as a league with a final or semi-finals. Or **buy squads at an auction**:
+  a real league season (each of you takes a franchise, the computer runs the others, optional retentions and
+  Right to Match) or players from a span of years (with 0, 2, 4 or 6 computer teams); you both bid live, each on
+  your own device with your own wishlist, advice and "bid for me" skips; when you both raise at the same price the
+  first paddle up wins the bid. Then the host's choice: the league with the computer teams (a real season: double
+  round robin and playoffs) or a match / series between the two of you. Design: `docs/multiplayer_design.md`.
 - **Tournament:** pick teams; single or double round robin, one league or two groups, then semi-finals, IPL-style
   playoffs, a final or none.
 - **Home grounds (Tournament, Classic Tournament, League Season):** each side plays half its league games at its
@@ -452,7 +457,8 @@ tests/             engine and tournament tests
 - [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
       live screen, phone layout
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
-  a draft against each other (optionally with computer teams and a league)
+  a draft against each other (optionally with computer teams and a league); a live auction against each other
+  and the computer franchises, then a league or a series
 - [ ] Later: match settings panel (overs, toss, pitch), player-v-player matchups, an international career world
 
 ## Data, credits and licences

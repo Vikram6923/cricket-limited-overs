@@ -239,16 +239,18 @@ def years_pool(fmt: str, y1: int, y2: int, teams: list[str], source: str = "full
 
 class Auction:
     def __init__(self, pool: dict, user: str | None = None, prev: dict | None = None, seed: int | None = None,
-                 start: bool = True):
+                 start: bool = True, users: list[str] | None = None):
         """start=False: set up the pool and its prices without running anything (the career mode prices its
-        opening squads this way)."""
+        opening squads this way). users: several people's teams (two-player mode) instead of one user."""
         self.fmt, self.comp, self.year, self.label = pool["fmt"], pool["comp"], pool["year"], pool["label"]
         self.teams = list(pool["teams"])
         if len(self.teams) < 2:
             raise ValueError("An auction needs at least 2 teams.")
-        if user is not None and user not in self.teams:
+        self.users = list(dict.fromkeys(users)) if users else ([user] if user is not None else [])
+        if any(u not in self.teams for u in self.users):
             raise ValueError("Your team must be one of the teams.")
-        self.user, self.homes, self.xi_overseas = user, pool["homes"], pool["max_overseas"]
+        self.user = self.users[0] if len(self.users) == 1 else None      # the one-player API
+        self.homes, self.xi_overseas = pool["homes"], pool["max_overseas"]
         # Impact Player seasons: a 12th man plays, so one more place is worth paying for
         self.xi_n = 12 if self.comp == "ipl" and (self.year or 0) >= 2023 else 11
         self.years, self.years_mode = pool.get("years"), pool.get("years_mode", "blend")
@@ -296,14 +298,49 @@ class Auction:
         self.prev_lot: dict | None = None    # the lot before (its bids, for the room to replay)
         self.sales: list[dict] = []
         self.phase = "retain"
-        self.user_auto: str | None = None      # None (asked), "set", "all": the computer bids for the user;
-        #                                        "wish": by the wishlist
-        self.wish: dict[str, dict] = {}        # player -> {"max": lakh or None, "ask": bool}
-        self.pause_sets = True                 # wishlist mode: stop before each set to change the list
-        self.question: dict | None = None
+        # per user: None (asked), "set", "all": the computer bids for them; "wish": by their wishlist
+        self.autos: dict[str, str | None] = {u: None for u in self.users}
+        self.wishes: dict[str, dict] = {u: {} for u in self.users}    # user -> player -> {"max": lakh|None, "ask"}
+        self.pauses = {u: True for u in self.users}       # wishlist mode: stop before each set to change the list
+        self.questions: dict[str, dict] = {}   # the open question of each user who has one
+        self._seq = 0
+        self._started = False
         self._gen = self._flow()
         if start:
             self._advance(None)
+
+    # ---------------------------------------------------------------- the one-player API (self.user)
+    @property
+    def question(self) -> dict | None:
+        return self.questions.get(self.user) if self.user else None
+
+    @property
+    def user_auto(self) -> str | None:
+        return self.autos.get(self.user)
+
+    @user_auto.setter
+    def user_auto(self, v) -> None:
+        if self.user is not None:
+            self.autos[self.user] = v
+
+    @property
+    def wish(self) -> dict:
+        return self.wishes.get(self.user, {})
+
+    @property
+    def pause_sets(self) -> bool:
+        return self.pauses.get(self.user, True)
+
+    @pause_sets.setter
+    def pause_sets(self, v: bool) -> None:
+        if self.user is not None:
+            self.pauses[self.user] = bool(v)
+
+    def _who(self, user: str | None) -> str:
+        u = self.user if user is None else user
+        if u not in self.users:
+            raise ValueError("Not a bidder in this auction.")
+        return u
 
     # ---------------------------------------------------------------- valuation
     def _replacement(self) -> None:
@@ -418,27 +455,61 @@ class Auction:
         return int(min(v, self._free(t, 1)))
 
     # ---------------------------------------------------------------- flow
-    def _advance(self, answer) -> None:
+    def _advance(self, msg) -> None:
+        """Resume the flow with msg = (user, answer) (None to start it). The flow yields {user: question} for
+        everyone asked at this moment; a question that is the same as before keeps its number (seq)."""
         try:
-            self.question = self._gen.send(answer) if self.question is not None else next(self._gen)
+            qs = self._gen.send(msg) if self._started else next(self._gen)
         except StopIteration:
-            self.question = None
+            qs = {}
+        self._started = True
+        old, self.questions = self.questions, {}
+        for u, q in (qs or {}).items():
+            o = old.get(u)
+            if o is not None and {k: v for k, v in o.items() if k != "seq"} == q:
+                q = o
+            else:
+                self._seq += 1
+                q = {**q, "seq": self._seq}
+            self.questions[u] = q
 
-    def act(self, answer: dict) -> None:
-        """The user's answer to the open question (validated here; ValueError if it is not allowed)."""
-        q = self.question
+    def _ask_one(self, u: str, q: dict):
+        """Ask one user and wait for their answer."""
+        while True:
+            v, a = yield {u: q}
+            if v == u:
+                return a
+
+    def _ask_all(self, qs: dict):
+        """Ask several users at once; their answers, in whatever order they come."""
+        out, left = {}, dict(qs)
+        while left:
+            v, a = yield left
+            if v in left:
+                out[v] = a
+                del left[v]
+        return out
+
+    def act(self, answer: dict, user: str | None = None) -> None:
+        """A user's answer to their open question (validated here; ValueError if it is not allowed). An answer
+        carrying "seq" must be to the question now open (two people: the other may have bid first)."""
+        u = self._who(user)
+        q = self.questions.get(u)
         if not q:
             raise ValueError("Nothing to decide.")
+        if answer.get("seq") is not None and int(answer["seq"]) != q["seq"]:
+            raise ValueError("Too late: the bidding has moved on.")
+        answer = {k: v for k, v in answer.items() if k != "seq"}
         k = q["kind"]
         if k in ("retain", "release"):
             ids = list(dict.fromkeys(answer.get("ids") or []))
-            err = (self.retain_error if k == "retain" else self.release_error)(self.user, ids)
+            err = (self.retain_error if k == "retain" else self.release_error)(u, ids)
             if err:
                 raise ValueError(err)
             answer = {"ids": ids}
         elif k == "bid":
             if answer.get("skip") in ("set", "all"):
-                self.user_auto = answer["skip"]
+                self.autos[u] = answer["skip"]
             elif answer.get("max") is not None:
                 m = int(answer["max"])
                 if m < q["next"]:
@@ -453,43 +524,48 @@ class Auction:
             answer = {"ids": ids}
         elif k == "set":
             if answer.get("self"):
-                self.user_auto = None
+                self.autos[u] = None
         elif k == "rtm_raise":
             amt = int(answer.get("amount") or q["price"])
             if not q["price"] <= amt <= q["cap"]:
                 raise ValueError(f"Raise to between {money(q['price'])} and {money(q['cap'])}.")
             answer = {"amount": amt}
-        self._advance(answer)
+        self._advance((u, answer))
 
-    def auto(self, scope: str = "all") -> None:
-        """Hand the user's bidding to the computer (to the end of the set or the auction), or to the wishlist;
-        "ask": back to being asked about every player."""
-        if scope == "ask":
-            self.user_auto = None
+    def auto(self, scope: str = "all", user: str | None = None) -> None:
+        """Hand a user's bidding to the computer (to the end of the set or the auction), or to the wishlist;
+        "ask": back to being asked about every player. No user at all: nothing to hand over."""
+        if user is None and not self.users:
             return
-        self.user_auto = scope
-        if self.question and self.question["kind"] not in ("retain", "release", "nominate", "set"):
-            self._advance({"auto": True})
+        u = self._who(user)
+        if scope == "ask":
+            self.autos[u] = None
+            return
+        self.autos[u] = scope
+        q = self.questions.get(u)
+        if q and q["kind"] not in ("retain", "release", "nominate", "set"):
+            self._advance((u, {"auto": True}))
 
-    def set_wish(self, pid: str, top: int | None, ask: bool = False) -> None:
+    def set_wish(self, pid: str, top: int | None, ask: bool = False, user: str | None = None) -> None:
         """Wishlist entry for a player still to be sold: a top bid (lakh), or ask me; neither = off the list."""
+        wish = self.wishes[self._who(user)]
         x = self.lots.get(pid)
         if x is None or x.status not in ("pool", "unsold"):
             raise ValueError("That player is not up for sale.")
         if top is not None and int(top) < x.base:
             raise ValueError(f"A top bid must be at least his base price ({money(x.base)}).")
         if top is None and not ask:
-            self.wish.pop(pid, None)
+            wish.pop(pid, None)
         else:
-            self.wish[pid] = {"max": None if top is None else int(top), "ask": bool(ask)}
+            wish[pid] = {"max": None if top is None else int(top), "ask": bool(ask)}
 
-    def _user_plan(self, x: Lot) -> str:
-        """How the user's team bids on x: "ask", "auto" (the computer), "max" (up to the wishlist's top) or "out"."""
-        if self.user_auto is None:
+    def _user_plan(self, u: str, x: Lot) -> str:
+        """How user u's team bids on x: "ask", "auto" (the computer), "max" (up to the wishlist's top) or "out"."""
+        if self.autos[u] is None:
             return "ask"
-        if self.user_auto != "wish":
+        if self.autos[u] != "wish":
             return "auto"
-        w = self.wish.get(x.id) or {}
+        w = self.wishes[u].get(x.id) or {}
         return "ask" if w.get("ask") else "max" if w.get("max") else "out"
 
     @property
@@ -507,17 +583,14 @@ class Auction:
         """Mini auction: each team releases players and keeps the rest at their contracts (no RTM cards)."""
         self.phase = "release"
         for t in self.teams:
-            if t != self.user:
+            if t not in self.users:
                 self._keep(t, self.suggest_release(t))
-        if self.user:
-            squad = self.retain_candidates(self.user)
-            if squad:
-                a = yield {"kind": "release", "squad": [self.lots[i].row() for i in squad],
-                           "suggested": self.suggest_release(self.user)}
-                ids = a.get("ids", []) if isinstance(a, dict) else self.suggest_release(self.user)
-            else:
-                ids = []
-            self._keep(self.user, ids)
+        qs = {u: {"kind": "release", "squad": [self.lots[i].row() for i in self.retain_candidates(u)],
+                  "suggested": self.suggest_release(u)} for u in self.users if self.retain_candidates(u)}
+        ans = yield from self._ask_all(qs)
+        for u in self.users:                  # everyone's choices are known before any is applied
+            a = ans.get(u)
+            self._keep(u, a.get("ids", []) if isinstance(a, dict) else qs[u]["suggested"] if u in qs else [])
 
     def suggest_release(self, t: str) -> list[str]:
         cands = self.retain_candidates(t)
@@ -562,17 +635,14 @@ class Auction:
         # retentions (and RTM cards)
         self.phase = "retain"
         for t in self.teams:
-            if t != self.user:
+            if t not in self.users:
                 self._retain(t, self.suggest_retain(t))
-        if self.user:
-            cands = self.retain_candidates(self.user)
-            if cands:
-                a = yield {"kind": "retain", "candidates": [self.lots[i].row() for i in cands],
-                           "suggested": self.suggest_retain(self.user)}
-                ids = a.get("ids", []) if isinstance(a, dict) else self.suggest_retain(self.user)
-            else:
-                ids = []
-            self._retain(self.user, ids)
+        qs = {u: {"kind": "retain", "candidates": [self.lots[i].row() for i in self.retain_candidates(u)],
+                  "suggested": self.suggest_retain(u)} for u in self.users if self.retain_candidates(u)}
+        ans = yield from self._ask_all(qs)
+        for u in self.users:
+            a = ans.get(u)
+            self._retain(u, a.get("ids", []) if isinstance(a, dict) else qs[u]["suggested"] if u in qs else [])
 
     def _auction_flow(self):
         # sets
@@ -580,28 +650,36 @@ class Auction:
         self._make_sets()
         for n, (name, ids) in enumerate(self.sets):
             self.set_no = n
-            if self.user_auto == "set":
-                self.user_auto = None
-            if self.user_auto == "wish" and self.pause_sets and any(self.can_buy(self.user, self.lots[i]) for i in ids):
-                yield {"kind": "set", "name": name, "players": [self.lots[i].row() for i in ids]}
+            for u in self.users:
+                if self.autos[u] == "set":
+                    self.autos[u] = None
+            qs = {u: {"kind": "set", "name": name, "players": [self.lots[i].row() for i in ids]} for u in self.users
+                  if self.autos[u] == "wish" and self.pauses[u] and any(self.can_buy(u, self.lots[i]) for i in ids)}
+            yield from self._ask_all(qs)
             for pid in ids:
                 yield from self._sell(pid, name)
         # accelerated round: the players the teams name
         self.phase = "accelerated"
-        if self.user_auto == "set":
-            self.user_auto = None
+        for u in self.users:
+            if self.autos[u] == "set":
+                self.autos[u] = None
         unsold = [x for x in self.lots.values() if x.status == "unsold"]
         named = set()
         for t in self.teams:
-            if t != self.user or self.user_auto == "all":
+            if t not in self.users or self.autos[t] == "all":
                 named |= set(self.nominate(t, unsold))
-        if self.user and self.user_auto != "all" and unsold:
-            sug = self.nominate(self.user, unsold)
-            if self.user_auto == "wish":
-                sug = [x.id for x in unsold if x.id in self.wish]
-            a = yield {"kind": "nominate", "players": [x.row() for x in sorted(unsold, key=lambda x: -x.est)],
-                       "suggested": sug}
-            named |= set(a.get("ids", []) if isinstance(a, dict) else sug)
+        qs = {}
+        for u in self.users:
+            if self.autos[u] != "all" and unsold:
+                sug = self.nominate(u, unsold)
+                if self.autos[u] == "wish":
+                    sug = [x.id for x in unsold if x.id in self.wishes[u]]
+                qs[u] = {"kind": "nominate", "players": [x.row() for x in sorted(unsold, key=lambda x: -x.est)],
+                         "suggested": sug}
+        ans = yield from self._ask_all(qs)
+        for u, q in qs.items():
+            a = ans.get(u)
+            named |= set(a.get("ids", []) if isinstance(a, dict) else q["suggested"])
         again = sorted((x for x in unsold if x.id in named), key=lambda x: -x.est)
         name = "Accelerated round"
         self.sets.append((name, [x.id for x in again]))
@@ -715,40 +793,42 @@ class Auction:
         w = {t: self.worth(t, x) for t in self.teams}
         self.prev_lot = self.lot
         lot = self.lot = {"id": pid, "set": set_name, "price": None, "leader": None, "log": [], "passed": [],
-                          "user_max": None}
-        def plan():
-            m = self._user_plan(x)
+                          "user_max": {}}
+        def plan(u):
+            m = self._user_plan(u, x)
             if m == "max":
-                lot["user_max"] = self.wish[pid]["max"]
+                lot["user_max"][u] = self.wishes[u][pid]["max"]
             return m
-        user_mode = plan() if self.user and self.can_buy(self.user, x) else "out"
+        mode = {u: plan(u) if self.can_buy(u, x) else "out" for u in self.users}
         while True:
             price, leader = lot["price"], lot["leader"]
             nxt = x.base if leader is None else step(price)
-            if user_mode == "ask" and self._user_plan(x) != "ask":    # the user handed over mid-lot
-                user_mode = plan()
-            if user_mode == "auto":
-                w[self.user] = self.worth(self.user, x)
-            elif user_mode == "max":
-                w[self.user] = min(lot["user_max"], self._free(self.user, 1))
+            for u in self.users:
+                if mode[u] == "ask" and self._user_plan(u, x) != "ask":    # handed over mid-lot
+                    mode[u] = plan(u)
+                if mode[u] == "auto":
+                    w[u] = self.worth(u, x)
+                elif mode[u] == "max":
+                    w[u] = min(lot["user_max"][u], self._free(u, 1))
             bidders = [t for t in self.teams if t != leader and w[t] >= nxt
-                       and (t != self.user or user_mode in ("auto", "max"))]
-            # teams still in at this price (the paddles the room shows): the leader, the willing, the user if asked
-            still = [t for t in self.teams if t == leader or t in bidders or (t == self.user and user_mode == "ask")]
-            if user_mode == "ask" and leader != self.user and nxt <= self._free(self.user, 1) \
-                    and not (leader is None and bidders):
-                a = yield self._bid_question(x, nxt)
+                       and (t not in mode or mode[t] in ("auto", "max"))]
+            # teams still in at this price (the paddles the room shows): the leader, the willing, users being asked
+            still = [t for t in self.teams if t == leader or t in bidders or mode.get(t) == "ask"]
+            ask = [u for u in self.users if mode[u] == "ask" and u != leader and nxt <= self._free(u, 1)]
+            if ask and not (leader is None and bidders):
+                # everyone asked at once; the first answer counts (two people: the first paddle up wins the bid)
+                u, a = yield {u: self._bid_question(u, x, nxt) for u in ask}
                 a = a or {}
                 if a.get("bid"):
-                    lot["price"], lot["leader"] = nxt, self.user
-                    lot["log"].append({"team": self.user, "price": nxt, "in": still})
+                    lot["price"], lot["leader"] = nxt, u
+                    lot["log"].append({"team": u, "price": nxt, "in": still})
                 elif a.get("max") is not None:
-                    user_mode, lot["user_max"] = "max", a["max"]
+                    mode[u], lot["user_max"][u] = "max", a["max"]
                 elif a.get("auto") or a.get("skip"):
-                    user_mode = plan()
+                    mode[u] = plan(u)
                 else:
-                    user_mode = "out"
-                    lot["passed"].append(self.user)
+                    mode[u] = "out"
+                    lot["passed"].append(u)
                 continue
             if not bidders:
                 break
@@ -771,17 +851,17 @@ class Auction:
         """Right to Match: the old team may match; the buyer gets one last raise first. On the wishlist, the user's
         top bid decides, and a former player not on it is let go."""
         def plan(t):
-            return self._user_plan(x) if t == self.user else "auto"
+            return self._user_plan(t, x) if t in self.users else "auto"
 
         def value(t):                         # the most t would pay
             m = plan(t)
             if m == "max":
-                return min(self.wish[x.id]["max"], self._free(t, 1))
+                return min(self.wishes[t][x.id]["max"], self._free(t, 1))
             return 0 if m == "out" else self.worth(t, x)
         ask_h = plan(holder) == "ask"
         if ask_h:
-            a = yield {"kind": "rtm_use", "player": x.row(), "buyer": buyer, "price": price,
-                       "advice": self.worth(holder, x, noise=False), "cards": self.rtm[holder]}
+            a = yield from self._ask_one(holder, {"kind": "rtm_use", "player": x.row(), "buyer": buyer, "price": price,
+                                                  "advice": self.worth(holder, x, noise=False), "cards": self.rtm[holder]})
             a = a or {}
             use = value(holder) >= price if a.get("auto") else bool(a.get("yes"))
         else:
@@ -792,8 +872,9 @@ class Auction:
         cap_b = max(price, self._free(buyer, 1))
         new = None
         if plan(buyer) == "ask":
-            a = yield {"kind": "rtm_raise", "player": x.row(), "holder": holder, "price": price,
-                       "cap": cap_b, "advice": self.worth(buyer, x, noise=False)}
+            a = yield from self._ask_one(buyer, {"kind": "rtm_raise", "player": x.row(), "holder": holder,
+                                                 "price": price, "cap": cap_b,
+                                                 "advice": self.worth(buyer, x, noise=False)})
             a = a or {}
             if not a.get("auto"):
                 new = int(a.get("amount") or price)
@@ -807,8 +888,8 @@ class Auction:
         if new > self._free(holder, 1):
             match = False
         elif ask_h and new > price:
-            a = yield {"kind": "rtm_match", "player": x.row(), "buyer": buyer, "price": new,
-                       "advice": self.worth(holder, x, noise=False)}
+            a = yield from self._ask_one(holder, {"kind": "rtm_match", "player": x.row(), "buyer": buyer,
+                                                  "price": new, "advice": self.worth(holder, x, noise=False)})
             a = a or {}
             match = value(holder) >= new if a.get("auto") else bool(a.get("yes"))
         elif ask_h:
@@ -820,10 +901,10 @@ class Auction:
             return holder, new
         return buyer, new
 
-    def _bid_question(self, x: Lot, nxt: int) -> dict:
+    def _bid_question(self, u: str, x: Lot, nxt: int) -> dict:
         lot = self.lot
         return {"kind": "bid", "player": x.row(), "price": lot["price"], "leader": lot["leader"], "next": nxt,
-                "cap": self._free(self.user, 1), "advice": self.worth(self.user, x, noise=False)}
+                "cap": self._free(u, 1), "advice": self.worth(u, x, noise=False)}
 
     # ---------------------------------------------------------------- planner and report
     def planner(self, t: str) -> dict:
@@ -861,12 +942,13 @@ class Auction:
         out["os_left"] = self.overseas_max - sum(self.lots[i].overseas for i in self.squad[t])
         return out
 
-    def to_you(self) -> dict:
-        """What each player still for sale is worth to the user's team now (the computer's top bid, no spread)."""
-        if not self.user or self.done:
+    def to_you(self, user: str | None = None) -> dict:
+        """What each player still for sale is worth to a user's team now (the computer's top bid, no spread)."""
+        u = self.user if user is None else user
+        if u not in self.users or self.done:
             return {}
-        r = self._rate(self.user)
-        return {x.id: self.worth(self.user, x, noise=False, rate=r) for x in self.lots.values()
+        r = self._rate(u)
+        return {x.id: self.worth(u, x, noise=False, rate=r) for x in self.lots.values()
                 if x.status in ("pool", "unsold")}
 
     def report(self, sims: int = 2000) -> dict:
@@ -934,32 +1016,44 @@ class Auction:
                      "overseas": self.lots[i].overseas, "retained": i in self.retained[t]} for i in self.squad[t]]
                 for t in self.teams}
 
-    def state(self) -> dict:
+    def state(self, viewer: str | None = None) -> dict:
+        """The auction as one user sees it (viewer; default the one user): their question, wishlist, planner and
+        top bid on the lot, never another user's. "waiting": the other users who have a question open."""
+        me = self.user if viewer is None else viewer
+        me = me if me in self.users else None
         lot = None
         if self.lot:
             x = self.lots[self.lot["id"]]
-            lot = {**{k: v for k, v in self.lot.items() if k != "passed"}, "player": x.row()}
+            lot = {**{k: v for k, v in self.lot.items() if k not in ("passed", "user_max")}, "player": x.row(),
+                   "user_max": self.lot["user_max"].get(me)}
         sold = [s for s in self.sales if s["team"]]
         return {"label": self.label, "fmt": self.fmt, "comp": self.comp, "year": self.year, "teams": self.teams,
                 "kind": self.kind,
-                "user": self.user, "phase": self.phase,
-                "done": self.done, "kind": self.kind, "purse": self.purse, "rtm": self.rtm, "squad_min": self.squad_min,
+                "user": me, "users": self.users, "phase": self.phase,
+                "done": self.done, "purse": self.purse, "rtm": self.rtm, "squad_min": self.squad_min,
                 "squad_max": SQUAD_MAX, "overseas_max": OVERSEAS_MAX, "xi_overseas": self.xi_overseas,
-                "board": self.board(), "question": self.question, "lot": lot, "user_auto": self.user_auto,
+                "board": self.board(), "question": self.questions.get(me), "lot": lot,
+                "user_auto": self.autos.get(me),
+                "waiting": [u for u in self.questions if u != me],
                 "prev_lot": {"id": self.prev_lot["id"], "log": self.prev_lot["log"]} if self.prev_lot else None,
                 "set_no": self.set_no, "sets": [{"name": n, "n": len(ids)} for n, ids in self.sets],
                 "upcoming": [i for i in (self.sets[self.set_no][1] if 0 <= self.set_no < len(self.sets) else [])
                              if self.lots[i].status == "pool" and i != (self.lot or {}).get("id")],
                 "sales": self.sales[-12:][::-1], "n_sold": len(sold), "spent": sum(s["price"] for s in sold),
                 "news": self.news, "has_prev": self.has_prev,
-                "wish": self.wish, "pause_sets": self.pause_sets,
-                "planner": self.planner(self.user) if self.user else None,
+                "wish": self.wishes.get(me, {}), "pause_sets": self.pauses.get(me, True),
+                "planner": self.planner(me) if me else None,
                 "needs": {t: self.needs(t) for t in self.teams},
-                "report": self.report() if self.done else None}
+                "report": self._report() if self.done else None}
+
+    def _report(self) -> dict:
+        if getattr(self, "_rep", None) is None:     # the auction is over: worked out once
+            self._rep = self.report()
+        return self._rep
 
     def summary(self) -> dict:
         """For the results page: squads with prices, purse left, the top buys."""
         top = sorted((x for x in self.lots.values() if x.price is not None), key=lambda x: -x.price)[:15]
-        return {"label": self.label, "user": self.user, "teams": self.teams, "board": self.board(),
+        return {"label": self.label, "user": self.user, "users": self.users, "teams": self.teams, "board": self.board(),
                 "purse": self.purse, "top": [{"name": x.name, "team": x.buyer, "price": x.price,
                                               "retained": x.status == "retained"} for x in top]}
