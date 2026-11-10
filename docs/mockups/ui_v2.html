@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>UI v2 Mockup</title>
+<!-- Clickable mockup for UI v2 (the gate before phases 2 and 3). Not wired to the server: open it
+     straight from disk. The quick match replays the real India v Australia T20 in results/last ball by ball (score,
+     batters, bowlers, wickets, win probability); the bars and bowler choices don't change what happens. Home cards,
+     the Continue row and the two-player room code are examples. Offline: no CDN, no web fonts. -->
+<style>
+:root{
+  --bg:#060a12;--bg2:#0a101c;--panel:#0f1726;--panel2:#142036;--panel3:#1a2842;
+  --border:rgba(148,170,210,.14);--border2:rgba(148,170,210,.26);
+  --text:#eaf0fa;--muted:#8d9bb5;--dim:#5f6d88;
+  --brand:#2ee88a;--brand2:#14b866;--blue:#4c8dff;--amber:#f6c453;--live:#ff4061;
+  --four:#3d8bff;--six:#b26bff;--wkt:#ff4d4d;--extra:#f59e0b;
+  --r:14px;--r2:10px;--shadow:0 12px 32px -14px rgba(0,0,0,.7);
+  --disp:"Bahnschrift","DIN Alternate","Avenir Next Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:#03060b;color:var(--text);font:14.5px/1.45 var(--body);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+svg{display:block}
+.num,.disp{font-family:var(--disp);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}.small{font-size:.8rem}
+body.detail-simple .full-only{display:none!important}
+body.detail-full .simple-only{display:none!important}
+
+/* ── mockup-only chrome (purple, dashed) ── */
+.mk{position:sticky;top:0;z-index:90;height:32px;display:flex;gap:6px;align-items:center;padding:6px 12px;background:#1b1430;
+  border-bottom:1px dashed #7b61d1;font-size:.76rem;color:#cbbcff;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.mk::-webkit-scrollbar{display:none}
+.mk b{color:#e7deff;margin-right:4px}
+.mk button{padding:3px 10px;border-radius:99px;border:1px solid #5e4aa6;color:#cbbcff;flex:0 0 auto}
+.mk button.on{background:#7b61d1;color:#fff;border-color:#7b61d1}
+.mk .sep{width:1px;height:16px;background:#5e4aa6;flex:0 0 auto;margin:0 4px}
+.stage{display:flex;gap:30px;justify-content:center;align-items:flex-start;padding:22px 16px 48px}
+.side{width:330px;flex:0 0 330px;position:sticky;top:56px;font-size:.84rem;color:#cbbcff}
+.side h2{font-family:var(--disp);font-size:1.15rem;color:#e7deff;margin-bottom:8px;font-weight:650}
+.side ul{padding-left:18px;margin:6px 0 12px}.side li{margin:4px 0}
+.side .meter{border:1px dashed #7b61d1;background:rgba(123,97,209,.09);border-radius:9px;padding:9px 12px;margin:10px 0}
+.side .meter b{font-family:var(--disp);font-size:1.25rem;color:#fff}
+.side .meter .ok{color:#7ef0b0}.side .meter .bad{color:#ff9aa5}
+.side .src{color:#8f7fc9;font-size:.74rem;margin-top:14px}
+body.nonotes .side{display:none}
+
+/* ── the phone ── */
+.phone{position:relative;width:390px;height:844px;box-sizing:content-box;border:10px solid #1a2233;border-radius:46px;
+  overflow:hidden;background:var(--bg);box-shadow:0 30px 80px -30px #000,0 0 0 1px #2a344a;flex:0 0 auto;
+  background-image:radial-gradient(700px 300px at 50% -120px,rgba(46,232,138,.07),transparent 70%)}
+@media (max-width:760px){
+  .stage{padding:0;display:block}
+  .side{display:none}
+  .phone{width:100%;height:calc(100vh - 32px);height:calc(100dvh - 32px);border:0;border-radius:0;box-shadow:none}
+}
+.scr{position:absolute;inset:0;display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.scr::-webkit-scrollbar{display:none}
+.scr.on{display:flex;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* shared bits */
+.badge{--c:#555;--f:#fff;--a:#999;display:inline-grid;place-items:center;flex:0 0 auto;font-family:var(--disp);font-weight:700;
+  letter-spacing:.04em;white-space:nowrap;background:var(--c);color:var(--f)}
+.badge.sm{min-width:38px;height:22px;font-size:.66rem;border-radius:6px;box-shadow:inset 0 -2px 0 var(--a);padding:0 5px}
+.badge.md{min-width:52px;height:36px;font-size:.95rem;border-radius:10px;box-shadow:inset 0 -3px 0 var(--a);padding:0 6px}
+.badge.hb{width:78px;height:86px;font-size:1.35rem;border-radius:18px 18px 38px 38px;box-shadow:inset 0 -6px 0 var(--a),0 16px 34px -16px var(--c)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:11px 16px;font-weight:650;
+  min-height:46px;transition:transform .08s,filter .15s}
+.btn:active{transform:scale(.97)}
+.btn.go{background:linear-gradient(180deg,#34f095,#14b866);color:#03140b;box-shadow:0 10px 26px -12px rgba(46,232,138,.7)}
+.btn.sec{background:var(--panel3);border:1px solid var(--border2);color:var(--text)}
+.btn.big{font-size:1.15rem;min-height:56px;width:100%;border-radius:14px}
+.btn[disabled]{filter:grayscale(1) brightness(.55);cursor:default}
+.lnk{color:var(--muted);font-size:.86rem;padding:8px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(141,155,181,.4)}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--border);border-radius:99px;padding:3px}
+.seg button{padding:4px 11px;border-radius:99px;color:var(--muted);font-size:.78rem;font-weight:600}
+.seg button.on{background:var(--panel3);color:var(--text)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{padding:8px 16px;border-radius:99px;border:1px solid var(--border2);color:var(--muted);font-weight:600;min-height:40px}
+.chips button.on{background:rgba(46,232,138,.12);border-color:rgba(46,232,138,.55);color:var(--text)}
+.ph-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px 6px}
+.ph-top.sub{justify-content:flex-start;padding:12px 10px 4px}
+.ph-top .ttl{font-family:var(--disp);font-size:1.15rem;font-weight:650}
+.back{width:40px;height:40px;border-radius:12px;font-size:1.5rem;line-height:1;color:var(--muted)}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--disp);font-weight:700;letter-spacing:.07em;font-size:1.02rem}
+.logo i{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff6b6b,#b3121a 70%);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.18)}
+.card{background:linear-gradient(180deg,var(--panel) 0%,var(--bg2) 100%);border:1px solid var(--border);border-radius:var(--r)}
+.kick{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:650}
+.tabbar{position:sticky;bottom:0;margin-top:auto;display:flex;justify-content:space-around;padding:8px 6px 12px;
+  background:rgba(6,10,18,.92);backdrop-filter:blur(10px);border-top:1px solid var(--border)}
+.tabbar button{flex:1;padding:6px;color:var(--muted);font-size:.76rem;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabbar button svg{width:20px;height:20px}
+.tabbar button.on{color:var(--brand)}
+
+/* home */
+.hero{margin:6px 14px 0;padding:18px 16px 12px;text-align:center;border-radius:20px;border:1px solid var(--border);
+  background:radial-gradient(420px 220px at 50% 0,rgba(46,232,138,.10),transparent 70%),linear-gradient(180deg,var(--panel),var(--bg2))}
+.hero .tag{font-size:1.02rem;font-weight:600;margin-bottom:14px}
+.vs{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px}
+.tpick{display:flex;flex-direction:column;align-items:center;gap:7px;padding:4px;border-radius:16px;width:118px}
+.tpick .tn{font-weight:650;font-size:.95rem;display:flex;align-items:center;gap:4px}
+.tpick .tn::after{content:"";width:6px;height:6px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-2px)}
+.vs .v{font-family:var(--disp);color:var(--dim);font-size:1.1rem}
+.hero .chips{justify-content:center;margin-bottom:14px}
+.cont{display:flex;align-items:center;gap:10px;margin:12px 14px 0;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,64,97,.35);
+  background:rgba(255,64,97,.07);text-align:left;font-size:.88rem}
+.cont .dot{width:8px;height:8px;border-radius:50%;background:var(--live);flex:0 0 auto}
+.cont .go{margin-left:auto;color:var(--muted);font-size:1.2rem}
+.doors{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 14px 14px}
+.door{text-align:left;padding:13px 13px 12px;border-radius:16px;border:1px solid var(--border);background:linear-gradient(160deg,var(--panel2),var(--bg2));min-height:92px;
+  display:flex;flex-direction:column;gap:6px}
+.door .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--dc,#2a3a58);color:#fff}
+.door .ic svg{width:18px;height:18px}
+.door b{font-size:.92rem;line-height:1.2}
+.alltiles{margin:0 14px 14px}
+.alltiles .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.alltiles .grid button{padding:9px 6px;border-radius:10px;border:1px solid var(--border);background:var(--panel);font-size:.72rem;color:var(--muted)}
+
+/* chooser */
+.ch-list{display:flex;flex-direction:column;gap:10px;padding:8px 14px 20px}
+.ch-card{display:flex;gap:12px;align-items:center;text-align:left;padding:14px;border-radius:16px;border:1px solid var(--border);background:linear-gradient(160deg,var(--panel2),var(--bg2));min-height:70px}
+.ch-card .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--dc,#2a3a58);flex:0 0 auto}
+.ch-card .ic svg{width:22px;height:22px}
+.ch-card b{display:block;font-size:1rem}
+.ch-card span{color:var(--muted);font-size:.84rem}
+
+/* pre-match */
+.pm{margin:6px 14px 0;padding:16px;text-align:center}
+.pm .teams{display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:10px}
+.pm .line{color:var(--muted);font-size:.88rem}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 14px 0;padding:10px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--border)}
+.row .chips button{padding:6px 12px;min-height:36px;font-size:.84rem}
+.ok{color:var(--brand)}
+.toss{margin:14px 14px 18px;padding:20px 16px;text-align:center}
+.coin{width:92px;height:92px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-family:var(--disp);font-size:2rem;font-weight:700;color:#5a4410;
+  background:radial-gradient(circle at 35% 30%,#ffe9a3,#e0b13c 55%,#a87a12);box-shadow:inset 0 0 0 4px rgba(255,255,255,.25),0 12px 26px -10px #000}
+.coin.flip{animation:flip 1s cubic-bezier(.3,.7,.4,1)}
+@keyframes flip{0%{transform:translateY(0) rotateX(0)}50%{transform:translateY(-46px) rotateX(900deg)}100%{transform:translateY(0) rotateX(1800deg)}}
+.toss .q{font-weight:650;font-size:1.05rem;margin-bottom:12px;min-height:1.5em}
+.toss .bb{display:flex;gap:10px}.toss .bb .btn{flex:1}
+
+/* live */
+#s-live{overflow:hidden}
+.bug{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px 9px;background:linear-gradient(90deg,var(--tc,#1f6fd1) -40%,var(--panel) 45%);
+  border-bottom:1px solid var(--border)}
+.bug .l{display:flex;align-items:center;gap:9px}
+.bug .sc{font-family:var(--disp);font-size:1.75rem;font-weight:700;line-height:1;transition:color .3s}
+.bug .sc.tick{color:var(--brand)}
+.bug .ov{font-family:var(--disp);color:var(--muted);font-size:1rem}
+.bug .r{text-align:right;font-size:.8rem;color:var(--muted);line-height:1.25}
+.bug .r b{color:var(--text);font-family:var(--disp);font-size:1rem;font-weight:650}
+.wp{padding:6px 14px 6px}
+.wp .bar{height:6px;border-radius:9px;background:var(--wc2,#ffcd00);overflow:hidden}
+.wp .bar i{display:block;height:100%;background:var(--wc1,#1f6fd1);transition:width .6s ease;border-right:2px solid var(--bg)}
+.wp .lb{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:3px}
+.field{position:relative;min-height:236px;flex:1 1 236px;max-height:350px;margin:0 6px;border-radius:16px;overflow:hidden;background:#0b2614}
+.field svg{width:100%;height:100%}
+.field.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.out{position:absolute;left:0;right:0;top:12px;text-align:center;font-family:var(--disp);font-weight:800;font-size:2.3rem;letter-spacing:.04em;
+  text-shadow:0 3px 14px rgba(0,0,0,.7);pointer-events:none;opacity:0;transform:scale(.7);transition:opacity .15s,transform .2s}
+.out.show{opacity:1;transform:none}
+.out.k4{color:#8fc0ff}.out.k6{color:#d6a9ff}.out.kW{color:#ff8d8d;font-size:2.7rem}.out.kx{color:#ffd28a;font-size:1.6rem}.out.k0{color:#dfe7f5;font-size:3rem;line-height:.8}
+.flash{position:absolute;inset:0;pointer-events:none;opacity:0}
+.flash.go{animation:fl .7s ease}
+@keyframes fl{0%{opacity:.55}100%{opacity:0}}
+.over-row{display:flex;align-items:center;gap:10px;padding:9px 14px 4px}
+.over-row .lab{font-size:.74rem;color:var(--muted);font-weight:600;white-space:nowrap}
+.bchips{display:flex;gap:6px;flex-wrap:nowrap;overflow:hidden}
+.bc{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:.82rem;background:var(--panel3);border:1px solid var(--border2);flex:0 0 auto}
+.bc.e{background:none;border-style:dashed;opacity:.5}
+.bc.c4{background:var(--four);border-color:var(--four)}.bc.c6{background:var(--six);border-color:var(--six)}
+.bc.cW{background:var(--wkt);border-color:var(--wkt)}.bc.cx{background:rgba(245,158,11,.18);border-color:var(--extra);color:#ffd28a;font-size:.66rem}
+.bc.pop{animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(.2)}to{transform:none}}
+.cards{padding:4px 14px 2px;display:flex;flex-direction:column;gap:3px;font-size:.88rem}
+.cards .ln{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.cards .pl b{font-weight:650}
+.cards .pl .num{color:var(--muted);margin-left:3px}
+.cards .pl.st b{color:#fff}
+.cards .bw{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.cards .bw b{color:var(--text);font-weight:600}
+.kind{width:16px;height:16px;flex:0 0 auto;opacity:.85}
+.new-tag{font-size:.6rem;font-weight:800;letter-spacing:.08em;color:#062;background:#7ef0b0;border-radius:4px;padding:1px 4px;margin-left:5px;vertical-align:2px}
+.fs{display:block;font-size:.72rem;color:var(--dim);margin-top:-1px}
+.fs i{display:inline-block;width:46px;height:4px;border-radius:3px;background:var(--panel3);vertical-align:middle;margin-right:5px;overflow:hidden}
+.fs i u{display:block;height:100%;background:var(--brand)}
+.bars-box{padding:8px 14px 6px;position:relative}
+.bars-h{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.bars-h .who{font-size:.86rem;font-weight:600;white-space:nowrap}
+.bars-h .word{margin-left:auto;font-family:var(--disp);font-size:1.25rem;font-weight:700}
+.info{width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);color:var(--muted);font-size:.74rem;font-weight:700;font-style:italic;font-family:Georgia,serif}
+.ns-chip{white-space:nowrap;font-size:.74rem;padding:3px 9px;border-radius:99px;border:1px solid var(--border2);color:var(--muted)}
+.bars{display:flex;gap:3px;align-items:flex-end;height:58px}
+.bars button{flex:1;height:100%;min-width:30px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px;border-radius:9px;padding:0 0 3px}
+.bars button i{display:block;width:100%;border-radius:6px 6px 4px 4px;background:var(--bc);opacity:.35;transition:opacity .12s,transform .12s}
+.bars button.on i{opacity:1;box-shadow:0 0 0 2px #fff,0 6px 16px -6px var(--bc)}
+.bars button.lit i{opacity:.8}
+.bars button small{font-size:.62rem;color:var(--dim);font-family:var(--disp);line-height:1}
+.act{margin-top:auto;display:flex;gap:8px;padding:10px 12px 14px;background:rgba(6,10,18,.94);border-top:1px solid var(--border)}
+.act .go{flex:1.6;font-size:1.05rem}
+.act .sec{flex:1;padding:11px 8px}
+.toast{position:absolute;left:50%;top:150px;transform:translate(-50%,-6px);background:rgba(15,23,38,.96);border:1px solid var(--border2);border-radius:12px;
+  padding:9px 14px;font-size:.84rem;max-width:340px;width:max-content;text-align:center;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* sheets */
+.dim{position:absolute;inset:0;background:rgba(2,4,9,.55);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s}
+.dim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:71;background:linear-gradient(180deg,#121c2f,#0a101c);border-top:1px solid var(--border2);
+  border-radius:22px 22px 0 0;padding:8px 14px 18px;transform:translateY(105%);transition:transform .25s cubic-bezier(.3,.8,.4,1);max-height:86%;overflow-y:auto;scrollbar-width:none}
+.sheet.on{transform:none}
+.sheet .grab{width:40px;height:4px;border-radius:9px;background:var(--border2);margin:2px auto 10px}
+.sheet h3{font-family:var(--disp);font-size:1.3rem;font-weight:650;margin-bottom:10px}
+.bopt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:var(--panel);margin-bottom:8px;min-height:60px}
+.bopt.sug{border-color:rgba(46,232,138,.55);background:linear-gradient(90deg,rgba(46,232,138,.12),var(--panel) 70%)}
+.bopt .kind{width:22px;height:22px}
+.bopt b{font-size:1rem;display:block}
+.bopt .fig{font-family:var(--disp);color:var(--muted);font-size:.95rem}
+.bopt .left{margin-left:auto;text-align:right;font-size:.78rem;color:var(--muted);white-space:nowrap}
+.bopt .left b{font-family:var(--disp);font-size:1.1rem;color:var(--text);display:inline}
+.bopt[disabled]{opacity:.38;cursor:default}
+.tag-s{font-size:.6rem;font-weight:800;letter-spacing:.08em;color:#04210f;background:var(--brand);border-radius:5px;padding:2px 5px;margin-left:6px;vertical-align:2px}
+.sh-sec{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:650;margin:14px 0 8px}
+.sh-btns{display:flex;flex-direction:column;gap:8px}
+.sh-btns .btn{width:100%;justify-content:flex-start}
+.togs{display:flex;flex-wrap:wrap;gap:6px}
+.tog{padding:7px 12px;border-radius:99px;border:1px solid var(--border2);color:var(--muted);font-size:.8rem;font-weight:600}
+.tog.on{background:rgba(46,232,138,.14);border-color:rgba(46,232,138,.6);color:var(--text)}
+.tlist button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;min-height:52px}
+.tlist button .ck{margin-left:auto;color:var(--brand)}
+.xi{list-style:none;columns:1}
+.xi li{display:flex;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);font-size:.92rem}
+.xi li span{width:20px;color:var(--dim);font-family:var(--disp)}
+.coach{position:absolute;z-index:75;left:14px;right:14px;background:#f6f2ff;color:#1b1430;border-radius:14px;padding:11px 13px;font-size:.9rem;font-weight:600;
+  box-shadow:0 14px 34px -10px #000;display:none}
+.coach.on{display:flex;gap:10px;align-items:center;animation:fade .25s}
+.coach button{margin-left:auto;background:#1b1430;color:#fff;border-radius:9px;padding:6px 12px;font-size:.8rem;flex:0 0 auto}
+.coach::after{content:"";position:absolute;left:var(--ax,50%);width:14px;height:14px;background:#f6f2ff;transform:rotate(45deg)}
+.coach.up::after{top:-6px}.coach.down::after{bottom:-6px}
+
+/* result */
+.res{padding:6px 16px 18px;text-align:center}
+.res h1{font-family:var(--disp);font-size:1.9rem;line-height:1.1;margin:6px 0 12px}
+.res .scs{display:flex;flex-direction:column;gap:6px;margin:0 auto 12px;max-width:300px}
+.res .scs div{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-size:1.15rem}
+.res .scs div b{margin-left:auto}
+.pom{padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:12px;text-align:left}
+.pom .av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#1f6fd1;font-family:var(--disp);font-weight:700}
+.tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.tiles div{padding:10px 6px;border-radius:12px;background:var(--panel);border:1px solid var(--border)}
+.tiles b{display:block;font-family:var(--disp);font-size:1.3rem}
+.tiles span{font-size:.72rem;color:var(--muted)}
+.wpc{padding:10px 10px 6px;margin-bottom:12px}
+.wpc .cap{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:4px}
+.res .acts{display:flex;flex-direction:column;gap:8px}
+
+/* two players */
+.mp-hero{padding:22px 18px 8px}
+.mp-hero h1{font-family:var(--disp);font-size:1.8rem;margin-bottom:4px}
+.mp-big{display:flex;flex-direction:column;gap:12px;padding:12px 16px}
+.mp-big button{padding:22px 18px;border-radius:18px;text-align:left;display:flex;align-items:center;gap:14px;font-size:1.2rem;font-weight:700;min-height:96px}
+.mp-big .h{background:linear-gradient(135deg,#1c6b45,#0e3b27);border:1px solid rgba(46,232,138,.45)}
+.mp-big .j{background:linear-gradient(135deg,#253a66,#141f38);border:1px solid rgba(76,141,255,.45)}
+.mp-big svg{width:34px;height:34px;flex:0 0 auto}
+.form{padding:10px 18px;display:flex;flex-direction:column;gap:8px}
+.form label{font-size:.82rem;color:var(--muted);font-weight:600;margin-top:8px}
+.code-in{width:100%;text-align:center;font-family:var(--disp);font-size:3rem;font-weight:700;letter-spacing:.35em;text-indent:.35em;padding:10px 0;
+  border-radius:16px;border:2px solid var(--border2);background:var(--panel);text-transform:uppercase;outline:none}
+.code-in:focus,.txt-in:focus{border-color:var(--brand)}
+.code-in::placeholder{color:#26324a}
+.txt-in{width:100%;font-size:1.15rem;padding:14px;border-radius:14px;border:2px solid var(--border2);background:var(--panel);outline:none}
+.linked{padding:16px;text-align:center;border-radius:16px;margin-top:6px}
+.linked .code{font-family:var(--disp);font-size:2.4rem;letter-spacing:.25em;font-weight:700}
+.opt{display:flex;flex-direction:column;gap:8px;padding:0 16px}
+.optc{display:flex;gap:12px;align-items:center;text-align:left;padding:13px 14px;border-radius:14px;border:1px solid var(--border);background:var(--panel);min-height:62px}
+.optc.on{border-color:rgba(46,232,138,.6);background:linear-gradient(90deg,rgba(46,232,138,.12),var(--panel) 70%)}
+.optc .rd{width:20px;height:20px;border-radius:50%;border:2px solid var(--border2);flex:0 0 auto}
+.optc.on .rd{border:6px solid var(--brand)}
+.optc span{display:block;font-size:.8rem;color:var(--muted)}
+.h3{font-size:.95rem;font-weight:650;margin:16px 16px 8px}
+details.more{margin:14px 16px 0;border-top:1px solid var(--border);padding-top:10px}
+details.more summary{cursor:pointer;color:var(--muted);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"›";font-size:1.2rem;transition:transform .15s}
+details.more[open] summary::before{transform:rotate(90deg)}
+details.more .in{display:flex;flex-direction:column;gap:10px;padding:10px 0}
+details.more .in .r{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.88rem}
+.sticky-go{position:sticky;bottom:0;margin-top:auto;padding:12px 16px 16px;background:linear-gradient(180deg,transparent,var(--bg) 30%)}
+.room{text-align:center;padding:20px 16px}
+.room .code{font-family:var(--disp);font-size:4.6rem;font-weight:800;letter-spacing:.18em;text-indent:.18em;line-height:1.1;margin:8px 0 6px;
+  background:linear-gradient(180deg,#fff,#9fb3d6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.room .url{font-family:Consolas,monospace;font-size:.78rem;color:var(--dim);margin-bottom:16px}
+.room .two{display:flex;gap:10px}.room .two .btn{flex:1}
+.wait{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:22px;color:var(--muted)}
+.wait i{width:10px;height:10px;border-radius:50%;background:var(--brand);animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,232,138,.6)}70%{box-shadow:0 0 0 10px rgba(46,232,138,0)}100%{box-shadow:0 0 0 0 rgba(46,232,138,0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body class="detail-simple">
+
+<div class="mk" id="mk">
+  <b>UI v2 mockup</b>
+  <button data-jump="home" class="on">Home</button>
+  <button data-jump="pre">Pre-match</button>
+  <button data-jump="live">Live: batting</button>
+  <button data-jump="bowler">Bowler sheet</button>
+  <button data-jump="result">Result</button>
+  <span class="sep"></span>
+  <button data-jump="mp">Friend</button>
+  <button data-jump="join">Join</button>
+  <button data-jump="joinlink">Join from link</button>
+  <button data-jump="host">Host</button>
+  <span class="sep"></span>
+  <span class="seg detail-sw" style="background:none;border-color:#5e4aa6"><button data-d="simple" class="on">Simple</button><button data-d="full">Full stats</button></span>
+  <button id="mk-notes" class="on">Notes</button>
+</div>
+
+<div class="stage">
+<div class="phone" id="phone">
+
+  <!-- ═════ HOME ═════ -->
+  <div class="scr on" id="s-home">
+    <header class="ph-top">
+      <div class="logo"><i></i>LIMITED OVERS</div>
+      <div class="seg detail-sw"><button data-d="simple" class="on">Simple</button><button data-d="full">Full stats</button></div>
+    </header>
+    <section class="hero">
+      <p class="tag">Captain a real <span id="h-fmtw">T20</span> side, ball by ball.</p>
+      <div class="vs">
+        <button class="tpick" data-side="0" title="Change team"><span id="h-b0"></span><span class="tn nc" id="h-n0">India</span></button>
+        <span class="v">v</span>
+        <button class="tpick" data-side="1" title="Change team"><span id="h-b1"></span><span class="tn nc" id="h-n1">Australia</span></button>
+      </div>
+      <div class="chips" id="h-fmt"><button class="on" data-f="T20">T20</button><button data-f="ODI">ODI</button></div>
+      <button class="btn go big" id="h-play">&#9654;&nbsp; Play</button>
+      <button class="lnk" id="h-sim">Just simulate the result &rsaquo;</button>
+    </section>
+    <button class="cont" id="h-cont"><span class="dot"></span><span>Continue: <b class="nc">Punjab Kings</b> · IPL 2026 season</span><span class="go">&rsaquo;</span></button>
+    <div class="doors" id="doors"></div>
+    <div class="alltiles full-only"><div class="kick">All modes</div><div class="grid" id="alltiles"></div></div>
+    <nav class="tabbar">
+      <button class="on"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Play</button>
+      <button data-toast="Results: Last run · Saved · Careers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Results</button>
+      <button data-toast="My teams: the team builder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.6c2 .7 3.2 2.5 3.6 5.4"/></svg>My teams</button>
+    </nav>
+  </div>
+
+  <!-- ═════ DOOR CHOOSER ═════ -->
+  <div class="scr" id="s-door">
+    <header class="ph-top sub"><button class="back" data-back>&lsaquo;</button><span class="ttl" id="door-t"></span></header>
+    <div class="ch-list" id="door-list"></div>
+  </div>
+
+  <!-- ═════ PRE-MATCH ═════ -->
+  <div class="scr" id="s-pre">
+    <header class="ph-top sub"><button class="back" data-back>&lsaquo;</button><span class="ttl">Quick match</span></header>
+    <div class="card pm">
+      <div class="teams" id="pm-teams"></div>
+      <div class="line"><span id="pm-fmt">T20</span> · Neutral ground, <span id="pm-pitch"></span></div>
+    </div>
+    <div class="row"><span>Your XI: suggested <span class="ok">&#10003;</span></span><button class="btn sec" style="min-height:36px;padding:6px 12px" id="pm-xi">Change XI</button></div>
+    <div class="row"><span>Length</span><div class="chips" id="pm-len"><button data-l="key">Key moments</button><button data-l="every" class="on">Every ball</button></div></div>
+    <div class="card toss">
+      <div class="coin" id="coin">H</div>
+      <div class="q" id="toss-q">Call the toss</div>
+      <div class="bb" id="toss-b"><button class="btn go" data-call="Heads">Heads</button><button class="btn go" data-call="Tails">Tails</button></div>
+    </div>
+  </div>
+
+  <!-- ═════ LIVE ═════ -->
+  <div class="scr" id="s-live">
+    <div class="bug" id="bug">
+      <div class="l"><span id="bug-b"></span><span class="sc" id="bug-sc">0/0</span><span class="ov" id="bug-ov">0.0</span></div>
+      <div class="r" id="bug-r"></div>
+    </div>
+    <div class="wp"><div class="bar"><i id="wp-i" style="width:50%"></i></div>
+      <div class="lb"><span id="wp-t"></span><span id="wp-x"></span></div></div>
+    <div class="field" id="field">
+      <svg viewBox="0 -24 380 284" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <defs>
+          <radialGradient id="grass" cx="50%" cy="48%" r="58%"><stop offset="0" stop-color="#2f8040"/><stop offset="1" stop-color="#1b5428"/></radialGradient>
+          <clipPath id="gclip"><ellipse cx="190" cy="120" rx="178" ry="110"/></clipPath>
+        </defs>
+        <rect y="-40" width="380" height="320" fill="#0b2614"/>
+        <ellipse cx="190" cy="120" rx="178" ry="110" fill="url(#grass)"/>
+        <g clip-path="url(#gclip)" fill="#fff" fill-opacity=".035" id="mow"></g>
+        <ellipse cx="190" cy="120" rx="178" ry="110" fill="none" stroke="#e9f5ec" stroke-opacity=".6" stroke-width="2"/>
+        <ellipse cx="190" cy="120" rx="84" ry="52" fill="none" stroke="#fff" stroke-opacity=".28" stroke-dasharray="4 5"/>
+        <rect x="184" y="94" width="12" height="50" rx="2" fill="#c8b07a" fill-opacity=".9"/>
+        <path d="M181 100h18M181 138h18" stroke="#fff" stroke-opacity=".7" stroke-width="1"/>
+        <g id="stumpsB" fill="#f3e6c4"><rect x="187" y="138" width="1.6" height="6"/><rect x="189.2" y="138" width="1.6" height="6"/><rect x="191.4" y="138" width="1.6" height="6"/></g>
+        <g fill="#f3e6c4"><rect x="187" y="94" width="1.6" height="6"/><rect x="189.2" y="94" width="1.6" height="6"/><rect x="191.4" y="94" width="1.6" height="6"/></g>
+        <g id="fielders"></g>
+        <circle id="ns" cx="182" cy="98" r="4.2"/>
+        <circle id="st" cx="196" cy="141" r="4.6"/>
+        <ellipse id="ball-sh" cx="0" cy="0" rx="3" ry="1.4" fill="#000" fill-opacity=".35" visibility="hidden"/>
+        <circle id="ball" cx="0" cy="0" r="3" fill="#fff" visibility="hidden"/>
+      </svg>
+      <div class="flash" id="flash"></div>
+      <div class="out" id="out"></div>
+    </div>
+    <div class="over-row"><span class="lab">This over</span><div class="bchips" id="chips"></div></div>
+    <div class="cards" id="cards"></div>
+    <div class="bars-box" id="bars"></div>
+    <div class="act">
+      <button class="btn go" id="b-next">&#9654;&nbsp; Next ball</button>
+      <button class="btn sec" id="b-over">Sim over</button>
+      <button class="btn sec" id="b-more">More &#9662;</button>
+    </div>
+  </div>
+
+  <!-- ═════ RESULT ═════ -->
+  <div class="scr" id="s-result">
+    <header class="ph-top sub"><button class="back" data-home>&lsaquo;</button><span class="ttl">Result</span></header>
+    <div class="res" id="res"></div>
+  </div>
+
+  <!-- ═════ TWO PLAYERS: LANDING ═════ -->
+  <div class="scr" id="s-mp">
+    <header class="ph-top sub"><button class="back" data-back>&lsaquo;</button></header>
+    <div class="mp-hero"><h1>Play a friend</h1><p class="muted">Two phones, same Wi-Fi.</p></div>
+    <div class="mp-big">
+      <button class="h" data-go="host"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Host a game</button>
+      <button class="j" data-go="join"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 12h.01M11 12h.01M15 12h.01"/></svg>Join with a code</button>
+    </div>
+  </div>
+
+  <!-- ═════ TWO PLAYERS: JOIN ═════ -->
+  <div class="scr" id="s-join">
+    <header class="ph-top sub"><button class="back" data-back>&lsaquo;</button><span class="ttl">Join a game</span></header>
+    <div class="form">
+      <div id="j-codebox">
+        <label for="j-code">Room code</label>
+        <input id="j-code" class="code-in" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" inputmode="text">
+      </div>
+      <div id="j-linked" class="card linked" style="display:none"><div class="kick">Room</div><div class="code nc">KQPX</div></div>
+      <label for="j-name">Your name</label>
+      <input id="j-name" class="txt-in" maxlength="20" autocomplete="nickname" placeholder="Name">
+    </div>
+    <div class="sticky-go"><button class="btn go big" id="j-go" disabled>Join</button></div>
+  </div>
+
+  <!-- ═════ TWO PLAYERS: JOINED ═════ -->
+  <div class="scr" id="s-joined">
+    <header class="ph-top sub"><button class="back" data-home>&lsaquo;</button><span class="ttl">Room <span class="nc">KQPX</span></span></header>
+    <div class="room">
+      <div class="kick">You're in</div>
+      <div class="code nc" style="font-size:3rem">KQPX</div>
+      <p><b class="nc">Vikram</b> is setting up the match.</p>
+      <div class="wait"><i></i>Waiting for the host</div>
+    </div>
+  </div>
+
+  <!-- ═════ TWO PLAYERS: HOST ═════ -->
+  <div class="scr" id="s-host">
+    <header class="ph-top sub"><button class="back" data-back>&lsaquo;</button><span class="ttl">Host a game</span></header>
+    <div class="h3">How do you get teams?</div>
+    <div class="opt" id="host-teams">
+      <button class="optc on"><i class="rd"></i><div><b>Pick a team each</b><span>Any nation or franchise</span></div></button>
+      <button class="optc"><i class="rd"></i><div><b>Draft against each other</b><span>Take turns picking players</span></div></button>
+      <button class="optc"><i class="rd"></i><div><b>Auction</b><span>Bid live for a squad</span></div></button>
+    </div>
+    <div class="h3">How many matches?</div>
+    <div class="chips" style="padding:0 16px" id="host-n"><button class="on">1</button><button>Best of 3</button><button>Best of 5</button></div>
+    <details class="more">
+      <summary>More options</summary>
+      <div class="in">
+        <div class="r"><span>Format</span><div class="seg"><button class="on">T20</button><button>ODI</button></div></div>
+        <div class="r"><span>Era &amp; grounds</span><span class="muted">2026 · international</span></div>
+        <div class="r"><span>Time per ball</span><div class="seg"><button class="on">Off</button><button>10 s</button><button>20 s</button></div></div>
+      </div>
+    </details>
+    <div class="sticky-go"><button class="btn go big" id="host-go">Open room</button></div>
+  </div>
+
+  <!-- ═════ TWO PLAYERS: ROOM ═════ -->
+  <div class="scr" id="s-room">
+    <header class="ph-top sub"><button class="back" data-back>&lsaquo;</button><span class="ttl">Your room</span></header>
+    <div class="room">
+      <div class="kick">Room code</div>
+      <div class="code nc">KQPX</div>
+      <div class="url nc">192.168.1.23:5070/#join=KQPX</div>
+      <div class="two"><button class="btn go" id="room-copy">Copy link</button><button class="btn sec" id="room-share">Share</button></div>
+      <div class="wait"><i></i>Waiting for your friend</div>
+    </div>
+  </div>
+
+  <!-- overlays -->
+  <div class="dim" id="dim"></div>
+  <div class="sheet" id="sheet"><div class="grab"></div><div id="sheet-in"></div></div>
+  <div class="coach" id="coach"><span id="coach-t"></span><button id="coach-ok">Got it</button></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<aside class="side" id="side"></aside>
+</div>
+
+<script>
+'use strict';
+const D = {"fmt":"T20","conditions":"international conditions 2025","pitch":"a fair pitch","toss":{"winner":"Australia","decision":"bowl"},"inns":[{"bat":"India","bowl":"Australia","order":["YBK Jaiswal","RG Sharma","V Kohli","SV Samson","SA Yadav","S Dube","RA Jadeja","AR Patel","Kuldeep Yadav","JJ Bumrah","YS Chahal"],"fow":["YBK Jaiswal","RG Sharma","SV Samson","SA Yadav"],"dis":{"YBK Jaiswal":"c GJ Maxwell b JR Hazlewood","RG Sharma":"c DA Warner b A Zampa","SV Samson":"c NT Ellis b JR Hazlewood","SA Yadav":"c AC Agar b JR Hazlewood"},"overs":[{"b":"JR Hazlewood","balls":[".","1",".",".",".","2"],"wp":0.493},{"b":"AC Agar","balls":["1","4",".","4","1","1"],"wp":0.53},{"b":"JR Hazlewood","balls":["1","6","1","W",".","."],"wp":0.463},{"b":"GJ Maxwell","balls":["wd",".","1","1",".","4","."],"wp":0.478},{"b":"NT Ellis","balls":["4","wd","2","4","4",".","1"],"wp":0.552},{"b":"MA Starc","balls":["2","6","1","1","4","."],"wp":0.6},{"b":"NT Ellis","balls":["1","2","4","1","wd",".","."],"wp":0.619},{"b":"MA Starc","balls":[".","2","4","1","wd","1","wd","1"],"wp":0.65},{"b":"A Zampa","balls":[".","1",".","W","1","1"],"wp":0.579},{"b":"AC Agar","balls":[".",".","1","1","1","."],"wp":0.559},{"b":"A Zampa","balls":["1",".","1","4","1","1"],"wp":0.566},{"b":"AC Agar","balls":[".",".",".",".","1","2"],"wp":0.53},{"b":"A Zampa","balls":["1","1","1","1","1","6"],"wp":0.552},{"b":"GJ Maxwell","balls":["1","1","1","4","1","1"],"wp":0.559},{"b":"MR Marsh","balls":["1","wd","4","wd","4","1","4","wd","1"],"wp":0.619},{"b":"A Zampa","balls":["1","1","1","4","4","1"],"wp":0.632},{"b":"JR Hazlewood","balls":[".","1","W",".","1","1"],"wp":0.566},{"b":"AC Agar","balls":["1","4","1","1","1","4"],"wp":0.573},{"b":"JR Hazlewood","balls":["W","1","1","2","1","."],"wp":0.544},{"b":"MP Stoinis","balls":["1",".","6","wd","4","4","2"],"wp":0.566}],"bowlers":["JR Hazlewood","AC Agar","GJ Maxwell","NT Ellis","MA Starc","A Zampa","MR Marsh","MP Stoinis","TH David"],"runs":184,"wkts":4,"card":[["YBK Jaiswal",4,6,"c GJ Maxwell b JR Hazlewood"],["RG Sharma",26,22,"c DA Warner b A Zampa"],["V Kohli",114,59,"not out"],["SV Samson",19,23,"c NT Ellis b JR Hazlewood"],["SA Yadav",7,6,"c AC Agar b JR Hazlewood"],["S Dube",5,4,"not out"]],"bowl_card":[["JR Hazlewood","4.0",19,3],["AC Agar","4.0",29,0],["GJ Maxwell","2.0",16,0],["NT Ellis","2.0",25,0],["MA Starc","2.0",25,0],["A Zampa","4.0",34,1],["MR Marsh","1.0",18,0],["MP Stoinis","1.0",18,0]]},{"bat":"Australia","bowl":"India","order":["DA Warner","MR Marsh","JP Inglis","GJ Maxwell","MP Stoinis","TH David","AC Agar","NT Ellis","MA Starc","A Zampa","JR Hazlewood"],"fow":["MR Marsh","JP Inglis","DA Warner","MP Stoinis","GJ Maxwell","AC Agar"],"dis":{"DA Warner":"st SV Samson b RA Jadeja","MR Marsh":"b YS Chahal","JP Inglis":"c & b Kuldeep Yadav","GJ Maxwell":"c V Kohli b YS Chahal","MP Stoinis":"c & b YS Chahal","AC Agar":"c & b AR Patel"},"overs":[{"b":"JJ Bumrah","balls":["2",".","1","2",".","."],"wp":0.455},{"b":"Kuldeep Yadav","balls":[".",".","1","1","1","1"],"wp":0.444},{"b":"JJ Bumrah","balls":[".","1",".","1",".","2"],"wp":0.426},{"b":"YS Chahal","balls":["1",".","W",".",".","."],"wp":0.298},{"b":"JJ Bumrah","balls":[".","4","4b",".","2","."],"wp":0.318},{"b":"AR Patel","balls":["1",".",".",".",".","4"],"wp":0.301},{"b":"Kuldeep Yadav","balls":["1","1","2","1","4","4"],"wp":0.345},{"b":"AR Patel","balls":["1",".","1","1",".","6"],"wp":0.359},{"b":"Kuldeep Yadav","balls":["1","1","W","1",".","."],"wp":0.25},{"b":"JJ Bumrah","balls":["1",".","6","wd","2","4","1"],"wp":0.313},{"b":"YS Chahal","balls":["4","1",".",".","1","1"],"wp":0.301},{"b":"RA Jadeja","balls":["6","W","1",".","6","1"],"wp":0.28},{"b":"YS Chahal","balls":["1",".",".","1","wd",".","1"],"wp":0.229},{"b":"RA Jadeja","balls":["4","4","1","1","1","."],"wp":0.242},{"b":"S Dube","balls":["1",".","1","1","1lb","4"],"wp":0.205},{"b":"Kuldeep Yadav","balls":["1",".","6","4",".","6"],"wp":0.283},{"b":"YS Chahal","balls":["W",".","1","W","1lb","."],"wp":0.046},{"b":"AR Patel","balls":["wd",".","W","1","1b",".","1"],"wp":0.004},{"b":"RA Jadeja","balls":[".","1","1","1","4","6"],"wp":0.004},{"b":"AR Patel","balls":["1",".",".","1","1","4"],"wp":0.0}],"bowlers":["JJ Bumrah","Kuldeep Yadav","YS Chahal","AR Patel","RA Jadeja","S Dube"],"runs":156,"wkts":6,"card":[["DA Warner",59,41,"st †SV Samson b RA Jadeja"],["MR Marsh",7,11,"b YS Chahal"],["JP Inglis",8,11,"c & b Kuldeep Yadav"],["GJ Maxwell",44,24,"c V Kohli b YS Chahal"],["MP Stoinis",5,11,"c & b YS Chahal"],["TH David",17,11,"not out"],["AC Agar",0,3,"c & b AR Patel"],["NT Ellis",6,8,"not out"]],"bowl_card":[["JJ Bumrah","4.0",30,0],["Kuldeep Yadav","4.0",37,1],["YS Chahal","4.0",13,3],["AR Patel","4.0",24,1],["RA Jadeja","3.0",38,1],["S Dube","1.0",7,0]]}],"kind":{"JR Hazlewood":"pace","AC Agar":"spin","GJ Maxwell":"spin","NT Ellis":"pace","MA Starc":"pace","A Zampa":"spin","MR Marsh":"pace","MP Stoinis":"pace","JJ Bumrah":"pace","Kuldeep Yadav":"spin","YS Chahal":"spin","AR Patel":"spin","RA Jadeja":"spin","S Dube":"pace","TH David":"pace","HH Pandya":"pace","Arshdeep Singh":"pace"},"xi":{"India":["YBK Jaiswal","RG Sharma","V Kohli","SV Samson","SA Yadav","S Dube","RA Jadeja","AR Patel","Kuldeep Yadav","JJ Bumrah","YS Chahal"],"Australia":["DA Warner","MR Marsh","JP Inglis","GJ Maxwell","MP Stoinis","TH David","AC Agar","NT Ellis","MA Starc","A Zampa","JR Hazlewood"]},"result":"India won by 28 runs","pom":"V Kohli","turning":{"over":17,"bowler":"YS Chahal","runs":2,"wkts":2,"swing":24},"source":"results/last: India v Australia, seed 1336167755"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* team colours: webui/teams.js (key -> short, background, text, accent) */
+const TEAM = {
+  'India': ['IND', '#1f6fd1', '#fff', '#ff9933'], 'Australia': ['AUS', '#ffcd00', '#003b1f', '#00843d'],
+  'England': ['ENG', '#1d3c8f', '#fff', '#e4002b'], 'Pakistan': ['PAK', '#01693d', '#fff', '#a7d65a'],
+  'South Africa': ['RSA', '#007a4d', '#fff', '#ffb612'], 'New Zealand': ['NZ', '#111', '#fff', '#9aa3ad'],
+  'Sri Lanka': ['SL', '#0b3f8f', '#fff', '#f7b500'], 'West Indies': ['WI', '#7b1e3a', '#fff', '#f2c230'],
+  'Afghanistan': ['AFG', '#1a5fb4', '#fff', '#d32f2f'], 'Bangladesh': ['BAN', '#006a4e', '#fff', '#f42a41'],
+  'Chennai Super Kings': ['CSK', '#F9CD05', '#1a1a1a', '#0081E9'], 'Mumbai Indians': ['MI', '#004BA0', '#fff', '#D1AB3E'],
+  'Royal Challengers Bengaluru': ['RCB', '#2B2A29', '#fff', '#EC1C24'], 'Kolkata Knight Riders': ['KKR', '#3A225D', '#fff', '#B3A123'],
+  'Sunrisers Hyderabad': ['SRH', '#F26522', '#000', '#000'], 'Rajasthan Royals': ['RR', '#EA1A85', '#fff', '#254AA5'],
+  'Delhi Capitals': ['DC', '#17479E', '#fff', '#EF1B23'], 'Punjab Kings': ['PBKS', '#D71920', '#fff', '#DCDDDF'],
+  'Gujarat Titans': ['GT', '#1B2133', '#fff', '#B8975A'], 'Lucknow Super Giants': ['LSG', '#0057E2', '#fff', '#F28B00']};
+const NATIONS = Object.keys(TEAM).slice(0, 10), IPL = Object.keys(TEAM).slice(10);
+const tm = n => TEAM[n] || [String(n).slice(0, 3).toUpperCase(), '#3a4a68', '#fff', '#5a6a88'];
+const badge = (n, cls = 'sm') => { const t = tm(n); return `<span class="badge ${cls} nc" style="--c:${t[1]};--f:${t[2]};--a:${t[3]}">${t[0]}</span>`; };
+const short = n => tm(n)[0];
+const sur = n => !n ? '' : n === 'Kuldeep Yadav' ? 'Kuldeep' : n.split(' ').pop();   // "V Kohli" -> "Kohli"
+
+/* ───────── navigation, detail level, toasts, sheets ───────── */
+let CUR = 'home'; const HIST = [];
+function go(id, push = true) {
+  if (push && id !== CUR) HIST.push(CUR);
+  document.querySelectorAll('.scr').forEach(s => s.classList.toggle('on', s.id === 's-' + id));
+  CUR = id; closeSheet(true); hideCoach(); notes(); recount();
+}
+function back() { go(HIST.pop() || 'home', false); }
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = back);
+document.querySelectorAll('[data-home]').forEach(b => b.onclick = () => { HIST.length = 0; go('home', false); });
+document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+document.querySelectorAll('[data-toast]').forEach(b => b.onclick = () => toast(b.dataset.toast));
+
+function setDetail(d) {
+  document.body.classList.toggle('detail-full', d === 'full'); document.body.classList.toggle('detail-simple', d !== 'full');
+  document.querySelectorAll('.detail-sw button').forEach(b => b.classList.toggle('on', b.dataset.d === d));
+  try { localStorage.setItem('mock.detail', d); } catch (e) { /* private window */ }
+  recount();
+}
+document.querySelectorAll('.detail-sw button').forEach(b => b.onclick = () => setDetail(b.dataset.d));
+try { setDetail(localStorage.getItem('mock.detail') || 'simple'); } catch (e) { setDetail('simple'); }
+
+let toastT;
+function toast(msg, ms = 1600) {
+  const t = $('toast'); t.innerHTML = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms);
+}
+let SHEET = null, sheetClose = null;
+function openSheet(kind, html, onClose) {
+  $('sheet-in').innerHTML = html; SHEET = kind; sheetClose = onClose || null;
+  $('sheet').scrollTop = 0; $('sheet').classList.add('on'); $('dim').classList.add('on'); notes(); recount();
+}
+function closeSheet(silent) {
+  if (!SHEET) return;
+  $('sheet').classList.remove('on'); $('dim').classList.remove('on');
+  const k = SHEET, f = sheetClose; SHEET = null; sheetClose = null;
+  if (!silent && f) f(k);
+  notes(); recount();
+}
+$('dim').onclick = () => { if (SHEET !== 'bowler' && SHEET !== 'break') closeSheet(); };
+
+/* ───────── home ───────── */
+const ICON = {
+  friend: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="8" height="14" rx="2"/><rect x="14" y="5" width="8" height="14" rx="2"/><path d="M10 12h4"/></svg>',
+  season: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>',
+  auction: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4l6 6M11 7l6 6M12.5 5.5l-6 6 4 4 6-6zM8.5 13.5L3 19M14 21h7"/></svg>',
+  sandbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3M7 15h10"/></svg>'};
+const DOORS = [
+  {k: 'friend', t: 'Play a friend', s: 'Two phones', c: '#1c7a4c', go: 'mp'},
+  {k: 'season', t: 'Seasons & careers', s: 'Real leagues', c: '#7a4b12', cards: [
+    ['League season', 'Any season of 11 leagues.'], ['Career', 'Run a franchise, year after year.']]},
+  {k: 'auction', t: 'Auction & draft', s: 'Build a squad', c: '#5b2c83', cards: [
+    ['Auction', 'Bid for a squad, then play.'], ['Fantasy draft', 'Pick players in turns.']]},
+  {k: 'sandbox', t: 'What-if sandbox', s: 'Any era', c: '#24508f', cards: [
+    ['Match or series', 'Two teams, up to 7 matches.'], ['Tournament', 'A World Cup or league of your own.'],
+    ['Classic series', 'Great sides from any era.'], ['Classic tournament', 'Eras meet in one event.'],
+    ['Team builder', 'Make and save your own XI.']]}];
+$('doors').innerHTML = DOORS.map((d, i) => `<button class="door" data-i="${i}" style="--dc:${d.c}"><span class="ic">${ICON[d.k]}</span><b>${d.t}</b><span class="muted small">${d.s}</span></button>`).join('');
+$('doors').querySelectorAll('.door').forEach(b => b.onclick = () => {
+  const d = DOORS[+b.dataset.i];
+  if (d.go) return go(d.go);
+  $('door-t').textContent = d.t;
+  $('door-list').innerHTML = d.cards.map(c => `<button class="ch-card" style="--dc:${d.c}"><span class="ic">${ICON[d.k]}</span><div><b>${c[0]}</b><span>${c[1]}</span></div></button>`).join('');
+  $('door-list').querySelectorAll('.ch-card').forEach(c => c.onclick = () => toast('Opens its setup screen (phase 4)'));
+  go('door');
+});
+$('alltiles').innerHTML = ['Match', 'Series', 'Tournament', 'Classic series', 'Classic tourn.', 'League season', 'Career', 'Auction', 'Draft', 'Two players', 'Team builder']
+  .map(t => `<button>${t}</button>`).join('');
+const HERO = {t: ['India', 'Australia'], fmt: 'T20'};
+function drawHero() {
+  [0, 1].forEach(i => { $('h-b' + i).innerHTML = badge(HERO.t[i], 'hb'); $('h-n' + i).textContent = HERO.t[i]; });
+  $('h-fmtw').textContent = HERO.fmt;
+  document.querySelectorAll('#h-fmt button').forEach(b => b.classList.toggle('on', b.dataset.f === HERO.fmt));
+}
+drawHero();
+document.querySelectorAll('#h-fmt button').forEach(b => b.onclick = () => { HERO.fmt = b.dataset.f; drawHero(); });
+document.querySelectorAll('.tpick').forEach(b => b.onclick = () => teamSheet(+b.dataset.side, 'n'));
+function teamSheet(side, tab) {
+  const list = tab === 'n' ? NATIONS : IPL;
+  openSheet('team', `<h3>Choose a team</h3>
+    <div class="seg" style="margin-bottom:8px"><button data-tab="n" class="${tab === 'n' ? 'on' : ''}">Nations</button><button data-tab="i" class="${tab === 'i' ? 'on' : ''}">IPL 2026</button></div>
+    <div class="tlist">${list.map(n => `<button data-n="${esc(n)}">${badge(n, 'md')}<span class="nc">${esc(n)}</span>${HERO.t[side] === n ? '<span class="ck">&#10003;</span>' : ''}</button>`).join('')}</div>`);
+  $('sheet-in').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => teamSheet(side, b.dataset.tab));
+  $('sheet-in').querySelectorAll('[data-n]').forEach(b => b.onclick = () => { HERO.t[side] = b.dataset.n; drawHero(); closeSheet(); });
+}
+$('h-play').onclick = () => { newMatch(); resetToss(); go('pre'); };
+$('h-sim').onclick = () => { newMatch(); simUntil(() => false, true); drawResult(true); go('result'); };
+$('h-cont').onclick = () => toast('Opens the season where you left it');
+
+/* ───────── pre-match: toss ───────── */
+let LEN = 'every';
+document.querySelectorAll('#pm-len button').forEach(b => b.onclick = () => {
+  LEN = b.dataset.l; document.querySelectorAll('#pm-len button').forEach(x => x.classList.toggle('on', x === b));
+});
+function resetToss() {
+  $('pm-teams').innerHTML = `${badge('India', 'md')}<span class="muted">v</span>${badge('Australia', 'md')}`;
+  $('pm-fmt').textContent = D.fmt; $('pm-pitch').textContent = D.pitch;
+  $('toss-q').textContent = 'Call the toss'; $('coin').textContent = 'H';
+  $('toss-b').style.display = '';
+}
+$('toss-b').querySelectorAll('button').forEach(b => b.onclick = () => {
+  const call = b.dataset.call, other = call === 'Heads' ? 'Tails' : 'Heads';   // the real toss: Australia won it
+  $('toss-b').style.display = 'none'; $('toss-q').textContent = '';
+  const c = $('coin'); c.classList.remove('flip'); void c.offsetWidth; c.classList.add('flip');
+  setTimeout(() => { c.textContent = other[0]; }, 500);
+  setTimeout(() => {
+    $('toss-q').innerHTML = `${other}. <span class="nc">Australia</span> won the toss and chose to bowl. You bat.`;
+    setTimeout(() => { if (CUR === 'pre') startLive(); }, 1500);
+  }, RM ? 0 : 1000);
+});
+$('pm-xi').onclick = () => openSheet('xi', `<h3>Your XI</h3><ol class="xi">${D.xi.India.map((n, i) => `<li><span>${i + 1}</span><b class="nc">${esc(n)}</b></li>`).join('')}</ol>
+  <div style="display:flex;gap:8px;margin-top:12px"><button class="btn go" style="flex:2" id="xi-use">Use this XI</button><button class="btn sec" style="flex:1" id="xi-edit">Edit</button></div>`);
+document.addEventListener('click', e => {
+  if (e.target.id === 'xi-use') closeSheet();
+  if (e.target.id === 'xi-edit') toast('Reorder, swap with the bench, keeper (phase 3)');
+});
+
+/* ───────── the match: replays results/last ball by ball ───────── */
+const BAT_WORD = {1: 'Block', 2: 'Defend', 3: 'Careful', 4: 'Steady', 5: 'Normal', 6: 'Positive', 7: 'Attack', 8: 'Hit out', 9: 'Slog'};
+const BOWL_WORD = {1: 'Contain', 2: 'Very tight', 3: 'Tight', 4: 'Steady', 5: 'Normal', 6: 'Probing', 7: 'Attack', 8: 'Very attacking', 9: 'All-out attack'};
+const MAXOV = 4;
+let M, HL = 'every';
+function newMatch() {
+  M = {inn: 0, sc: [{r: 0, w: 0, lb: 0}, {r: 0, w: 0, lb: 0}], assign: [D.inns[0].overs.map(o => o.b), []], bars: {},
+       wpI: 0.5, phase: 'ball', view: 'st', coached: false, bowlCoached: false, wps: [0.5]};
+  startInnings(0);
+}
+function startInnings(i) {
+  const I = D.inns[i];
+  Object.assign(M, {inn: i, oi: 0, bi: 0, s: I.order[0], ns: I.order[1], nxt: 2, fk: 0, chips: [], bat: {}, bowl: {}, last: null, lastBowler: null, view: 'st'});
+  M.bat[M.s] = {r: 0, b: 0}; M.bat[M.ns] = {r: 0, b: 0};
+  M.phase = i === 1 ? 'needBowler' : 'ball';
+}
+const indiaBat = () => D.inns[M.inn].bat === 'India';
+function bowlFig(n) {
+  const b = M.bowl[n] || {lb: 0, r: 0, w: 0, m: 0, d: 0};
+  return {...b, ov: `${Math.floor(b.lb / 6)}${b.lb % 6 ? '.' + (b.lb % 6) : ''}`, overs: Math.floor(b.lb / 6)};
+}
+function oversDone(n) { return M.assign[M.inn].filter((x, i) => x === n && i < M.oi).length; }
+function bowlOptions() {
+  const I = D.inns[M.inn], real = I.overs[M.oi].b;
+  const ok = n => oversDone(n) < MAXOV && n !== M.lastBowler;
+  const econ = n => { const f = bowlFig(n); return f.lb ? f.r / f.lb : 9; };
+  const avail = I.bowlers.filter(ok);
+  const sug = ok(real) ? real : avail.slice().sort((a, b) => econ(a) - econ(b))[0];
+  const rest = avail.filter(n => n !== sug).sort((a, b) => econ(a) - econ(b) || I.bowlers.indexOf(a) - I.bowlers.indexOf(b));
+  return {sug, top: rest.slice(0, 2), all: I.bowlers};
+}
+function step() {
+  const I = D.inns[M.inn];
+  if (M.inn === 1 && !M.assign[1][M.oi]) M.assign[1][M.oi] = bowlOptions().sug;
+  if (M.bi === 0) { M.chips = []; M.overStart = {r: M.sc[M.inn].r, w: M.sc[M.inn].w}; }
+  const O = I.overs[M.oi], b = O.balls[M.bi], bowler = M.assign[M.inn][M.oi];
+  const bw = M.bowl[bowler] || (M.bowl[bowler] = {lb: 0, r: 0, w: 0, m: 0, d: 0, ovr: 0});
+  if (M.bi === 0) bw.ovr = bw.r;
+  const sc = M.sc[M.inn], st = M.s, bs = M.bat[st];
+  const ev = {b, st, ns: M.ns, bowler, inn: M.inn, oi: M.oi, bi: M.bi, seed: M.inn * 1000 + M.oi * 12 + M.bi};
+  if (b === 'wd') { sc.r++; bw.r++; ev.kind = 'wd'; }
+  else {
+    sc.lb++; bw.lb++; bs.b++;
+    if (b === 'W') {
+      sc.w++; bw.w++; ev.kind = 'W';
+      const out = I.fow[M.fk++]; ev.out = out; ev.dis = I.dis[out] || ''; ev.outSc = {...M.bat[out]};
+      const nw = I.order[M.nxt++]; ev.newb = nw;
+      if (nw) M.bat[nw] = {r: 0, b: 0};
+      if (out === M.s) M.s = nw; else M.ns = nw;
+      M.view = 'st';
+    } else {
+      const r = b === '.' ? 0 : parseInt(b, 10), extra = /b$/.test(b);
+      sc.r += r; ev.r = r;
+      ev.kind = b === '.' ? '0' : extra ? (b.includes('lb') ? 'lb' : 'bye') : String(r);
+      if (!extra) { bs.r += r; bw.r += r; if (!r) bw.d++; }
+      if (r % 2) [M.s, M.ns] = [M.ns, M.s];
+    }
+  }
+  M.chips.push(b); M.bi++;
+  if (M.bi >= O.balls.length) {
+    ev.overEnd = true; if (bw.r === bw.ovr) bw.m++;
+    M.lastBowler = bowler; M.oi++; M.bi = 0; [M.s, M.ns] = [M.ns, M.s];
+    const wp = O.wp; M.wpI = M.inn === 0 ? wp : 1 - wp; M.wps.push(M.wpI);
+    if (M.oi >= I.overs.length) ev.innEnd = true;
+  }
+  if (ev.innEnd) M.phase = M.inn === 0 ? 'break' : 'end';
+  else if (ev.overEnd && M.inn === 1) M.phase = 'needBowler';
+  M.last = ev;
+  return ev;
+}
+/* play on without the user (Sim buttons, key moments, the mockup's jumps): the computer takes the suggestions */
+function simUntil(stop, throughBreak) {
+  let ev = null;
+  for (let guard = 0; guard < 400; guard++) {
+    if (M.phase === 'needBowler') { M.assign[1][M.oi] = bowlOptions().sug; M.phase = 'ball'; }
+    if (M.phase === 'break') { if (!throughBreak) break; startInnings(1); continue; }
+    if (M.phase === 'end') break;
+    ev = step();
+    if (stop(ev)) break;
+  }
+  return ev;
+}
+const isKey = oi => { const I = D.inns[M.inn]; return oi === 0 || oi >= I.overs.length - 3 || (oi > 0 && I.overs[oi - 1].balls.includes('W')); };
+
+/* ───────── field replay (presentation only; same idea as webui/highlight.js) ───────── */
+const FC = {x: 190, y: 120, rx: 178, ry: 110}, BAT = {x: 190, y: 140}, REL = {x: 190, y: 100}, KEEP = {x: 190, y: 156};
+const POS = {slip: [150, 'c', 30], gully: [118, 'c', 42], point: [92, .42], cover: [58, .44], 'mid-off': [18, .46], 'mid-on': [-18, .46],
+  midwicket: [-58, .44], 'square leg': [-95, .42], 'short fine leg': [-150, .38], 'third man': [140, .93], 'deep point': [95, .93],
+  'deep cover': [60, .93], 'long-off': [14, .94], 'long-on': [-14, .94], 'deep midwicket': [-55, .93], 'deep square leg': [-92, .93], 'fine leg': [-150, .93]};
+const FIELD = {pp: ['slip', 'point', 'cover', 'mid-off', 'mid-on', 'midwicket', 'square leg', 'third man', 'fine leg'],
+  mid: ['point', 'cover', 'mid-off', 'mid-on', 'midwicket', 'short fine leg', 'long-on', 'deep midwicket', 'deep point'],
+  death: ['point', 'cover', 'long-off', 'long-on', 'deep midwicket', 'deep square leg', 'deep point', 'third man', 'short fine leg']};
+function at(a, d) {
+  const r = a * Math.PI / 180;
+  return {x: FC.x + Math.sin(r) * d * FC.rx, y: FC.y - Math.cos(r) * d * FC.ry};
+}
+function fpos(name) {
+  const p = POS[name];
+  if (p[1] === 'c') { const r = p[0] * Math.PI / 180; return {x: BAT.x + Math.sin(r) * p[2], y: BAT.y - Math.cos(r) * p[2] * .62}; }
+  return at(p[0], p[1]);
+}
+let FPOS = [];
+(function mow() { let h = ''; for (let x = 0; x < 380; x += 32) h += `<rect x="${x}" y="0" width="16" height="236"/>`; $('mow').innerHTML = h; })();
+function drawField() {
+  const I = D.inns[M.inn], set = M.oi < 6 ? FIELD.pp : M.oi < 15 ? FIELD.mid : FIELD.death;
+  const bc = tm(I.bowl), btc = tm(I.bat);
+  FPOS = set.map(fpos);
+  const dot = (p, r = 4.2) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${bc[1]}" stroke="${bc[3]}" stroke-width="1.3"/>`;
+  $('fielders').innerHTML = FPOS.map(p => dot(p)).join('') + dot(KEEP) + dot({x: 190, y: 86}, 4.6);
+  ['st', 'ns'].forEach(id => { $(id).setAttribute('fill', btc[1]); $(id).setAttribute('stroke', btc[3]); $(id).setAttribute('stroke-width', '1.4'); });
+  $('flash').style.background = '';
+}
+function rng(seed) { let a = seed * 2654435761 >>> 0; return () => { a = a + 0x6D2B79F5 >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let TOK = 0;
+const ease = k => 1 - Math.pow(1 - k, 2.2);
+function tween(ms, fn) {
+  const my = TOK;
+  return new Promise(res => {
+    if (RM || ms <= 0) { fn(1); return res(true); }
+    const t0 = performance.now();
+    const f = now => { if (my !== TOK) return res(false); const k = Math.min(1, (now - t0) / ms); fn(k); k < 1 ? requestAnimationFrame(f) : res(true); };
+    requestAnimationFrame(f);
+  });
+}
+const wait = ms => tween(ms, () => {});
+function ballAt(p, h = 0) {
+  const b = $('ball'), s = $('ball-sh');
+  b.setAttribute('visibility', 'visible'); s.setAttribute('visibility', 'visible');
+  b.setAttribute('cx', p.x); b.setAttribute('cy', p.y - h); b.setAttribute('r', 3 + h * .06);
+  s.setAttribute('cx', p.x); s.setAttribute('cy', p.y + 2);
+}
+const fly = (a, b, ms, arc = 0, e = ease) => tween(ms, k => { const q = e(k); ballAt({x: a.x + (b.x - a.x) * q, y: a.y + (b.y - a.y) * q}, arc * 4 * k * (1 - k)); });
+const OUT_TXT = {'0': '•', '1': '1', '2': '2', '3': '3', '4': 'FOUR', '6': 'SIX', W: 'OUT!', wd: 'WIDE', lb: 'LEG BYE', bye: 'BYE'};
+function showOut(ev) {
+  const o = $('out'), k = ev.kind;
+  o.className = 'out ' + (k === '4' ? 'k4' : k === '6' ? 'k6' : k === 'W' ? 'kW' : ['wd', 'lb', 'bye'].includes(k) ? 'kx' : 'k0');
+  o.textContent = OUT_TXT[k] || k; void o.offsetWidth; o.classList.add('show');
+}
+async function playBall(ev, onContact) {
+  const my = ++TOK; $('out').classList.remove('show');
+  const key = ev.kind === '4' || ev.kind === '6' || ev.kind === 'W';
+  const anim = !RM && (HL === 'every' || (HL === 'key' && key));
+  const R = rng(ev.seed);
+  if (!anim) { onContact(); showOut(ev); fx(ev); return; }
+  ballAt(REL, 6);
+  const wide = ev.kind === 'wd';
+  const pitchPt = {x: wide ? 206 : 190 + (R() - .5) * 4, y: 128 + R() * 6};
+  await fly(REL, pitchPt, 170, 4, k => k);
+  if (my !== TOK) return;
+  const atBat = {x: wide ? 210 : 192, y: BAT.y - 1};
+  await fly(pitchPt, atBat, 110, 3, k => k);
+  if (my !== TOK) return;
+  onContact();
+  const k = ev.kind;
+  if (k === '0' || k === 'wd' || k === 'bye') {
+    await fly(atBat, {x: KEEP.x + (k === 'bye' ? 9 : 0), y: KEEP.y + (k === 'bye' ? 22 : 0)}, k === 'bye' ? 380 : 200);
+  } else if (k === 'lb') {
+    await fly(atBat, {x: 176, y: 160}, 380);
+  } else if (k === 'W') {
+    const d = ev.dis;
+    if (/^(b |lbw|st )/.test(d)) {
+      if (/^st /.test(d)) await fly(atBat, KEEP, 160);
+      $('stumpsB').style.transformOrigin = '190px 144px'; $('stumpsB').style.transition = 'transform .25s'; $('stumpsB').style.transform = 'rotate(-16deg) translateY(-2px)';
+      setTimeout(() => { $('stumpsB').style.transform = ''; }, 900);
+    } else {
+      const catcher = /^c & b/.test(d) ? {x: 190, y: 92} : /^c †|^c †/.test(d) ? KEEP : FPOS[Math.floor(R() * FPOS.length)];
+      await fly(atBat, catcher, 520, 34);
+    }
+  } else {
+    const r = +k, a = (R() * 300 - 150), d = r === 4 ? 1.02 : r === 6 ? 1.18 : r === 1 ? .38 + R() * .3 : .62 + R() * .25;
+    const end = at(a, d);
+    if (r % 2 === 1) swapRunners();
+    await fly(atBat, end, r === 6 ? 760 : r === 4 ? 560 : 420, r === 6 ? 70 : r === 1 ? 4 : 2);
+  }
+  if (my !== TOK) return;
+  showOut(ev); fx(ev);
+  await wait(key ? 900 : 260);
+  if (my !== TOK) return;
+  $('ball').setAttribute('visibility', 'hidden'); $('ball-sh').setAttribute('visibility', 'hidden');
+}
+function swapRunners() {
+  const s = $('st'), n = $('ns'), sy = +s.getAttribute('cy'), ny = +n.getAttribute('cy');
+  tween(420, k => { s.setAttribute('cy', sy + (ny - sy) * k); n.setAttribute('cy', ny + (sy - ny) * k); }).then(() => { s.setAttribute('cy', 141); n.setAttribute('cy', 98); });
+}
+function fx(ev) {
+  const f = $('flash'), I = D.inns[ev.inn];
+  if (ev.kind === '4' || ev.kind === '6') { f.style.background = tm(I.bat)[1]; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+  if (ev.kind === 'W') { const fl = $('field'); fl.classList.remove('shake'); void fl.offsetWidth; fl.classList.add('shake'); }
+}
+
+/* ───────── live screen ───────── */
+const KIND_SVG = {
+  pace: '<svg class="kind" viewBox="0 0 24 24" fill="none" stroke="#ff9a76" stroke-width="2"><circle cx="15" cy="12" r="5"/><path d="M2 9h6M3 13h5M2 17h7"/></svg>',
+  spin: '<svg class="kind" viewBox="0 0 24 24" fill="none" stroke="#9ed1ff" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M4 8a9 9 0 0 1 14-3M20 16a9 9 0 0 1-14 3M18 2v4h-4M6 22v-4h4"/></svg>'};
+const kindOf = n => KIND_SVG[D.kind[n] || 'pace'];
+const settled = b => Math.round(100 * (1 - Math.exp(-b / 9)));    // illustrative: the real build shows the engine's curve
+function startLive() { M.coached = false; drawField(); go('live'); renderLive(); setTimeout(() => coach(1), 500); }
+function renderLive(popLast) {
+  const I = D.inns[M.inn], sc = M.sc[M.inn], ov = `${Math.floor(sc.lb / 6)}.${sc.lb % 6}`;
+  $('bug').style.setProperty('--tc', tm(I.bat)[1]);
+  $('bug-b').innerHTML = badge(I.bat);
+  $('bug-sc').textContent = `${sc.r}/${sc.w}`; $('bug-ov').innerHTML = `${ov} <span style="font-size:.8rem">ov</span>`;
+  if (M.inn === 0) $('bug-r').innerHTML = `<span class="nc">${short(I.bowl)}</span> yet to bat<span class="full-only"><br>Projected <b>${sc.lb >= 6 ? Math.round(sc.r / sc.lb * 120) : '–'}</b></span>`;
+  else {
+    const need = D.inns[0].runs + 1 - sc.r, left = 120 - sc.lb;
+    $('bug-r').innerHTML = need > 0 ? `Need <b>${need}</b> off <b>${left}</b><br><span class="nc">${short(D.inns[0].bat)} ${D.inns[0].runs}/${D.inns[0].wkts}</span><span class="full-only"> · RRR ${(need / left * 6).toFixed(1)}</span>`
+      : 'Target reached';
+  }
+  const p = Math.round(M.wpI * 100);
+  $('wp-i').style.width = p + '%';
+  $('wp-i').parentNode.style.setProperty('--wc1', tm('India')[1]); $('wp-i').parentNode.style.setProperty('--wc2', tm('Australia')[1]);
+  $('wp-t').innerHTML = `<span class="nc">${p}% IND</span>`;
+  $('wp-x').innerHTML = `CRR <span class="nc">${sc.lb ? (sc.r / sc.lb * 6).toFixed(1) : '0.0'}</span>`;
+  const chips = M.chips.map((b, i) => {
+    const c = b === '4' ? 'c4' : b === '6' ? 'c6' : b === 'W' ? 'cW' : /wd|b$/.test(b) ? 'cx' : '';
+    const t = b === '.' ? '•' : b === 'wd' ? 'wd' : b;
+    return `<span class="bc ${c} ${popLast && i === M.chips.length - 1 ? 'pop' : ''}">${t}</span>`;
+  });
+  const legal = M.chips.filter(b => b !== 'wd').length;
+  for (let i = legal; i < 6; i++) chips.push('<span class="bc e"></span>');
+  $('chips').innerHTML = chips.join('');
+  const pl = (n, star) => { const s = M.bat[n]; if (!s) return ''; return `<span class="pl ${star ? 'st' : ''}"><b class="nc">${esc(n)}${star ? '*' : ''}</b><span class="num nc">${s.r} (${s.b})</span>${s.b < 10 ? '<span class="new-tag simple-only">NEW</span>' : ''}<span class="fs full-only"><i><u style="width:${settled(s.b)}%"></u></i>settled ${settled(s.b)}% · SR ${s.b ? Math.round(s.r / s.b * 100) : 0}</span></span>`; };
+  const cur = M.assign[M.inn][M.oi], bwn = (M.bi > 0 ? cur : M.chips.length ? M.lastBowler : cur) || M.lastBowler;
+  const f = bowlFig(bwn);
+  $('cards').innerHTML = `<div class="ln">${pl(M.s, true)}${pl(M.ns, false)}</div>
+    <div class="bw">${kindOf(bwn)}<b class="nc">${esc(bwn || '')}</b><span class="num nc">${f.w}-${f.r} (${f.ov})</span><span class="full-only small">· dots ${f.d} · econ ${f.lb ? (f.r / f.lb * 6).toFixed(1) : '–'}</span></div>`;
+  renderBars();
+  recount();
+}
+function barsHTML(val, words) {
+  return `<div class="bars" role="radiogroup">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(v => {
+    const hue = 215 - (v - 1) * 27;
+    return `<button data-v="${v}" class="${v === val ? 'on' : v < val ? 'lit' : ''}" title="${v} · ${words[v]}" aria-label="${words[v]}" style="--bc:hsl(${hue},85%,${v === 5 ? 60 : 56}%)">
+      <i style="height:${10 + v * 4.6}px"></i><small class="full-only">${v}</small></button>`;
+  }).join('')}</div>`;
+}
+function renderBars() {
+  const box = $('bars');
+  if (indiaBat()) {
+    const who = M.view === 'ns' ? M.ns : M.s, other = M.view === 'ns' ? M.s : M.ns;
+    const v = M.bars[who] || 5;
+    box.innerHTML = `<div class="bars-h"><span class="who"><span class="nc">${esc(sur(who))}</span>'s approach</span><button class="info" id="b-info">i</button>
+      <button class="ns-chip" id="b-ns">${M.view === 'ns' ? 'Back to striker' : `<span class="nc">${esc(sur(other))}</span>: ${BAT_WORD[M.bars[other] || 5]} &#9662;`}</button>
+      <span class="word">${BAT_WORD[v]}</span></div>${barsHTML(v, BAT_WORD)}`;
+    $('b-ns').onclick = () => { M.view = M.view === 'ns' ? 'st' : 'ns'; renderBars(); recount(); };
+  } else {
+    const who = M.assign[1][M.oi] || M.lastBowler, v = M.bars['b:' + who] || 5;
+    box.innerHTML = `<div class="bars-h"><span class="who"><span class="nc">${esc(sur(who))}</span>'s plan</span><button class="info" id="b-info">i</button>
+      <span class="word">${BOWL_WORD[v]}</span></div>${barsHTML(v, BOWL_WORD)}`;
+  }
+  $('b-info').onclick = () => openSheet('info', indiaBat()
+    ? '<h3>Approach</h3><p>Higher = more runs, more risk. 5 is how real teams bat here.</p><p class="muted" style="margin-top:8px">Keys 1–9, Space = next ball.</p>'
+    : '<h3>Plan</h3><p>Higher = more wickets, more runs. 5 is a normal plan.</p><p class="muted" style="margin-top:8px">Keys 1–9, Space = next ball.</p>');
+  box.querySelectorAll('.bars button').forEach(b => b.onclick = () => setBars(+b.dataset.v));
+}
+function setBars(v) {
+  if (indiaBat()) M.bars[M.view === 'ns' ? M.ns : M.s] = v;
+  else M.bars['b:' + (M.assign[1][M.oi] || M.lastBowler)] = v;
+  renderBars(); recount();
+}
+
+/* actions */
+let BUSY = false;
+async function nextBall() {
+  if (SHEET || CUR !== 'live') return;
+  if (gate()) return;
+  hideCoach();
+  const before = M.s, ev = step();
+  const contact = () => { renderLive(true); tick(); };
+  BUSY = true; await playBall(ev, contact); BUSY = false;
+  after(ev, before);
+}
+function tick() { const s = $('bug-sc'); s.classList.add('tick'); setTimeout(() => s.classList.remove('tick'), 350); }
+function gate() {        // a decision is due before the next ball
+  if (M.phase === 'needBowler') { bowlerSheet(); return true; }
+  if (M.phase === 'break') { breakSheet(); return true; }
+  if (M.phase === 'end') { drawResult(false); go('result'); return true; }
+  return false;
+}
+function after(ev, strikerBefore) {
+  if (!ev) return;
+  if (ev.kind === 'W') {
+    const I = D.inns[ev.inn], o = ev.outSc;
+    toast(`<b class="nc">${esc(ev.out)}</b> ${esc(ev.dis)} <span class="nc">${o.r} (${o.b})</span>${ev.newb && !ev.innEnd ? `<br><span class="nc">${esc(ev.newb)}</span> comes in` : ''}`, 2200);
+  } else if (indiaBat() && M.s !== strikerBefore && !ev.innEnd) {
+    setTimeout(() => toast(`<span class="nc">${esc(sur(M.s))}</span> on strike: ${BAT_WORD[M.bars[M.s] || 5]}`, 1000), ev.kind === '4' || ev.kind === '6' ? 700 : 150);
+  }
+  if (ev.overEnd && !ev.innEnd) drawField();
+  if (ev.overEnd && !ev.innEnd && LEN === 'key' && !isKey(M.oi)) return keySkip();
+  if (ev.innEnd) setTimeout(() => { if (CUR === 'live' && !SHEET) gate(); }, 1100);
+  else if (M.phase === 'needBowler') setTimeout(() => { if (CUR === 'live' && !SHEET) bowlerSheet(); }, 700);
+}
+function keySkip() {
+  const from = M.oi + 1, s0 = {...M.sc[M.inn]};
+  simUntil(ev => ev.innEnd || (ev.overEnd && isKey(M.oi)));
+  const sc = M.sc[M.inn], top = [M.s, M.ns].filter(Boolean).sort((a, b) => M.bat[b].r - M.bat[a].r)[0];
+  drawField(); renderLive();
+  toast(`Overs ${from}–${M.oi}: <span class="nc">${sc.r - s0.r}/${sc.w - s0.w}, ${esc(top)} ${M.bat[top].r}*</span>`, 2400);
+  if (M.phase !== 'ball') setTimeout(() => { if (!SHEET) gate(); }, 900);
+}
+function simTo(kind) {
+  if (M.phase === 'break' || M.phase === 'end') { closeSheet(true); gate(); return; }
+  closeSheet(true); TOK++;
+  const inn0 = M.inn;
+  const ev = simUntil(e => kind === 'over' ? e.overEnd : kind === 'wicket' ? e.kind === 'W' || e.innEnd : kind === 'innings' ? e.innEnd : false, kind === 'match');
+  if (M.inn !== inn0 || ev && ev.overEnd) drawField();
+  renderLive(); if (ev) { showOut(ev); }
+  $('ball').setAttribute('visibility', 'hidden'); $('ball-sh').setAttribute('visibility', 'hidden');
+  if (kind === 'match' || M.phase === 'end') { setTimeout(() => { drawResult(false); go('result'); }, 600); return; }
+  if (ev && ev.kind === 'W') after(ev, null);
+  else if (M.phase !== 'ball') setTimeout(() => { if (!SHEET) gate(); }, 500);
+}
+$('b-next').onclick = nextBall;
+$('b-over').onclick = () => { hideCoach(); simTo('over'); };
+$('b-more').onclick = moreSheet;
+document.addEventListener('keydown', e => {
+  if (CUR !== 'live' || SHEET || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); nextBall(); }
+  else if (/^[1-9]$/.test(e.key)) setBars(+e.key);
+});
+
+/* sheets on the live screen */
+function bowlerSheet() {
+  const o = bowlOptions(), f = n => bowlFig(n);
+  const card = (n, sug) => { const x = f(n), left = MAXOV - oversDone(n);
+    return `<button class="bopt ${sug ? 'sug' : ''}" data-b="${esc(n)}">${kindOf(n)}<div><b><span class="nc">${esc(n)}</span>${sug ? '<span class="tag-s">SUGGESTED</span>' : ''}</b>
+      <span class="fig nc">${x.overs}-${x.m}-${x.r}-${x.w}</span></div><span class="left"><b class="nc">${left}</b> left</span></button>`; };
+  const rest = o.all.filter(n => n !== o.sug && !o.top.includes(n));
+  openSheet('bowler', `<h3>Over <span class="nc">${M.oi + 1}</span>: who bowls?</h3>
+    ${card(o.sug, true)}${o.top.map(n => card(n, false)).join('')}
+    <button class="lnk" id="bw-all" style="padding:6px 2px">See all bowlers</button>
+    <div id="bw-more" style="display:none">${rest.map(n => { const done = oversDone(n) >= MAXOV, lastO = n === M.lastBowler;
+      return done || lastO ? `<button class="bopt" disabled>${kindOf(n)}<div><b class="nc">${esc(n)}</b><span class="fig nc">${f(n).overs}-${f(n).m}-${f(n).r}-${f(n).w}</span></div><span class="left">${done ? 'done' : 'bowled last over'}</span></button>` : card(n, false); }).join('')}</div>`);
+  $('bw-all').onclick = () => { $('bw-more').style.display = ''; $('bw-all').style.display = 'none'; recount(); };
+  $('sheet-in').querySelectorAll('[data-b]').forEach(b => b.onclick = () => {
+    M.assign[1][M.oi] = b.dataset.b; M.phase = 'ball'; closeSheet(true); renderLive();
+    if (!M.bowlCoached) { M.bowlCoached = true; }
+  });
+  if (!M.bowlCoached) setTimeout(() => { if (SHEET === 'bowler') showCoachAt('Pick who bowls this over.', $('sheet'), 'down', null); }, 350);
+}
+function breakSheet() {
+  const a = D.inns[0];
+  openSheet('break', `<h3>Innings break</h3><p style="margin-bottom:14px"><span class="nc">India ${a.runs}/${a.wkts}</span>. <span class="nc">Australia</span> need <b class="nc">${a.runs + 1}</b> to win.</p>
+    <button class="btn go big" id="brk-go">Bowl the first over</button>`);
+  $('brk-go').onclick = () => { closeSheet(true); startInnings(1); drawField(); renderLive(); $('out').classList.remove('show'); bowlerSheet(); };
+}
+const DEC = {Toss: 1, XI: 0, Bowlers: 1, 'Next batter': 0, 'Impact Player': 0, 'Ball by ball': 1};
+function moreSheet() {
+  hideCoach();
+  openSheet('more', `<h3>More</h3>
+    <div class="sh-btns"><button class="btn sec" data-sim="wicket">Sim to next wicket</button><button class="btn sec" data-sim="innings">Sim to end of innings</button><button class="btn sec" data-sim="match">Sim to end of match</button></div>
+    <div class="sh-sec">Highlights</div>
+    <div class="seg" id="hl-seg"><button data-h="every">Every ball</button><button data-h="key">Wickets &amp; boundaries</button><button data-h="off">Off</button></div>
+    <div class="sh-sec">My decisions</div>
+    <div class="togs" id="dec">${Object.keys(DEC).map(k => `<button class="tog ${DEC[k] ? 'on' : ''}" data-k="${k}">${k}</button>`).join('')}</div>
+    <div class="sh-sec">Detail</div>
+    <div class="seg detail-sw"><button data-d="simple">Simple</button><button data-d="full">Full stats</button></div>
+    <div class="sh-btns" style="margin-top:16px"><button class="btn sec" id="m-card">Full scorecard</button><button class="btn sec" id="m-tips">Show the tips again</button><button class="btn sec" id="m-stop" style="color:#ff9aa5">Stop match</button></div>`);
+  const S = $('sheet-in');
+  const hl = () => S.querySelectorAll('#hl-seg button').forEach(b => b.classList.toggle('on', b.dataset.h === HL)); hl();
+  S.querySelectorAll('#hl-seg button').forEach(b => b.onclick = () => { HL = b.dataset.h; hl(); });
+  S.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => simTo(b.dataset.sim));
+  S.querySelectorAll('#dec .tog').forEach(b => b.onclick = () => { DEC[b.dataset.k] ^= 1; b.classList.toggle('on'); });
+  S.querySelectorAll('.detail-sw button').forEach(b => { b.classList.toggle('on', document.body.classList.contains('detail-full') === (b.dataset.d === 'full')); b.onclick = () => { setDetail(b.dataset.d); }; });
+  $('m-card').onclick = () => toast('Opens the match centre scorecard');
+  $('m-tips').onclick = () => { closeSheet(true); M.coached = false; coach(1); };
+  $('m-stop').onclick = () => { HIST.length = 0; go('home', false); };
+}
+
+/* coach marks (plan 6.9: three, one at a time) */
+let COACH = 0;
+function coach(n) {
+  if (CUR !== 'live' || M.coached || SHEET) return;
+  COACH = n;
+  if (n === 1) showCoachAt('Set your batter’s approach. Higher = more runs, more risk.', $('bars'), 'down', () => coach(2));
+  else if (n === 2) showCoachAt('Bowl the next ball. Space works too.', $('b-next'), 'down', () => coach(3));
+  else if (n === 3) showCoachAt('Skip ahead whenever you like. You can always take over.', $('b-over'), 'down', () => { M.coached = true; hideCoach(); });
+}
+function showCoachAt(text, el, dir, next) {
+  const c = $('coach'), P = $('phone'), ph = P.getBoundingClientRect(), r = el.getBoundingClientRect(), top0 = ph.top + P.clientTop, left0 = ph.left + P.clientLeft;
+  $('coach-t').textContent = text; c.className = 'coach on ' + dir;
+  const h = c.offsetHeight;
+  c.style.top = (dir === 'down' ? r.top - top0 - h - 12 : r.bottom - top0 + 12) + 'px';
+  c.style.setProperty('--ax', Math.max(14, Math.min(P.clientWidth - 50, r.left - left0 + r.width / 2 - 21)) + 'px');
+  $('coach-ok').onclick = () => { hideCoach(); if (next) next(); };
+  recount();
+}
+function hideCoach() { $('coach').className = 'coach'; }
+
+/* ───────── result ───────── */
+function drawResult(simulated) {
+  const a = D.inns[0], b = D.inns[1], pomRow = a.card.concat(b.card).find(r => r[0] === D.pom);
+  const best = b.bowl_card.slice().sort((x, y) => y[3] - x[3] || x[2] - y[2])[0];
+  const pts = [0.5].concat(a.overs.map(o => o.wp), b.overs.map(o => 1 - o.wp));
+  const W = 330, H = 96, xs = i => 4 + i * (W - 8) / (pts.length - 1), ys = v => 6 + (1 - v) * (H - 12);
+  const line = pts.map((v, i) => `${xs(i).toFixed(1)},${ys(v).toFixed(1)}`).join(' ');
+  const tp = D.turning;
+  $('res').innerHTML = `
+    <div class="kick">${simulated ? 'Simulated · ' : ''}${D.fmt} · ${esc(D.conditions)}</div>
+    <h1>${esc(D.result).replace(/^India/, '<span class="nc">India</span>')}</h1>
+    <div class="scs"><div>${badge('India')}<span class="nc">India</span><b class="nc">${a.runs}/${a.wkts}</b></div><div>${badge('Australia')}<span class="nc">Australia</span><b class="nc">${b.runs}/${b.wkts}</b></div></div>
+    <div class="card pom"><span class="av nc">VK</span><div><div class="kick">Player of the match</div><b class="nc">${esc(D.pom)}</b> <span class="muted nc">${pomRow[1]} (${pomRow[2]})</span></div></div>
+    <div class="tiles"><div><b class="nc">${pomRow[1]}</b><span>top score</span></div><div><b class="nc">${best[3]}-${best[2]}</b><span><span class="nc">${esc(best[0].split(' ').pop())}</span> best</span></div>
+      <div><b class="nc">${tp.swing}%</b><span>over <span class="nc">${tp.over}</span> swing</span></div></div>
+    <div class="card wpc"><div class="cap"><span>Win chance</span><span class="nc">IND</span></div>
+      <svg viewBox="0 0 ${W} ${H}" width="100%"><line x1="0" x2="${W}" y1="${ys(.5)}" y2="${ys(.5)}" stroke="#3a4a68" stroke-dasharray="3 4"/>
+        <line x1="${xs(20)}" x2="${xs(20)}" y1="0" y2="${H}" stroke="#3a4a68"/>
+        <polyline points="${line}" fill="none" stroke="#4c8dff" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      <div class="cap" style="margin-top:4px"><span>1st innings</span><span>2nd innings</span></div>
+      <div class="small muted full-only" style="text-align:left;margin-top:6px">Turning point: over ${tp.over}, <span class="nc">${esc(tp.bowler)}</span> ${tp.wkts} for ${tp.runs}.</div></div>
+    <div class="acts"><button class="btn go big" id="r-again">Play again</button><button class="btn sec" id="r-swap">Rematch, roles swapped</button><button class="lnk" id="r-card">Full scorecard</button></div>`;
+  $('r-again').onclick = () => { newMatch(); resetToss(); go('pre'); };
+  $('r-swap').onclick = () => toast('You captain Australia this time');
+  $('r-card').onclick = () => toast('Opens the match centre scorecard');
+}
+
+/* ───────── two players ───────── */
+function joinMode(linked) {
+  $('j-codebox').style.display = linked ? 'none' : ''; $('j-linked').style.display = linked ? '' : 'none';
+  $('j-code').value = linked ? 'KQPX' : ''; $('j-name').value = ''; joinValid();
+}
+function joinValid() { $('j-go').disabled = !(/^[A-Z]{4}$/.test($('j-code').value) && $('j-name').value.trim()); }
+$('j-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); joinValid(); if (e.target.value.length === 4) $('j-name').focus(); });
+$('j-name').addEventListener('input', joinValid);
+$('j-name').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('j-go').disabled) $('j-go').click(); });
+$('j-go').onclick = () => go('joined');
+document.querySelector('#s-mp [data-go="join"]').addEventListener('click', () => joinMode(false));
+document.querySelectorAll('#host-teams .optc').forEach(b => b.onclick = () => document.querySelectorAll('#host-teams .optc').forEach(x => x.classList.toggle('on', x === b)));
+document.querySelectorAll('#host-n button, #s-host .seg button').forEach(b => b.onclick = () => b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)));
+$('host-go').onclick = () => go('room');
+$('room-copy').onclick = () => { try { navigator.clipboard.writeText('http://192.168.1.23:5070/#join=KQPX'); } catch (e) { /* file:// */ } toast('Link copied'); };
+$('room-share').onclick = () => { if (navigator.share) navigator.share({title: 'Limited Overs', text: 'Join my game: KQPX', url: 'http://192.168.1.23:5070/#join=KQPX'}).catch(() => {}); else toast('Opens the phone’s share sheet'); };
+
+/* ───────── mockup bar, notes, word meter ───────── */
+function jump(k) {
+  HIST.length = 0; TOK++;
+  if (k === 'home') go('home', false);
+  else if (k === 'pre') { newMatch(); resetToss(); go('pre', false); }
+  else if (k === 'live') { newMatch(); simUntil(ev => ev.overEnd && M.oi === 10); M.coached = true; drawField(); go('live', false); renderLive(); $('out').classList.remove('show'); }
+  else if (k === 'bowler') { newMatch(); simUntil(ev => M.inn === 1 && ev.overEnd && M.oi === 16, true); M.coached = true; drawField(); go('live', false); renderLive(); $('out').classList.remove('show'); bowlerSheet(); }
+  else if (k === 'result') { newMatch(); simUntil(() => false, true); drawResult(false); go('result', false); }
+  else if (k === 'mp') go('mp', false);
+  else if (k === 'join' || k === 'joinlink') { joinMode(k === 'joinlink'); go('join', false); }
+  else if (k === 'host') go('host', false);
+  document.querySelectorAll('#mk [data-jump]').forEach(b => b.classList.toggle('on', b.dataset.jump === k));
+}
+document.querySelectorAll('#mk [data-jump]').forEach(b => b.onclick = () => jump(b.dataset.jump));
+$('mk-notes').onclick = () => { document.body.classList.toggle('nonotes'); $('mk-notes').classList.toggle('on'); };
+
+const NOTES = {
+  home: ['Phone home', '6.2', 50, 'above the fold', [
+    '<b>Play</b> = you captain India, ball by ball. Tap a badge to change team (the mockup still replays India v Australia).',
+    '<b>Just simulate the result</b> is what Play match does today.',
+    '<b>Continue</b> shows the one thing in progress (an example row here; hidden on a first visit).',
+    'Four doors replace the 11 tiles. Full stats also shows the old grid under them.']],
+  door: ['Door chooser', '6.2', 25, '', ['2–5 big cards, one line each. The cards open the setup screens (phase 4).']],
+  pre: ['Pre-match card', '6.3', 25, '', [
+    'Not a form: the XI is suggested, length is one chip, the toss is one tap.',
+    'The real toss: Australia won and chose to bowl, so you always lose the call here and bat.',
+    '<b>Clicks to the first ball:</b> Play, then Heads/Tails = 2, and the live screen opens by itself. If you win a toss, Bat/Bowl adds a third.',
+    '<b>Key moments</b> works here: it sims the quiet overs and stops for over 1, the over after a wicket and the last 3 overs.']],
+  live: ['Live screen', '6.4', 40, '', [
+    'Score bug, win chance, field, this over, one-line cards, the striker’s bars and the action bar all fit on one screen at 390x844. Nothing moves when a ball plays.',
+    'Every ball plays fast (about 0.8 s); 4, 6 and wickets get the longer replay, a flash or a shake.',
+    'Only the striker’s bars show; the chip opens the non-striker’s. A toast says who is on strike.',
+    'Keys 1–9 set the bars, Space bowls. <b>More ▾</b> has the other Sims, highlights, My decisions, detail and Stop.',
+    'Full stats adds settled %, SR, dots, economy, projected score and bar numbers (settled % is an illustrative curve here).',
+    'The replay is the real match: bars and bowler picks don’t change it.']],
+  bowler: ['Bowler sheet', '6.5', 15, 'in the sheet', [
+    'Real figures at the start of over 17, the match’s turning point. Bumrah and Kuldeep have bowled out; Kuldeep bowled over 16.',
+    'Suggested first, then the next two by economy. <b>See all bowlers</b> shows the rest, greyed out when they can’t bowl.',
+    'The score bug stays visible above the sheet.']],
+  result: ['Result', '6.3 step 4 · 6.8', 40, '', [
+    'One match shows a match: result, player of the match, 3 numbers and the win-chance line, then Play again.',
+    'No series scoreboard, records or MVP for a single match. The replay code is not shown.']],
+  mp: ['Play a friend', '6.7', 25, '', ['Two big buttons, nothing else.']],
+  join: ['Join', '6.7', 25, '', [
+    'Only the code (big, capitals as you type, letters only) and your name. Join lights up when both are filled.',
+    'Opened from a shared link, it asks only for the name (<b>Join from link</b> in the bar above).',
+    '<b>Joining from a phone:</b> code, name, then 1 tap.']],
+  joined: ['Joined', '6.7', 25, '', ['A holding screen until the host starts. Team picking follows (not mocked).']],
+  host: ['Host', '6.7', 0, 'on screen, labels included', [
+    'Help words (the card lines) are 13; the 25-word budget counts help text, not labels and buttons.',
+    'Step 1: how you get teams, as 3 cards. Step 2: how many matches. Then Open room.',
+    'Format, Era & grounds and Time per ball sit under More options, with defaults.']],
+  room: ['Room', '6.7', 25, '', ['The code is huge. Copy link, plus Share where the phone supports it. No QR code (it would need a vendored encoder).']]};
+function notes() {
+  const key = SHEET === 'bowler' ? 'bowler' : CUR, n = NOTES[key];
+  if (!n) { $('side').innerHTML = ''; return; }
+  $('side').innerHTML = `<h2>${n[0]} <span style="font-size:.8rem;color:#8f7fc9">plan ${n[1]}</span></h2>
+    <div class="meter" id="meter"></div><ul>${n[4].map(x => `<li>${x}</li>`).join('')}</ul>
+    <div class="src">Match data: ${esc(D.source)}. Purple = mockup only.</div>`;
+}
+/* words a reader sees, in the phone's visible area: names, team codes and numbers don't count (plan rule 4) */
+function countWords(root, clip) {
+  let n = 0; const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let t; (t = w.nextNode());) {
+    const el = t.parentElement;
+    if (!el || el.closest('.nc,script,style,.coach,.toast') || !t.textContent.trim()) continue;
+    const rg = document.createRange(); rg.selectNodeContents(t); const rr = rg.getBoundingClientRect();
+    if (!rr.width || !rr.height || rr.bottom <= clip.top + 1 || rr.top >= clip.bottom - 1) continue;
+    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || +cs.opacity === 0) continue;
+    n += t.textContent.split(/\s+/).filter(x => /[A-Za-z]/.test(x)).length;
+  }
+  return n;
+}
+var rcT;
+function recount() {
+  clearTimeout(rcT);
+  rcT = setTimeout(() => {
+    const m = $('meter'); if (!m) return;
+    const key = SHEET === 'bowler' ? 'bowler' : CUR, n = NOTES[key]; if (!n) return;
+    const clip = $('phone').getBoundingClientRect();
+    const root = key === 'bowler' ? $('sheet') : $('s-' + CUR);
+    const c = countWords(root, key === 'bowler' ? $('sheet').getBoundingClientRect() : clip);
+    const full = document.body.classList.contains('detail-full');
+    m.innerHTML = `Words ${n[3] || 'on screen'}${full ? ' (Full stats)' : ''}: <b class="${!n[2] || c <= n[2] || full ? 'ok' : 'bad'}">${c}</b>${n[2] ? ` · Simple budget ${n[2]}` : ''}`;
+    window.__words = c;
+  }, 60);
+}
+window.addEventListener('resize', recount);
+notes(); recount();
+</script>
+</body>
+</html>

@@ -46,6 +46,7 @@ function aTeams() {
 function aRefresh() {
   const years = $('a-pool').value === 'years';
   $('a-season-box').style.display = years ? 'none' : ''; $('a-years-box').style.display = years ? '' : 'none';
+  $('a-season-more').style.display = years ? 'none' : ''; $('a-years-more').style.display = years ? '' : 'none';
   if (MODE === 'auction') $('cond').style.display = years ? '' : 'none';
   const teams = aTeams(), keep = $('a-user').value, kr = $('a-retain').value, first = !$('a-user').options.length;
   fillSelect($('a-user'), [...teams.filter(Boolean).map(t => ({v: t, t})), {v: '', t: '— none: the computer bids for every team —'}]);
@@ -63,12 +64,14 @@ function aRefresh() {
   if (!mini) opts.push({v: 'none', t: 'No retentions'});
   fillSelect($('a-retain'), opts);
   $('a-retain-lbl').textContent = mini ? 'Squads to keep from' : 'Retain players from';
-  $('a-kind-hint').innerHTML = mini
+  $('a-kind-hint').innerHTML = (mini ? 'Keep any players at their price; release the rest.' : 'Keep up to 6; unused slots become Right to Match cards.')
+    + '<span class="full-only"> ' + (mini
     ? `As in the IPL's auctions between mega auctions (Dec 2023, Dec 2025): each team keeps any of its players at the price it paid
       (a real season's squads: estimated contracts), up to 25 players and 8 overseas, and releases the rest into the pool.
       The purse is ₹120 cr less the players kept. No Right to Match, no marquee set; an overseas buy above ₹18 cr is paid ₹18 cr,
-      but the whole bid comes off the purse.` + (opts.length ? '' : ' <span class="err">No squads to keep for these teams: play an auction first, or pick a real season with one before it.</span>')
-    : 'Up to 6 players kept at ₹18, 14, 11, 18 and 14 cr (capped) and ₹4 cr (uncapped); unused slots become Right to Match cards.';
+      but the whole bid comes off the purse.`
+    : 'Up to 6 players kept at ₹18, 14, 11, 18 and 14 cr (capped) and ₹4 cr (uncapped).') + '</span>'
+    + (mini && !opts.length ? ' <span class="err">No squads to keep for these teams: play an auction first, or pick a real season with one before it.</span>' : '');
   if ($('a-retain').dataset.picked && opts.some(o => o.v === kr)) $('a-retain').value = kr;   // else the first option
   $('a-captain-box').style.display = $('a-user').value ? '' : 'none';
   $('a-total').textContent = `${teams.length} teams · purse ₹120 cr each · squads of 18–25, max 8 overseas` +

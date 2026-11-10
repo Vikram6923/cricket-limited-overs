@@ -55,6 +55,27 @@ class Watcher(Dials):
         return super().decide(q)
 
 
+class Bowling(Watcher):
+    """Ball by ball, the bowler each over and the next batter: those questions carry the balls before them too (the
+    field shows the last ball of an over before the bowler sheet opens, and the wicket before the batter sheet)."""
+
+    def __init__(self, team):
+        Controller.__init__(self, team, {"ball", "bowler", "batter"})
+        self.bat, self.bowl, self.until, self.rng = 5, 5, None, None
+        self.asked, self.balls, self.kinds = [], [], set()
+
+    def decide(self, q):
+        if q["kind"] in ("bowler", "batter"):
+            assert len(q["since"]) <= 18
+            self.balls += q["since"]
+            if q["since"]:
+                self.kinds.add(q["kind"])
+            if q["kind"] == "batter":
+                assert q["since"] and q["since"][-1]["wicket"], q["since"][-1:]
+            return None
+        return super().decide(q)
+
+
 def play(fmt, seed, ctl=None):
     a, b, comp, year = GAMES[fmt]
     return simulate_match(TEAMS[a], TEAMS[b], fmt, comp, year, seed=seed, control={a: ctl} if ctl else None)
@@ -98,6 +119,17 @@ def main() -> None:
             assert (b["wicket"] is None) == (b["out"] is None) and 1 <= b["ball"] <= 6
             if b["wicket"] in ("caught_fielder", "caught_keeper", "caught_bowler", "stumped"):
                 assert b["fielder"] and b["fielder_role"] in ("keeper", "bowler", "fielder"), b
+    # with the bowler question as well: still each ball once, in order, and every ball of the first innings
+    # (its last balls arrive with the first question of the second)
+    for seed in range(3):
+        w = Bowling(GAMES["t20"][0])
+        card = play("t20", seed, w)
+        ns = [(b["innings"], b["n"]) for b in w.balls]
+        assert ns == sorted(set(ns)) and {"bowler", "batter"} <= w.kinds, (seed, w.kinds)
+        if len(card["innings"]) >= 2:
+            first = card["innings"][0]
+            got = [b for b in w.balls if b["innings"] == first["number"]]
+            assert sum(b["runs"] + b["extra_runs"] for b in got) == first["runs"], (seed, first["runs"])
     # pace: "over" asks once per over the side is involved in, "innings" once per innings, "wicket" once per
     # wicket (plus the start)
     for until, check in (("over", lambda asked, card: len(asked) == sum(len(i["overs_log"]) for i in card["innings"][:2])),

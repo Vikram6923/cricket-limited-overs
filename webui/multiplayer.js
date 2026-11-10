@@ -21,7 +21,7 @@ function mpStore(code, token) {
   try { localStorage.setItem(MP_KEY, v); } catch (e) { /* private mode */ }
 }
 function mpForget() {
-  Object.assign(MP, {token: null, code: null, active: false, built: false, team: null});
+  Object.assign(MP, {token: null, code: null, active: false, built: false, team: null, linksHTML: null});
   try { sessionStorage.removeItem(MP_KEY); } catch (e) { /* private mode */ }
   try { localStorage.removeItem(MP_KEY); } catch (e) { /* private mode */ }
   document.body.classList.remove('mp-on');
@@ -35,10 +35,37 @@ function mpSaved() {
 const mpQ = () => '/api/mp/state?token=' + encodeURIComponent(MP.token)
   + (MP.auV !== null && MP.auV !== undefined && $('v-auction').classList.contains('on') ? '&v=' + MP.auV : '');
 
+/* the mode's first screen: Host a game / Join with a code, then one pane.
+   pane: '' (the two buttons), 'host' (teams, matches; More options and Open a room) or 'join' (code, name, Join) */
+const MP_NAME_KEY = 'lo.name';
+const MP_TEAMS_LINE = {pick: 'Any nation, era or franchise', draft: 'Take turns picking players', auction: 'Bid for your squads'};
+function mpPane(p, link) {
+  const f = $('f-mp');
+  f.dataset.pane = p; f.classList.toggle('linked', !!link);
+  const host = p === 'host';
+  $('cond').style.display = host ? '' : 'none';
+  $('go-wrap').style.display = host ? '' : 'none';
+  if (p === 'join') {
+    $('mp-join-err').textContent = '';
+    $('mp-name').value = $('mp-name').value || lsGet(MP_NAME_KEY) || '';
+    document.querySelector('#mp-join-pane .lbl').textContent = link ? `Join game ${$('mp-code').value}` : 'Join a game';
+    setTimeout(() => (link || $('mp-code').value ? $('mp-name') : $('mp-code')).focus(), 50);
+  }
+}
+function mpSetupInit() {
+  $('mp-host-btn').onclick = () => mpPane('host');
+  $('mp-join-btn').onclick = () => mpPane('join');
+  document.querySelectorAll('[data-mp-pane]').forEach(b => b.onclick = () => mpPane(b.dataset.mpPane));
+  picker($('mp-teams'), o => `<span class="t"><b>${esc(o.text)}</b><small>${esc(MP_TEAMS_LINE[o.value] || '')}</small></span>`, 'cards');
+  picker($('mp-series'), o => esc(o.text), 'chips');
+  const go = () => mpJoin($('mp-code').value, $('mp-name').value);
+  $('mp-join').onclick = go;
+  $('mp-code').oninput = () => { $('mp-code').value = $('mp-code').value.toUpperCase().replace(/[^A-Z]/g, ''); if ($('mp-code').value.length === 4) $('mp-name').focus(); };
+  $('mp-code').onkeydown = $('mp-name').onkeydown = e => { if (e.key === 'Enter') go(); };
+}
+
 /* on page load: back into a room this tab (or browser) was in, or join from a ?join=CODE link */
 async function mpInit() {
-  $('mp-join').onclick = () => mpJoin($('mp-code').value);
-  $('mp-code').onkeydown = e => { if (e.key === 'Enter') mpJoin($('mp-code').value); };
   $('mp-leave').onclick = mpLeave;
   $('cap-back').onclick = () => mpControl('me');
   $('r-mp').onclick = mpRematch;
@@ -53,7 +80,7 @@ async function mpInit() {
     if (st && st.phase !== 'none') { setMode('mp'); MP.active = true; mpPoll(); return true; }
     mpForget();
   }
-  if (join) { setMode('mp'); $('mp-code').value = join; await mpJoin(join); return true; }
+  if (join) { setMode('mp'); $('mp-code').value = join; mpPane('join', true); return true; }   // the link has the code: ask the name
   return false;
 }
 
@@ -62,16 +89,18 @@ async function mpCreate() {
   const [lo, hi] = META.years[p.fmt];
   const r = await api('/api/mp/create', {fmt: p.fmt, comp: p.comp, year: p.year, venues: p.venues, seed: p.seed,
     rain: p.rain, clock: $('mp-clock').value, series: $('mp-series').value, teams: $('mp-teams').value,
-    y1: Math.max(lo, hi - 9), y2: hi, source: 'full', cpu: 0});
+    y1: Math.max(lo, hi - 9), y2: hi, source: 'full', cpu: 0, name: lsGet(MP_NAME_KEY) || ''});
   mpStore(r.code, r.token); MP.active = true; MP.built = false; mpPoll();
 }
 
-async function mpJoin(code) {
+async function mpJoin(code, name) {
   $('mp-join-err').textContent = '';
   code = String(code || '').trim().toUpperCase();
-  if (!code) { $('mp-join-err').textContent = 'Type the room code shown on the host\'s screen.'; return; }
+  if (!code) { $('mp-join-err').textContent = 'Type the room code shown on the host\'s screen.'; $('mp-code').focus(); return; }
+  name = String(name || '').trim();
+  if (name) lsSet(MP_NAME_KEY, name);
   try {
-    const r = await api('/api/mp/join', {code});
+    const r = await api('/api/mp/join', {code, name});
     mpStore(code, r.token); MP.active = true; MP.built = false;
     if (r.seat === 'spectator') toast('Both seats are taken - you are watching.');
     mpPoll();
@@ -86,6 +115,17 @@ async function mpLeave() {
 async function mpRematch() {
   try { await api('/api/mp/lobby', {token: MP.token, rematch: true}); } catch (e) { toast(e.message, true); }
   MP.built = false; mpPoll();
+}
+/* the join link to the clipboard (the Clipboard API needs https or localhost; else the old copy command) */
+async function mpCopy(url) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(url); ok = true; } catch (e) {
+    const t = document.createElement('textarea');
+    t.value = url; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
+    try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    t.remove();
+  }
+  toast(ok ? 'Link copied. Send it to your friend.' : url);
 }
 async function mpControl(who) {
   try { await api('/api/mp/control', {token: MP.token, who}); } catch (e) { toast(e.message, true); }
@@ -104,8 +144,7 @@ async function mpPoll() {
   MP.you = st.you;
   document.body.classList.toggle('mp-on', st.phase === 'playing');
   const running = st.phase === 'playing';
-  $('status-pill').textContent = running ? 'Running' : 'Idle';
-  $('status-pill').classList.toggle('run', running);
+  livePill(running, {captain: running});
   if (st.phase === 'none') { toast('The room was closed.', true); mpForget(); showView('v-home'); return; }
   if (st.phase === 'lobby') { mpLobby(st); POLL_T = setTimeout(mpPoll, 800); return; }
   if (st.phase !== 'auction') MP.auV = null;
@@ -137,10 +176,7 @@ function mpSeriesLine(sr, names, withMatch = true) {
 }
 
 /* ───────── the room before the match ───────── */
-function mpCompLabel(s) {
-  const c = ((META.formats[s.fmt] || {}).competitions || []).find(c => c.id === s.comp);
-  return c ? c.label : s.comp;
-}
+function mpCompLabel(s) { return compName(s.fmt, s.comp); }
 function mpLobby(st) {
   showView('v-mp');
   MP.settings = st.settings;
@@ -149,24 +185,29 @@ function mpLobby(st) {
   $('mp-room-code').textContent = st.code;
   const realSeason = s.teams === 'auction' && s.a_pool === 'season' && mpSeason(s);
   $('mp-cond').textContent = (realSeason ? `T20 · ${(mpLeague(s) || {}).label} ${realSeason.season} conditions${s.after === 'league' ? ' and home grounds' : ''}`
-    : `${s.fmt.toUpperCase()} · conditions of ${mpCompLabel(s)} ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`)
-    + ` · rain ${s.rain ? 'on' : 'off'} · shot clock ${s.clock === 'off' ? 'off' : s.clock + ' s a ball'}`
+    : `${s.fmt.toUpperCase()} · ${mpCompLabel(s)} conditions ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`)
+    + ` · rain ${s.rain ? 'on' : 'off'} · time per ball ${s.clock === 'off' ? 'off' : s.clock + ' s'}`
     + ` · ${mpPlayText(s)}`;
   const joined = st.seats[1].joined;
-  const links = me !== 0 || joined ? '' : st.lan
-    ? `<div class="lbl">Invite the other player</div><div class="sb-line">On their device${st.public ? '' : ' (same Wi-Fi)'}, open
-       ${st.urls.map(u => `<span class="mp-link">${esc(u)}</span>`).join(' or ') || 'this page'} - or open this page there,
-       choose <b>Two players</b> and type the code <b class="mp-code">${esc(st.code)}</b>.</div>`
-    : `<div class="lbl">Invite the other player</div><div class="sb-line bad">This server only accepts this computer. Restart it
-       with <code>python web_ui.py --lan</code> so another device can join (or open a second tab here to try it out: choose
-       Two players and type the code <b class="mp-code">${esc(st.code)}</b>).</div>`;
+  // the host's invite (6.7): the code big, Copy link, Share; without --lan only this computer can join (another tab)
+  MP.link = st.urls[0] || `${location.origin}/?join=${st.code}`;
+  const links = me !== 0 || joined ? '' : `<div class="mp-room"><div class="lbl">Room code</div>
+    <div class="mp-bigcode">${esc(st.code)}</div>
+    <div class="mp-share"><button class="btn go" id="mp-copy">Copy link</button>${navigator.share ? '<button class="btn sec" id="mp-sharebtn">Share</button>' : ''}</div>
+    ${st.lan ? `<div class="sb-line small">Your friend opens the link${st.public ? '' : ' (same Wi-Fi)'}, or taps <b>Join with a code</b>.</div>
+      <div class="small muted full-only">${st.urls.map(u => `<span class="mp-link">${esc(u)}</span>`).join(' or ')}</div>`
+    : `<div class="sb-line small bad">Only this computer can join (try a second tab). For another device, restart with <code>python web_ui.py --lan</code>.</div>`}</div>`;
   $('mp-links').style.display = links ? '' : 'none';
-  $('mp-links').innerHTML = links;
+  if (MP.linksHTML !== links) {                       // redrawn only when it changes (it polls every 0.8 s)
+    MP.linksHTML = links; $('mp-links').innerHTML = links;
+    if ($('mp-copy')) $('mp-copy').onclick = () => mpCopy(MP.link);
+    if ($('mp-sharebtn')) $('mp-sharebtn').onclick = () => navigator.share({title: 'Limited Overs', text: `Play me at cricket: room ${st.code}`, url: MP.link}).catch(() => {});
+  }
   const rec = st.record || {matches: [0, 0], series: [0, 0], played: 0, titles: [0, 0]};
   const titles = rec.titles || [0, 0];
   const recLine = i => rec.matches[0] + rec.matches[1] + titles[0] + titles[1] === 0 ? '' : `<div class="h2h">Won here: <b>${rec.matches[i]}</b> match${rec.matches[i] === 1 ? '' : 'es'}${rec.played ? ` · <b>${rec.series[i]}</b> series` : ''}${titles[0] + titles[1] ? ` · <b>${titles[i]}</b> league title${titles[i] === 1 ? '' : 's'}` : ''}</div>`;
   $('mp-seats').innerHTML = st.seats.map((x, i) => `<div class="mp-seat ${i === me ? 'me' : ''}" ${x.label ? `style="${tStyle(x.label)}"` : ''}>
-    <div class="who">Player ${i + 1}${i === 0 ? ' (host)' : ''}${i === me ? ' · you' : ''}</div>
+    <div class="who">${x.player ? esc(x.player) : `Player ${i + 1}`}${i === 0 ? ' (host)' : ''}${i === me ? ' · you' : ''}</div>
     <div class="team">${x.label ? `${badge(x.label, 'sm')} ${esc(x.label)}` : x.joined ? `<span class="muted">${mpNamed(s) ? 'naming their team…' : s.teams === 'auction' ? 'choosing a franchise…' : 'picking a team…'}</span>` : '<span class="muted">not joined yet</span>'}</div>
     <div class="small ${x.ready ? 'ok' : 'wait'}">${!x.joined ? '' : x.ready ? '✓ ready' : 'not ready'}${x.joined && !x.here ? ' · <span class="muted">away</span>' : ''}</div>
     ${recLine(i)}</div>`).join('');
@@ -281,12 +322,16 @@ function mpBuildMine(st, seat) {
     <div class="fg"><select id="mp-kind"><option value="saved">A saved team</option><option value="classic">A nation from any era</option></select></div>`}
     <div class="fg" id="mp-saved-box" ${draft || franchise ? 'style="display:none"' : ''}><select id="mp-team"></select><div class="roster" id="mp-roster"></div></div>
     <div class="fg" id="mp-classic-box" style="display:none"></div>
-    <div class="lbl" style="margin-top:10px">Decisions you make (the rest are the computer's)</div>
+    <details class="more" id="more-mpdec"><summary>My decisions</summary>
+    <div class="hint" style="margin:0 0 6px">Unticked: the computer decides.</div>
     <div class="checks" id="mp-manual">${MP_KINDS.filter(([k]) => k !== 'impact' || impact).map(([k, t]) =>
-      `<label><input type="checkbox" value="${k}" ${seat.manual.includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div>
+      `<label><input type="checkbox" value="${k}" ${seat.manual.includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div></details>
     ${st.you === 0 ? mpHostHTML(s) : ''}
     <div class="cap-actions"><button class="btn go" id="mp-ready">✓ I'm ready</button></div>
     <div class="hint" id="mp-ready-note"></div>`;
+  const dec = $('more-mpdec');                       // the fold remembers whether it was open, like the setup folds
+  if (lsGet(MORE_KEY + dec.id) === '1') dec.open = true;
+  dec.addEventListener('toggle', () => lsSet(MORE_KEY + dec.id, dec.open ? '1' : '0'));
   if (st.you === 0) {
     const send = patch => mpLobbySend({settings: {...MP.settings, ...patch}});
     $('mh-teams').onchange = () => send({teams: $('mh-teams').value});
@@ -496,8 +541,8 @@ function mpPlaying(st) {
     $('cap-ctx').textContent = 'Two players';
     $('cap-progress').innerHTML = serLine;
     $('cap-opp').textContent = ''; $('cap-clock').textContent = '';
-    if (st.latest) { $('cap-score').innerHTML = scoreHTML({state: st.latest}); $('cap-bug').innerHTML = bugHTML({state: st.latest}); }
-    $('cap-q').innerHTML = '<div class="muted">You are watching. The scoreboard updates whenever a player has a decision to make.</div>';
+    capShowState(st.latest, null);
+    capWait('Watching: the score updates at each decision');
     document.querySelector('#v-captain .cap-ctl').style.display = 'none';
     return;
   }
@@ -518,11 +563,11 @@ function mpPlaying(st) {
   }
   $('cap-back').style.display = me.skip || me.manual.length < me.home.length ? '' : 'none';
   if (!me.pending) {
-    if (st.latest) { $('cap-score').innerHTML = scoreHTML({state: st.latest, team: me.team}); $('cap-bug').innerHTML = bugHTML({state: st.latest, team: me.team}); }
+    if (CAP.qid !== 'sent' || Date.now() - CAP.sentAt > 1500) capShowState(st.latest, me.team);
     const w = me.skip ? `Skipping to the end of the ${me.skip === 'innings' ? 'innings' : 'match'}: the computer plays your side.`
       : !me.manual.length ? 'The computer is playing your side.'
       : opp.choosing && !opp.computer ? `Waiting for ${esc(dn(opp.team))} - ${MP_DOING[opp.choosing]}…` : 'Playing on…';
-    if (w !== MP.waitHTML || CAP.qid !== 'mpwait') { MP.waitHTML = w; CAP.qid = 'mpwait'; $('cap-q').innerHTML = `<div class="muted">${w}</div>`; }
+    if ((w !== MP.waitHTML || CAP.qid !== 'mpwait') && (CAP.qid !== 'sent' || Date.now() - CAP.sentAt > 1500)) { MP.waitHTML = w; CAP.qid = 'mpwait'; capWait(w); }
     MP.deadline = null;
   } else {
     MP.waitHTML = '';

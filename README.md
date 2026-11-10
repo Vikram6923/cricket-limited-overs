@@ -38,20 +38,51 @@ offline. By default only this computer can open it. To play from another device 
 Python on that network. There is no login, so anyone on the same network can use it; don't use `--lan` on public
 Wi-Fi.
 
-The page opens on a home screen: a one-click quick match and every mode as a tile, plus "jump back in" cards for
-the last results, careers and saved runs. Teams carry their colours and short codes everywhere; results open on
-a scoreboard (series), champion banner, points table with a form guide, and a knockout bracket; each match has a
-match centre (summary, HTML scorecard, ball by ball, charts); the live captain screen is laid out like a TV score
-bar. It also works on a phone, with a tab bar at the bottom. Modes:
+The page opens on a home screen with one way in: two team badges (tap one to pick a nation, a franchise or your
+own team), T20 / ODI and **Play**. Play means you captain the left team, ball by ball: a pre-match card shows the
+suggested XI (Change XI lets you pick it after the toss), the match length and you call the toss; if you win you
+choose to bat or bowl. **Key moments** (the default, about 5 minutes for a T20) has you play the first over, the
+6 balls after each wicket and the last 3 overs of each innings, and the rest plays on with a one-line summary over
+the field ("Wicket · 0.6–10.2: 85/1 · Jaiswal 43*, Kohli 0*"); **Every ball** plays them all. You set the bars
+each ball you play and pick the bowler for those overs; the computer picks the XI, the next batter and the
+Impact Player. In your first match three short tips point at the bars, *Next ball* and *Sim over* (one more on
+the first bowler sheet); *More > Show tips again* replays them. *Just simulate the result* plays the match without you. Under it, a Continue row shows the one
+thing in progress (a live match you left, or a career), and four doors lead to everything else: Play a friend,
+Seasons & careers, Auction & draft, and a What-if sandbox (match or series, tournaments, classic sides, team
+builder). Full stats also shows the old grid of every mode. Teams carry their colours and short codes everywhere;
+results fit the run: a single match opens on its match centre, a series on a scoreboard (records and *Best players*
+from 3 matches up), a tournament on a champion banner, points table with a form guide, and a knockout bracket.
+Each match has a match centre (summary, HTML scorecard, ball by ball, charts) whose summary leads with the player
+of the match, four stat tiles and the win-probability chart, then two sentences of the report (*Read more*) and a
+key-moments timeline (OUT, 50, big over, turning point; partnerships and new batters in Full stats). The result
+is the headline, with the format and conditions under it; the replay code sits behind *Run details* (i) in Full
+stats. The live screen is built for a
+phone first: a TV-style score bug with the win bar, the field where every ball plays, this over and one line for
+each batter and the bowler, your striker's bars, and *Next ball*, *Sim over* and *More* at the bottom, all on one
+screen without scrolling (on a desktop the field sits on the left). Who bowls, who goes in next, the Impact Player
+and the result open as sheets over it, with the suggestion first; *More* holds Sim to the next wicket / end of the
+innings / end of the match, the length (Key moments / Every ball), the highlights level, *My decisions*, the full
+scorecard, Show tips again and Stop. The rest of the site
+also works on a phone, with a tab bar at the bottom. A **Simple / Full stats** switch in the top bar
+decides how much you see: Simple (the default) keeps the screens to scores, names and plain words; Full stats adds
+the model's numbers (expected economy and strike rate, how settled a batter is, the replay code, the MVP formula).
+Each setup screen shows at most four choices (the teams, how many matches as 1 / 3 / 5 / 7 chips, a tournament's
+format as named presets, and which side you captain); the format, *Era & grounds*, venues, rain, the replay code
+and the decisions you make yourself are under **More options**, which remembers whether you left it open. The
+format and *Era & grounds* follow the teams you pick (two ODI sides play ODI conditions, two IPL franchises IPL
+conditions in their own year) until you change them yourself; venues are a tick list you can search, so they work
+on a phone too. Modes:
 
 - **Match / Series:** two saved teams play one match or a series of up to 7.
 - **Two players:** you against a friend on another device on the same Wi-Fi (the host runs `python web_ui.py --lan`).
-  The host sets the conditions and opens a room; the other device opens the link it shows (or types the 4-letter
-  code). Each player picks their own team (a saved team or a nation from any era) and the decisions they make, then
+  The mode opens on two buttons, *Host a game* and *Join with a code*. The host chooses how you get teams (pick a
+  team each, draft or auction) and how many matches, and opens a room; the room shows its 4-letter code big, with
+  *Copy link* and *Share*. Your friend opens the link and types a name, or taps *Join with a code* and types the
+  code and a name; names show on the seats. Each player picks their own team (a saved team or a nation from any era) and the decisions they make, then
   both press Ready. Each captains a side: toss, XI, bowlers, next batter, and ball by ball the aggression bars, the
   batting side for its batters and the fielding side for its bowler, both choosing at once; after each ball both
   see what the other chose. Either player can skip to the end of the innings or match (the computer plays their
-  side at normal bars) and take their decisions back later. Optional shot clock (10 or 20 seconds a ball). If a
+  side at normal bars) and take their decisions back later. Optional time per ball (10 or 20 seconds). If a
   player loses contact for a minute the other can hand that side to the computer; reopening the page rejoins.
   A third device that joins watches the score. Play a single match or a best of 3 / 5 series (it stops once
   decided, with a result screen for both players between matches); the room keeps a head-to-head record across
@@ -89,14 +120,19 @@ bar. It also works on a phone, with a tab bar at the bottom. Modes:
   team) in the "Captain a team" box under the conditions. Built on a generic controller (`engine/control.py`).
   - **Ball by ball with aggression bars (League Season and Career, Cricket Captain style):** set each batter's
     aggression and each bowler's plan on 9 bars and play a ball, an over, to the next wicket or to the end of the
-    innings, with a settled meter for each batter and the projected score or chase. Bar 5 is how real sides play
-    that situation (the engine as calibrated). The trade-off comes from real ball-by-ball data: across match
+    innings (only the striker's bars show; a chip opens the non-striker's, and a toast says when the strike
+    changes), with a settled meter for each batter (Full stats; Simple marks a new batter NEW) and the projected score or chase. Bar 5 is how real sides play
+    that situation (the engine as calibrated); the bars run Block, Defend, Careful, Steady, Normal, Positive, Attack,
+    Hit out, Slog. The trade-off comes from real ball-by-ball data: across match
     situations, how fours, sixes and dots move with the scoring rate, and how far each bar reaches (the range real
     sides show, plus one bar beyond it at each end). Each bar's wicket cost is set so that bar 5 is best on
     average, so the right setting depends on the moment: going hard pays when a wicket is cheap and costs when it
     is dear. See [docs/match_play_design.md](docs/match_play_design.md).
-  - **Highlights:** on that screen the balls since your last pause replay as a 2D ball tracker (off / wickets and
-    boundaries / every ball): the ball's path on a top-down ground with the field, fielders chasing, runners, flying
+  - **Highlights:** on that screen the balls since your last pause replay as a 2D ball tracker in a field that
+    is always there (every ball, fast, by default: about 0.8 s, and the full replay for a four, a six or a wicket;
+    or wickets and boundaries; or off). The outcome shows big in the field (a dot, the runs, FOUR, SIX, OUT!), a
+    boundary flashes the batting side's colour and a wicket shakes the field; reduced motion is respected. The
+    last ball of an over plays before the bowler sheet opens. The ball's path on a top-down ground with the field, fielders chasing, runners, flying
     bails, the catcher's name, and a side-on strip for the length. The engine decides what happened; the direction,
     length and field are drawn by rules (Cricsheet records none of them), and the field follows the phase and your
     bowling plan.
@@ -140,9 +176,9 @@ bar. It also works on a phone, with a tab bar at the bottom. Modes:
   each match) and save the team. Ten preset national squads are included.
 
 For every run choose the format, the year and whose conditions to play in (full-member internationals or a league),
-optionally venues, a seed and whether rain can interrupt play (on by default). The results page has a summary
+optionally venues, a replay code (the seed) and whether rain can interrupt play (on by default). The results page has a summary
 (points tables with net run rate, knockouts, top performers, records), every match (Previous / Next, match report,
-rain notes, run worm, Manhattan, win-probability and partnership charts, scorecard and innings log), sortable batting and bowling tables, the MVP race (official and balanced) and,
+rain notes, run worm, Manhattan, win-probability and partnership charts, scorecard and innings log), sortable batting and bowling tables, *Best players* (points: official and balanced) and,
 after a draft or an auction, the squads (with prices). Saved teams go in `data/teams.json` (not in git).
 
 ### Hosting it for friends
@@ -460,6 +496,20 @@ tests/             engine and tournament tests
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
 - [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
       live screen, phone layout
+- [x] UI simplification phase 1: Simple / Full stats switch, More options folds, plain words
+- [x] UI simplification phase 2: home with one Play button (you captain, ball by ball), pre-match card and coin
+      toss, Continue, four doors; a single match opens on its match centre
+- [x] UI simplification phase 3: phone-first live screen (score bug, permanent field, striker's bars, action bar),
+      every ball plays fast, decision sheets (bowler, next batter, Impact Player, result), XI with Use this XI
+- [x] UI simplification phase 4: setup screens with at most four choices (the rest under More options), venues as
+      a searchable tick list, Era & grounds from the teams; Two players opens on Host / Join, joining is code +
+      name + Join, and the room shows the code big with Copy link and Share
+- [x] UI simplification phase 5: results fit the run (one match: the match centre only; 2 matches: no records
+      or Best players), the result as the headline with the replay code behind Run details (Full), a shorter
+      match summary (tiles, win chart, 2-sentence report) and a key-moments timeline with short lines
+- [x] UI simplification phase 6: Key moments match length (the engine's `until: "key"` pause plays on between
+      the first over, the 6 balls after a wicket and the last 3 overs; a summary line after each stretch) and
+      three coach marks in the first captained match, plus one on the bowler sheet
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
   a draft against each other (optionally with computer teams and a league); a live auction against each other
   and the computer franchises, then a league or a series

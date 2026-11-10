@@ -131,11 +131,12 @@ def test_server_room():
     assert r.status_code == 200, r.get_json()
     code, host = r.get_json()["code"], r.get_json()["token"]
     assert post("/api/mp/join", {"code": "ZZZZ"}).status_code == 404
-    guest = post("/api/mp/join", {"code": code.lower()}).get_json()
+    guest = post("/api/mp/join", {"code": code.lower(), "name": "  Asha   K  "}).get_json()
     watcher = post("/api/mp/join", {"code": code}).get_json()
     assert guest["seat"] == 1 and watcher["seat"] == "spectator"
     state = lambda tok: cl.get("/api/mp/state?token=" + tok).get_json()
     assert state(host)["phase"] == "lobby" and state("nope")["phase"] == "none"
+    assert [x["player"] for x in state(host)["seats"]] == [None, "Asha K"]                   # the guest's name
     assert post("/api/mp/lobby", {"token": host, "ready": True}).status_code == 400          # no team yet
     post("/api/mp/lobby", {"token": host, "team": "India T20 2024", "manual": ["ball", "bowler", "toss"]})
     r = post("/api/mp/lobby", {"token": guest["token"], "team": "India T20 2024", "ready": True})

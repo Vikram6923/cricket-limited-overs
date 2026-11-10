@@ -97,6 +97,46 @@ def test_skip_and_auto():
     assert s.n == 2                              # the first bowler question, the rest skipped, then the result
 
 
+def test_key_moments_pause():
+    """Pause "key" (a Key-moments match): the person is asked on exactly the first over, the 6 balls after each
+    wicket and the last 3 overs of each innings, and picks bowlers only for overs that start in a key moment."""
+    from engine.match import KEY_AFTER_WICKET, KEY_FIRST_OVERS, KEY_LAST_OVERS
+    a, b = ipl_teams()
+
+    class KeyCaptain(Controller):
+        def __init__(self, team):
+            super().__init__(team, {"ball", "bowler"})
+            self.balls, self.bowlers = [], []
+
+        def decide(self, q):
+            if q["kind"] == "ball":
+                self.balls.append((q["state"]["innings"], 6 * (q["over"] - 1) + q["ball"] - 1))
+                return {q["side"]: {}, "until": "key"}
+            if q["kind"] == "bowler":
+                self.bowlers.append((q["state"]["innings"], 6 * (q["over"] - 1)))
+            return None
+
+    def key(inn, n):                              # the rule, from the finished card
+        wk = [6 * int(f["over"].split(".")[0]) + int(f["over"].split(".")[1]) for f in inn["fall_of_wickets"]]
+        wk = [w for w in wk if w <= n]
+        return (n < 6 * KEY_FIRST_OVERS or n >= 6 * (inn["max_overs"] - KEY_LAST_OVERS)
+                or bool(wk and n - wk[-1] < KEY_AFTER_WICKET))
+
+    played = total = 0
+    for seed in range(12):
+        k = KeyCaptain(a["name"])
+        c = simulate_match(a, b, fmt="t20", comp="ipl", year=2024, seed=seed, control={a["name"]: k},
+                           toss="a", decision="bat" if seed % 2 else "bowl")
+        check_card(c)
+        for inn in c["innings"][:2]:
+            want = {n for n in range(inn["balls"]) if key(inn, n)}
+            got = {n for i, n in k.balls if i == inn["number"]}
+            assert got == want, (seed, inn["number"], sorted(got ^ want))
+            assert all(key(inn, n) for i, n in k.bowlers if i == inn["number"]), (seed, k.bowlers)
+            played, total = played + len(got), total + inn["balls"]
+    assert 0.3 < played / total < 0.75, (played, total)   # about half the balls are the person's
+
+
 def test_tournament_with_a_captain():
     teams = ipl_teams(n=4)
     ctl = RandomCaptain(teams[0]["name"], 5)

@@ -30,7 +30,8 @@ const HL = (() => {
   const LEN_WORD = {yorker: 'yorker', full: 'full', good: 'good length', short: 'short'};
 
   let token = 0;
-  const level = () => { try { return localStorage.getItem('hlLevel') || 'key'; } catch (e) { return 'key'; } };
+  const level = () => { try { return localStorage.getItem('hlLevel') || 'all'; } catch (e) { return 'all'; } };   // every ball, fast
+  const still = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
   const setLevel = v => { try { localStorage.setItem('hlLevel', v); } catch (e) { /* private window */ } };
   const keyBall = e => e.wicket || e.runs === 4 || e.runs === 6;
 
@@ -166,8 +167,8 @@ const HL = (() => {
   function stumpsAt(g, x, y) { const s = el('g', {}, g); for (const dx of [-3, 0, 3]) el('line', {x1: x + dx, y1: y, x2: x + dx, y2: y - 7, stroke: '#e9dfc0', 'stroke-width': 1.6}, s); return s; }
 
   function build(box, e, s) {
-    box.innerHTML = `<div class="hl-head"><span>${esc(`Over ${e.over}, ball ${e.ball}`)} · ${esc(e.bowler)} to ${esc(e.batter)}</span><span class="hl-count"></span></div>
-      <div class="hl-stage"><svg class="hl-ground" viewBox="-12 -12 344 344"></svg><div class="hl-flash"></div></div>
+    box.innerHTML = `<div class="hl-head"><span class="full-only">${e.batter ? `${esc(e.bowler)} to ${esc(e.batter)}` : ''}</span><span class="hl-count"></span></div>
+      <div class="hl-stage"><svg class="hl-ground" viewBox="-12 -12 344 344"></svg><div class="hl-tint"></div><div class="hl-flash"></div></div>
       <svg class="hl-strip" viewBox="0 0 320 64"></svg>
       <div class="hl-foot"></div>`;
     const svg = box.querySelector('.hl-ground');
@@ -196,15 +197,16 @@ const HL = (() => {
     el('path', {d: `M24 18 Q ${(24 + bx) / 2} ${s.len === 'short' ? 30 : 22} ${bx} 53 Q ${(bx + 300) / 2} ${hEnd - 6} 300 ${hEnd}`,
       fill: 'none', stroke: '#e3b341', 'stroke-width': 1.5, 'stroke-dasharray': '3 4'}, st);
     el('circle', {cx: bx, cy: 53, r: 2.6, fill: '#ffffff'}, st);
-    el('text', {x: 10, y: 12, fill: '#8b949e', 'font-size': 11}, st).textContent =
+    el('text', {x: 10, y: 12, fill: '#8b949e', 'font-size': 11, class: 'full-only'}, st).textContent =
       `${LEN_WORD[s.len]} · ${s.speed} km/h ${e.bowl_kind || e.bowl_type}`;
-    return {svg, ball, trail, striker, nonStr, bowler, fielders, keeper, tag, bails, farStumps,
-      flash: box.querySelector('.hl-flash'), foot: box.querySelector('.hl-foot')};
+    return {svg, ball, trail, striker, nonStr, bowler, fielders, keeper, tag, bails, farStumps, box,
+      flash: box.querySelector('.hl-flash'), tint: box.querySelector('.hl-tint'), foot: box.querySelector('.hl-foot')};
   }
 
-  function animate(d, e, s, myToken) {
+  function animate(d, e, s, myToken, fast, onLand) {
     return new Promise(done => {
-      const T_RUN = 450, T_DEL = 520, T_SHOT = s.shot.kind === 'air' && s.shot.h > 50 ? 1300 : 1000, T_HOLD = 1100;
+      const T_RUN = fast ? 110 : 450, T_DEL = fast ? 260 : 520, T_SHOT = fast ? 300 : s.shot.kind === 'air' && s.shot.h > 50 ? 1300 : 1000,
+        T_HOLD = fast ? 120 : 1100;
       const zb = LEN_ZB[s.len], lineX = BAT.x + (s.shot.kind === 'wide' ? 0 : 0);
       const to = s.shot.to, ctrl = {x: (BAT.x + to.x) / 2, y: (BAT.y + to.y) / 2 - (s.shot.h || 0)};
       const chaser = s.chaser ? d.fielders[s.chaser.name] : null;
@@ -264,22 +266,54 @@ const HL = (() => {
             d.bails.setAttribute('transform', `translate(${(10 * j).toFixed(1)} ${(-14 * j + 18 * j * j).toFixed(1)}) rotate(${(200 * j).toFixed(0)} ${BAT.x} ${BAT.y})`);
           }
         } else if (t < T_RUN + T_DEL + T_SHOT + T_HOLD) {
-          if (!d.flash.textContent) {
-            d.flash.textContent = s.label; d.flash.style.color = s.color; d.flash.classList.add('on');
-            if (s.catcher && s.catcher.name) {
-              d.tag.textContent = s.catcher.name + (s.catcher.pos ? ` (${s.catcher.pos})` : '');
-              d.tag.setAttribute('x', Math.min(290, Math.max(30, s.catcher.p.x)).toFixed(0));
-              d.tag.setAttribute('y', (s.catcher.p.y < 30 ? s.catcher.p.y + 18 : s.catcher.p.y - 9).toFixed(0));
-              d.tag.setAttribute('opacity', 1);
-            }
-          }
+          if (!d.flash.innerHTML) land(d, e, s, onLand);
         } else {
+          if (!d.flash.innerHTML) land(d, e, s, onLand);   // a late frame (tab in the background) still lands the ball
           return done(true);
         }
         requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
     });
+  }
+
+  /* what the field says when the ball lands: a dot, the runs, FOUR, SIX, OUT! (with how), an extra */
+  function word(e, s) {
+    if (e.wicket) return `OUT!<small>${esc(s.label)}</small>`;
+    if (e.extra === 'w') return 'WIDE';
+    if (e.extra === 'nb') return `NO BALL${e.runs ? `<small>${e.runs === 4 ? 'FOUR' : e.runs === 6 ? 'SIX' : e.runs}</small>` : ''}`;
+    if (e.runs === 4) return 'FOUR';
+    if (e.runs === 6) return 'SIX';
+    if (e.runs > 0) return String(e.runs);
+    if (e.extra === 'b' || e.extra === 'lb') return `<span class="sm">${esc(s.label)}</span>`;
+    return '<i class="dotb"></i>';
+  }
+  function land(d, e, s, onLand) {
+    d.flash.innerHTML = word(e, s); d.flash.style.color = s.color; d.flash.classList.add('on');
+    d.flash.classList.toggle('dot', !e.wicket && !e.extra && !e.runs);
+    if ((e.runs === 4 || e.runs === 6) && !e.wicket && typeof tcol === 'function' && e.batting) {
+      d.tint.style.background = `radial-gradient(circle at 50% 45%, ${tcol(e.batting).hi}, transparent 70%)`;
+      d.tint.classList.remove('go'); void d.tint.offsetWidth; d.tint.classList.add('go');
+    }
+    if (e.wicket && !still()) { d.box.classList.remove('shake'); void d.box.offsetWidth; d.box.classList.add('shake'); }
+    if (s.catcher && s.catcher.name) {
+      d.tag.textContent = s.catcher.name + (s.catcher.pos ? ` (${s.catcher.pos})` : '');
+      d.tag.setAttribute('x', Math.min(290, Math.max(30, s.catcher.p.x)).toFixed(0));
+      d.tag.setAttribute('y', (s.catcher.p.y < 30 ? s.catcher.p.y + 18 : s.catcher.p.y - 9).toFixed(0));
+      d.tag.setAttribute('opacity', 1);
+    }
+    if (onLand) onLand(e);
+  }
+  /* the last frame at once (reduced motion, Off, a skipped replay) */
+  function final(d, e, s, onLand) {
+    const to = s.shot.to;
+    d.ball.setAttribute('cx', to.x.toFixed(1)); d.ball.setAttribute('cy', to.y.toFixed(1));
+    if (s.stumps) d.bails.setAttribute('opacity', 1);
+    if (s.ran % 2) {
+      d.striker.setAttribute('cx', BOWL_END.x + 9); d.striker.setAttribute('cy', BOWL_END.y + 2);
+      d.nonStr.setAttribute('cx', BAT.x - 8); d.nonStr.setAttribute('cy', BAT.y);
+    }
+    land(d, e, s, onLand);
   }
 
   function footText(e) {
@@ -290,21 +324,51 @@ const HL = (() => {
     return [runs, extra].filter(Boolean).join(', ') + ` · ${esc(e.score)}${e.free_hit ? ' · free hit' : ''}`;
   }
 
-  /* play the highlight-worthy balls in `events` (oldest first) in `box`; a newer call stops this one */
-  async function play(events, box) {
+  /* The field box is permanent: between balls it shows the ground and the field (idle), and a new ball plays in
+     it. Which balls play: "Every ball" plays the one or two new balls of a single delivery (fast unless it's a 4, 6
+     or wicket) and only the 4s, 6s and wickets of a longer stretch (a Sim); "Wickets and boundaries" plays those;
+     "Off" shows the last ball's outcome without moving. `opt.onLand(e)` runs when the last ball lands (the score
+     ticks then), at once when nothing plays. A newer call stops this one. */
+  async function play(events, box, opt = {}) {
     const my = ++token;
-    const lv = level();
-    const list = (events || []).filter(e => lv === 'all' || (lv === 'key' && keyBall(e)));
     if (!box) return;
-    if (!list.length || lv === 'off') { box.innerHTML = ''; box.style.display = 'none'; return; }
-    box.style.display = '';
-    for (let i = 0; i < list.length; i++) {
-      const e = list[i], s = plan(e), d = build(box, e, s);
-      box.querySelector('.hl-count').innerHTML = `${list.length > 1 ? `${i + 1} of ${list.length} · ` : ''}<a href="#" class="hl-skip">skip</a>`;
-      box.querySelector('.hl-skip').onclick = ev => { ev.preventDefault(); token++; box.innerHTML = ''; box.style.display = 'none'; };
-      d.foot.textContent = footText(e);
-      if (!(await animate(d, e, s, my))) return;
+    const lv = level(), evs = events || [];
+    const list = lv === 'off' ? [] : evs.filter(e => keyBall(e) || (lv === 'all' && evs.length <= 2));
+    const last = evs[evs.length - 1];
+    if (!list.length) {
+      if (last) { const s = plan(last), d = build(box, last, s); d.foot.textContent = footText(last); final(d, last, s, null); }
+      else idle(box, opt.next || {});
+      if (opt.onLand) opt.onLand(last || null);
+      return;
     }
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i], s = plan(e), d = build(box, e, s), lastOne = i === list.length - 1;
+      const cb = lastOne ? opt.onLand : null;
+      box.querySelector('.hl-count').innerHTML = list.length > 1 ? `${i + 1} of ${list.length} · <a href="#" class="hl-skip">skip</a>` : '';
+      const sk = box.querySelector('.hl-skip');
+      if (sk) sk.onclick = ev => {
+        ev.preventDefault(); token++;
+        const z = list[list.length - 1], zs = plan(z), zd = build(box, z, zs); zd.foot.textContent = footText(z); final(zd, z, zs, opt.onLand);
+      };
+      d.foot.textContent = footText(e);
+      if (still()) {
+        final(d, e, s, cb);
+        if (!lastOne) await new Promise(r => setTimeout(r, 700));
+        if (my !== token) return;
+        continue;
+      }
+      if (!(await animate(d, e, s, my, !keyBall(e), cb))) return;
+    }
+  }
+  /* the ground with nothing moving: the field for the coming ball (phase, plan, the striker's hand) */
+  function idle(box, n) {
+    token++;
+    const e = {innings: 0, over: 0, ball: 0, n: 0, batter_id: '', phase: n.phase || 'powerplay', plan: n.plan || 5,
+      hand: n.hand || 'right', bowl_type: n.bowl_type || 'pace', bowler: n.bowler || '', batter: n.batter || '', runs: 0};
+    const s = plan(e), d = build(box, e, s);
+    d.ball.setAttribute('visibility', 'hidden'); d.trail.setAttribute('d', '');
+    d.foot.textContent = n.foot || '';
+    box.querySelector('.hl-strip').style.visibility = 'hidden';
   }
   function stop() { token++; }
   const OPTIONS = [['off', 'Off'], ['key', 'Wickets and boundaries'], ['all', 'Every ball']];
@@ -313,5 +377,11 @@ const HL = (() => {
     return `<label class="hl-level">Highlights <select id="hl-level">${OPTIONS.map(([k, t]) =>
       `<option value="${k}" ${k === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`;
   }
-  return {play, stop, plan, level, setLevel, selectHTML};
+  /* the same choice as a segmented control (the More sheet) */
+  function segHTML() {
+    const v = level();
+    return `<div class="seg hl-seg">${[['all', 'Every ball'], ['key', 'Wickets &amp; boundaries'], ['off', 'Off']].map(([k, t]) =>
+      `<button data-h="${k}" class="${k === v ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  }
+  return {play, stop, plan, level, setLevel, selectHTML, segHTML, idle};
 })();

@@ -21,6 +21,9 @@ from .situation import NORMAL_BARS, Situation, bat_quality, depth_table
 
 KIND_TEXT = {"bowled": "b", "lbw": "lbw", "caught_fielder": "c", "caught_keeper": "c", "caught_bowler": "c & b",
              "stumped": "st", "hit_wicket": "hit wicket", "run_out": "run out"}
+# Key moments (Match.key_moment): the overs a person plays at the start and the end of each innings, and the balls
+# after a wicket; tune here
+KEY_FIRST_OVERS, KEY_LAST_OVERS, KEY_AFTER_WICKET = 1, 3, 6
 
 
 @dataclass
@@ -315,9 +318,9 @@ class Innings:
                 f.exp_wkts += base["wkt"] * ib["wkt"] * iw["wkt"]
             if self.m.control:
                 pre = (self.striker, self.non_striker, self.free_hit, self.legal - (1 if o.legal else 0))
+                self._unlogged = (o, bowler, ph, seq, pre)
             self.apply(o, bowler, f, seq)
-            if self.m.control:
-                self.log_ball(o, bowler, ph, seq[-1], *pre)
+            self.flush_log()
             self.free_hit = (o.extra == "nb") or (self.free_hit and o.extra == "w")
             if self.chase_won() or self.wkts >= self.max_wkts:
                 self.done = True
@@ -336,6 +339,15 @@ class Innings:
         big = 20 if self.m.fmt == "t20" else 18
         if runs >= big:
             self.event(f"{runs} runs off the over from {bowler.name} ({' '.join(seq)})", "big_over")
+
+    def flush_log(self) -> None:
+        """Log the ball just bowled, once: after it is applied, or earlier, from wicket(), when the next batter is
+        about to be asked for (by then the dismissal and the score are final, so the record is the same)."""
+        u = getattr(self, "_unlogged", None)
+        if u:
+            self._unlogged = None
+            o, bowler, ph, seq, pre = u
+            self.log_ball(o, bowler, ph, seq[-1], *pre)
 
     def log_ball(self, o, bowler: Player, ph: str, sym: str, st, ns, free_hit: bool, legal_before: int) -> None:
         """One delivery for the highlights (presentation only: no random numbers are drawn here, so a match plays
@@ -470,6 +482,7 @@ class Innings:
             if self.m.skill and not self.super_over:
                 j = self.m.loose_batter(self, j)
             if self.m.control and not self.super_over:
+                self.flush_log()               # the wicket ball goes with the next-batter question
                 j = self.m.batter_turn(self, j)
             if j != self.next_in:              # move the chosen batter up to the next slot
                 self.cards.insert(self.next_in, self.cards.pop(j))
@@ -628,7 +641,7 @@ class Match:
         self.captain_log = {t.name: [] for t in self.teams if t.name in self.control}   # the person's calls, valued
         # aggression dials (docs/match_play_design.md): team -> player id -> bars, for the person's side only;
         # everyone else plays at NORMAL_BARS (the engine as calibrated). pace: how far to play before the next
-        # ball-by-ball pause ({"until": "over" | "wicket" | "innings", ...})
+        # ball-by-ball pause ({"until": "over" | "wicket" | "innings" | "key", ...})
         self.bars = {t.name: {} for t in self.teams if t.name in self.control}
         self.pace: dict = {}
         self.seen: dict = {}      # team -> (innings, balls of its ball_log already shown to the person)
@@ -845,9 +858,24 @@ class Match:
             q = {"kind": kind, "team": team.name, "match_key": self.key,
                  "innings": inn.number if inn and skip_inn else None,
                  "state": self.live(inn) if inn else self.pre_state(team), **payload}
+            if kind != "ball" and inn and self.manual(team, "ball", inn):
+                q["since"] = self.since(team, inn)     # the balls before this pause, so the field shows them first
             self.control[team.name].post(q)
             posted.append(team)
         return [self.control[t.name].wait() if t else None for t in posted]
+
+    def since(self, team: Team, inn: "Innings") -> list:
+        """The balls `team`'s captain hasn't been shown yet (at most 18), for the field replay: those of `inn` since
+        the last question, led by the end of the previous innings when it finished after that question.
+        Presentation only."""
+        seen = self.seen.get(team.name)
+        if seen and seen[0] == inn.number:
+            out = inn.ball_log[seen[1]:]
+        else:
+            prev = next((i for i in self.innings_so_far() if i is not inn and seen and i.number == seen[0]), None)
+            out = (prev.ball_log[seen[1]:] if prev else []) + inn.ball_log
+        self.seen[team.name] = (inn.number, len(inn.ball_log))
+        return out[-18:]
 
     def bars_of(self, team: Team, p: Player, inn: "Innings | None" = None) -> int:
         """A player's aggression bars; NORMAL_BARS when ball by ball is the computer's (left to it, or skipped)."""
@@ -870,7 +898,8 @@ class Match:
             if pc and pc["inn"] == inn.number and (
                     pc["until"] == "innings"
                     or (pc["until"] == "over" and pc["over"] == inn.legal // 6)
-                    or (pc["until"] == "wicket" and inn.wkts == pc["wkts"])):
+                    or (pc["until"] == "wicket" and inn.wkts == pc["wkts"])
+                    or (pc["until"] == "key" and not self.key_moment(inn))):
                 continue
             batting = team is inn.bat
             mine = self.bars[team.name]
@@ -884,12 +913,8 @@ class Match:
             proj = None
             if inn.target is None and not inn.super_over:
                 proj = round(inn.runs + sit.par_runs(inn.legal + inn.offset(), inn.wkts) * inn.par_k())
-            k0 = self.seen.get(team.name)
-            k0 = k0[1] if k0 and k0[0] == inn.number else 0
-            since = inn.ball_log[k0:][-18:]
-            self.seen[team.name] = (inn.number, len(inn.ball_log))
             items.append((team, "ball", {
-                "since": since,
+                "since": self.since(team, inn),
                 "side": "bat" if batting else "bowl", "phase": ph, "over": inn.legal // 6 + 1,
                 "ball": inn.legal % 6 + 1,
                 "this_over": list(seq), "free_hit": inn.free_hit, "projected": proj,
@@ -909,8 +934,27 @@ class Match:
                     except (TypeError, ValueError):
                         pass
             u = ans.get("until")
-            self.pace[team.name] = None if u not in ("over", "wicket", "innings") else {
+            self.pace[team.name] = None if u not in ("over", "wicket", "innings", "key") else {
                 "until": u, "inn": inn.number, "over": inn.legal // 6, "wkts": inn.wkts}
+
+    def key_moment(self, inn: "Innings") -> bool:
+        """A Key-moments match (pause "key"): is the coming ball one the person plays?
+        The first over, the KEY_AFTER_WICKET balls after a wicket and the last KEY_LAST_OVERS overs of each innings
+        (all of a super over); the rest plays on. Presentation pace only: the balls themselves are unchanged."""
+        if inn.super_over:
+            return True
+        n = inn.legal
+        if n < 6 * KEY_FIRST_OVERS or n >= 6 * (inn.max_overs - KEY_LAST_OVERS):
+            return True
+        if inn.fow:                               # "4.3": the legal balls bowled when the last wicket fell
+            o, b = inn.fow[-1]["over"].split(".")
+            return n - (6 * int(o) + int(b)) < KEY_AFTER_WICKET
+        return False
+
+    def key_skip(self, team: Team, inn: "Innings") -> bool:
+        """Key moments: the person's side plays on through this ball (and its over's bowler question)."""
+        pc = self.pace.get(team.name)
+        return bool(pc and pc["until"] == "key" and pc["inn"] == inn.number and not self.key_moment(inn))
 
     def pre_state(self, team: Team) -> dict:
         a, b = self.teams
@@ -1092,7 +1136,7 @@ class Match:
                 sugg = {"out": pick[1].id, "in": pick[2].id, "gain": round(pick[0], 1), "for": pick[3]}
         opts = valid()
         block = self.impact_block(team, inn, sugg, False) if imp_ok else None
-        asked = self.manual(team, "bowler", inn) and (len(opts) > 1 or sugg)
+        asked = self.manual(team, "bowler", inn) and (len(opts) > 1 or sugg) and not self.key_skip(team, inn)
         if asked:
             ans = self.ask(team, "bowler", {"options": [dict(self.pinfo(p, ph), quota_left=quota_left.get(p, 0))
                                                         for p in opts],

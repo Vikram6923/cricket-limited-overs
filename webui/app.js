@@ -23,7 +23,7 @@ function showView(id) {
   if (id !== 'v-auction') document.body.classList.remove('au-fold');     // the auction room folds the sidebar away
   if (!was || was.id !== id) window.scrollTo(0, 0);
   const nav = {'v-home': 'home', 'v-setup': MODE === 'saved' ? 'saved' : MODE === 'career' ? 'careers' : 'home', 'v-results': 'results',
-    'v-builder': 'builder', 'v-career': 'careers', 'v-captain': 'live', 'v-running': 'live', 'v-mp': 'live'}[id] || '';
+    'v-builder': 'builder', 'v-career': 'careers', 'v-captain': 'live', 'v-running': 'live', 'v-mp': 'live', 'v-door': 'home', 'v-pre': 'home'}[id] || '';
   document.querySelectorAll('[data-nav]').forEach(b => { if (b.closest('#nav,#tabbar')) b.classList.toggle('on', b.dataset.nav === nav); });
   document.body.dataset.view = id;
   if (id === 'v-home' && META && (!was || was.id !== id)) { drawHero(); drawHomeCont(); }
@@ -34,6 +34,61 @@ function fillSelect(sel, items, keep) {
   const old = keep ? sel.value : null;
   sel.innerHTML = items.map(i => typeof i === 'string' ? `<option>${esc(i)}</option>` : `<option value="${esc(i.v)}">${esc(i.t)}</option>`).join('');
   if (old !== null && [...sel.options].some(o => o.value === old)) sel.value = old;
+}
+
+/* names for people: competitions, preset teams, detail level */
+const COMP_NAME = {t20i_full: 'international', t20i: 'international (all teams)', odi_full: 'international', odi: 'international (all teams)',
+  ipl: 'IPL', bbl: 'BBL', psl: 'PSL', cpl: 'CPL', sat: 'SA20', ilt: 'ILT20', bpl: 'BPL', lpl: 'LPL', mlc: 'MLC', ntb: 'T20 Blast', ssm: 'Super Smash'};
+function compName(fmt, id) {
+  if (!id) return '';
+  if (COMP_NAME[id]) return COMP_NAME[id];
+  const c = META && META.formats[fmt] && META.formats[fmt].competitions.find(c => c.id === id);
+  return c ? c.label : String(id).replace(/_/g, ' ');
+}
+/* "India T20 2024" -> "India", unless another team in the list has the same name without its year */
+function pickName(name, all) {
+  const k = teamKey(name);
+  if (k === name) return name;
+  const same = (all || []).filter(n => teamKey(n) === k);
+  if (same.length < 2) return k;
+  // two presets of one nation (India T20 2024, India ODI 2023): the one in the chosen format keeps the plain name
+  const fm = ($('c-fmt') ? $('c-fmt').value : '').toUpperCase(), inFmt = n => new RegExp(`\\b${fm}\\b`, 'i').test(n.slice(k.length));
+  return fm && inFmt(name) && same.filter(inFmt).length === 1 ? k : `${k} (${name.slice(k.length).trim()})`;
+}
+const DETAIL_KEY = 'lo.detail', MORE_KEY = 'lo.more.';
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window: not remembered */ } }
+/* match length when you play ball by ball: Key moments (default) or Every ball */
+const LEN_KEY = 'lo.len';
+const capLen = () => lsGet(LEN_KEY) === 'all' ? 'all' : 'key';
+function setLen(v) {
+  lsSet(LEN_KEY, v === 'all' ? 'all' : 'key');
+  document.querySelectorAll('#pre-len button').forEach(b => b.classList.toggle('on', b.dataset.l === capLen()));
+}
+function setDetail(d) {
+  d = d === 'full' ? 'full' : 'simple';
+  document.body.classList.toggle('detail-full', d === 'full'); document.body.classList.toggle('detail-simple', d !== 'full');
+  document.querySelectorAll('#detail-sw button').forEach(b => b.classList.toggle('on', b.dataset.d === d));
+  lsSet(DETAIL_KEY, d);
+}
+function initDetail() {
+  setDetail(lsGet(DETAIL_KEY) || 'simple');
+  document.querySelectorAll('#detail-sw button').forEach(b => b.onclick = () => setDetail(b.dataset.d));
+  document.querySelectorAll('details.more').forEach(d => {
+    if (lsGet(MORE_KEY + d.id) === '1') d.open = true;
+    d.addEventListener('toggle', () => lsSet(MORE_KEY + d.id, d.open ? '1' : '0'));
+  });
+}
+initDetail();
+/* the top-bar pill only while something runs: "Live: IND v AUS" (click to go back to it) */
+function livePill(running, st) {
+  const p = $('status-pill');
+  p.style.display = running ? '' : 'none';
+  p.classList.toggle('run', running);
+  if (!running) return;
+  const tm = (typeof CAP !== 'undefined' && CAP.teams) || [];
+  const vs = tm.length === 2 && tm.every(Boolean) ? ': ' + tm.map(t => tcol(t).short).join(' v ') : '';
+  p.innerHTML = '<i></i>' + (st && st.captain ? 'Live' + vs : 'Simulating');
 }
 
 /* generic sortable table (from the Test sim) */
@@ -111,7 +166,7 @@ const MODES = {
   classic: {t: 'Classic series', s: 'Any nation, any era: Australia 2003–07 v India 2011', g: 'History', c: '#f6c453'},
   classic_t: {t: 'Classic tournament', s: 'Great sides from different eras', g: 'History', c: '#2ee88a'},
   builder: {t: 'Team builder', s: 'Pick 11–15 from about 6,500 rated players', g: 'Tools', c: '#3d8bff'},
-  saved: {t: 'Saved runs', s: 'Seasons and series you kept', g: 'Tools', c: '#8d9bb5'}};
+  saved: {t: 'Saved', s: 'Seasons and series you kept', g: 'Tools', c: '#8d9bb5'}};
 const modeIcon = (m, cls = '') => `<span class="mic ${cls}" style="--mc:${MODES[m].c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[m]}</svg></span>`;
 function drawModeTiles() {
   const groups = {};
@@ -120,86 +175,199 @@ function drawModeTiles() {
     `<button class="card tile mode ${MODES[k].feat ? 'feat' : ''}" data-mode="${k}">${modeIcon(k)}<div><b>${esc(MODES[k].t)}</b><span>${esc(MODES[k].s)}</span></div></button>`).join('')}</div>`).join('');
 }
 
-/* home: a one-click match between two saved teams */
+/* home: one way in. Play = you captain the left team, ball by ball; the computer picks
+   the XI, the next batter and the Impact Player (6.3). The two teams live in the Match or series form (s-t1 / s-t2). */
+const heroTeams = () => { const n = META.teams.map(t => t.name); return [$('s-t1').value || n[0], $('s-t2').value || n[1] || n[0]]; };
 function drawHero() {
-  const names = META.teams.map(t => t.name);
-  const t1 = $('s-t1').value || names[0], t2 = $('s-t2').value || names[1] || names[0];
-  const side = (id, name, right) => {
-    const t = META.teams.find(x => x.name === name) || {players: []};
-    return `<div class="side ${right ? 'r' : ''}">${badge(name, 'lg')}<div class="who">
-      <select class="tsel" id="${id}" title="Choose a team">${names.map(n => `<option ${n === name ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
-      <div class="sub">${t.players.length} players${t.players.length > 11 ? ' · the XI is picked per match' : ''}</div>
-      <div class="keys">${t.players.slice(0, 6).map(p => esc(p.name)).join(' · ')}</div></div></div>`;
-  };
-  const fmt = $('c-fmt').value, comp = $('c-comp').selectedOptions[0];
-  $('hero').innerHTML = `<svg class="ground" viewBox="0 0 1300 520" aria-hidden="true"><defs>
-      <radialGradient id="hgr" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#1e7a4a"/><stop offset="1" stop-color="#0b2a1b"/></radialGradient>
-      <pattern id="hmow" width="80" height="520" patternUnits="userSpaceOnUse"><rect width="40" height="520" fill="rgba(255,255,255,.035)"/></pattern></defs>
-      <ellipse cx="650" cy="300" rx="640" ry="250" fill="url(#hgr)"/><ellipse cx="650" cy="300" rx="640" ry="250" fill="url(#hmow)"/>
-      <ellipse cx="650" cy="300" rx="300" ry="118" fill="none" stroke="rgba(255,255,255,.25)" stroke-dasharray="6 9"/>
-      <rect x="628" y="215" width="44" height="170" rx="4" fill="#b9a77a" opacity=".5"/>
-      <ellipse cx="650" cy="300" rx="636" ry="246" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/></svg>
-    <div class="inner">
-      <div class="kicker" style="color:var(--brand)">Quick match</div>
-      <h1>Who wins <em>tonight?</em></h1>
-      <p class="lead">Ball-by-ball T20 and ODI cricket with every player rated from real data. Pick two sides and play, or captain one yourself.</p>
-      <div class="vs">${side('h-t1', t1, false)}<div class="vsx">VS</div>${side('h-t2', t2, true)}</div>
-      <div class="ctl">
-        <div class="seg" id="h-fmt"><button data-f="t20" class="${fmt === 't20' ? 'on' : ''}">T20</button><button data-f="odi" class="${fmt === 'odi' ? 'on' : ''}">ODI</button></div>
-        <span class="meta">Conditions <b>${esc(comp ? comp.text.replace(/ \(\d{4}–\d{4}\)$/, '') : '')} ${esc($('c-year').value)}</b> · <a class="lnk" data-mode="series">change</a></span>
-        <label class="toggle ${HERO.cap ? 'on' : ''}" id="h-cap"><i></i>Captain ${esc(teamKey(t1))}</label>
-        <label class="toggle ${HERO.ball ? 'on' : ''} ${HERO.cap ? '' : 'off'}" id="h-ball"><i></i>Ball by ball</label>
-        <button class="btn go big" id="h-play">&#9654;&nbsp; Play match</button>
-      </div><div class="err" id="h-err" style="text-align:center"></div>
-    </div>`;
-  ['h-t1', 'h-t2'].forEach((id, i) => $(id).onchange = () => { $('s-t' + (i + 1)).value = $(id).value; showRoster('s-t' + (i + 1), 's-r' + (i + 1)); drawHero(); });
-  $('h-fmt').querySelectorAll('button').forEach(b => b.onclick = () => { $('c-fmt').value = b.dataset.f; $('c-fmt').dispatchEvent(new Event('change')); drawHero(); });
-  $('h-cap').onclick = () => { HERO.cap = !HERO.cap; drawHero(); };
-  $('h-ball').onclick = () => { if (HERO.cap) { HERO.ball = !HERO.ball; drawHero(); } };
-  $('h-play').onclick = quickMatch;
+  const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, tt = heroTeams();
+  const side = i => `<button class="qh-team" data-side="${i}" title="Change team">${badge(tt[i], 'lg')}
+    <span class="qh-nm">${esc(pickName(tt[i], names))}</span></button>`;
+  $('hero').innerHTML = `<p class="qh-tag">Captain a real ${fmt === 'odi' ? 'ODI' : 'T20'} side, ball by ball.</p>
+    <div class="qh-vs">${side(0)}<span class="qh-v">v</span>${side(1)}</div>
+    <div class="seg qh-fmt" id="h-fmt"><button data-f="t20" class="${fmt === 't20' ? 'on' : ''}">T20</button><button data-f="odi" class="${fmt === 'odi' ? 'on' : ''}">ODI</button></div>
+    <button class="btn go big qh-play" id="h-play">&#9654;&nbsp; Play</button>
+    <button class="lnk qh-sim" id="h-sim">Just simulate the result &rsaquo;</button>
+    <div class="err" id="h-err"></div>`;
+  $('hero').querySelectorAll('.qh-team').forEach(b => b.onclick = () => teamSheet(+b.dataset.side));
+  $('h-fmt').querySelectorAll('button').forEach(b => b.onclick = () => heroFormat(b.dataset.f));
+  $('h-play').onclick = openPre;
+  $('h-sim').onclick = simulateQuick;
 }
-const HERO = {cap: false, ball: true};
-async function quickMatch() {
-  setMode('series', false);
-  $('s-n').value = 1;
-  capOptions();
-  $('g-captain').value = HERO.cap ? '0' : '';
-  $('g-manual').querySelectorAll('input').forEach(i => { if (i.value === 'ball') i.checked = HERO.ball; });
-  capBoxes();
-  $('h-err').textContent = '';
-  try { await api('/api/run', {...payload(), ...capPayload()}); poll(); }
-  catch (e) { $('h-err').textContent = e.message; }
+function setHeroTeam(i, name) {
+  const id = 's-t' + (i + 1);
+  $(id).value = name; showRoster(id, 's-r' + (i + 1)); drawHero();
+}
+/* T20 <-> ODI: a nation's preset follows the format when the other one exists ("India T20 2024" -> "India ODI 2023") */
+function heroFormat(f) {
+  $('c-fmt').value = f; $('c-fmt').dispatchEvent(new Event('change'));
+  const names = META.teams.map(t => t.name), want = f === 'odi' ? 'ODI' : 'T20';
+  heroTeams().forEach((n, i) => {
+    if (!isNationPreset(n) || n.includes(' ' + want + ' ')) return;
+    const alt = names.find(x => teamKey(x) === teamKey(n) && x.includes(' ' + want + ' '));
+    if (alt) $('s-t' + (i + 1)).value = alt;
+  });
+  drawHero();
+}
+/* the team sheet: nations, franchises and your own teams, big rows */
+const isNationPreset = n => / (T20|ODI) \d{4}$/.test(n);
+const isFranchise = n => !isNationPreset(n) && / (19|20)\d{2}$/.test(n) && !!TEAM_ID[teamKey(n)];
+function teamSheet(side) {
+  const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, cur = heroTeams()[side];
+  const mine = n => (fmt === 'odi') === n.includes(' ODI ');
+  const nat = names.filter(isNationPreset).sort((a, b) => (mine(b) ? 1 : 0) - (mine(a) ? 1 : 0));
+  const fr = names.filter(isFranchise), own = names.filter(n => !nat.includes(n) && !fr.includes(n));
+  const yr = fr.length ? (fr[0].match(/\d{4}$/) || [''])[0] : '';
+  const grp = (t, list) => list.length ? `<div class="bs-sec">${t}</div><div class="bs-list">${list.map(n => `<button data-n="${esc(n)}" class="${n === cur ? 'on' : ''}">${badge(n, 'md')}
+    <span>${esc(pickName(n, names))}</span>${n === cur ? '<b class="ok">&#10003;</b>' : ''}</button>`).join('')}</div>` : '';
+  openSheet(`<h3>${side ? 'Opponent' : 'Your team'}</h3>${grp('Nations', nat)}${grp(`Franchises ${yr}`, fr)}${grp('My teams', own)}`);
+  $('bsheet-in').querySelectorAll('[data-n]').forEach(b => b.onclick = () => { closeSheet(); setHeroTeam(side, b.dataset.n); });
+}
+/* elements lent to a sheet (data-home = the id of the element they live in) go back before it changes */
+function sheetRescue() { document.querySelectorAll('#bsheet-in [data-home]').forEach(n => $(n.dataset.home).appendChild(n)); }
+function openSheet(html) {
+  if (typeof coachHide === 'function') coachHide(false);
+  sheetRescue();
+  $('bsheet-in').innerHTML = html; $('bsheet').scrollTop = 0;
+  $('bsheet').classList.add('on'); $('sheet-dim').classList.add('on');
+}
+function closeSheet() {
+  if (!$('bsheet')) return;
+  $('bsheet').classList.remove('on'); $('sheet-dim').classList.remove('on');
+  sheetRescue();
+  if (typeof CAP !== 'undefined') CAP.sheetKind = null;
+}
+/* era & grounds for a quick match, from the teams: two franchises play in their league's conditions, else
+   international; the year is the teams' own (clamped to the data) */
+function quickConds(tt, fmt) {
+  const comps = META.formats[fmt].competitions;
+  const comp = fmt === 't20' && tt.every(isFranchise) && comps.some(c => c.id === 'ipl') ? 'ipl' : fmt === 'odi' ? 'odi_full' : 't20i_full';
+  const c = comps.find(x => x.id === comp) || comps[0];
+  const ys = tt.map(n => +((n.match(/(19|20)\d{2}$/) || [])[0] || 0)).filter(Boolean);
+  const y = ys.length ? Math.max(...ys) : +$('c-year').value || c.last;
+  return {comp: c.id, year: Math.max(c.first, Math.min(c.last, y))};
+}
+function quickPayload(cap) {
+  const tt = heroTeams(), fmt = $('c-fmt').value, cond = quickConds(tt, fmt);
+  const p = {mode: 'series', fmt, comp: cond.comp, year: cond.year, venues: [], seed: '', rain: $('c-rain').checked,
+    team1: tt[0], team2: tt[1], matches: 1};
+  if (cap) Object.assign(p, {captain_i: 0, opponents: $('g-opp').value || 'expert',
+    manual: ['toss', 'bowler', 'ball', ...(PRE.xi ? ['xi'] : [])]});
+  return p;
+}
+async function simulateQuick() {
+  setMode('series', false); $('h-err').textContent = ''; LIVE_AWAY = false;
+  try { await api('/api/run', quickPayload(false)); poll(); } catch (e) { $('h-err').textContent = e.message; }
 }
 
-/* home: last results, careers and saved runs */
-async function drawHomeCont() {
-  const cards = [];
-  if (META.has_results) {
-    try {
-      const r = await api('/api/results');
-      setDisplayTeams(r.teams && r.teams.length ? r.teams : r.fixtures.flatMap(f => f.teams));
-      const f = r.fixtures[r.fixtures.length - 1];
-      const title = r.kind === 'series' ? dnText(r.result, r.teams) : `${dn(r.winner)} won`;
-      cards.push(`<button class="card ccard" data-home="last" style="${tStyle(r.winner || (f && f.winner) || '')}"><span class="stripe"></span>
-        <div class="kicker">Last run · ${esc((r.format || '').toUpperCase())} · ${esc(r.competition || '')} ${esc(r.year || '')}</div>
-        <div class="row">${(r.kind === 'series' ? r.teams : [r.winner]).filter(Boolean).map(t => badge(t)).join('')}<span class="sc">${esc(title)}</span></div>
-        <div class="res">${esc(r.fixtures.length)} match${r.fixtures.length === 1 ? '' : 'es'}${r.player_of_series ? ' · player of the series ' + esc(r.player_of_series.name) : ''}</div></button>`);
-    } catch (e) { /* no last run */ }
+/* pre-match card: the XI is suggested, the toss is one tap; the run starts on the call. The engine tosses the coin:
+   it lands on your call when your side won the toss (then Bat / Bowl), else on the other face. */
+const PRE = {on: false, call: null, xi: false, phase: '', t0: 0};
+function openPre() {
+  setMode('series', false);
+  const tt = heroTeams(), fmt = $('c-fmt').value, cond = quickConds(tt, fmt);
+  Object.assign(PRE, {on: false, call: null, xi: false, phase: ''});
+  setDisplayTeams(tt);
+  $('pre-teams').innerHTML = `${badge(tt[0], 'lg')}<span class="qh-v">v</span>${badge(tt[1], 'lg')}`;
+  $('pre-line').innerHTML = `<b>${esc(dn(tt[0]))}</b> v <b>${esc(dn(tt[1]))}</b> · ${fmt === 'odi' ? 'ODI' : 'T20'} · ${esc(compName(fmt, cond.comp))} ${cond.year}`;
+  preXI(false); $('pre-xi').style.display = ''; $('pre-xi').disabled = false;
+  $('pre-coin').className = 'coin'; $('pre-coin').textContent = 'H';
+  $('pre-err').textContent = '';
+  document.querySelectorAll('#pre-len button').forEach(b => b.onclick = () => setLen(b.dataset.l));
+  setLen(capLen());
+  preButtons();
+  showView('v-pre');
+}
+function preXI(pick) {
+  PRE.xi = pick;
+  $('pre-xi-t').innerHTML = pick ? 'Your XI: you pick it after the toss' : 'Your XI: suggested <b class="ok">&#10003;</b>';
+  $('pre-xi').textContent = pick ? 'Use the suggested XI' : 'Change XI';
+  $('pre-xi').onclick = () => preXI(!PRE.xi);
+}
+function preButtons() {
+  $('pre-q').textContent = 'Call the toss';
+  $('pre-b').innerHTML = ['Heads', 'Tails'].map(c => `<button class="btn go" data-call="${c}">${c}</button>`).join('');
+  $('pre-b').querySelectorAll('button').forEach(b => b.onclick = () => preCall(b.dataset.call));
+}
+async function preCall(call) {
+  LIVE_AWAY = false;
+  Object.assign(PRE, {call, phase: 'wait', t0: Date.now()});
+  $('pre-b').innerHTML = ''; $('pre-q').textContent = ''; $('pre-err').textContent = '';
+  $('pre-xi').disabled = true;
+  $('pre-coin').className = 'coin spin';
+  try { await api('/api/run', quickPayload(true)); PRE.on = true; poll(); }
+  catch (e) { PRE.phase = ''; $('pre-coin').className = 'coin'; $('pre-err').textContent = e.message; $('pre-xi').disabled = false; preButtons(); }
+}
+/* called by poll() while the pre-match card is up */
+function preRender(st) {
+  const q = st.captain.pending;
+  if (!q || PRE.phase !== 'wait' || Date.now() - PRE.t0 < 900) return;
+  const won = q.kind === 'toss', other = PRE.call === 'Heads' ? 'Tails' : 'Heads', face = won ? PRE.call : other;
+  const tt = heroTeams();
+  $('pre-coin').className = 'coin land'; $('pre-coin').textContent = face[0];
+  $('pre-xi').disabled = false; $('pre-xi').style.display = 'none';
+  if (won) {
+    PRE.phase = 'choose';
+    $('pre-q').textContent = `${face}. You won the toss.`;
+    $('pre-b').innerHTML = q.options.map(o => `<button class="btn ${o === q.default ? 'go' : 'sec'}" data-d="${o}">${o === 'bat' ? 'Bat first' : 'Bowl first'}${o === q.default ? ' <small class="pre-sug">Suggested</small>' : ''}</button>`).join('');
+    $('pre-b').querySelectorAll('button').forEach(b => b.onclick = async () => {
+      $('pre-b').innerHTML = '';
+      try { await api('/api/decide', {id: q.id, choice: b.dataset.d, auto: {}}); } catch (e) { toast(e.message, true); }
+      preDone();
+    });
+    return;
   }
-  (META.careers || []).slice(0, 1).forEach(c => cards.push(`<button class="card ccard" data-career="${esc(c.id)}" style="${tStyle(c.user || '')}"><span class="stripe"></span>
-    <div class="kicker">Career · ${esc(c.league)}</div><div class="row">${c.user ? badge(c.user) : ''}<span class="sc">${esc(c.name)}</span></div>
-    <div class="res">${c.played} season${c.played === 1 ? '' : 's'} played${c.user ? ` · ${c.titles} title${c.titles === 1 ? '' : 's'}` : ''} · next: ${esc(c.season)} ${c.phase === 'auction' ? 'auction' : 'season'}</div></button>`));
-  (META.saved || []).slice(0, 3 - cards.length).forEach(s => cards.push(`<button class="card ccard" data-saved="${esc(s.id)}" style="${tStyle(s.winner || '')}"><span class="stripe"></span>
-    <div class="kicker">Saved run · ${esc((s.fmt || '').toUpperCase())} · saved ${esc((s.saved || '').slice(0, 10))}</div>
-    <div class="row">${s.winner ? badge(s.winner) : ''}<span class="sc">${esc(s.name)}</span></div>
-    <div class="res">${s.winner ? 'Winner: ' + esc(s.winner) : esc(s.title || '')}</div></button>`));
-  $('home-cont').innerHTML = cards.length ? `<div class="sec-h"><h2>Jump back in</h2></div><div class="cont">${cards.join('')}</div>` : '';
-  $('home-cont').querySelectorAll('[data-home]').forEach(b => b.onclick = () => showResults());
-  $('home-cont').querySelectorAll('[data-saved]').forEach(b => b.onclick = () => showResults(b.dataset.saved));
+  PRE.phase = 'lost';
+  const s = q.state || {};
+  const d = q.toss ? (/chose to bat/.test(q.toss) ? 'bat' : 'bowl') : s.innings === 1 ? (s.batting === q.team ? 'bowl' : 'bat') : 'bowl';
+  $('pre-q').textContent = `${face}. ${dn(tt[1])} won the toss and chose to ${d}. You ${d === 'bat' ? 'bowl' : 'bat'}.`;
+  setTimeout(preDone, 1700);
+}
+function preDone() { PRE.on = false; PRE.phase = ''; $('pre-xi').style.display = ''; clearTimeout(POLL_T); poll(); }
+
+/* home: the one thing in progress (a live match or a career); past results are under Results */
+async function drawHomeCont() {
+  let row = '';
+  try {
+    const st = await api('/api/status');
+    if (st.status === 'running' && !PRE.on) {
+      const title = String(st.title || 'Match').split(' - ')[0], tt = title.split(' v ');
+      setDisplayTeams(tt);
+      row = `<button class="cont1 live" data-nav="live"><span class="dot"></span><span>Continue: <b>${esc(dnText(title, tt))}</b> · live</span><span class="go">&rsaquo;</span></button>`;
+    }
+  } catch (e) { /* offline */ }
+  const c = (META.careers || [])[0];
+  if (!row && c) row = `<button class="cont1" data-career="${esc(c.id)}"><span class="dot"></span><span>Continue: <b>${esc(c.name)}</b> · ${esc(c.league)} ${esc(c.season)} ${c.phase === 'auction' ? 'auction' : 'season'}</span><span class="go">&rsaquo;</span></button>`;
+  $('home-cont').innerHTML = row;
   $('home-cont').querySelectorAll('[data-career]').forEach(b => b.onclick = () => openCareer(b.dataset.career));
 }
-function goHome() { const on = $('v-home').classList.contains('on'); showView('v-home'); if (on) { drawHero(); drawHomeCont(); } }
+/* four doors instead of eleven tiles; each opens a chooser with 2-5 big cards */
+const DOORS = [
+  {t: 'Play a friend', s: 'on two phones', ic: 'mp', modes: ['mp']},
+  {t: 'Seasons & careers', ic: 'league', modes: ['league', 'career']},
+  {t: 'Auction & draft', ic: 'auction', modes: ['auction', 'draft']},
+  {t: 'What-if sandbox', ic: 'classic', modes: ['series', 'tournament', 'classic', 'classic_t', 'builder']}];
+const DOOR_LINE = {league: 'Any season of 11 leagues, real squads.', career: 'Run a franchise, year after year.',
+  auction: 'Bid for a squad, then play.', draft: 'Pick players in turns, then a league.',
+  series: 'Two teams, one to seven matches.', tournament: 'Your own World Cup or league.',
+  classic: 'Great sides from any era.', classic_t: 'Eras meet in one tournament.', builder: 'Make and save your own XI.'};
+function drawDoors() {
+  $('home-doors').innerHTML = DOORS.map((d, i) => `<button class="card door" data-door="${i}">${modeIcon(d.ic)}
+    <b>${esc(d.t)}${d.s ? `<span> ${esc(d.s)}</span>` : ''}</b></button>`).join('');
+  $('home-doors').querySelectorAll('.door').forEach(b => b.onclick = () => openDoor(+b.dataset.door));
+}
+function openDoor(i) {
+  const d = DOORS[i];
+  if (d.modes.length === 1) return setMode(d.modes[0]);
+  $('door-title').textContent = d.t;
+  $('door-list').innerHTML = d.modes.map(k => `<button class="card tile mode" data-mode="${k}">${modeIcon(k)}<div><b>${esc(MODES[k].t)}</b><span>${esc(DOOR_LINE[k])}</span></div></button>`).join('');
+  $('door-list').querySelectorAll('.mode').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  showView('v-door');
+}
+function goHome() { closeSheet(); const on = $('v-home').classList.contains('on'); showView('v-home'); if (on) { drawHero(); drawHomeCont(); } }
+/* leaving the live screen (top bar, tab bar) keeps the match waiting: the pill and Continue lead back to it */
+let LIVE_AWAY = false;
 function navTo(k) {
+  LIVE_AWAY = k !== 'live';
   if (k === 'home') goHome();
   else if (k === 'results') { if (META.has_results || R) showResults(R_RUN || undefined); else toast('No results yet. Play something first.'); }
   else if (k === 'saved') setMode('saved');
@@ -248,7 +416,9 @@ function syncSum() {
 
 async function init() {
   META = await api('/api/meta');
-  drawModeTiles();
+  drawModeTiles(); drawDoors();
+  $('sheet-dim').onclick = closeSheet;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
   document.querySelectorAll('.mode').forEach(b => b.onclick = () => setMode(b.dataset.mode));
   document.addEventListener('click', e => {
     const n = e.target.closest('[data-nav]'); if (n) { e.preventDefault(); navTo(n.dataset.nav); }
@@ -257,13 +427,24 @@ async function init() {
   const sumObs = new MutationObserver(syncSum);
   document.querySelectorAll('#v-setup .total').forEach(t => sumObs.observe(t, {subtree: true, childList: true, characterData: true}));
   document.querySelectorAll('.tab').forEach(t => t.onclick = () => openTab(t.dataset.pane));
-  $('c-fmt').onchange = () => { fillConditions(); refreshClassic(); };
-  $('c-comp').onchange = checkYear; $('c-year').oninput = checkYear;
+  $('c-fmt').onchange = e => { if (e.isTrusted) COND.fmt = true; fillConditions(); refreshClassic(); fillTeams(); autoConds(); };
+  $('c-comp').onchange = e => { if (e.isTrusted) COND.user = true; checkYear(); condLine(); };
+  $('c-year').oninput = e => { if (e.isTrusted) COND.user = true; checkYear(); condLine(); };
   $('c-vsearch').oninput = filterVenues;
+  $('c-vclear').onclick = () => { [...$('c-venues').options].forEach(o => o.selected = false); $('c-vsearch').value = ''; drawVenues(); };
   fillSelect($('t-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
   ['t-rounds', 't-groups', 't-ko'].forEach(id => $(id).onchange = updateTournamentTotal);
   $('t-search').oninput = filterTeams;
   fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initCareerForm(); initLeague(); initBuilder(); initMatchNav();
+  document.querySelectorAll('input[data-chips]').forEach(numChips);
+  presetChips($('t-preset'), 't'); presetChips($('ct-preset'), 'ct');
+  const teamsChanged = () => { capOptions(); autoConds(); };      // the captain chips list the teams chosen
+  ['s-t1', 's-t2'].forEach(id => $(id).addEventListener('change', teamsChanged));
+  $('t-list').addEventListener('change', teamsChanged);
+  ['cs-r1', 'cs-r2', 'ct-rows'].forEach(id => $(id).addEventListener('change', () => setTimeout(teamsChanged, 400)));
+  $('ct-add').addEventListener('click', () => setTimeout(teamsChanged, 400));
+  ['d-ya', 'd-yb', 'a-ya', 'a-yb'].forEach(id => $(id).addEventListener('change', autoConds));
+  mpSetupInit();
   $('go-btn').onclick = start;
   $('g-captain').onfocus = capOptions; $('g-captain').onmousedown = capOptions;
   $('g-captain').onchange = capBoxes; ['c-comp', 'c-year'].forEach(id => $(id).addEventListener('change', capBoxes));
@@ -271,6 +452,7 @@ async function init() {
   $('r-career').onclick = () => openCareer(R.career.id);
   if (META.has_results) $('last-btn').style.display = '';
   initPickers();
+  picker($('g-captain'), o => o.value === '' ? 'Just watch' : esc(pickName(o.text.replace(/ \(your drafted team\)$/, ''), capSides())), 'chips wrap');
   document.querySelector('.view.on').classList.remove('on'); showView('v-home');
   if (await mpInit()) return;          // two players: a room this browser is in, or a ?join= link
   if (META.job && META.job.status === 'running') poll();
@@ -283,9 +465,12 @@ function setMode(m, show = true) {
   if (m === 'saved') drawSaved();
   if (m === 'career') drawCareers();
   $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' || m === 'career' ? 'none' : '';
+  $('mp-clock-box').style.display = m === 'mp' ? '' : 'none';
+  if (m === 'mp') mpPane('');
   if (m === 'auction') aRefresh();
   capHome();
   capOptions();
+  autoConds();
   $('go-err').textContent = '';
   const M = MODES[m] || {t: m, s: ''};
   $('su-title').textContent = M.t; $('su-blurb').textContent = M.s; $('su-ic').outerHTML = modeIcon(m, 'big').replace('class="mic', 'id="su-ic" class="mic');
@@ -297,18 +482,100 @@ function setMode(m, show = true) {
   else showView('v-setup');
 }
 /* the captain boxes live in the conditions panel; the draft room borrows them once the draft is done */
-function capHome() { const a = $('cap-anchor'); if (a && $('g-cap-box').parentNode !== a.parentNode) { a.after($('g-manual-box')); a.after($('g-cap-box')); } }
+function capHome() {
+  const a = $('cap-anchor'), m = $('cap-more-anchor');
+  if (a && $('g-cap-box').previousElementSibling !== a) a.after($('g-cap-box'));
+  if (m && $('g-manual-box').previousElementSibling !== m) m.after($('g-manual-box'));
+}
 
 /* conditions: format, competition, year, venues */
 function fillConditions() {
   const f = META.formats[$('c-fmt').value];
   fillSelect($('c-comp'), f.competitions.map(c => ({v: c.id, t: `${c.label} (${c.first}–${c.last})`})), true);
   $('c-venues').innerHTML = f.venues.map(v => `<option value="${esc(v.name)}" data-k="${esc(v.name.toLowerCase())}">${esc(v.name)} (${v.matches} games${v.runs >= 1.03 ? ', high-scoring' : v.runs <= 0.97 ? ', low-scoring' : ''})</option>`).join('');
-  filterVenues(); checkYear();
+  drawVenues(); checkYear(); condLine();
 }
+/* the venues: a searchable tick list in front of the hidden <select multiple> (phones can't Ctrl+click); ticked
+   grounds first */
+function drawVenues() {
+  const vs = META.formats[$('c-fmt').value].venues, opts = [...$('c-venues').options];
+  const order = vs.map((v, i) => i).sort((a, b) => (opts[b].selected ? 1 : 0) - (opts[a].selected ? 1 : 0));
+  $('c-vlist').innerHTML = order.map(i => { const v = vs[i];
+    return `<label data-k="${esc(v.name.toLowerCase())}"><input type="checkbox" data-i="${i}" ${opts[i].selected ? 'checked' : ''}> <span>${esc(v.name)}
+      <span class="muted small full-only">(${v.matches} games${v.runs >= 1.03 ? ', high-scoring' : v.runs <= 0.97 ? ', low-scoring' : ''})</span></span></label>`; }).join('');
+  $('c-vlist').querySelectorAll('input').forEach(c => c.onchange = () => { opts[+c.dataset.i].selected = c.checked; venueCount(); });
+  filterVenues(); venueCount();
+}
+function venueCount() { const n = $('c-venues').selectedOptions.length; $('c-vcount').textContent = n ? `· ${n} ticked` : ''; }
 function filterVenues() {
   const q = $('c-vsearch').value.toLowerCase();
   [...$('c-venues').options].forEach(o => o.style.display = o.dataset.k.includes(q) ? '' : 'none');
+  $('c-vlist').querySelectorAll('label').forEach(l => l.style.display = l.dataset.k.includes(q) ? '' : 'none');
+}
+/* era & grounds (and the format) follow the teams chosen until you change them yourself under More options */
+const COND = {user: false, fmt: false, auto: false};
+const teamFmt = n => / ODI \d{4}$/.test(n) ? 'odi' : / T20 \d{4}$/.test(n) || isFranchise(n) ? 't20' : null;
+function condTeams() {
+  if (MODE === 'series') return [$('s-t1').value, $('s-t2').value];
+  if (MODE === 'tournament') return [...document.querySelectorAll('#t-list input:checked')].map(i => i.value);
+  return [];
+}
+function condYears() {
+  const rows = MODE === 'classic' ? [$('cs-r1').firstChild, $('cs-r2').firstChild] : MODE === 'classic_t' ? [...$('ct-rows').children] : [];
+  if (rows.length) return rows.filter(r => r && r.entry).map(r => r.entry().y2);
+  if (MODE === 'draft') return [+$('d-yb').value];
+  if (MODE === 'auction' && $('a-pool').value === 'years') return [+$('a-yb').value];
+  return [];
+}
+function autoConds() {
+  if (META && MODE === 'mp') {                        // a room: T20, international, the latest year, unless you chose
+    if (!COND.fmt && $('c-fmt').value !== 't20') { $('c-fmt').value = 't20'; $('c-fmt').dispatchEvent(new Event('change')); return; }
+    const c = META.formats[$('c-fmt').value].competitions, i = c.find(x => /_full$/.test(x.id)) || c[0];
+    if (!COND.user) { $('c-comp').value = i.id; $('c-year').value = i.last; checkYear(); }
+    COND.auto = false; condLine(); return;
+  }
+  if (!META || !['series', 'tournament', 'classic', 'classic_t', 'draft', 'auction'].includes(MODE)) { COND.auto = false; condLine(); return; }
+  const tt = condTeams(), fmts = [...new Set(tt.map(teamFmt).filter(Boolean))];
+  if (!COND.fmt && fmts.length === 1 && fmts[0] !== $('c-fmt').value) { $('c-fmt').value = fmts[0]; $('c-fmt').dispatchEvent(new Event('change')); return; }
+  if (COND.user) { COND.auto = false; condLine(); return; }
+  const fmt = $('c-fmt').value, comps = META.formats[fmt].competitions;
+  let cond = null;
+  if (tt.length) cond = quickConds(tt.length > 1 ? tt : [tt[0], tt[0]], fmt);
+  else {
+    const ys = condYears().filter(Boolean), id = fmt === 'odi' ? 'odi_full' : 't20i_full';
+    const c = comps.find(x => x.id === id) || comps[0];
+    if (ys.length) cond = {comp: c.id, year: Math.max(c.first, Math.min(c.last, Math.max(...ys)))};
+  }
+  COND.auto = !!cond;
+  if (cond) { $('c-comp').value = cond.comp; $('c-year').value = cond.year; checkYear(); }
+  condLine();
+}
+function condLine() {
+  const fmt = $('c-fmt').value;
+  $('c-auto').textContent = `· ${+$('c-year').value || ''} ${compName(fmt, $('c-comp').value)}${COND.auto ? ', from the teams' : ''}`;
+}
+/* number chips (Matches: 1 3 5 7) in front of a hidden number input */
+function numChips(inp) {
+  const vals = inp.dataset.chips.split(','), box = document.createElement('div');
+  box.className = 'picker chips'; inp.after(box); inp.classList.add('picked');
+  const draw = () => { box.innerHTML = vals.map(v => `<button type="button" class="${String(+inp.value) === v ? 'on' : ''}" data-v="${v}">${v}</button>`).join(''); };
+  box.onclick = e => { const b = e.target.closest('button'); if (!b) return; inp.value = b.dataset.v; inp.dispatchEvent(new Event('change')); inp.dispatchEvent(new Event('input')); draw(); };
+  inp.addEventListener('change', draw); draw();
+}
+/* tournament formats as named presets; the rounds / groups / knockouts selects stay under More options */
+const TPRESETS = [['League + semi-finals', '1', '1', 'semis'], ['League + final', '1', '1', 'final'], ['Two groups + semi-finals', '1', '2', 'semis']];
+function presetChips(box, pre) {
+  const ids = ['-rounds', '-groups', '-ko'].map(x => pre + x);
+  const draw = () => {
+    box.innerHTML = TPRESETS.map(([t, ...v], i) => `<button type="button" data-i="${i}" class="${ids.every((id, k) => $(id).value === v[k]) ? 'on' : ''}">${t}</button>`).join('');
+  };
+  box.onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const v = TPRESETS[+b.dataset.i].slice(1);
+    ids.forEach((id, k) => { $(id).value = v[k]; });
+    $(ids[2]).dispatchEvent(new Event('change'));
+  };
+  ids.forEach(id => $(id).addEventListener('change', draw)); draw();
 }
 function checkYear() {
   const f = META.formats[$('c-fmt').value], c = f.competitions.find(c => c.id === $('c-comp').value), y = +$('c-year').value;
@@ -318,7 +585,8 @@ function checkYear() {
 /* teams (series + tournament) */
 function fillTeams() {
   const names = META.teams.map(t => t.name);
-  fillSelect($('s-t1'), names, true); fillSelect($('s-t2'), names, true);
+  const opts = names.map(n => ({v: n, t: pickName(n, names)}));
+  fillSelect($('s-t1'), opts, true); fillSelect($('s-t2'), opts, true);
   if (!$('s-t1')._init) {
     $('s-t1').value = names.includes('India T20 2024') ? 'India T20 2024' : names[0];
     $('s-t2').value = names.includes('Australia T20 2024') ? 'Australia T20 2024' : names[Math.min(1, names.length - 1)];
@@ -329,14 +597,14 @@ function fillTeams() {
   const checked = new Set([...document.querySelectorAll('#t-list input:checked')].map(i => i.value));
   const first = !$('t-list').children.length;
   $('t-list').innerHTML = META.teams.map(t =>
-    `<label data-name="${esc(t.name.toLowerCase())}"><input type="checkbox" value="${esc(t.name)}" ${checked.has(t.name) || (first && / T20 2024$/.test(t.name)) ? 'checked' : ''}> ${esc(t.name)} <span class="muted small">(${t.players.length})</span></label>`).join('');
+    `<label data-name="${esc(t.name.toLowerCase())}"><input type="checkbox" value="${esc(t.name)}" ${checked.has(t.name) || (first && / T20 2024$/.test(t.name)) ? 'checked' : ''}> ${esc(pickName(t.name, names))} <span class="muted small full-only">(${t.players.length})</span></label>`).join('');
   $('t-list').querySelectorAll('input').forEach(i => i.onchange = updateTournamentTotal);
   updateTournamentTotal(); drawSavedTeams();
 }
 function showRoster(selId, outId) {
   const t = META.teams.find(t => t.name === $(selId).value);
-  $(outId).innerHTML = t ? `<div class="rhead">${badge(t.name)}<span class="muted small">${t.players.length} players${t.players.length > 11 ? ' · the XI is picked per match' : ''}</span></div>
-    <div class="pchips">${t.players.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : '';
+  $(outId).innerHTML = t ? `<div class="rhead">${badge(t.name)}<span class="muted small full-only">${t.players.length} players</span></div>
+    <div class="pchips full-only">${t.players.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : '';
 }
 function filterTeams() {
   const q = $('t-search').value.toLowerCase();
@@ -540,7 +808,7 @@ async function saveRun() {
     META.saved = (await api('/api/saved', {name})).saved;
     const sv = META.saved.find(s => s.name === name.trim()) || META.saved[0];
     $('r-save').style.display = 'none'; $('r-saved').textContent = `Saved as “${sv.name}”`;
-    toast('Saved. Find it under “Saved runs”.'); aRefresh();
+    toast('Saved. Find it under “Saved”.'); aRefresh();
   } catch (e) { toast(e.message, true); }
 }
 function drawSaved() {
@@ -596,11 +864,11 @@ function capSides() {
   return [];
 }
 function capOptions() {
-  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE);
+  const sides = capSides();
+  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE) && sides.length > 0;   // a draft: once it is done
   $('g-cap-box').style.display = show ? '' : 'none';
   if (!show) { $('g-manual-box').style.display = 'none'; return; }
   const sel = $('g-captain'), keep = sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : '';
-  const sides = capSides();
   fillSelect(sel, [{v: '', t: MODE === 'draft' ? 'None - the computer captains every team' : 'None - the computer plays everything'},
     ...sides.map((t, i) => ({v: String(i), t: MODE === 'draft' ? `${t} (your drafted team)` : t}))]);
   const k = [...sel.options].findIndex(o => o.text === keep);
@@ -618,7 +886,7 @@ function capPayload() {
     manual: [...$('g-manual').querySelectorAll('input:checked')].map(x => x.value).filter(k => k !== 'impact' || CAP.impact)};
 }
 async function start() {
-  $('go-err').textContent = ''; $('go-btn').disabled = true;
+  $('go-err').textContent = ''; $('go-btn').disabled = true; LIVE_AWAY = false;
   try {
     if (MODE === 'draft') { await startDraft(); return; }
     if (MODE === 'auction') { await startAuction(); return; }
@@ -635,13 +903,13 @@ async function poll() {
   let st;
   try { st = await api('/api/status'); } catch (e) { POLL_T = setTimeout(poll, 1500); return; }
   const running = st.status === 'running';
-  $('status-pill').innerHTML = running ? '<i></i>' + (st.captain ? 'Live' : 'Running') : '<i></i>Idle';
-  $('status-pill').classList.toggle('run', running);
+  livePill(running, st);
+  if (PRE.on && running && st.captain) { preRender(st); POLL_T = setTimeout(poll, 250); return; }
+  PRE.on = false;
   $('go-btn').disabled = running;
   if (running && st.captain && st.captain.skip !== 'all') {
-    showView('v-captain');
-    capRender(st);
-    POLL_T = setTimeout(poll, st.captain.pending ? 700 : 200);
+    if (!LIVE_AWAY) { showView('v-captain'); capRender(st); }
+    POLL_T = setTimeout(poll, LIVE_AWAY ? 1500 : st.captain.pending ? 700 : 200);
   } else if (running) {
     showView('v-running');
     $('run-title').textContent = st.title || 'Simulating…';
@@ -673,23 +941,36 @@ async function showResults(run) {
   setDisplayTeams(RTEAMS);
   const lead = R.kind === 'series' ? (R.winner || '') : R.winner;
   $('r-hero').setAttribute('style', lead ? tStyle(lead) : '');
-  $('r-kick').textContent = `${fmt} · ${R.competition} ${R.year} conditions · ${R.best_of > 1 ? `best of ${R.best_of} · ` : ''}${R.fixtures.length} match${R.fixtures.length === 1 ? '' : 'es'}`;
+  const single = R.fixtures.length === 1;
+  $('r-kick').textContent = `${fmt} · ${compName(R.format, R.competition)} conditions ${R.year}${R.best_of > 1 ? ` · best of ${R.best_of}` : ''}${single ? '' : ` · ${R.fixtures.length} matches`}`;
   $('r-title').innerHTML = R.kind === 'series' ? esc(dnText(R.result, RTEAMS)) : `${badge(R.winner)} ${esc(dn(R.winner))} win the tournament`;
-  $('r-sub').textContent = `${R.title || ''} · seed ${R.seed}`;
+  /* one match: the scoreboard below names the teams, so no "India v Australia" line (6.8) */
+  $('r-sub').textContent = single ? '' : dnt(R.title || '');
+  $('r-sub').style.display = single ? 'none' : '';
+  /* the replay code lives behind Run details (i), Full only */
+  $('r-details').hidden = true; $('r-info').setAttribute('aria-expanded', 'false');
+  $('r-details').innerHTML = `Replay code <b>${esc(R.seed)}</b> · type it under More options to play this run again.`;
+  $('r-info').onclick = () => { const d = $('r-details'); d.hidden = !d.hidden; $('r-info').setAttribute('aria-expanded', String(!d.hidden)); };
   const sv = (META.saved || []).find(s => s.id === R_RUN);
   $('r-save').style.display = R_RUN || R.career ? 'none' : '';
   $('r-career').style.display = R.career ? '' : 'none';
   if (R.career) $('r-saved').textContent = `${R.career.name} · season ${R.career.season}`;
   if (!R.career) $('r-saved').textContent = sv ? `Saved run: ${sv.name} (${sv.saved})` : '';
-  const pos = R.player_of_series;
+  const pos = single ? null : R.player_of_series;   // one match: the Summary's player of the match card says it
   $('r-pos').style.display = pos ? '' : 'none';
-  if (pos) $('r-pos').innerHTML = `${avatar(pos.name, pos.team, 'sm')} Player of the series <b>${esc(pos.name)}</b> <span class="muted">${esc(dn(pos.team))}</span>`;
+  if (pos) $('r-pos').innerHTML = `${avatar(pos.name, pos.team, 'sm')} Player of the ${R.fixtures.length === 1 ? 'match' : 'series'} <b>${esc(pos.name)}</b> <span class="muted">${esc(dn(pos.team))}</span>`;
   CUR_MATCH = 0;
   $('tab-board').style.display = R.draft ? '' : 'none';
   if (R.draft) drawBoard($('r-board'), R.draft.teams, R.draft.board, R.draft.user || (mpOn() && MP.team) || null);
   $('tab-board').textContent = R.draft && R.draft.auction ? 'Auction squads' : 'Draft board';
   renderSummary(); renderMatchSelect(); renderStatsTables(); renderMVP();
-  openTab('p-summary');
+  /* results fit the run: one match shows the match centre without the series tabs;
+     a series of 2 has no Best players (records and the MVP race need 3 matches or more) */
+  ['p-summary', 'p-bat', 'p-bowl', 'p-mvp'].forEach(id => { document.querySelector(`.tab[data-pane="${id}"]`).style.display = single ? 'none' : ''; });
+  if (R.fixtures.length < 3) document.querySelector('.tab[data-pane="p-mvp"]').style.display = 'none';
+  $('r-tabs').style.display = single && !R.draft ? 'none' : '';
+  document.querySelector('#p-matches .mnav').style.display = single ? 'none' : '';
+  openTab(single ? 'p-matches' : 'p-summary');
 }
 function openTab(id) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.pane === id));
@@ -746,11 +1027,12 @@ function renderSummary() {
   }
   if (R.captaincy) h += `<div class="card pad" style="margin-top:20px">${captaincyHTML(R.captaincy)}</div>`;
   const poms = R.batting.filter(r => r.pom).sort((a, b) => b.pom - a.pom).slice(0, 5);
+  const big = R.fixtures.length >= 3;               // awards and records only mean something over 3 matches or more
   h += `<div class="sec-h"><h2>Top performers</h2></div><div class="tops">
     ${perfCard('Most runs', R.batting.slice(0, 5), r => r.runs, r => `avg ${fmtNum(r.average, 1)} · SR ${fmtNum(r.strike_rate, 1)}`)}
     ${perfCard('Most wickets', R.bowling.slice(0, 5), r => r.wickets, r => `avg ${fmtNum(r.average, 1)} · econ ${fmtNum(r.economy, 2)}`)}
-    ${perfCard('Player of the match awards', poms, r => r.pom, r => `${r.runs} runs`)}</div>`;
-  h += recordsHTML(R.records) + '<div class="sec-h"><h2>All results</h2></div><div class="tbl" id="res-table"></div>';
+    ${big ? perfCard('Player of the match awards', poms, r => r.pom, r => `${r.runs} runs`) : ''}</div>`;
+  h += (big ? recordsHTML(R.records) : '') + '<div class="sec-h"><h2>All results</h2></div><div class="tbl" id="res-table"></div>';
   el.innerHTML = h;
   if (R.kind !== 'series') {
     const per = R.knockouts.length ? (R.settings.knockout === 'final' ? (Object.keys(R.tables).length > 1 ? 1 : 2) : (Object.keys(R.tables).length > 1 ? 2 : 4)) : 1;
@@ -851,15 +1133,16 @@ function drawMatchCentre() {
   if (!tabs.some(t => t[0] === MC_TAB)) MC_TAB = 'sum';
   $('m-body').innerHTML = `<div class="card mc-hero"><div class="teams2">${side(teams[0], false)}
       <div class="mc-mid"><span class="kicker">${esc((c.format || '').toUpperCase())}</span><span>v</span></div>${side(teams[1], true)}</div>
-    <div class="mc-res"><span class="r">${esc(dnt(res.text || ''))}</span>
-      <span>${esc(f.stage)}</span>${c.venue ? `<span>Venue <b>${esc(c.venue)}</b></span>` : ''}
+    <div class="mc-res">${R.fixtures.length === 1 ? '' : `<span class="r">${esc(dnt(res.text || ''))}</span>
+      <span>${esc(f.stage)}</span>`}${c.venue ? `<span>Venue <b>${esc(c.venue)}</b></span>` : ''}
       <span>Toss <b>${esc(dn(c.toss.winner))}</b>, chose to ${esc(c.toss.decision)}</span><span>Pitch <b>${esc(cond.report || '–')}</b></span>
       ${(c.rain || []).map(t => `<span>&#9730; ${esc(t)}</span>`).join('')}</div></div>
     <div class="subtabs" id="mc-tabs">${tabs.map(([k, l]) => `<button data-t="${k}" class="${k === MC_TAB ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div id="mc-pane"></div>`;
   $('mc-tabs').querySelectorAll('button').forEach(b => b.onclick = () => { MC_TAB = b.dataset.t; drawMatchCentre(); });
   const pane = $('mc-pane');
-  if (MC_TAB === 'sum') pane.innerHTML = mcSummary();
+  if (MC_TAB === 'sum') { pane.innerHTML = mcSummary();
+    pane.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { const r = b.previousElementSibling; r.hidden = !r.hidden; b.textContent = r.hidden ? 'Read more' : 'Show less'; }); }
   else if (MC_TAB === 'sc') { pane.innerHTML = mcScorecard(); pane.querySelectorAll('[data-inn]').forEach(b => b.onclick = () => { MC.inn = +b.dataset.inn; drawMatchCentre(); }); }
   else if (MC_TAB === 'bb') pane.innerHTML = mcOvers();
   else if (MC_TAB === 'ch') pane.innerHTML = chartsHTML(c);
@@ -873,14 +1156,58 @@ function pomLine(c, pom) {
   });
   return parts.join(' and ');
 }
+/* key moments (6.8): one short line per moment behind an icon tag; partnership, new batter, boundary counts and the
+   balls of a big over are Full only */
+const TL_TAG = {wicket: 'OUT', big_over: 'OVER', hat_trick: 'HAT-TRICK', five_wickets: '5W', turning_point: '★', end_of_innings: 'END',
+  rain: '☂', partnership: 'P\'SHIP', info: '•'};
+const fo = s => s ? `<span class="full-only">${s}</span>` : '';
+function momentLine(e, c) {
+  const inn = c.innings[(e.innings || 1) - 1] || {};
+  if (e.kind === 'wicket') {
+    const b = (inn.batting || []).find(x => x.id === e.player_id);
+    if (b) return `<b>${esc(b.name)} ${b.runs} (${b.balls})</b>: ${esc(b.dismissal)}` +
+      fo(` · partnership ${e.partnership}${e.new_batter ? ` · new batter ${esc(e.new_batter)}` : ''}`);
+  }
+  if (e.kind === 'milestone' && e.player) { const m = e.text.match(/b, (.*)\)$/);
+    return `<b>${esc(e.player)} ${e.mark}</b> (${e.balls}b)` + fo(m ? ' · ' + esc(m[1]) : ''); }
+  if (e.kind === 'end_of_innings') { const [a, ...rest] = e.text.replace(/^End of innings: /, '').split(' - ');
+    return `<b>${esc(dn(inn.team || ''))} ${esc(a)}</b>` + fo(rest.length ? ' · ' + esc(rest.join(' - ')) : ''); }
+  if (e.kind === 'big_over') { const m = e.text.match(/^(.*?)( \(.*\))$/); return m ? esc(m[1]) + fo(esc(m[2])) : esc(e.text); }
+  if (e.kind === 'turning_point') { const t = e.text.replace(/^Turning point: /, ''); return esc(dnt(t.charAt(0).toUpperCase() + t.slice(1))); }
+  return esc(dnt(e.text));
+}
+function momentsHTML(c) {
+  const SKIP = new Set(['team_50', 'bowling_change']);
+  const evs = (c.events || []).filter(e => !SKIP.has(e.kind))
+    .filter(e => e.kind !== 'partnership' || (e.runs || 0) >= 50 || /\b(50|100|150) partnership/.test(e.text))
+    .map((e, i) => ({e, i, k: [(e.innings || 1), e.kind === 'end_of_innings' ? 1e3 : oversNum(e.over), i]}))
+    .sort((a, b) => a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2]).map(x => x.e);   // the turning point in its place
+  return evs.map(e => { const inn = c.innings[(e.innings || 1) - 1] || {};
+    const tag = e.kind === 'milestone' ? String(e.mark || '50') : TL_TAG[e.kind] || '•';
+    return `<div class="tl ${esc(e.kind)}${e.kind === 'partnership' ? ' full-only' : ''}"><div class="ov">${e.kind === 'end_of_innings' ? '' : esc(e.over)}</div>
+      <span class="tg">${tag}</span><div class="tx">${momentLine(e, c)}${e.score && e.kind !== 'end_of_innings' ? `<span class="s">${esc(tcol(inn.team || '').short)} ${esc(e.score)}</span>` : ''}</div></div>`; }).join('');
+}
+/* the written report: 2 sentences, then Read more */
+function reportHTML(text, extra) {
+  const ss = String(text || '').match(/[^.!?]+[.!?]+(\s|$)/g) || [text || ''];
+  const head = ss.slice(0, 2).join('').trim(), rest = ss.slice(2).join('').trim();
+  return `<div class="card pad report">${esc(head)}${rest ? `<span class="rest" hidden> ${esc(rest)}</span>
+    <button type="button" class="more-btn" data-more>Read more</button>` : ''}${extra || ''}</div>`;
+}
+function statTiles(c) {
+  const mainInns = c.innings.slice(0, 2), bat = mainInns.flatMap(i => i.batting.filter(x => x.batted).map(x => ({...x, team: i.team})));
+  const bowl = mainInns.flatMap(i => i.bowling.map(x => ({...x, team: i.bowling_team})));
+  const hs = [...bat].sort((x, y) => y.runs - x.runs || x.balls - y.balls)[0];
+  const bb = [...bowl].sort((x, y) => y.wickets - x.wickets || x.runs - y.runs)[0];
+  const per = k => mainInns.map(i => `${esc(tcol(i.team).short)} ${i.batting.reduce((a, x) => a + (x[k] || 0), 0)}`).join(' · ');
+  const tile = (k, v, s) => `<div class="stat-tile"><span class="k">${k}</span><b>${v}</b><span class="s">${s}</span></div>`;
+  return `<div class="stat-tiles">${hs ? tile('Top score', `${hs.runs}${hs.out ? '' : '*'} <small>(${hs.balls})</small>`, esc(hs.name)) : ''}
+    ${bb ? tile('Best bowling', `${bb.wickets}/${bb.runs}`, esc(bb.name)) : ''}
+    ${tile('Sixes', per('sixes'), '')}${tile('Fours', per('fours'), '')}</div>`;
+}
 function mcSummary() {
   const {c, d} = MC, pom = c.player_of_match || {}, mainInns = c.innings.slice(0, 2);
-  const KEEP = new Set(['wicket', 'big_over', 'milestone', 'turning_point', 'end_of_innings', 'partnership']);
-  const evs = (c.events || []).filter(e => KEEP.has(e.kind) || !['team_50', 'bowling_change'].includes(e.kind))
-    .filter(e => e.kind !== 'partnership' || (e.runs || 0) >= 50 || /\b(50|100|150) partnership/.test(e.text));
-  const tl = evs.map(e => { const inn = c.innings[(e.innings || 1) - 1] || {};
-    return `<div class="tl ${esc(e.kind)}"><div class="ov">${e.kind === 'end_of_innings' ? '' : esc(e.over)}</div><span class="pt"></span>
-      <div class="tx">${esc(dnt(e.text))}${e.score && e.kind !== 'end_of_innings' ? `<span class="s">${esc(tcol(inn.team || '').short)} ${esc(e.score)}</span>` : ''}</div></div>`; }).join('');
+  const tl = momentsHTML(c);
   const best = mainInns.flatMap(i => {
     const b = [...i.batting].filter(x => x.batted).sort((x, y) => y.runs - x.runs)[0];
     const w = [...i.bowling].sort((x, y) => y.wickets - x.wickets || x.runs - y.runs)[0];
@@ -888,14 +1215,18 @@ function mcSummary() {
             w && {n: w.name, t: i.bowling_team, what: 'Best bowling', v: `${w.wickets}/${w.runs} <small>(${w.overs})</small>`}];
   }).filter(Boolean);
   const imp = c.impact_player ? Object.entries(c.impact_player).map(([t, x]) => `<div class="small muted">Impact Player · ${esc(dn(t))}: <b>${esc(x.in)}</b> for ${esc(x.out)} (${esc(x.when)})</div>`).join('') : '';
+  /* 6.8: player of the match, 4 stat tiles and the win-probability chart first; then 2 sentences of the report and
+     the key moments. The top performers list repeats the tiles, so it is Full only. */
   return `<div class="sum-grid"><div>
       ${pom.name ? `<div class="card pom">${avatar(pom.name, pom.team, 'xl')}<div><div class="kicker k">Player of the match</div>
         <div class="nm">${esc(pom.name)}</div><div class="fig">${esc(dn(pom.team))}${pomLine(c, pom) ? ' · ' + esc(pomLine(c, pom)) : ''}</div></div></div>` : ''}
-      <div class="card pad report">${esc(dnt(d.report))}${imp ? '<div style="margin-top:8px">' + imp + '</div>' : ''}</div>
+      ${statTiles(c)}
+      <div class="wp-first">${winProbHTML(c, true)}</div>
+      ${reportHTML(dnt(d.report), imp ? '<div style="margin-top:8px">' + imp + '</div>' : '')}
       ${tl ? `<div class="card"><div class="kicker" style="padding:16px 20px 4px">Key moments</div><div class="timeline">${tl}</div></div>` : ''}
     </div><div>
-      ${winProbHTML(c, true)}
-      <div class="card perf"><div class="kicker">Top performers</div>${best.map(x => `<div class="prow">${avatar(x.n, x.t)}
+      <div class="wp-side">${winProbHTML(c, true)}</div>
+      <div class="card perf full-only"><div class="kicker">Top performers</div>${best.map(x => `<div class="prow">${avatar(x.n, x.t)}
         <div class="what"><b>${esc(x.n)}</b><span>${x.what} · ${esc(dn(x.t))}</span></div><div class="v">${x.v}</div></div>`).join('')}</div>
     </div></div>`;
 }
@@ -935,6 +1266,7 @@ function mcOvers() {
       ${evAt(i + 1, o.over).map(e => `<div class="ev ${e.kind === 'wicket' ? 'w' : ''}">${e.kind === 'wicket' ? 'WICKET · ' : ''}${esc(dnt(e.text))}</div>`).join('')}</div>`).join('')).join('')}</div>
     <details class="card pad" style="margin-top:16px"><summary class="muted">Text scorecard and innings log</summary><pre class="sc">${esc(d.text)}</pre></details>`;
 }
+let WP_N = 0;
 function winProbHTML(c, small) {
   const inns = c.innings.filter(i => i.overs_log && i.overs_log.length).slice(0, 2);
   const seq = [];
@@ -943,11 +1275,11 @@ function winProbHTML(c, small) {
   const W = 460, H = small ? 190 : 240, P = {l: 34, r: 10, t: 12, b: 24}, n1 = inns[0].overs_log.length;
   const X = j => P.l + (W - P.l - P.r) * j / seq.length, Y = p => H - P.b - (H - P.t - P.b) * p;
   const pts = [[0, .5], ...seq.map((s, j) => [j + 1, s.p])];
-  const [ca, cb] = TEAM_COL;
-  let g = `<defs><linearGradient id="wpg${small ? 's' : ''}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ca}"/><stop offset=".5" stop-color="#8d9bb5"/><stop offset="1" stop-color="${cb}"/></linearGradient></defs>`;
+  const [ca, cb] = TEAM_COL, gid = 'wpg' + (++WP_N);   // own id: a gradient inside a hidden copy draws nothing
+  let g = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ca}"/><stop offset=".5" stop-color="#8d9bb5"/><stop offset="1" stop-color="${cb}"/></linearGradient></defs>`;
   g += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(.5)}" y2="${Y(.5)}" class="target"/>`;
   if (inns[1]) g += `<line x1="${X(n1)}" x2="${X(n1)}" y1="${P.t}" y2="${H - P.b}" class="grid"/>`;
-  g += `<polyline fill="none" stroke="url(#wpg${small ? 's' : ''})" stroke-width="2.6" stroke-linejoin="round" points="${pts.map(([j, p]) => `${X(j).toFixed(1)},${Y(p).toFixed(1)}`).join(' ')}"/>`;
+  g += `<polyline fill="none" stroke="url(#${gid})" stroke-width="2.6" stroke-linejoin="round" points="${pts.map(([j, p]) => `${X(j).toFixed(1)},${Y(p).toFixed(1)}`).join(' ')}"/>`;
   seq.forEach((s, j) => { if (s.o.wkts) g += `<circle cx="${X(j + 1)}" cy="${Y(s.p)}" r="3" fill="${TEAM_COL[s.k]}" class="wkt"><title>${esc(inns[s.k].team)} ${s.o.total}/${s.o.wickets} after ${s.o.over} ov: ${Math.round(100 * s.p)}% for ${esc(inns[0].team)}</title></circle>`; });
   g += `<text x="${P.l + 4}" y="${P.t + 11}" fill="${ca}">${esc(tcol(inns[0].team).short)} winning</text><text x="${P.l + 4}" y="${H - P.b - 5}" fill="${cb}">${esc(tcol((inns[1] || inns[0]).team).short)} winning</text>`;
   g += `<text x="${P.l - 6}" y="${Y(1) + 4}" text-anchor="end">100%</text><text x="${P.l - 6}" y="${Y(.5) + 4}" text-anchor="end">50%</text><text x="${P.l - 6}" y="${Y(0) + 4}" text-anchor="end">0</text>`;
@@ -1105,12 +1437,16 @@ function renderMVP() {
     : 'The engine\'s own measure: <b>win probability added</b>, summed over every ball a player batted or bowled (1.00 = one whole match won). It also picks the player of each match and of the series.';
   const legend = alt ? 'Bar: <span style="color:var(--blue)">■ runs</span> <span style="color:var(--green)">■ wickets</span> <span style="color:#c678dd">■ catches</span> <span style="color:var(--amber)">■ team wins</span>.' : '';
   el.innerHTML = `<div class="seg" id="mvp-kind">
-      <button data-k="official" class="${alt ? '' : 'on'}">Official (impact)</button>
-      <button data-k="balanced" class="${alt ? 'on' : ''}">Balanced ranking</button></div>
-    <p class="muted small" style="margin:10px 0 12px">${formula} ${legend}</p>
+      <button data-k="official" class="${alt ? '' : 'on'}">Official</button>
+      <button data-k="balanced" class="${alt ? 'on' : ''}">Balanced</button></div> <span class="muted small">Points</span>
+    <button type="button" class="info simple-only" id="mvp-info" title="What the points mean" aria-expanded="false">i</button>
+    <div class="mvp-why muted small simple-only" id="mvp-why" hidden><div><b>Official:</b> how much each player swung the result.</div>
+      <div><b>Balanced:</b> points for runs, wickets, catches and team wins.</div></div>
+    <p class="muted small full-only" style="margin:10px 0 12px">${formula} ${legend}</p>
     <div class="filters"><input type="text" id="mvp-q" placeholder="Search player…"><select id="mvp-team"></select></div>
     <div class="tbl" id="mvp-table"></div>`;
   el.querySelectorAll('#mvp-kind button').forEach(b => b.onclick = () => { MVP_KIND = b.dataset.k; renderMVP(); });
+  $('mvp-info').onclick = () => { const w = $('mvp-why'); w.hidden = !w.hidden; $('mvp-info').setAttribute('aria-expanded', String(!w.hidden)); };
   fillSelect($('mvp-team'), [{v: '', t: 'All teams'}, ...[...new Set(rows.map(r => r.team))].sort().map(t => ({v: t, t}))]);
   const max = Math.max(1, ...rows.map(r => r.bat_pts + r.bowl_pts + r.field_pts + r.win_pts));
   const draw = () => {
