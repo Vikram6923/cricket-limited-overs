@@ -10,20 +10,20 @@
   "experience"
  ],
  "beta": [
-  0.0437,
-  0.5649,
-  0.0247,
-  0.2679,
-  1.6576,
-  -0.0312,
-  0.3349
+  0.0468,
+  0.562,
+  0.0249,
+  0.2695,
+  1.6416,
+  -0.0353,
+  0.3287
  ],
  "composition": {
-  "3": -0.6261,
-  "4": 1.2611,
-  "5": 1.435,
-  "6": 0.2039,
-  "7": -2.6529
+  "3": -0.6486,
+  "4": 1.2489,
+  "5": 1.4344,
+  "6": 0.2153,
+  "7": -2.629
  },
  "balls_by_slot": [
   40.49,
@@ -45,9 +45,9 @@
  "validation": {
   "train_until": 2018,
   "test": {
-   "learned (fitted weights)": 8.59,
-   "learned (experience x0.5)": 8.56,
-   "old rule (select_xi)": 8.4,
+   "learned (fitted weights)": 8.58,
+   "learned (experience x0.5)": 8.57,
+   "old rule (select_xi)": 8.43,
    "caps only": 8.51,
    "genuine bowlers per XI: real": 4.9,
    "genuine bowlers per XI: learned": 4.95,
@@ -55,13 +55,13 @@
    "mean pool size": 15.5
   },
   "beta_train": [
-   0.046,
-   0.6893,
-   0.0609,
-   0.2931,
-   1.0343,
-   -0.2548,
-   0.349
+   0.0488,
+   0.6879,
+   0.0608,
+   0.293,
+   1.0311,
+   -0.2572,
+   0.343
   ]
  },
  "venue_spin": {

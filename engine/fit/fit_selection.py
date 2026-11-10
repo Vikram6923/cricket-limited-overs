@@ -34,6 +34,7 @@ from pathlib import Path
 from ..captain import select_xi as rule_select_xi
 from ..conditions import venue_factor, venue_key
 from ..data import FORMATS, baseline, player
+from ..leagues import ZIPS
 from ..periods import fit_tau2
 from ..selection import (EXPERIENCE_WEIGHT, FEATURES, XI, Rules, bowler_mask, esp, esp_without, features,
                          utilities)
@@ -45,7 +46,7 @@ STYLES = ROOT / "data" / "raw_stats" / "styles.json"
 FULL = {"Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland", "New Zealand", "Pakistan",
         "South Africa", "Sri Lanka", "West Indies", "Zimbabwe"}
 INTL = {"t20": "t20s_male_json.zip", "odi": "odis_male_json.zip"}
-LEAGUES = [f"leagues/{c}_json.zip" for c in ("ipl", "bbl", "psl", "cpl", "sat", "ilt", "bpl", "lpl", "mlc", "ntb", "ssm")]
+LEAGUES = ZIPS
 FIRST_YEAR = {"t20": 2006, "odi": 2003}
 WINDOW_DAYS = 21
 MIN_POOL = 13

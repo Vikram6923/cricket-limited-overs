@@ -33,6 +33,8 @@ FULL = {"Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland",
 SUITES = {
     "t20i": {"fmt": "t20", "zip": "t20s_male_json.zip", "comp": "t20i_full", "years": (2021, 2026), "full": True},
     "ipl": {"fmt": "t20", "zip": "leagues/ipl_json.zip", "comp": "ipl", "years": (2022, 2026), "full": False},
+    # Mushtaq Ali Trophy seasons 2018-19 to 2021-22 (played Feb 2019 - Nov 2021), the complete ones on Cricsheet
+    "sma": {"fmt": "t20", "zip": "leagues/sma_json.zip", "comp": "sma", "years": (2019, 2021), "full": False},
     "odi": {"fmt": "odi", "zip": "odis_male_json.zip", "comp": "odi_full", "years": (2015, 2026), "full": True},
 }
 

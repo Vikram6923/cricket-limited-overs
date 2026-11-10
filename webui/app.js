@@ -38,8 +38,8 @@ function fillSelect(sel, items, keep) {
 }
 
 /* names for people: competitions, preset teams, detail level */
-const COMP_NAME = {t20i_full: 'international', t20i: 'international (all teams)', odi_full: 'international', odi: 'international (all teams)',
-  ipl: 'IPL', bbl: 'BBL', psl: 'PSL', cpl: 'CPL', sat: 'SA20', ilt: 'ILT20', bpl: 'BPL', lpl: 'LPL', mlc: 'MLC', ntb: 'T20 Blast', ssm: 'Super Smash'};
+// leagues are added from META.league_info (engine/leagues.py) by setLeagueInfo()
+const COMP_NAME = {t20i_full: 'international', t20i: 'international (all teams)', odi_full: 'international', odi: 'international (all teams)'};
 function compName(fmt, id) {
   if (!id) return '';
   if (COMP_NAME[id]) return COMP_NAME[id];
@@ -149,6 +149,7 @@ const ICON = {
   mp: '<rect x="3" y="5" width="8" height="13" rx="2"/><rect x="13" y="5" width="8" height="13" rx="2"/>',
   tournament: '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 20h8M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
   league: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+  domestic: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
   career: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   auction: '<path d="M14 4l6 6-3 3-6-6zM11 7l-8 8 3 3 8-8M3 21h8"/>',
   draft: '<path d="M4 6h16M4 12h10M4 18h13"/>',
@@ -161,6 +162,7 @@ const MODES = {
   mp: {t: 'Two players', s: 'You v a friend on another device, ball by ball', g: 'Quick play', c: '#3d8bff'},
   tournament: {t: 'Tournament', s: 'Groups, points table with NRR, knockouts', g: 'Quick play', c: '#f6c453'},
   league: {t: 'League season', s: 'Any IPL, BBL, PSL… season with the real squads', g: 'Seasons and careers', c: '#f6c453', feat: true},
+  domestic: {t: 'Mushtaq Ali Trophy', s: "India's 38 states: a real season's groups, format and squads", g: 'Seasons and careers', c: '#ff9f43'},
   career: {t: 'Career', s: 'Run a franchise for years: ageing, auctions, trophies', g: 'Seasons and careers', c: '#b26bff', feat: true},
   auction: {t: 'Auction', s: 'Bid live with retentions and Right to Match', g: 'Seasons and careers', c: '#ff4061'},
   draft: {t: 'Fantasy draft', s: 'Snake draft from any era, then a league', g: 'Seasons and careers', c: '#39c5cf'},
@@ -344,10 +346,11 @@ async function drawHomeCont() {
 /* four doors instead of eleven tiles; each opens a chooser with 2-5 big cards */
 const DOORS = [
   {t: 'Play a friend', s: 'on two phones', ic: 'mp', modes: ['mp']},
-  {t: 'Seasons & careers', ic: 'league', modes: ['league', 'career']},
+  {t: 'Seasons & careers', ic: 'league', modes: ['league', 'domestic', 'career']},
   {t: 'Auction & draft', ic: 'auction', modes: ['auction', 'draft']},
   {t: 'What-if sandbox', ic: 'classic', modes: ['series', 'tournament', 'classic', 'classic_t', 'builder']}];
 const DOOR_LINE = {league: 'Any season of 11 leagues, real squads.', career: 'Run a franchise, year after year.',
+  domestic: "India's domestic T20: captain a state.",
   auction: 'Bid for a squad, then play.', draft: 'Pick players in turns, then a league.',
   series: 'Two teams, one to seven matches.', tournament: 'Your own World Cup or league.',
   classic: 'Great sides from any era.', classic_t: 'Eras meet in one tournament.', builder: 'Make and save your own XI.'};
@@ -404,9 +407,10 @@ const teamCard = o => o.value ? `${badge(o.value)}<span class="t"><b>${esc(teamK
 function initPickers() {
   [['l-league', lgCard, 'cards'], ['k-league', lgCard, 'cards'], ['a-league', lgCard, 'cards'],
    ['l-season', o => esc(o.text), 'chips'], ['k-season', o => esc(o.text), 'chips'], ['a-season', o => esc(o.text), 'chips'],
-   ['l-captain', teamCard, 'cards teams'], ['k-user', o => o.value ? `${badge(o.value)}<span class="t"><b>${esc(o.text)}</b></span>` : teamCard(o), 'cards teams']]
+   ['l-captain', teamCard, 'cards teams'], ['k-user', o => o.value ? `${badge(o.value)}<span class="t"><b>${esc(o.text)}</b></span>` : teamCard(o), 'cards teams'],
+   ['dm-season', o => esc(o.text), 'chips'], ['dm-captain', teamCard, 'cards teams']]
     .forEach(([id, r, c]) => { if ($(id)) picker($(id), r, c); });
-  $('l-captain').dataset.toggle = '';
+  $('l-captain').dataset.toggle = ''; $('dm-captain').dataset.toggle = '';
 }
 
 /* the start bar repeats the form's own summary line (".total") */
@@ -417,6 +421,7 @@ function syncSum() {
 
 async function init() {
   META = await api('/api/meta');
+  setLeagueInfo(META.league_info);
   drawModeTiles(); drawDoors();
   $('sheet-dim').onclick = closeSheet;
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
@@ -436,7 +441,7 @@ async function init() {
   fillSelect($('t-ko'), META.knockouts.map(k => ({v: k.id, t: k.label})));
   ['t-rounds', 't-groups', 't-ko'].forEach(id => $(id).onchange = updateTournamentTotal);
   $('t-search').oninput = filterTeams;
-  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initCareerForm(); initLeague(); initBuilder(); initMatchNav();
+  fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initCareerForm(); initLeague(); initDomestic(); initBuilder(); initMatchNav();
   document.querySelectorAll('input[data-chips]').forEach(numChips);
   presetChips($('t-preset'), 't'); presetChips($('ct-preset'), 'ct');
   const teamsChanged = () => { capOptions(); autoConds(); };      // the captain chips list the teams chosen
@@ -465,7 +470,7 @@ function setMode(m, show = true) {
   const b = m === 'builder' || m === 'saved';
   if (m === 'saved') drawSaved();
   if (m === 'career') drawCareers();
-  $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' || m === 'career' ? 'none' : '';
+  $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' || m === 'domestic' || m === 'career' ? 'none' : '';
   $('mp-clock-box').style.display = m === 'mp' ? '' : 'none';
   if (m === 'mp') mpPane('');
   if (m === 'auction') aRefresh();
@@ -477,7 +482,8 @@ function setMode(m, show = true) {
   $('su-title').textContent = M.t; $('su-blurb').textContent = M.s; $('su-ic').outerHTML = modeIcon(m, 'big').replace('class="mic', 'id="su-ic" class="mic');
   $('su-sum-t').textContent = M.t; syncSum();
   $('go-btn').innerHTML = {mp: '&#9654;&nbsp; Open a room', draft: '&#9654;&nbsp; Start the draft', auction: '&#9654;&nbsp; Start the auction',
-    career: '&#9654;&nbsp; Start the career', league: '&#9654;&nbsp; Start the season'}[m] || '&#9654;&nbsp; Start';
+    career: '&#9654;&nbsp; Start the career', league: '&#9654;&nbsp; Start the season',
+    domestic: '&#9654;&nbsp; Start the season'}[m] || '&#9654;&nbsp; Start';
   if (!show) return;
   if (m === 'builder') { showView('v-builder'); loadBuilderPool(); }
   else showView('v-setup');
@@ -694,6 +700,31 @@ function initLeague() {
   $('l-league').onchange = seasons; $('l-season').onchange = show; seasons();
 }
 
+/* ───────────────────────── domestic cup (Mushtaq Ali Trophy) ───────────────────────── */
+const KO_NAME = {super_league: 'Super League, then the final', super_league_semis: 'Super League, semi-finals, final',
+  qf: 'quarter-finals, semis, final', pre_qf: 'preliminary quarter-finals, quarter-finals, semis, final'};
+function initDomestic() {
+  const cup = (META.domestic || [])[0];
+  if (!cup) { $('dm-total').textContent = 'No domestic seasons - run scripts/build_domestic_presets.py'; return; }
+  fillSelect($('dm-season'), cup.seasons.map(s => ({v: s.season, t: s.squads === 'latest' ? `${s.season} (latest squads)` : s.season})));
+  const show = () => {
+    const s = cup.seasons.find(x => x.season === $('dm-season').value);
+    if (!s) return;
+    const plate = s.teams.filter(t => t.plate), elite = s.teams.filter(t => !t.plate);
+    $('dm-teams').innerHTML = `${elite.length} Elite sides in ${s.groups.length} groups of ${[...new Set(s.groups)].join(' and ')}`
+      + (plate.length ? `; Plate: ${plate.map(t => esc(t.name)).join(', ')}` : '')
+      + `<br><span class="muted">Real winner: ${esc(s.real.winner)} (beat ${esc(s.real.runner_up)} in the final)</span>`;
+    $('dm-total').textContent = `${s.teams.length} teams · ${s.matches} matches · groups, then ${KO_NAME[s.knockout] || s.knockout}${plate.length ? ' · Plate' : ''}`;
+    const keep = $('dm-captain').value;
+    const opts = [...s.teams].sort((a, b) => a.name.localeCompare(b.name)).map(t => ({v: t.name, t: t.name + (t.plate ? ' (Plate)' : '')}));
+    fillSelect($('dm-captain'), [{v: '', t: 'None - the computer plays everything'}, ...opts]);
+    if (s.teams.some(t => t.name === keep)) $('dm-captain').value = keep;
+    $('dm-manual-box').style.display = $('dm-captain').value ? '' : 'none';
+  };
+  $('dm-captain').onchange = () => { $('dm-manual-box').style.display = $('dm-captain').value ? '' : 'none'; };
+  $('dm-season').onchange = show; show();
+}
+
 /* ───────────────────────── fantasy draft ───────────────────────── */
 function initDraftForm() {
   const chk = () => {
@@ -844,6 +875,9 @@ function payload() {
   if (MODE === 'league') return {mode: 'league', league: $('l-league').value, season: $('l-season').value, seed: $('l-seed').value.trim(), venues: [],
     rain: $('l-rain').checked, captain: $('l-captain').value, opponents: $('l-opp').value,
     manual: [...$('l-manual').querySelectorAll('input:checked')].map(i => i.value).filter(k => k !== 'impact' || CAP.impact)};
+  if (MODE === 'domestic') return {mode: 'domestic', cup: 'sma', season: $('dm-season').value, seed: $('dm-seed').value.trim(),
+    venues: [], rain: $('dm-rain').checked, captain: $('dm-captain').value, opponents: $('dm-opp').value,
+    manual: [...$('dm-manual').querySelectorAll('input:checked')].map(i => i.value)};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
     team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value,
     years_mode: document.querySelector('.c-ymode').value};
@@ -996,17 +1030,26 @@ function seriesBoard() {
     <div class="sb-side r" style="${tStyle(b)}">${badge(b, 'lg')}<b>${esc(dn(b))}</b></div></div>`;
 }
 function champBanner() {
-  const ru = R.runner_up;
+  const ru = R.runner_up, d = R.domestic;
+  const final = eliteKO().some(k => k.stage === 'Final');
+  const extra = [R.promoted ? `${esc(dn(R.promoted))} promoted from the Plate` : '', R.relegated ? `${esc(dn(R.relegated))} relegated` : '',
+    d && d.real ? `real ${esc(d.season)}: ${esc(d.real.winner)}` : ''].filter(Boolean).join(' · ');
   return `<div class="card champ" style="${tStyle(R.winner)}"><div class="trophy">🏆</div>${badge(R.winner, 'lg')}
     <div><div class="kicker">Champions</div><div class="cn">${esc(dn(R.winner))}</div>
-    <div class="muted">${ru ? `beat ${esc(dn(ru))}${R.knockouts.length ? ' in the final' : ''}` : ''}${!R.knockouts.length ? ' · top of the table' : ''}</div></div></div>`;
+    <div class="muted">${ru ? `beat ${esc(dn(ru))}${final ? ' in the final' : ''}` : ''}${!R.knockouts.length ? ' · top of the table' : ''}</div>
+    ${extra ? `<div class="muted small">${extra}</div>` : ''}</div></div>`;
 }
-function bracketHTML() {
-  if (!R.knockouts.length) return '';
+/* the Plate's knockouts have their own section; the main bracket shows the Elite ones */
+const isPlate = k => /^Plate/.test(k.stage);
+const eliteKO = () => (R.knockouts || []).filter(k => !isPlate(k));
+function bracketHTML(list = eliteKO(), title = 'Knockouts') {
+  if (!list.length) return '';
   const stages = [];
-  R.knockouts.forEach(k => { let s = stages.find(x => x.name === k.stage); if (!s) stages.push(s = {name: k.stage, list: []}); s.list.push(k); });
+  /* numbered ties of one round share a column ("Quarter-final 1".."4" -> "Quarter-finals"); IPL playoffs keep theirs */
+  const round = st => { const m = /^(.*(?:quarter-final|Quarter-final|Semi-final|semi-final)) \d+$/.exec(st); return m ? m[1] + 's' : st; };
+  list.forEach(k => { const n = round(k.stage); let s = stages.find(x => x.name === n); if (!s) stages.push(s = {name: n, list: []}); s.list.push(k); });
   const fx = n => R.fixtures.find(f => f.match_no === n) || {};
-  return `<div class="sec-h"><h2>Knockouts</h2></div><div class="bracket">${stages.map(s => `<div class="kcol"><div class="kicker">${esc(s.name)}</div>${s.list.map(k => {
+  return `<div class="sec-h"><h2>${esc(title)}</h2></div><div class="bracket">${stages.map(s => `<div class="kcol"><div class="kicker">${esc(s.name)}</div>${s.list.map(k => {
     const f = fx(k.match_no), sc = f.scores || [];
     return `<a class="card kmatch" data-match="${k.match_no}">${k.teams.map((t, i) => `<div class="kt ${f.winner === t ? 'win' : f.winner ? 'lose' : ''}">${badge(t, 'sm')}<span>${esc(dn(t))}</span>
       <b>${esc((sc.find(x => x.startsWith(t + ' ')) || '').slice(t.length + 1))}</b></div>`).join('')}<div class="kr">${esc(dnt(k.result))}</div></a>`; }).join('')}</div>`).join('')}</div>`;
@@ -1024,7 +1067,14 @@ function renderSummary() {
     h += champBanner();
     for (const label of Object.keys(R.tables))
       h += `<div class="sec-h"><h2>${label === 'League' ? 'Points table' : 'Group ' + esc(label)}</h2></div><div class="tbl pts" data-table="${esc(label)}"></div>`;
+    for (const label of Object.keys(R.super_league || {}))
+      h += `<div class="sec-h"><h2>${esc(label)}</h2></div><div class="tbl pts" data-table="${esc(label)}"></div>`;
     h += bracketHTML();
+    if (R.plate) {
+      for (const label of Object.keys(R.plate.tables))
+        h += `<div class="sec-h"><h2>${esc(label)}</h2></div><div class="tbl pts" data-table="${esc(label)}"></div>`;
+      h += bracketHTML(R.knockouts.filter(isPlate), 'Plate knockouts');
+    }
   }
   if (R.captaincy) h += `<div class="card pad" style="margin-top:20px">${captaincyHTML(R.captaincy)}</div>`;
   const poms = R.batting.filter(r => r.pom).sort((a, b) => b.pom - a.pom).slice(0, 5);
@@ -1036,8 +1086,17 @@ function renderSummary() {
   h += (big ? recordsHTML(R.records) : '') + '<div class="sec-h"><h2>All results</h2></div><div class="tbl" id="res-table"></div>';
   el.innerHTML = h;
   if (R.kind !== 'series') {
-    const per = R.knockouts.length ? (R.settings.knockout === 'final' ? (Object.keys(R.tables).length > 1 ? 1 : 2) : (Object.keys(R.tables).length > 1 ? 2 : 4)) : 1;
-    for (const [label, rows] of Object.entries(R.tables)) {
+    /* a side "went through" if it played on after its group: a later round-robin stage or a knockout */
+    const sl = R.super_league || {};
+    const onward = (from, ko) => new Set([...Object.values(from).flatMap(rows => rows.map(r => r.team)), ...ko.flatMap(k => k.teams)]);
+    const thru = {};
+    Object.keys(R.tables).forEach(l => thru[l] = onward(sl, eliteKO()));
+    const slKO = new Set(eliteKO().flatMap(k => k.teams));
+    Object.keys(sl).forEach(l => thru[l] = slKO);
+    if (R.plate) { const pk = new Set(R.knockouts.filter(isPlate).flatMap(k => k.teams).concat(R.plate.to_elite_knockouts || []));
+      Object.keys(R.plate.tables).forEach(l => thru[l] = pk); }
+    const all = {...R.tables, ...sl, ...(R.plate ? R.plate.tables : {})};
+    for (const [label, rows] of Object.entries(all)) {
       table(el.querySelector(`[data-table="${CSS.escape(label)}"]`), [
         {k: 'pos', label: '#', num: true}, {k: 'team', label: 'Team', html: r => teamCell(r.team)}, {k: 'played', label: 'P', num: true},
         {k: 'won', label: 'W', num: true, html: r => `<span class="w">${r.won}</span>`},
@@ -1046,7 +1105,7 @@ function renderSummary() {
         {k: 'points', label: 'Pts', num: true, html: r => `<b class="pts-n">${r.points}</b>`},
         {k: 'form', label: 'Last 5', nosort: true, html: r => `<span class="formg">${formOf(r.team)}</span>`},
         {k: 'for', label: 'For', nosort: true}, {k: 'against', label: 'Against', nosort: true},
-      ], rows, {rowClass: r => r.pos <= per && R.knockouts.length ? 'q' : ''});
+      ], rows, {rowClass: r => thru[label].has(r.team) ? 'q' : (r.team === R.relegated ? 'rel' : '')});
     }
   }
   table($('res-table'), [

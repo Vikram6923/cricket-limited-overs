@@ -18,10 +18,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from build_ratings import METRICS, PHASES, base_comp, baselines, fit, load_cells, merge_tiers  # noqa: E402
+from engine.leagues import CODES  # noqa: E402
 from engine.periods import split_indexes  # noqa: E402
 from validate_ratings import CHECK, predict, score  # noqa: E402
 
-LEAGUES = ("ipl", "bbl", "psl", "cpl", "sat", "ilt", "bpl", "lpl", "mlc", "ntb", "ssm")
+LEAGUES = CODES
 SCALES = (0.1, 0.25, 0.5, 1.0, 2.0)
 
 

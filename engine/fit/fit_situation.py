@@ -23,6 +23,8 @@ import zipfile
 from collections import defaultdict
 from pathlib import Path
 
+from ..leagues import CODES, zip_name
+
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
 OUT = ROOT / "data" / "engine"
@@ -33,8 +35,7 @@ FIRST_YEAR = 2012
 
 CFG = {
     "t20": {"overs": 20, "sources": [("t20i", "t20s_male_json.zip")] +
-            [(c, f"leagues/{c}_json.zip") for c in ("ipl", "bbl", "psl", "cpl", "sat", "ilt", "bpl", "lpl", "mlc",
-                                                     "ntb", "ssm")],
+            [(c, zip_name(c)) for c in CODES],
             "phases": ((0, 5, "powerplay"), (6, 14, "middle"), (15, 19, "death")),
             "balls_left_edges": [6, 12, 24, 36, 60, 84]},          # bucket upper bounds (inclusive)
     "odi": {"overs": 50, "sources": [("odi", "odis_male_json.zip")],

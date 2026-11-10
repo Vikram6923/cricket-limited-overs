@@ -15,13 +15,12 @@ from collections import defaultdict
 from pathlib import Path
 
 from ..conditions import venue_key
+from ..leagues import ZIPS
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
 OUT = ROOT / "data" / "engine"
-SOURCES = {"t20": ["t20s_male_json.zip"] + [f"leagues/{c}_json.zip" for c in
-                                            ("ipl", "bbl", "psl", "cpl", "sat", "ilt", "bpl", "lpl", "mlc", "ntb",
-                                             "ssm")],
+SOURCES = {"t20": ["t20s_male_json.zip"] + ZIPS,
            "odi": ["odis_male_json.zip"]}
 OVERS = {"t20": 20, "odi": 50}
 FIRST_YEAR = 2018

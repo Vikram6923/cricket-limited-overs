@@ -1,6 +1,6 @@
 """Franchise league seasons from Cricsheet: each team's squad (everyone who played for it that season).
 
-    python scripts/build_league_presets.py        # every season of the 11 leagues -> data/league_seasons.json
+    python scripts/build_league_presets.py        # every season of the League Season leagues -> data/league_seasons.json
                                                   # (+ the latest IPL squads as saved-team presets)
 
 A season is a calendar year, or July-June for leagues that run over the new year (BBL, Super Smash, SA20, ILT20,
@@ -16,14 +16,13 @@ import zipfile
 from collections import Counter
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from engine.leagues import LEAGUES as ALL_LEAGUES  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 STATS = ROOT / "data" / "raw_stats"
-LEAGUES = {   # label, home country, first month of a season
-    "ipl": ("IPL", "India", 1), "bbl": ("BBL", "Australia", 7), "psl": ("PSL", "Pakistan", 1),
-    "cpl": ("CPL", "West Indies", 1), "sat": ("SA20", "South Africa", 7), "ilt": ("ILT20", "United Arab Emirates", 7),
-    "bpl": ("BPL", "Bangladesh", 7), "lpl": ("LPL", "Sri Lanka", 1), "mlc": ("MLC", "United States of America", 1),
-    "ntb": ("T20 Blast", "England", 1), "ssm": ("Super Smash", "New Zealand", 7),
-}
+LEAGUES = {c: (lg.label, lg.home, lg.start) for c, lg in ALL_LEAGUES.items()   # label, home country, first month
+           if lg.league_season}
 MIN_TEAMS, MIN_MATCHES = 4, 10
 
 

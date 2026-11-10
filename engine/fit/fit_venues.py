@@ -22,6 +22,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from ..conditions import venue_key
+from ..leagues import CODES, zip_name
 from ..match import simulate_match
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,9 +32,7 @@ FULL = {"Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland",
         "South Africa", "Sri Lanka", "West Indies", "Zimbabwe"}
 REPS = 3
 FIRST_YEAR = 2012
-SOURCES = {"t20": [("t20i", "t20s_male_json.zip")] + [(c, f"leagues/{c}_json.zip") for c in
-                                                       ("ipl", "bbl", "psl", "cpl", "sat", "ilt", "bpl", "lpl",
-                                                        "mlc", "ntb", "ssm")],
+SOURCES = {"t20": [("t20i", "t20s_male_json.zip")] + [(c, zip_name(c)) for c in CODES],
            "odi": [("odi", "odis_male_json.zip")]}
 OVERS = {"t20": 20, "odi": 50}
 

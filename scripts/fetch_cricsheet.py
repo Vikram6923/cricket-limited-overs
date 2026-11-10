@@ -15,6 +15,9 @@ from pathlib import Path
 
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from engine.leagues import ZIPS  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
 
@@ -26,24 +29,11 @@ FILES = {
     "missing.html": "https://cricsheet.org/missing/",
 }
 
-# Men's 20-over franchise / domestic leagues (saved under data/raw/leagues/). Used for players with no usable
-# international data - above all Afghanistan, whose matches Cricsheet withholds. The Hundred is left out on
-# purpose: 100-ball innings with 5-ball overs don't fit the T20 phase splits.
-LEAGUES = {
-    "ipl": "Indian Premier League",
-    "bbl": "Big Bash League",
-    "psl": "Pakistan Super League",
-    "cpl": "Caribbean Premier League",
-    "sat": "SA20",
-    "ilt": "International League T20",
-    "bpl": "Bangladesh Premier League",
-    "lpl": "Lanka Premier League",
-    "mlc": "Major League Cricket",
-    "ntb": "T20 Blast",
-    "ssm": "Super Smash",
-}
-for _code in LEAGUES:
-    FILES[f"leagues/{_code}_json.zip"] = f"https://cricsheet.org/downloads/{_code}_json.zip"
+# Men's 20-over franchise / domestic leagues (saved under data/raw/leagues/; the list is engine/leagues.py). Used
+# for players with no usable international data - above all Afghanistan, whose matches Cricsheet withholds. The
+# Hundred is left out on purpose: 100-ball innings with 5-ball overs don't fit the T20 phase splits.
+for _zip in ZIPS:
+    FILES[_zip] = f"https://cricsheet.org/downloads/{Path(_zip).name}"
 
 HEADERS = {"User-Agent": "cricket-limited-overs-sim/0.1 (personal research project)"}
 

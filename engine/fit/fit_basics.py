@@ -19,6 +19,8 @@ import zipfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from ..leagues import ZIPS
+
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
 OUT = ROOT / "data" / "engine"
@@ -26,8 +28,7 @@ OUT = ROOT / "data" / "engine"
 PHASES = {"odi": ((0, 9, "powerplay"), (10, 39, "middle"), (40, 49, "death")),
           "t20": ((0, 5, "powerplay"), (6, 14, "middle"), (15, 19, "death"))}
 SOURCES = {"odi": ["odis_male_json.zip"],
-           "t20": ["t20s_male_json.zip"] + [f"leagues/{c}_json.zip" for c in
-                                            ("ipl", "bbl", "psl", "cpl", "sat", "ilt", "bpl", "lpl", "mlc", "ntb", "ssm")]}
+           "t20": ["t20s_male_json.zip"] + ZIPS}
 FIRST_YEAR = 2010
 
 

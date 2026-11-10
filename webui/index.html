@@ -165,6 +165,38 @@
     <div class="total" id="l-total"></div>
   </div>
 
+  <!-- Domestic cup: the Syed Mushtaq Ali Trophy -->
+  <div class="form" id="f-domestic">
+    <details class="how"><summary>How it works</summary><ul>
+      <li>India's domestic T20: the 38 state sides, a real season's groups and format.</li>
+      <li>4 points a win. Groups, then that season's knockouts: a Super League, quarter-finals or preliminary quarter-finals.</li>
+      <li>From 2020-21 the Plate plays too: its winner goes up and the lowest Elite side goes down.</li>
+      <li>Real squads for 2015-16 to 2021-22; 2025-26 uses each player's latest state in the data.</li></ul></details>
+    <div class="fg"><label>Season</label><select id="dm-season"></select></div>
+    <div class="fg"><label>Your state</label><select id="dm-captain"></select>
+      <div class="hint full-only" style="margin:4px 0 0">You make that side's decisions in its matches; the others play automatically.</div></div>
+    <details class="more" id="more-domestic"><summary>More options</summary>
+    <div class="fg" id="dm-manual-box" style="display:none"><label>My decisions</label>
+      <div class="checks" id="dm-manual">
+        <label><input type="checkbox" value="toss" checked> Toss</label>
+        <label><input type="checkbox" value="xi" checked> Playing XI</label>
+        <label><input type="checkbox" value="bowler" checked> Bowler each over</label>
+        <label><input type="checkbox" value="batter" checked> Next batter</label>
+        <label><input type="checkbox" value="result" checked> Stop after each of my matches</label>
+        <label title="Set each batter's aggression and each bowler's plan (1-9 bars) and play ball by ball, an over at a time, or to the next wicket"><input type="checkbox" value="ball" checked> Ball by ball</label>
+      </div>
+      <div class="hint" style="margin:4px 0 0">Unticked: the computer decides.</div>
+      <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="dm-opp">
+        <option value="expert">Expert - the engine's best calls</option>
+        <option value="average">Average - a loose call now and then</option>
+        <option value="easy">Easy - loose calls often, sometimes bad ones</option></select></div></div>
+    <div class="fg"><label>Groups</label><div class="roster" id="dm-teams"></div></div>
+    <div class="fg"><label>Replay code (optional)</label><input type="text" id="dm-seed" placeholder="random"></div>
+    <div class="fg"><label><input type="checkbox" id="dm-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint full-only" style="margin:4px 0 0">Interruptions as often as in real matches in India.</div></div>
+    </details>
+    <div class="total" id="dm-total"></div>
+  </div>
+
   <!-- Fantasy draft -->
   <div class="form" id="f-draft">
     <details class="how"><summary>How it works</summary><ul>

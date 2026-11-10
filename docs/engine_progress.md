@@ -803,3 +803,61 @@ docs/match_play_design.md.
 - Highlights (2026-10-17): `Match.log_ball` records each delivery of a captained side (presentation only: no random
   draws, so matches are unchanged; tested) and `webui/highlight.js` replays them as a 2D ball tracker on the
   ball-by-ball screen. Details in docs/match_play_design.md section 7.
+
+## Mushtaq Ali Trophy in the T20 ratings (2026-11-10)
+
+Step 2 of docs/domestic_design.md. Cricsheet's `sma` (Syed Mushtaq Ali Trophy, 695 matches, 2015-16 to 2024-25)
+joins the T20 data like the 11 leagues: one entry in `engine/leagues.py` (`league_season=False`, so League Season
+still offers 11 leagues; SMAT seasons get their own mode later). Rebuilt: raw stats, styles (new players from
+Wikidata/Wikipedia; 303 of the 425 SMAT bowlers with 120+ balls have a bowling type), T20 ratings, league seasons,
+and every fit that reads league data or ratings (basics, situation, toss, venues, selection, rain, DLS, spin,
+career, depth, aggression, auction). ODI data and ratings are unchanged.
+- 1,468 of the 1,489 SMAT players are rated (T20: 6,457 -> 7,587 players); every 2021-22 state has 11+.
+- **State sides.** First rebuild: all domestic-only players shared one team in the prior (`league:sma`), and the
+  SMAT replay's first-innings spread came out at SD 30.7 v 40.0 real. Now a competition with `side_level=True`
+  puts each player in his state (`league:sma:Mumbai`, from `by_league[...]["teams"]` in the raw stats), in a tier
+  of its own ("side"). Out of sample (train <= 2021, predict 2022+ balls; skill vs flat, players with 60+ SMAT /
+  120+ test balls):
+
+| SMAT prior | SMAT bat runs | bat dot | bowl runs | bowl dot | all T20 bat runs | bat dot | bowl runs | bowl dot |
+|---|---|---|---|---|---|---|---|---|
+| one SMAT-wide team | 26.6% | 21.9% | 10.2% | 18.9% | 22.6% | 36.0% | 20.3% | 19.0% |
+| **state sides, 5000 balls (kept)** | 29.6% | 26.2% | 10.8% | 19.7% | 23.0% | 37.0% | 19.9% | 19.0% |
+| state sides, 1500 balls | 31.8% | 29.3% | 11.1% | 20.3% | 23.1% | 37.4% | 19.5% | 18.8% |
+| state sides, 500 balls | 32.8% | 30.9% | 10.1% | 20.1% | 23.0% | 37.6% | 19.0% | 18.5% |
+
+  A weaker team shrinkage helps SMAT but costs bowling elsewhere, so the tuned `TEAM_PSEUDO_BALLS` stays.
+
+Replays with real XIs (`python -m engine.calibrate --suite t20i --suite ipl --suite sma`; history in
+`data/engine/calibration_*.json`), before -> after, real in brackets:
+
+| | T20I 2021-26 | IPL 2022-26 | SMAT 2019-21 (new suite) |
+|---|---|---|---|
+| 1st inns mean | 167.5 -> 167.8 (168.7) | 188.8 -> 188.2 (186.3) | 146.1 (146.5) |
+| 1st inns SD | 39.5 -> 38.6 (37.6) | 35.6 -> 35.3 (35.2) | **32.9 (40.0)** |
+| 1st inns wickets | 6.81 -> 6.83 (6.74) | 6.46 -> 6.36 (6.28) | 6.63 (6.58) |
+| all out % | 18.0 -> 17.7 (12.6) | 12.2 -> 11.3 (7.9) | 13.5 (13.8) |
+| powerplay / death RPO | 8.05 / 10.05 -> 8.08 / 10.00 (8.01 / 9.94) | 9.20 / 11.22 -> 9.19 / 11.16 (9.08 / 11.04) | 6.71 / 9.33 (6.71 / 9.39) |
+| chase won % | 51.8 -> 50.5 (49.2) | 51.6 -> 49.2 (52.4) | 53.8 (59.5) |
+
+Gate: T20I and IPL are as good or better on everything but the IPL chase-win share (3 points further from real).
+SMAT averages, wickets, boundaries and phase run rates are within 2-3%; the spread is not (SD -18%, second
+innings -19%, 2nd-innings wickets +10%, chases won 54% v 59%). Diagnosis (`spread` replay by team): the engine
+orders the states right (real total on simulated mean: slope 0.85, correlation 0.52) but too gently - Mizoram
+87 real v 115 simulated, Sikkim 96 v 109; spread of state averages 15 v 22 - and within-match variation is lower
+than SMAT's. The pitch-of-the-day term can't supply it (it is fitted on both innings together, where a mismatch
+cancels out). Left open; options are in docs/domestic_design.md (risks). Also open: SMAT extras +16% (5.9 real v
+6.8: byes, leg byes and runs per wide are fitted per format, and SMAT has fewer wides than the IPL).
+
+Other effects:
+- IPL auction (computer-only, 2025 and 2026 pools, 3 seeds): 16 of 75 uncapped players in 2026 move by 1+ run per
+  match (Arjun Tendulkar down on his Goa record; Yash Thakur, Vishnu Vinod, Sachin Baby up); uncapped spend 68 ->
+  69 cr (2026), 165 -> 159 cr (2025). The top price (Finn Allen, 2026 mini auction) rises 42 -> 47 cr: his rating
+  is unchanged, the replacement level moved.
+- Aggression bars: the fitted wicket cost of batting faster rises ~5% in the middle and death overs, so the
+  higher bars gain fewer net runs (`tests/test_aggression.py`: bar 2 v bar 8 run rate 9.31 v 9.40, was 9.54 v
+  9.77). Same method; tests pass.
+- Career: age curves unchanged to 0.01; retirement at 27-33 up ~0.5 points (domestic players leave the data).
+- Re-running the Wikidata lookups also refreshed 122 dates of birth and 2 bowling styles of existing players,
+  which moved the ODI selection weights slightly (real-XI overlap 8.59 -> 8.58).
+- The fantasy draft's "leagues" pool now includes SMAT players with 10+ matches in the period.

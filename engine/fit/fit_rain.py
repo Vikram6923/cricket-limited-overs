@@ -22,13 +22,13 @@ import zipfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from ..leagues import HOME
+
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
 FULL = {"Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland", "New Zealand", "Pakistan",
         "South Africa", "Sri Lanka", "West Indies", "Zimbabwe"}
-LEAGUE_HOME = {"ipl": "India", "bbl": "Australia", "psl": "Pakistan", "cpl": "West Indies", "sat": "South Africa",
-               "ilt": "United Arab Emirates", "bpl": "Bangladesh", "lpl": "Sri Lanka", "mlc": "United States of America",
-               "ntb": "England", "ssm": "New Zealand"}
+LEAGUE_HOME = HOME
 
 
 def matches(zpath: Path):

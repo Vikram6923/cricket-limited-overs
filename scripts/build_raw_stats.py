@@ -24,6 +24,9 @@ import zipfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from engine.leagues import ZIPS  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
 OUT = ROOT / "data" / "raw_stats"
@@ -36,9 +39,8 @@ FORMATS = {
             # T20: 1-6, 7-15, 16-20.
             "phases": (("powerplay", 0, 5), ("middle", 6, 14), ("death", 15, 19))},
     # Franchise/domestic T20 leagues pooled into one record per player, with a by_league split so league
-    # strength can be weighted later. Codes match fetch_cricsheet.LEAGUES.
-    "t20_league": {"zips": [f"leagues/{c}_json.zip" for c in
-                            ("ipl", "bbl", "psl", "cpl", "sat", "ilt", "bpl", "lpl", "mlc", "ntb", "ssm")],
+    # strength can be weighted later. The list is engine/leagues.py.
+    "t20_league": {"zips": ZIPS,
                    "overs": 20, "missing_section": None,
                    "phases": (("powerplay", 0, 5), ("middle", 6, 14), ("death", 15, 19))},
 }
@@ -77,7 +79,7 @@ def new_player(pid: str, name: str, phases) -> dict:
         "bat_phase": {p[0]: new_bat() for p in phases},
         "bowl_phase": {p[0]: new_bowl() for p in phases},
         "by_year": defaultdict(lambda: {"m": 0, "teams": {}, "pos": {}, "bat": new_bat(), "bowl": new_bowl()}),
-        "by_league": defaultdict(lambda: {"m": 0, "bat": new_bat(), "bowl": new_bowl()}),
+        "by_league": defaultdict(lambda: {"m": 0, "teams": {}, "bat": new_bat(), "bowl": new_bowl()}),
     }
 
 
@@ -113,6 +115,8 @@ def process_match(m: dict, fmt: dict, players: dict, years: dict, comp: str) -> 
         p["by_year"][year]["m"] += 1
         p["by_year"][year]["teams"][team] = p["by_year"][year]["teams"].get(team, 0) + 1
         p["by_league"][comp]["m"] += 1
+        lt = p["by_league"][comp]["teams"]
+        lt[team] = lt.get(team, 0) + 1
         p["first"] = min(p["first"] or date, date)
         p["last"] = max(p["last"] or date, date)
 

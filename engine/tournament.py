@@ -24,7 +24,7 @@ from .data import FORMATS, Player, resolve
 from .match import simulate_match
 from .render import full_text
 
-KNOCKOUTS = ("semis", "ipl", "final", "none")
+KNOCKOUTS = ("semis", "ipl", "final", "qf", "pre_qf", "super_league", "super_league_semis", "none")
 
 
 # ------------------------------------------------------------------------------------------------ helpers
@@ -392,69 +392,124 @@ def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: 
 
 # ------------------------------------------------------------------------------------------------ tournament
 
-def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None, year: int = 2025,
-                    rounds: int = 1, groups: int | list | None = None, advance: int | None = None,
-                    knockout: str = "semis", venues: list | None = None, home_venues: dict | None = None,
-                    knockout_venues: list | None = None, seed: int | None = None, win_points: int = 2,
-                    on_match=None, rain: bool = False, control: dict | None = None,
-                    skill: dict | None = None) -> dict:
-    """League stage (round robin, `rounds` times, optionally in groups) then knockouts.
+# Qualifiers each knockout needs in total (the default `advance` per group is this divided by the number of groups).
+KO_NEED = {"semis": 4, "ipl": 4, "final": 2, "qf": 8, "pre_qf": 10, "super_league": 8, "super_league_semis": 8}
+PLATE_KNOCKOUTS = ("final", "semis", "none")
 
-    groups:   None/1 = one league; an int = that many groups, teams dealt in the order given (1st to group A,
-              2nd to B, ...); or explicit lists of team names.
-    knockout: "semis" (1v4, 2v3; with two groups A1vB2, B1vA2), "ipl" (qualifier 1, eliminator, qualifier 2,
-              final), "final" (top two), or "none".
-    control:  {team name: engine.control.Controller} for sides a person captains (their decisions are asked).
-    skill:    {team name: "expert" | "average" | "easy"} for computer captains (engine/judge.py; default expert).
-    """
-    if knockout not in KNOCKOUTS:
-        raise ValueError(f"knockout must be one of {KNOCKOUTS}")
-    specs = [team_spec(fmt, t) for t in teams]
-    by_name = {t["name"]: t for t in specs}
-    if len(by_name) != len(specs):
-        raise ValueError("team names must be unique")
+
+def _group_lists(names: list[str], groups) -> list[list[str]]:
     if groups in (None, 1):
-        group_lists = [[t["name"] for t in specs]]
-    elif isinstance(groups, int):
-        group_lists = [[t["name"] for t in specs[g::groups]] for g in range(groups)]
-    else:
-        group_lists = [list(g) for g in groups]
-    labels = [chr(ord("A") + i) for i in range(len(group_lists))] if len(group_lists) > 1 else ["League"]
-    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain, control, skill)
-    run.on_match = on_match
+        return [list(names)]
+    if isinstance(groups, int):
+        return [list(names[g::groups]) for g in range(groups)]
+    return [list(g) for g in groups]
 
-    # league stage: rounds of single round robins. Within a round each side is at home in about half its games
-    # (pair i, j: the first at home when i + j is odd); the next round swaps every pairing.
+
+def _labels(n: int, prefix: str = "") -> list[str]:
+    if n == 1:
+        return [prefix or "League"]
+    return [f"{prefix} {chr(ord('A') + i)}".strip() for i in range(n)]
+
+
+def _per_group(advance, need: int, n_groups: int) -> list[int]:
+    """Qualifiers per group: `advance` as one number for every group, a list (one per group), or the default."""
+    if isinstance(advance, (list, tuple)):
+        if len(advance) != n_groups:
+            raise ValueError(f"advance has {len(advance)} entries for {n_groups} groups")
+        return [int(k) for k in advance]
+    return [advance or max(1, need // n_groups)] * n_groups
+
+
+def _seeded(tables: dict, labels: list[str], per: list[int]) -> list[tuple[str, str]]:
+    """Qualifiers as (team, group) ranked across groups: group position first (every group winner before any
+    runner-up), then points, net run rate and name. With one group this is just the table order."""
+    rows = [(r, label) for label, k in zip(labels, per) for r in tables[label][:k]]
+    rows.sort(key=lambda x: (x[0]["pos"], -x[0]["points"], -x[0]["nrr"], x[0]["team"]))
+    return [(r["team"], label) for r, label in rows]
+
+
+def _pairs(seeds: list[tuple[str, str]], plan: list[tuple[int, int]]) -> list[tuple[str, str]]:
+    """Ties from seed positions (plan: (higher, lower) index pairs, e.g. 1v8, 4v5, 2v7, 3v6), with the lower seeds
+    rearranged as little as possible so that no tie is between two sides from the same group."""
+    lows = [b for _, b in plan]
+    best = None
+    for perm in itertools.permutations(lows):
+        clash = sum(seeds[a][1] == seeds[b][1] for (a, _), b in zip(plan, perm))
+        cost = (clash, sum(abs(b - b0) for b, b0 in zip(perm, lows)))
+        if best is None or cost < best[0]:
+            best = (cost, perm)
+    return [(seeds[a][0], seeds[b][0]) for (a, _), b in zip(plan, best[1])]
+
+
+def _split_two(seeds: list[tuple[str, str]]) -> tuple[list[str], list[str]]:
+    """Two Super League groups from ranked qualifiers: snake seeding (1, 4, 5, 8 | 2, 3, 6, 7), changed as little as
+    possible so that sides from the same group are kept apart."""
+    n = len(seeds)
+    snake = {i for i in range(n) if i % 4 in (0, 3)}
+    best = None
+    for a in itertools.combinations(range(n), (n + 1) // 2):
+        if 0 not in a:                       # the top seed heads group A
+            continue
+        sa = set(a)
+        sb = set(range(n)) - sa
+        clash = sum(seeds[i][1] == seeds[j][1]
+                    for part in (sa, sb) for i, j in itertools.combinations(sorted(part), 2))
+        cost = (clash, len(sa ^ snake))
+        if best is None or cost < best[0]:
+            best = (cost, sa)
+    sa = best[1]
+    return [seeds[i][0] for i in sorted(sa)], [seeds[i][0] for i in range(n) if i not in sa]
+
+
+def _round_robin(run: "_Runner", by_name: dict, labels: list[str], group_lists: list[list[str]], rounds: int,
+                 stage_of) -> None:
+    """Rounds of single round robins. Within a round each side is at home in about half its games (pair i, j: the
+    first at home when i + j is odd); the next round swaps every pairing."""
     for rnd in range(rounds):
         for label, names in zip(labels, group_lists):
             for (i, x), (j, y) in itertools.combinations(enumerate(names), 2):
                 home, away = (x, y) if ((i + j) % 2 == 1) == (rnd % 2 == 0) else (y, x)
-                stage = "League" if label == "League" else f"Group {label}"
-                run.play(by_name[home], by_name[away], stage)
-    league_cards = list(run.cards)
-    tables = {label: points_table([c for c in league_cards if set(c["teams"]) <= set(names)], names, win_points)
-              for label, names in zip(labels, group_lists)}
+                run.play(by_name[home], by_name[away], stage_of(label))
 
-    # knockouts
-    ko = []
-    champion = runner_up = None
+
+def _tables(cards: list[dict], labels: list[str], group_lists: list[list[str]], win_points: int) -> dict:
+    return {label: points_table([c for c in cards if set(c["teams"]) <= set(names)], names, win_points)
+            for label, names in zip(labels, group_lists)}
+
+
+def _knockouts(run: "_Runner", by_name: dict, tables: dict, labels: list[str], knockout: str, advance,
+               win_points: int, ko: list, extra: list[str] | None = None, prefix: str = "") -> dict:
+    """Plays the knockout stage after a league stage; returns champion, runner-up and any Super League tables.
+    extra: qualifiers from elsewhere (the Plate), seeded below everyone from these groups. prefix names the stages
+    ("Plate" -> "Plate final")."""
+    extra = list(extra or [])
+
+    def name(stage: str) -> str:
+        return f"{prefix} {stage[0].lower()}{stage[1:]}" if prefix else stage
 
     def ko_match(t1: str, t2: str, stage: str) -> tuple[str, str]:
-        c = run.play(by_name[t1], by_name[t2], stage, knockout=True)
+        c = run.play(by_name[t1], by_name[t2], name(stage), knockout=True)
         w, l = c["result"]["winner"], c["result"]["loser"]
-        ko.append({"stage": stage, "match_no": c["match_no"], "teams": [t1, t2], "winner": w,
+        ko.append({"stage": name(stage), "match_no": c["match_no"], "teams": [t1, t2], "winner": w,
                    "result": c["result"]["text"]})
         return w, l
 
-    if knockout != "none":
-        need = {"semis": 4, "ipl": 4, "final": 2}[knockout]
-        if knockout == "ipl" and len(group_lists) != 1:
-            raise ValueError("IPL-style playoffs need a single league")
-        per = advance or max(1, need // len(group_lists))
-        q = {label: [r["team"] for r in tables[label][:per]] for label in labels}
+    out = {"champion": None, "runner_up": None, "super_league": {}}
+    if knockout == "none":
+        top = tables[labels[0]]
+        out["champion"] = top[0]["team"]
+        out["runner_up"] = top[1]["team"] if len(top) > 1 else None
+        return out
+    need = KO_NEED[knockout]
+    if knockout == "ipl" and len(labels) != 1:
+        raise ValueError("IPL-style playoffs need a single league")
+    per = _per_group(advance, need, len(labels))
+
+    if knockout in ("final", "semis", "ipl"):           # the original brackets, unchanged
+        q = {label: [r["team"] for r in tables[label][:k]] for label, k in zip(labels, per)}
         if knockout == "final":
             f1, f2 = (q[labels[0]][0], q[labels[0]][1]) if len(labels) == 1 else (q[labels[0]][0], q[labels[1]][0])
-            champion, runner_up = ko_match(f1, f2, "Final")
+            out["champion"], out["runner_up"] = ko_match(f1, f2, "Final")
         elif knockout == "semis":
             if len(labels) == 1:
                 s = q[labels[0]]
@@ -464,38 +519,170 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
                 pairs = [(A[0], B[1]), (B[0], A[1])]
             else:
                 # more groups: rank the qualifiers by their group standing, then points and NRR
-                allq = sorted((r for label in labels for r in tables[label][:per]),
+                allq = sorted((r for label, k in zip(labels, per) for r in tables[label][:k]),
                               key=lambda r: (r["pos"], -r["points"], -r["nrr"]))
                 s = [r["team"] for r in allq[:4]]
                 pairs = [(s[0], s[3]), (s[1], s[2])]
             w1, _ = ko_match(*pairs[0], "Semi-final 1")
             w2, _ = ko_match(*pairs[1], "Semi-final 2")
-            champion, runner_up = ko_match(w1, w2, "Final")
+            out["champion"], out["runner_up"] = ko_match(w1, w2, "Final")
         else:  # ipl
             s = q[labels[0]]
             w_q1, l_q1 = ko_match(s[0], s[1], "Qualifier 1")
             w_el, _ = ko_match(s[2], s[3], "Eliminator")
             w_q2, _ = ko_match(l_q1, w_el, "Qualifier 2")
-            champion, runner_up = ko_match(w_q1, w_q2, "Final")
-    else:
-        top = tables[labels[0]]
-        champion = top[0]["team"]
-        runner_up = top[1]["team"] if len(top) > 1 else None
+            out["champion"], out["runner_up"] = ko_match(w_q1, w_q2, "Final")
+        return out
 
+    seeds = _seeded(tables, labels, per)
+    plate_seeds = [(t, "Plate") for t in extra]
+    if knockout in ("qf", "pre_qf"):
+        if knockout == "qf":
+            slots = need - len(plate_seeds)
+            if len(seeds) < slots:
+                raise ValueError(f"qf needs {need} qualifiers, got {len(seeds) + len(plate_seeds)}")
+            seeds = seeds[:slots] + plate_seeds
+        else:
+            seeds = seeds + plate_seeds
+            if not 9 <= len(seeds) <= 16:
+                raise ValueError(f"pre_qf needs 9-16 qualifiers, got {len(seeds)}")
+        rank = {t: i for i, (t, _) in enumerate(seeds)}
+        if knockout == "pre_qf":
+            # q qualifiers: the top 16 - q go straight through; the rest play q - 8 preliminary quarter-finals,
+            # highest v lowest (10: 7v10, 8v9; 11: 6v11, 7v10, 8v9), the winner taking the higher seed's place
+            n_pre = len(seeds) - 8
+            d = 8 - n_pre
+            group_of = dict(seeds)
+            prelim = _pairs(seeds[d:], [(i, 2 * n_pre - 1 - i) for i in range(n_pre)])
+            for i, (a, b) in enumerate(prelim):
+                w, _ = ko_match(a, b, f"Preliminary quarter-final {i + 1}")
+                seeds[d + i] = (w, group_of[w])
+                rank[w] = d + i
+            seeds = seeds[:8]
+        qf = _pairs(seeds, [(0, 7), (3, 4), (1, 6), (2, 5)])
+        w = [ko_match(a, b, f"Quarter-final {i + 1}")[0] for i, (a, b) in enumerate(qf)]
+
+        def tie(x: str, y: str) -> tuple[str, str]:      # the higher seed is named first (washout tie-break)
+            return (x, y) if rank[x] <= rank[y] else (y, x)
+        w1, _ = ko_match(*tie(w[0], w[1]), "Semi-final 1")
+        w2, _ = ko_match(*tie(w[2], w[3]), "Semi-final 2")
+        out["champion"], out["runner_up"] = ko_match(*tie(w1, w2), "Final")
+        return out
+
+    # Super League: two round-robin groups of the qualifiers, then the final (or semis + final)
+    seeds = seeds + plate_seeds
+    min_q = 4 if knockout == "super_league_semis" else 2
+    if len(seeds) < min_q:
+        raise ValueError(f"{knockout} needs at least {min_q} qualifiers")
+    sl_lists = list(_split_two(seeds))
+    sl_labels = ["Super League A", "Super League B"]
+    start = len(run.cards)
+    _round_robin(run, by_name, sl_labels, sl_lists, 1, lambda label: label)
+    sl_tables = _tables(run.cards[start:], sl_labels, sl_lists, win_points)
+    out["super_league"] = sl_tables
+    A, B = (sl_tables[x] for x in sl_labels)
+    if knockout == "super_league":
+        a, b = A[0], B[0]
+        f1, f2 = (a, b) if (-a["points"], -a["nrr"]) <= (-b["points"], -b["nrr"]) else (b, a)
+        out["champion"], out["runner_up"] = ko_match(f1["team"], f2["team"], "Final")
+    else:
+        w1, _ = ko_match(A[0]["team"], B[1]["team"], "Semi-final 1")
+        w2, _ = ko_match(B[0]["team"], A[1]["team"], "Semi-final 2")
+        out["champion"], out["runner_up"] = ko_match(w1, w2, "Final")
+    return out
+
+
+def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None, year: int = 2025,
+                    rounds: int = 1, groups: int | list | None = None, advance: int | list | None = None,
+                    knockout: str = "semis", venues: list | None = None, home_venues: dict | None = None,
+                    knockout_venues: list | None = None, seed: int | None = None, win_points: int = 2,
+                    on_match=None, rain: bool = False, control: dict | None = None,
+                    skill: dict | None = None, plate: dict | None = None) -> dict:
+    """League stage (round robin, `rounds` times, optionally in groups) then knockouts.
+
+    groups:   None/1 = one league; an int = that many groups, teams dealt in the order given (1st to group A,
+              2nd to B, ...); or explicit lists of team names.
+    advance:  qualifiers per group (a number, or a list with one per group); default: what the knockout needs
+              divided by the number of groups.
+    knockout: "semis" (1v4, 2v3; with two groups A1vB2, B1vA2), "ipl" (qualifier 1, eliminator, qualifier 2,
+              final), "final" (top two), "qf" (8 qualifiers: quarter-finals 1v8, 4v5, 2v7, 3v6, then semis and
+              final), "pre_qf" (9-16 qualifiers, 10 by default: the lowest 2 x (q - 8) seeds play q - 8
+              preliminary quarter-finals for the last places; 10 -> 7v10, 8v9), "super_league" (the qualifiers
+              play two round-robin groups; the group winners meet in the final), "super_league_semis" (the same,
+              then A1vB2, B1vA2 and the final), or "none".
+              For the last four, qualifiers from several groups are ranked by group position, then points and NRR
+              (every group winner before any runner-up), and ties keep sides from the same group apart where they
+              can.
+    win_points: points for a win (a tie or no result gets half); 4 for India's domestic cups.
+    plate:    a second division played in the same run: {"teams": [team dicts], "rounds": 1, "groups": None,
+              "knockout": "final" | "semis" | "none", "advance": 0}. advance: how many of its top sides (league
+              table) join this knockout, seeded last. The result then has "plate" (its tables, knockouts, winner),
+              "promoted" (the Plate winner) and "relegated" (the lowest side of all groups, by points then NRR).
+    control:  {team name: engine.control.Controller} for sides a person captains (their decisions are asked).
+    skill:    {team name: "expert" | "average" | "easy"} for computer captains (engine/judge.py; default expert).
+    """
+    if knockout not in KNOCKOUTS:
+        raise ValueError(f"knockout must be one of {KNOCKOUTS}")
+    plate = dict(plate) if plate else None
+    if plate and plate.get("knockout", "final") not in PLATE_KNOCKOUTS:
+        raise ValueError(f"plate knockout must be one of {PLATE_KNOCKOUTS}")
+    specs = [team_spec(fmt, t) for t in teams]
+    plate_specs = [team_spec(fmt, t) for t in plate["teams"]] if plate else []
+    by_name = {t["name"]: t for t in specs + plate_specs}
+    if len(by_name) != len(specs) + len(plate_specs):
+        raise ValueError("team names must be unique")
+    group_lists = _group_lists([t["name"] for t in specs], groups)
+    labels = _labels(len(group_lists))
+    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain, control, skill)
+    run.on_match = on_match
+
+    _round_robin(run, by_name, labels, group_lists, rounds,
+                 lambda label: "League" if label == "League" else f"Group {label}")
+    tables = _tables(list(run.cards), labels, group_lists, win_points)
+
+    ko: list = []
+    plate_out = None
+    plate_q: list[str] = []
+    if plate:
+        p_lists = _group_lists([t["name"] for t in plate_specs], plate.get("groups"))
+        p_labels = _labels(len(p_lists), "Plate")
+        start = len(run.cards)
+        _round_robin(run, by_name, p_labels, p_lists, plate.get("rounds", rounds),
+                     lambda label: label if label == "Plate" else f"Plate group {label[-1]}")
+        p_tables = _tables(run.cards[start:], p_labels, p_lists, win_points)
+        n_up = int(plate.get("advance") or 0)
+        if n_up:
+            plate_q = [t for t, _ in _seeded(p_tables, p_labels, [n_up] * len(p_labels))][:n_up]
+        p_ko: list = []
+        p_res = _knockouts(run, by_name, p_tables, p_labels, plate.get("knockout", "final"), None, win_points,
+                           p_ko, prefix="Plate")
+        plate_out = {"teams": [t["name"] for t in plate_specs], "groups": dict(zip(p_labels, p_lists)),
+                     "tables": p_tables, "knockouts": p_ko, "winner": p_res["champion"],
+                     "runner_up": p_res["runner_up"], "to_elite_knockouts": plate_q}
+        ko.extend(p_ko)
+
+    res = _knockouts(run, by_name, tables, labels, knockout, advance, win_points, ko, extra=plate_q)
     stats = tournament_stats(run.cards, _wins(run.cards))
     pos = stats["mvp"]["official"][0] if stats["mvp"]["official"] else None
-    return {"kind": "tournament", "format": fmt, "competition": run.comp, "year": year, "seed": run.seed,
-            "settings": {"rounds": rounds, "groups": dict(zip(labels, group_lists)), "knockout": knockout,
-                         "win_points": win_points},
-            "teams": [t["name"] for t in specs], "tables": tables, "knockouts": ko,
-            "winner": champion, "runner_up": runner_up, "player_of_series": pos,
-            "fixtures": [_summary_card(c) for c in run.cards], "matches": run.cards, **stats}
+    out = {"kind": "tournament", "format": fmt, "competition": run.comp, "year": year, "seed": run.seed,
+           "settings": {"rounds": rounds, "groups": dict(zip(labels, group_lists)), "knockout": knockout,
+                        "win_points": win_points, "advance": advance},
+           "teams": [t["name"] for t in specs], "tables": tables, "knockouts": ko,
+           "super_league": res["super_league"],
+           "winner": res["champion"], "runner_up": res["runner_up"], "player_of_series": pos,
+           "fixtures": [_summary_card(c) for c in run.cards], "matches": run.cards, **stats}
+    if plate:
+        worst = min((r for rows in tables.values() for r in rows), key=lambda r: (r["points"], r["nrr"], r["team"]))
+        out.update(plate=plate_out, promoted=plate_out["winner"], relegated=worst["team"])
+    return out
 
 
 # ------------------------------------------------------------------------------------------------ output
 
-def match_count(n_teams: int, rounds: int = 1, groups: int | list | None = None, knockout: str = "semis") -> int:
-    """How many matches play_tournament will play (for progress bars)."""
+def match_count(n_teams: int, rounds: int = 1, groups: int | list | None = None, knockout: str = "semis",
+                advance: int | list | None = None, plate: dict | None = None) -> int:
+    """How many matches play_tournament will play (for progress bars). plate: as in play_tournament ("teams" may
+    also be a number)."""
     if groups in (None, 1):
         sizes = [n_teams]
     elif isinstance(groups, int):
@@ -503,7 +690,20 @@ def match_count(n_teams: int, rounds: int = 1, groups: int | list | None = None,
     else:
         sizes = [len(g) for g in groups]
     league = rounds * sum(k * (k - 1) // 2 for k in sizes)
-    return league + {"semis": 3, "ipl": 4, "final": 1, "none": 0}[knockout]
+    if knockout in ("super_league", "super_league_semis"):
+        q = sum(_per_group(advance, KO_NEED[knockout], len(sizes))) + int((plate or {}).get("advance") or 0)
+        a, b = (q + 1) // 2, q // 2
+        ko = a * (a - 1) // 2 + b * (b - 1) // 2 + (1 if knockout == "super_league" else 3)
+    else:
+        ko = {"semis": 3, "ipl": 4, "final": 1, "qf": 7, "none": 0}.get(knockout, 0)
+        if knockout == "pre_qf":
+            q = sum(_per_group(advance, KO_NEED[knockout], len(sizes))) + int((plate or {}).get("advance") or 0)
+            ko = 7 + q - 8
+    if plate:
+        pt = plate["teams"]
+        ko += match_count(pt if isinstance(pt, int) else len(pt), plate.get("rounds", rounds), plate.get("groups"),
+                          plate.get("knockout", "final"))
+    return league + ko
 
 
 def save(result: dict, out_dir: str | Path) -> Path:
@@ -524,8 +724,11 @@ def summary_text(res: dict, top: int = 5) -> str:
     if res["kind"] == "series":
         lines.append(f"{' v '.join(res['teams'])} - {res['result']}")
     else:
-        for label, rows in res["tables"].items():
-            lines.append(f"\n{label if label == 'League' else 'Group ' + label}")
+        tables = [(label if label == "League" else "Group " + label, rows) for label, rows in res["tables"].items()]
+        tables += list((res.get("super_league") or {}).items())
+        tables += list(((res.get("plate") or {}).get("tables") or {}).items())
+        for label, rows in tables:
+            lines.append(f"\n{label}")
             lines.append(f"  {'#':>2} {'Team':24} {'P':>3} {'W':>3} {'L':>3} {'T':>3} {'Pts':>4} {'NRR':>7}")
             for r in rows:
                 lines.append(f"  {r['pos']:>2} {r['team']:24} {r['played']:>3} {r['won']:>3} {r['lost']:>3} "
@@ -535,6 +738,8 @@ def summary_text(res: dict, top: int = 5) -> str:
             for k in res["knockouts"]:
                 lines.append(f"  {k['stage']:14} {k['result']}")
         lines.append(f"\nWinner: {res['winner']}   Runner-up: {res['runner_up']}")
+        if res.get("plate"):
+            lines.append(f"Plate winner: {res['plate']['winner']} (promoted)   Relegated: {res['relegated']}")
     pos = res.get("player_of_series")
     if pos:
         lines.append(f"Player of the series: {pos['name']} ({pos['team']}) - {pos['runs']} runs, "
@@ -554,7 +759,7 @@ def run_config(cfg: dict) -> dict:
         a, b = cfg["teams"]
         return play_series(a, b, n=cfg.get("matches", 3), **common)
     extra = {k: cfg[k] for k in ("rounds", "groups", "advance", "knockout", "home_venues", "knockout_venues",
-                                 "win_points") if k in cfg}
+                                 "win_points", "plate") if k in cfg}
     return play_tournament(cfg["teams"], **common, **extra)
 
 

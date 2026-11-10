@@ -43,14 +43,33 @@ const TEAM_ID = {
   'Pretoria Capitals': ['PC', '#17479E', '#fff', '#EF1B23'], 'Dubai Capitals': ['DCP', '#17479E', '#fff', '#EF1B23'],
   "Durban's Super Giants": ['DSG', '#0057E2', '#fff', '#F28B00'], 'Abu Dhabi Knight Riders': ['ADKR', '#3A225D', '#fff', '#B3A123'],
   'Los Angeles Knight Riders': ['LAKR', '#3A225D', '#fff', '#B3A123'], 'Trinbago Knight Riders': ['TKR', '#C8102E', '#fff', '#1D1D1B'],
+  // India's state sides (Mushtaq Ali Trophy): common short codes, plain colours picked to tell neighbours apart
+  'Andhra': ['AND', '#1565c0', '#fff', '#ffca28'], 'Arunachal Pradesh': ['ARP', '#2e7d32', '#fff', '#ffb300'],
+  'Assam': ['ASM', '#8d1b1b', '#fff', '#f4c430'], 'Baroda': ['BRD', '#5e35b1', '#fff', '#ffd54f'],
+  'Bengal': ['BEN', '#0d47a1', '#fff', '#ffeb3b'], 'Bihar': ['BIH', '#e65100', '#fff', '#1b5e20'],
+  'Chandigarh': ['CHD', '#00838f', '#fff', '#ffffff'], 'Chhattisgarh': ['CHH', '#558b2f', '#fff', '#ff7043'],
+  'Delhi': ['DEL', '#283593', '#fff', '#e53935'], 'Goa': ['GOA', '#00acc1', '#000', '#ff7043'],
+  'Gujarat': ['GUJ', '#ef6c00', '#fff', '#0d47a1'], 'Haryana': ['HAR', '#2e7d32', '#fff', '#fdd835'],
+  'Himachal Pradesh': ['HP', '#4e342e', '#fff', '#81d4fa'], 'Hyderabad': ['HYD', '#f9a825', '#111', '#1a237e'],
+  'Jammu & Kashmir': ['J&K', '#c62828', '#fff', '#ffffff'], 'Jharkhand': ['JHA', '#1b5e20', '#fff', '#ffc107'],
+  'Karnataka': ['KAR', '#d32f2f', '#fff', '#fbc02d'], 'Kerala': ['KER', '#00695c', '#fff', '#ffd54f'],
+  'Madhya Pradesh': ['MP', '#6a1b9a', '#fff', '#ffab40'], 'Maharashtra': ['MAH', '#bf360c', '#fff', '#ffe082'],
+  'Manipur': ['MNP', '#ad1457', '#fff', '#80cbc4'], 'Meghalaya': ['MEG', '#00796b', '#fff', '#ffcc80'],
+  'Mizoram': ['MIZ', '#3949ab', '#fff', '#ef9a9a'], 'Mumbai': ['MUM', '#0d3c84', '#fff', '#ffb300'],
+  'Nagaland': ['NAG', '#b71c1c', '#fff', '#212121'], 'Odisha': ['ODS', '#f57f17', '#111', '#4e342e'],
+  'Puducherry': ['PDC', '#0277bd', '#fff', '#ff8a65'], 'Punjab': ['PUN', '#e64a19', '#fff', '#1565c0'],
+  'Railways': ['RLY', '#455a64', '#fff', '#ffca28'], 'Rajasthan': ['RAJ', '#c2185b', '#fff', '#ffd740'],
+  'Saurashtra': ['SAU', '#7b1fa2', '#fff', '#ffcc80'], 'Services': ['SER', '#33691e', '#fff', '#c5e1a5'],
+  'Sikkim': ['SKM', '#e53935', '#fff', '#fff59d'], 'Tamil Nadu': ['TN', '#fbc02d', '#111', '#1565c0'],
+  'Tripura': ['TRI', '#6d4c41', '#fff', '#a5d6a7'], 'Uttar Pradesh': ['UP', '#1e88e5', '#fff', '#ffee58'],
+  'Uttarakhand': ['UKD', '#00897b', '#fff', '#ffab91'], 'Vidarbha': ['VID', '#ff8f00', '#111', '#283593'],
 };
-// leagues (setup cards)
-const LEAGUE_ID = {ipl: ['IPL', '#1d2c6b', '#fff', '#f28b00', 'India'], bbl: ['BBL', '#f26522', '#000', '#000', 'Australia'],
-  psl: ['PSL', '#00843d', '#fff', '#c9a227', 'Pakistan'], cpl: ['CPL', '#e4002b', '#fff', '#ffd100', 'West Indies'],
-  sat: ['SA20', '#00a3e0', '#000', '#1d1d1b', 'South Africa'], ilt: ['ILT20', '#5b2c83', '#fff', '#f6c453', 'UAE'],
-  bpl: ['BPL', '#006a4e', '#fff', '#f42a41', 'Bangladesh'], lpl: ['LPL', '#1b3a8a', '#fff', '#ffbe29', 'Sri Lanka'],
-  mlc: ['MLC', '#002868', '#fff', '#bf0a30', 'USA'], ntb: ['BLAST', '#0b1e5b', '#fff', '#e30613', 'England'],
-  ssm: ['SMASH', '#111', '#fff', '#2ee88a', 'New Zealand']};
+// leagues (setup cards): badge text, background, text colour, accent, country. Filled from /api/meta
+// (engine/leagues.py, the one list of leagues) by setLeagueInfo().
+const LEAGUE_ID = {};
+function setLeagueInfo(list) {
+  (list || []).forEach(l => { LEAGUE_ID[l.id] = l.badge; COMP_NAME[l.id] = l.label; });
+}
 const TEAM_PAL = ['#4c8dff', '#e3b341', '#2fbf71', '#f85149', '#a371f7', '#f778ba', '#39c5cf', '#ff9f43', '#7ee787', '#d2a8ff', '#ffa198', '#79c0ff'];
 
 // "Punjab Kings 2026" / "India T20 2024" / "India 2007-11" -> "Punjab Kings" / "India"

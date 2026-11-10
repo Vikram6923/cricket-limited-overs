@@ -43,6 +43,8 @@ from engine import history
 from engine.auction import Auction, season_pool, years_pool
 from engine.career import Career
 from engine.draft import DEFAULT_TEAMS, Draft
+from engine import domestic
+from engine.leagues import LEAGUES, ui_info as league_info
 from engine.data import ratings
 from engine.render import full_text, match_report
 from engine.tournament import match_count, play_series, play_tournament, save
@@ -73,10 +75,7 @@ def league_season(league: str | None, season: str | None) -> dict | None:
 
 COMP_LABELS = {
     "t20i_full": "T20 internationals (full members)", "t20i": "T20 internationals (all teams)",
-    "ipl": "Indian Premier League", "bbl": "Big Bash League", "psl": "Pakistan Super League",
-    "cpl": "Caribbean Premier League", "sat": "SA20", "ilt": "International League T20",
-    "bpl": "Bangladesh Premier League", "lpl": "Lanka Premier League", "mlc": "Major League Cricket",
-    "ntb": "T20 Blast (England)", "ssm": "Super Smash (New Zealand)",
+    **{c: lg.long for c, lg in LEAGUES.items()},
     "odi_full": "ODIs (full members)", "odi": "ODIs (all teams)",
 }
 KNOCKOUTS = {"semis": "Semi-finals + final", "ipl": "IPL playoffs (Q1, Eliminator, Q2, Final)",
@@ -484,6 +483,12 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             res = play_tournament(specs, fmt="t20", comp=params["league"], year=s["year"], rounds=2, knockout="ipl",
                                   venues=venues_, home_venues=homes, seed=seed, rain=rain_, on_match=on_match,
                                   control=control, skill=skill)
+        elif params["mode"] == "domestic":
+            s = domestic.season(params.get("cup") or "sma", params.get("season"))
+            res = play_tournament(**domestic.tournament_args(s), seed=seed, rain=rain_, on_match=on_match,
+                                  control=control, skill=skill)
+            res["domestic"] = {"cup": s["comp"], "label": s["label"], "season": s["season"], "squads": s["squads"],
+                               "real": s["real"]}
         elif params["mode"] == "draft":
             groups = int(params.get("groups") or 1)
             dr = v.draft
@@ -596,12 +601,25 @@ def api_meta():
         # a list, not a dict: Flask sorts dict keys, which would put "final" first in the dropdown
         "knockouts": [{"id": k, "label": v} for k, v in KNOCKOUTS.items()],
         "draft_teams": DEFAULT_TEAMS,
+        "league_info": league_info(),     # labels and badges of every league (engine/leagues.py)
         "leagues": [{"id": k, "label": lg["label"],
                      "seasons": [{"season": s["season"], "year": s["year"], "max_overseas": s["max_overseas"],
                                   "teams": [{"name": t["name"], "franchise": t.get("franchise", t["name"]),
                                              "n": len(t["players"]), "overseas": len(t["overseas"])}
                                             for t in s["teams"]]} for s in lg["seasons"]]}
                     for k, lg in league_seasons().items()],
+        # domestic cups (data/domestic_seasons.json): the Mushtaq Ali Trophy's seasons, groups and format
+        "domestic": [{"id": k, "label": c["label"], "short": c.get("short", k.upper()),
+                      "seasons": [{"season": s["season"], "year": s["year"], "squads": s["squads"],
+                                   "knockout": s["format"]["knockout"],
+                                   "groups": [len(g) for g in s["format"]["groups"].values()],
+                                   "plate": len(s["format"]["plate"]["teams"]) if s["format"]["plate"] else 0,
+                                   "matches": domestic.match_total(s), "real": s["real"],
+                                   "teams": [{"name": t["name"], "n": len(t["players"]),
+                                              "plate": bool(s["format"]["plate"])
+                                              and t["name"] in s["format"]["plate"]["teams"]} for t in s["teams"]]}
+                                  for s in c["seasons"]]}
+                     for k, c in domestic.competitions().items()],
         "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
         "teams": load_teams(), "has_results": (V().last / "summary.json").exists(), "saved": saved_runs(),
         "careers": careers_list(),
@@ -676,7 +694,7 @@ def api_run():
             return jsonify(error="A simulation is already running."), 409
         if err := _capacity_error():
             return jsonify(error=err), 503
-        if p.get("mode") == "league":
+        if p.get("mode") in ("league", "domestic"):
             p["fmt"] = "t20"
         fmt = p.get("fmt")
         if fmt not in ("t20", "odi"):
@@ -703,6 +721,18 @@ def api_run():
             p["comp"], p["year"] = p["league"], s["year"]
             total = match_count(len(s["teams"]), 2, None, "ipl")
             title = f"{s['label']} {s['season']} - {len(s['teams'])} teams, double round robin + playoffs"
+            cap = p.get("captain") or None
+            if cap and cap not in {t["name"] for t in s["teams"]}:
+                return jsonify(error="Choose a team from this season to captain."), 400
+            if cap:
+                title += f" - you captain {cap}"
+        elif p.get("mode") == "domestic":
+            s = domestic.season(p.get("cup") or "sma", p.get("season"))
+            if not s:
+                return jsonify(error="Unknown season."), 400
+            p["comp"], p["year"] = s["comp"], s["year"]
+            total = domestic.match_total(s)
+            title = f"{s['label']} {s['season']} - {len(s['teams'])} teams"
             cap = p.get("captain") or None
             if cap and cap not in {t["name"] for t in s["teams"]}:
                 return jsonify(error="Choose a team from this season to captain."), 400
@@ -784,7 +814,7 @@ def api_run():
             sides = [label(e) for e in teams]
         else:
             return jsonify(error="Unknown mode."), 400
-        cap = p.get("captain") if p.get("mode") in ("league", "auction", "career") else None
+        cap = p.get("captain") if p.get("mode") in ("league", "domestic", "auction", "career") else None
         if p.get("mode") in ("series", "tournament", "draft") and str(p.get("captain_i", "")).strip() != "":
             try:
                 cap = sides[int(p["captain_i"])]

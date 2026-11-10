@@ -1,10 +1,10 @@
 # Limited-overs cricket simulator (ODI + T20)
 
 A ball-by-ball simulator for **One-Day Internationals (50 overs)** and **Twenty20 (20 overs)**, with players rated
-from real ball-by-ball data. Pick any XIs from about 7,800 rated players (internationals since ~2002, ODI players back
-to 1971, and eleven franchise leagues). Play them in any era's conditions and get a full scorecard, a match report,
-charts (run worm, Manhattan, win probability, partnerships) and a player of the match. Rain with DLS targets and
-the IPL Impact Player rule are modelled.
+from real ball-by-ball data. Pick any XIs from about 8,900 rated players (internationals since ~2002, ODI players back
+to 1971, eleven franchise leagues and India's Syed Mushtaq Ali Trophy). Play them in any era's conditions and get a
+full scorecard, a match report, charts (run worm, Manhattan, win probability, partnerships) and a player of the
+match. Rain with DLS targets and the IPL Impact Player rule are modelled.
 
 The engine is a plain Python library: no prompts, no global state, and a seed makes every match reproducible. It
 is checked against reality by replaying ~1,500 real matches with their real line-ups (see
@@ -118,6 +118,10 @@ on a phone too. Modes:
   MLC, T20 Blast, Super Smash) with the real squads (everyone who played for each franchise that season), that
   season's overseas limit (taken from the real XIs: IPL 4, BBL 3, ...), a double round robin and IPL-style
   playoffs. IPL games from 2023 use the Impact Player rule.
+- **Mushtaq Ali Trophy** (Seasons & careers): India's domestic T20 with its 38 state sides. A real season's groups
+  and format, 4 points a win, then that season's knockouts (Super League, quarter-finals or preliminary
+  quarter-finals) and, from 2020-21, the Plate with promotion and relegation. Real squads for 2015-16 and 2017-18
+  to 2021-22; 2025-26 uses each player's latest state in the data. Captain any state or just watch.
 - **Captain a team (every mode except Team Builder):** pick one side and make its calls in its matches while the computer
   plays everything else: the toss, the XI in batting order with the keeper (and the 5 Impact substitutes), the
   bowler for every over, the next batter at every wicket, and when to use the Impact Player. Each screen shows a
@@ -351,7 +355,14 @@ save(res, "results/my_cup")
 
 - **League stage:** single or double round robin (`rounds`), optionally in groups.
 - **Knockouts:** semi-finals (1v4, 2v3; with two groups A1vB2, B1vA2), IPL-style playoffs (Qualifier 1,
-  Eliminator, Qualifier 2, Final), a final, or none.
+  Eliminator, Qualifier 2, Final), a final, or none. For India's domestic cups also `"qf"` (quarter-finals 1v8,
+  4v5, 2v7, 3v6), `"pre_qf"` (the lowest seeds play preliminary quarter-finals for the last places),
+  `"super_league"` (the qualifiers play two round-robin groups, the winners meet in the final) and
+  `"super_league_semis"`. Qualifiers from several groups
+  are seeded by group position, then points and NRR, and group-mates are kept apart where possible. `advance` can
+  differ per group (a list), `win_points=4` gives India's 4 points a win, and `plate={"teams": [...]}` plays a
+  second division in the same run (its own league and final; `advance` sends its top sides into the knockouts)
+  and reports the promoted and relegated sides.
 - **Points table:** net run rate by the ICC method (a side bowled out is charged its full quota of overs; super
   overs don't count; in a DLS match the side batting first is credited with the par score in the chase's overs;
   no-results earn a point each and are left out). With `rain=True`, knockouts get a reserve day, after which the
@@ -367,9 +378,10 @@ save(res, "results/my_cup")
 
 ## How it works
 
-1. **Data**: [Cricsheet](https://cricsheet.org) ball-by-ball files for ODIs, T20Is and eleven T20 leagues, plus
-   Wikipedia/Wikidata for batting hand, bowling type, and career totals of Afghanistan players (Cricsheet withholds
-   Afghanistan matches) and of ODI players from before Cricsheet (1971-2002). Pre-2002 strike rates come from
+1. **Data**: [Cricsheet](https://cricsheet.org) ball-by-ball files for ODIs, T20Is, eleven T20 leagues and the
+   Syed Mushtaq Ali Trophy (India's domestic T20), plus Wikipedia/Wikidata for batting hand, bowling type, and career
+   totals of Afghanistan players (Cricsheet withholds Afghanistan matches) and of ODI players from before Cricsheet
+   (1971-2002). Pre-2002 strike rates come from
    Wikipedia's match summaries (top scorers' runs and balls in about 1,600 pre-2002 ODIs), corrected for the
    top-scorer bias measured on 2003-12 matches where Cricsheet has the truth.
 2. **Ratings**: every player gets batting and bowling indexes for runs, dismissals, dots, fours and sixes, overall
@@ -428,6 +440,7 @@ python scripts/fetch_wiki_matches.py   # ODI match summaries (top scorers' runs 
 python scripts/build_ratings.py        # player ratings -> data/ratings_{odi,t20}.json (+ _years, _comps)
 python scripts/build_league_presets.py # every season of 11 leagues (+ home grounds) -> data/league_seasons.json
 python scripts/build_home_grounds.py   # national sides' home grounds -> data/home_grounds.json
+python scripts/build_domestic_presets.py # Mushtaq Ali Trophy seasons -> data/domestic_seasons.json
 python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free hit
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
@@ -443,6 +456,7 @@ python -m engine.fit.fit_depth         # T20 batting depth still to come, a tren
 python -m engine.calibrate             # compare simulated v real
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
+python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
 python tests/test_selection.py         # also test_history.py, test_draft.py
 ```
 

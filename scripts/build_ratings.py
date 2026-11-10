@@ -33,6 +33,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from build_raw_stats import BOWLER_WICKETS, FORMATS as RAW_FORMATS, NOT_OUT_KINDS, phase_of
+from engine.leagues import LEAGUES
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
@@ -336,7 +337,10 @@ def player_groups(fmt: str, ids: list[str], styles: dict, afghans: set[str]) -> 
         elif pid in afghans:
             t = "Afghanistan"
         elif rl:
-            t = "league:" + max(rl["by_league"].items(), key=lambda kv: kv[1]["m"])[0]
+            lg, rec = max(rl["by_league"].items(), key=lambda kv: kv[1]["m"])
+            t = "league:" + lg
+            if lg in LEAGUES and LEAGUES[lg].side_level and rec.get("teams"):
+                t += ":" + max(rec["teams"].items(), key=lambda kv: kv[1])[0]   # e.g. league:sma:Mumbai
         else:
             t = "unknown"
         team.append(t)
@@ -345,12 +349,14 @@ def player_groups(fmt: str, ids: list[str], styles: dict, afghans: set[str]) -> 
 
 
 def tier_of(team: str) -> str:
-    """full member / associate / league-only players. (A fourth tier splitting associates with and without ODI
-    status was tried: batting predictions improved slightly but bowling got clearly worse, so it was dropped.)"""
+    """full member / associate / league-only players, and state sides (league:sma:Mumbai, for competitions with
+    `side_level` in engine/leagues.py: their own tier, so the states' level is set by the players they share with the
+    IPL rather than by the franchise leagues'). (A tier splitting associates with and without ODI status was tried:
+    batting predictions improved slightly but bowling got clearly worse, so it was dropped.)"""
     if team in FULL_MEMBERS:
         return "full"
     if team.startswith("league:"):
-        return "league"
+        return "side" if team.count(":") > 1 else "league"   # league:sma:Mumbai is a state side (engine/leagues.py)
     return "associate"
 
 
@@ -358,11 +364,11 @@ def team_levels(A: list, e0: list, cb: list, cw: list, bat_team: list, bowl_team
                 pseudo: float = TEAM_PSEUDO_BALLS, iters: int = 5000) -> tuple[dict, dict]:
     """Team-vs-team strength (batting level x bowling level), solved to convergence on aggregated team pairs.
 
-    Hierarchy: tier (full member / associate / league-only) -> team -> player. Tier levels are NOT shrunk: the
-    hundreds of full-member v associate games identify them well. Each team is shrunk toward its tier level with
-    `pseudo` balls of weight, and players are later shrunk toward their team. Earlier versions shrank teams toward
-    1.0 or toward their opponents' average; with associates mostly playing each other, both left the associate
-    pool frozen near the full-member level (Nepal and Kuwait batting like Australia)."""
+    Hierarchy: tier (full member / associate / league-only / state side) -> team -> player. Tier levels are NOT
+    shrunk: the hundreds of full-member v associate games identify them well. Each team is shrunk toward its tier
+    level with `pseudo` balls of weight, and players are later shrunk toward their team. Earlier versions shrank
+    teams toward 1.0 or toward their opponents' average; with associates mostly playing each other, both left the
+    associate pool frozen near the full-member level (Nepal and Kuwait batting like Australia)."""
     pa, pe, pn = defaultdict(float), defaultdict(float), defaultdict(float)
     for k in range(len(cb)):
         key = (bat_team[cb[k]], bowl_team[cw[k]])

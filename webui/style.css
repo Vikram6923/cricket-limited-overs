@@ -257,6 +257,7 @@ tr.mine td{background:rgba(76,141,255,.08)}
 .tbl.pts{max-height:none}
 .w{color:var(--green);font-weight:600}.l{color:var(--red)}.d{color:var(--amber)}
 .q td:first-child{box-shadow:inset 3px 0 0 var(--brand)}
+.rel td:first-child{box-shadow:inset 3px 0 0 #f85149}
 .pts-n{font-family:var(--disp);font-size:1.05rem}
 span.formg{display:inline-flex;gap:3px}
 .fm{font-style:normal;width:20px;height:20px;border-radius:5px;display:inline-grid;place-items:center;font-size:.64rem;font-weight:800;cursor:pointer}
