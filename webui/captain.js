@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('cap-card-btn').onclick = () => { CAP.sheetKind = 'card'; openSheet(''); $('bsheet-in').appendChild($('cap-score')); };
   $('cap-stop-btn').onclick = () => { if (confirm('Stop this match?')) { closeSheet(); stopJob(); } };
   $('cap-tips').onclick = () => {
-    lsSet(COACH_KEY, '0'); lsSet(COACH_KEY + '.b', ''); closeSheet();
+    tipsReset(); closeSheet();
     if (CAP.q && CAP.qid === CAP.q.id) { if (CAP.q.kind === 'ball') coachBall(CAP.q); else if (CAP.q.kind === 'bowler') coachBowler(); }
   };
   window.addEventListener('resize', () => { if (COACH.cur) coachPlace(); });
@@ -563,25 +563,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* coach marks: one tip at a time next to what it names, each shown until it is
    dismissed or the person plays on, never again (More > Show tips again replays them). No overlay: the screen
-   underneath still works. */
-const COACH_KEY = 'lo.coach';                   // how many of the 3 ball tips are done; .b: the bowler tip
+   underneath still works. The other screens' tips (tips.js) use the same mark. */
+const COACH_KEY = 'lo.coach';                   // how many of the 4 ball tips are done; .b: the bowler tip
 const COACH = {cur: null, steps: [
   {sel: '#cap-bars', text: q => q.side === 'bowl' ? 'Set your bowler’s plan. Higher = more wickets, more runs.'
     : 'Set your batter’s approach. Higher = more runs, more risk.'},
   {sel: '#cap-main', text: () => 'Bowl the next ball. Space works too.'},
-  {sel: '#cap-over-btn', text: () => 'Skip ahead whenever you like. You can always take over.'}]};
+  {sel: '#cap-over-btn', text: () => 'Skip ahead whenever you like. You can always take over.'},
+  {sel: '#cap-more-btn', text: () => 'The full scorecard, match length and more ways to skip ahead are under More.'}]};
 function coachBall(q) {
   const n = +lsGet(COACH_KEY) || 0;
-  if (n >= COACH.steps.length) return;
+  if (n >= COACH.steps.length || tipsOff()) return;
   const st = COACH.steps[n];
   coachShow(st.sel, st.text(q), () => lsSet(COACH_KEY, String(n + 1)), () => { if (CAP.q === q && CAP.qid === q.id) coachBall(q); });
 }
 function coachBowler() {
-  if (lsGet(COACH_KEY + '.b') === '1') return;
+  if (lsGet(COACH_KEY + '.b') === '1' || tipsOff()) return;
   coachShow('#cap-opts', 'Pick who bowls this over.', () => lsSet(COACH_KEY + '.b', '1'), null, '#bsheet');   // above the sheet
 }
-function coachShow(sel, text, done, next, anchor) {
-  const t = document.querySelector(sel);
+function coachShow(sel, text, done, next, anchor) {         // sel: a selector or the element itself
+  const t = typeof sel === 'string' ? document.querySelector(sel) : sel;
   if (!t || !t.offsetParent) return;
   coachHide(false);
   COACH.cur = {t, done, at: anchor ? document.querySelector(anchor) : t};
@@ -590,18 +591,20 @@ function coachShow(sel, text, done, next, anchor) {
   c.hidden = false; t.classList.add('coach-on');
   coachPlace(); setTimeout(coachPlace, 260);      // again once a sheet has slid in
   $('cm-ok').onclick = () => { coachHide(true); if (next) next(); };
-  $('cm-x').onclick = () => { coachHide(false); lsSet(COACH_KEY, '9'); lsSet(COACH_KEY + '.b', '1'); };
+  $('cm-x').onclick = () => { coachHide(false); tipsSkip(); toast('Tips are off. Show tips again is on the home page.'); };
 }
 function coachPlace() {
   const c = $('coach'), t = COACH.cur && COACH.cur.at;
   if (!t) return;
   const r = t.getBoundingClientRect(), w = c.offsetWidth, h = c.offsetHeight;
-  const above = r.top - h - 14 > 8;
+  const above = r.top - h - 14 > 8, below = r.bottom + h + 14 < innerHeight - 8;
   const left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2));
   c.style.left = left + scrollX + 'px';
-  c.style.top = (above ? r.top - h - 14 : r.bottom + 14) + scrollY + 'px';
+  // a tall target (a table, the auction stage) with no room above or below: the tip sits over its top edge
+  c.style.top = (above ? r.top - h - 14 : below ? r.bottom + 14 : Math.max(8, r.top + 10)) + scrollY + 'px';
   c.style.setProperty('--ax', Math.max(16, Math.min(w - 16, r.left + r.width / 2 - left)) + 'px');
-  c.classList.toggle('below', !above);
+  c.classList.toggle('below', !above && below);
+  c.classList.toggle('over', !above && !below);
 }
 /* hide the tip; `seen` counts it as done (Got it, or the person played on) */
 function coachHide(seen) {

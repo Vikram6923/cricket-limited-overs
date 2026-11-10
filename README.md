@@ -45,8 +45,16 @@ choose to bat or bowl. **Key moments** (the default, about 5 minutes for a T20) 
 6 balls after each wicket and the last 3 overs of each innings, and the rest plays on with a one-line summary over
 the field ("Wicket · 0.6–10.2: 85/1 · Jaiswal 43*, Kohli 0*"); **Every ball** plays them all. You set the bars
 each ball you play and pick the bowler for those overs; the computer picks the XI, the next batter and the
-Impact Player. In your first match three short tips point at the bars, *Next ball* and *Sim over* (one more on
-the first bowler sheet); *More > Show tips again* replays them. *Just simulate the result* plays the match without you. Under it, a Continue row shows the one
+Impact Player. In your first match four short tips point at the bars, *Next ball*, *Sim over* and *More* (one more
+on the first bowler sheet). Every other screen has first-visit tips too, 2–4 each, one at a time next to what they
+name: home (the teams, Play, the four doors, the tab bar), the pre-match card (length, XI, toss), setup screens
+(How it works, Start, More options), Two players (Host / Join, then the code, the seats and I'm ready in the room),
+the draft room (whose pick, suggestions, the pool, Auto-pick), the auction room while you bid (the stage, purses,
+letting the computer bid, the tabs), results (the tabs, Save this run), the career dashboard and the team builder.
+A tip goes on *Got it* or when you tap what it points at; *Skip tips* turns them all off. Each browser remembers
+the tips it has seen (in its own storage, not by IP address or account), so on a hosted site every friend's phone
+or laptop gets them once; *Show tips again* (home page, or *More* in a match) brings them all back. *Just simulate
+the result* plays the match without you. Under it, a Continue row shows the one
 thing in progress (a live match you left, or a career), and four doors lead to everything else: Play a friend,
 Seasons & careers, Auction & draft, and a What-if sandbox (match or series, tournaments, classic sides, team
 builder). Full stats also shows the old grid of every mode. Teams carry their colours and short codes everywhere;
@@ -510,6 +518,9 @@ tests/             engine and tournament tests
 - [x] UI simplification phase 6: Key moments match length (the engine's `until: "key"` pause plays on between
       the first over, the 6 balls after a wicket and the last 3 overs; a summary line after each stretch) and
       three coach marks in the first captained match, plus one on the bowler sheet
+- [x] First-visit tips on every screen (home, pre-match, setup, Two players and the room, draft and auction rooms,
+      results, career, team builder) and a fourth match tip on *More*; Skip tips turns all off, Show tips again
+      (home or More) resets them, per browser
 - [x] Two players on two devices (same Wi-Fi): one bats, one bowls, ball by ball; single match or best of 3 / 5;
   a draft against each other (optionally with computer teams and a league); a live auction against each other
   and the computer franchises, then a league or a series
