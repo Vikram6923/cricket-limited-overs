@@ -27,6 +27,7 @@ function showView(id) {
   document.querySelectorAll('[data-nav]').forEach(b => { if (b.closest('#nav,#tabbar')) b.classList.toggle('on', b.dataset.nav === nav); });
   document.body.dataset.view = id;
   if (id === 'v-home' && META && (!was || was.id !== id)) { drawHero(); drawHomeCont(); }
+  if (typeof tipSoon === 'function') tipSoon(id, !was || was.id !== id);     // this screen's first-visit tips (tips.js)
 }
 const fmtTime = s => { s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const fmtNum = (v, d) => v === null || v === undefined || v === '' ? '–' : (typeof v === 'number' && d !== undefined ? v.toFixed(d) : v);
