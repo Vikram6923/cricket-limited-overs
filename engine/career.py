@@ -99,6 +99,17 @@ def _debutants(league: str) -> tuple:
     return tuple(out)
 
 
+def season_leaders(res: dict) -> dict:
+    """A season's most runs (orange), most wickets (purple), MVP and the person's captaincy score."""
+    top = lambda rows, k: max(rows, key=lambda r: r[k], default=None)
+    orange, purple = top(res["batting"], "runs"), top(res["bowling"], "wickets")
+    mvp = (res.get("mvp") or {}).get("balanced") or []
+    return {"orange": orange and {"name": orange["name"], "team": orange["team"], "runs": orange["runs"]},
+            "purple": purple and {"name": purple["name"], "team": purple["team"], "wkts": purple["wickets"]},
+            "mvp": mvp and {"name": mvp[0]["name"], "team": mvp[0]["team"], "pts": mvp[0]["balanced"]},
+            "captaincy": (res.get("captaincy") or {}).get("runs")}
+
+
 class Career:
     def __init__(self, league: str, season: str, user: str | None = None, mega_every: int = 3,
                  seed: int | None = None, name: str | None = None, _blank: bool = False):
@@ -221,12 +232,14 @@ class Career:
                 "home_venues": {t: h for t, h in self.homes.items() if h},
                 "seed": zlib.crc32(f"{self.seed}|season|{self.year}".encode())}
 
+    def match_total(self) -> int:
+        """How many matches a season plays (for the progress bar)."""
+        from .tournament import match_count
+        return match_count(len(self.franchises), 2, None, "ipl")
+
     def record(self, res: dict, run: str | None = None) -> dict:
         """Add a played season (play_tournament's result) to the history and the career statistics."""
         table = [r["team"] for r in res["tables"]["League"]]
-        top = lambda rows, k: max(rows, key=lambda r: r[k], default=None)
-        orange, purple = top(res["batting"], "runs"), top(res["bowling"], "wickets")
-        mvp = (res.get("mvp") or {}).get("balanced") or []
         pos = None
         if self.user:
             n = table.index(self.user) + 1
@@ -235,12 +248,14 @@ class Career:
             pos = "Champions" if res["winner"] == self.user else "Runners-up" if res["runner_up"] == self.user \
                 else f"Out in the {out[-1]} ({nth} in the league)" if out else f"{nth} in the league"
         h = {"season": self.season_label, "year": self.year, "champion": res["winner"], "runner_up": res["runner_up"],
-             "table": table, "user_pos": pos, "run": run,
-             "orange": orange and {"name": orange["name"], "team": orange["team"], "runs": orange["runs"]},
-             "purple": purple and {"name": purple["name"], "team": purple["team"], "wkts": purple["wickets"]},
-             "mvp": mvp and {"name": mvp[0]["name"], "team": mvp[0]["team"], "pts": mvp[0]["balanced"]},
-             "captaincy": (res.get("captaincy") or {}).get("runs")}
+             "table": table, "user_pos": pos, "run": run, **season_leaders(res)}
         self.history.append(h)
+        self._add_stats(res)
+        self.phase = "advance"
+        return h
+
+    def _add_stats(self, res: dict) -> None:
+        """A played season's batting and bowling into the career statistics; who played for whom."""
         batted = {b["id"] for b in res["batting"]}
         for b in res["batting"]:
             s = self._stat(b["id"], b["name"])
@@ -268,8 +283,6 @@ class Career:
                     seen.add(pid)
                     if t == res["winner"]:
                         self.stats[pid]["titles"] += 1
-        self.phase = "advance"
-        return h
 
     def _stat(self, pid: str, name: str) -> dict:
         return self.stats.setdefault(pid, {"name": name, "seasons": 0, "titles": 0, "matches": 0, "inns": 0,

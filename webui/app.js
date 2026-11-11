@@ -163,7 +163,7 @@ const MODES = {
   tournament: {t: 'Tournament', s: 'Groups, points table with NRR, knockouts', g: 'Quick play', c: '#f6c453'},
   league: {t: 'League season', s: 'Any IPL, BBL, PSL… season with the real squads', g: 'Seasons and careers', c: '#f6c453', feat: true},
   domestic: {t: 'Mushtaq Ali Trophy', s: "India's 38 states: a real season's groups, format and squads", g: 'Seasons and careers', c: '#ff9f43'},
-  career: {t: 'Career', s: 'Run a franchise for years: ageing, auctions, trophies', g: 'Seasons and careers', c: '#b26bff', feat: true},
+  career: {t: 'Career', s: 'Run a franchise or a state for years: ageing, auctions, trophies', g: 'Seasons and careers', c: '#b26bff', feat: true},
   auction: {t: 'Auction', s: 'Bid live with retentions and Right to Match', g: 'Seasons and careers', c: '#ff4061'},
   draft: {t: 'Fantasy draft', s: 'Snake draft from any era, then a league', g: 'Seasons and careers', c: '#39c5cf'},
   classic: {t: 'Classic series', s: 'Any nation, any era: Australia 2003–07 v India 2011', g: 'History', c: '#f6c453'},
@@ -349,7 +349,7 @@ const DOORS = [
   {t: 'Seasons & careers', ic: 'league', modes: ['league', 'domestic', 'career']},
   {t: 'Auction & draft', ic: 'auction', modes: ['auction', 'draft']},
   {t: 'What-if sandbox', ic: 'classic', modes: ['series', 'tournament', 'classic', 'classic_t', 'builder']}];
-const DOOR_LINE = {league: 'Any season of 11 leagues, real squads.', career: 'Run a franchise, year after year.',
+const DOOR_LINE = {league: 'Any season of 11 leagues, real squads.', career: 'Run a franchise or a state, year after year.',
   domestic: "India's domestic T20: captain a state.",
   auction: 'Bid for a squad, then play.', draft: 'Pick players in turns, then a league.',
   series: 'Two teams, one to seven matches.', tournament: 'Your own World Cup or league.',

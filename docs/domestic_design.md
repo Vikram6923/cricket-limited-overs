@@ -192,7 +192,22 @@ and stops once its gate is met.
    "Semi-finals"), the Plate's table and final in their own section, sides that went through marked in every
    table and the relegated side in red, and the champions card names who went up, who went down and the real
    winner. `tests/test_domestic.py` also runs a season through the server.
-6. **State career** (separate step, after the trophy plays well).
+6. **State career.** *Done 2026-11-11.* `engine/state_career.py` (`StateCareer`, a `Career` subclass saved
+   with `"kind": "state"`): start from a season with a Plate (2020-21, 2021-22, 2025-26) and keep its format
+   (group sizes, knockouts, the Plate's knockout and how many Plate sides join the Elite knockouts). After each
+   season the Plate winner goes up and the lowest Elite side goes down; the Elite groups are dealt by finishing
+   position (champions, runners-up, knockout games played, Super League then group points and NRR) in snake
+   order. Ageing, form and retirements are franchise career's. Newcomers: a real season in the presets
+   (2021-22, 2025-26) brings its debutants and real moves (a player dropped earlier comes back if he really
+   played); other seasons get 3 +/- 1 made-up players per state (copies of real SMAT debutants from 2019-20 on,
+   named from the state's players) and 12 moves of uncapped players aged 24-33 (real: 12-19 a season, mostly
+   journeymen). Squads are kept at 16-22: the least valuable players over 23 (runs value per match) leave.
+   Conditions and grounds are the newest real season's not after the one played. UI: the Career form's league
+   list has "Syed Mushtaq Ali Trophy (state career)" (season chips, "Your state" with Plate sides marked, no
+   mega-auction option); the dashboard shows the season's groups in one line each, honours with Up and Down and
+   your state's finish, squads without contracts, and the records. `tests/test_state_career.py`. Not done: your
+   best uncapped players in the IPL auction (idea A3), choosing your own squad changes, and the published
+   2025-26 squads.
 7. **One-day cups** (separate step: the ODI league tier is its own piece of engine work).
 
 Rough size: steps 1-5 are about the size of League Season plus one ratings rebuild; 6 is smaller than franchise

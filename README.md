@@ -121,7 +121,8 @@ on a phone too. Modes:
 - **Mushtaq Ali Trophy** (Seasons & careers): India's domestic T20 with its 38 state sides. A real season's groups
   and format, 4 points a win, then that season's knockouts (Super League, quarter-finals or preliminary
   quarter-finals) and, from 2020-21, the Plate with promotion and relegation. Real squads for 2015-16 and 2017-18
-  to 2021-22; 2025-26 uses each player's latest state in the data. Captain any state or just watch.
+  to 2021-22; 2025-26 uses each player's latest state in the data. Captain any state or just watch. To run one
+  state for years, start a Career and pick the Mushtaq Ali Trophy (below).
 - **Captain a team (every mode except Team Builder):** pick one side and make its calls in its matches while the computer
   plays everything else: the toss, the XI in batting order with the keeper (and the 5 Impact substitutes), the
   bowler for every over, the next batter at every wicket, and when to use the Impact Player. Each screen shows a
@@ -180,6 +181,15 @@ on a phone too. Modes:
   finish, most runs and wickets, MVP, each season's full results), the trophy count, career records across all
   seasons and every squad with ages and current ratings. Careers are kept in `results/careers/` and can be
   reopened at any time.
+- **State career** (Career, league "Mushtaq Ali Trophy"): one of the 38 states season after season, from a real
+  season with a Plate (2020-21, 2021-22 or 2025-26), keeping that season's format. The Plate winner goes up, the
+  lowest Elite side goes down, and next season's Elite groups are dealt by finishing position. There is no auction:
+  a state's squad carries over. Players age, find form and retire as in franchise career; the real 2021-22 and
+  2025-26 seasons bring their debutants and the players who really changed state; seasons in between get about
+  3 made-up newcomers per state (copies of real SMAT debutants, named from the state's own players) and a dozen
+  uncapped players changing state. Squads stay between 16 and 22 (the least valuable players over 23 leave). The
+  career page shows the season's groups, honours with who went up and down, your state's finish, squads and
+  records.
 - **Saved runs:** "Save this run" on the results page keeps a run (any mode) under a name in `results/saved/`,
   so the next run doesn't overwrite it; the Saved runs mode lists them to open (the full results page), rename or
   delete. A saved league (an auction league or a League Season) of the same league can be retained from in a later
@@ -457,6 +467,7 @@ python -m engine.calibrate             # compare simulated v real
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
+python tests/test_state_career.py      # state career: promotion, relegation, squads, a season through the server
 python tests/test_selection.py         # also test_history.py, test_draft.py
 ```
 
@@ -482,6 +493,7 @@ engine/            match engine (library)
   draft.py         fantasy draft
   auction.py       IPL-style auction with retentions and Right to Match (and mini auctions)
   career.py        career mode: a league over many seasons (ageing, retirements, newcomers, auctions)
+  state_career.py  state career: a Mushtaq Ali Trophy state over many seasons (Elite, Plate, no auction)
   render.py        text scorecard and match report
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
@@ -516,6 +528,7 @@ tests/             engine and tournament tests
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
+- [x] State career: a Mushtaq Ali Trophy state season after season, Elite and Plate with promotion and relegation
 - [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
       live screen, phone layout
 - [x] UI simplification phase 1: Simple / Full stats switch, More options folds, plain words

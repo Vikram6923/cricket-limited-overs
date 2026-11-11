@@ -171,7 +171,8 @@
       <li>India's domestic T20: the 38 state sides, a real season's groups and format.</li>
       <li>4 points a win. Groups, then that season's knockouts: a Super League, quarter-finals or preliminary quarter-finals.</li>
       <li>From 2020-21 the Plate plays too: its winner goes up and the lowest Elite side goes down.</li>
-      <li>Real squads for 2015-16 to 2021-22; 2025-26 uses each player's latest state in the data.</li></ul></details>
+      <li>Real squads for 2015-16 to 2021-22; 2025-26 uses each player's latest state in the data.</li>
+      <li>To run one state for years, start a Career and pick the Mushtaq Ali Trophy.</li></ul></details>
     <div class="fg"><label>Season</label><select id="dm-season"></select></div>
     <div class="fg"><label>Your state</label><select id="dm-captain"></select>
       <div class="hint full-only" style="margin:4px 0 0">You make that side's decisions in its matches; the others play automatically.</div></div>
@@ -287,7 +288,8 @@
     <details class="how"><summary>How it works</summary><ul>
       <li>Run a franchise season after season, from a real season's squads.</li>
       <li>Players age, find form and retire; real debutants, then made-up youngsters, arrive.</li>
-      <li>A mega auction every few seasons, mini auctions in between.</li></ul></details>
+      <li>A mega auction every few seasons, mini auctions in between.</li>
+      <li>Or pick the Mushtaq Ali Trophy and run a state: Elite and Plate, promotion and relegation, no auction.</li></ul></details>
     <h3 style="margin:10px 0 6px">Your careers</h3>
     <div id="k-list"></div>
     <h3 style="margin:16px 0 6px">Start a new career</h3>
@@ -295,10 +297,10 @@
       <div class="fg"><label>League</label><select id="k-league"></select></div>
       <div class="fg"><label>Starting season</label><select id="k-season"></select></div>
     </div>
-    <div class="fg"><label>Your franchise</label><select id="k-user"></select>
-      <div class="hint full-only" style="margin:4px 0 0">You make its auction calls and can captain it each season.</div></div>
+    <div class="fg"><label id="k-user-l">Your franchise</label><select id="k-user"></select>
+      <div class="hint full-only" id="k-user-hint" style="margin:4px 0 0">You make its auction calls and can captain it each season.</div></div>
     <details class="more" id="more-career"><summary>More options</summary>
-    <div class="fg"><label>Mega auction</label><select id="k-mega">
+    <div class="fg" id="k-mega-box"><label>Mega auction</label><select id="k-mega">
       <option value="1">Every season</option><option value="2">Every 2 seasons</option>
       <option value="3" selected>Every 3 seasons (as the IPL)</option><option value="5">Every 5 seasons</option></select></div>
     <div class="fg"><label>Name (optional)</label><input type="text" id="k-name" maxlength="80" placeholder="e.g. Punjab Kings dynasty"></div>
@@ -550,6 +552,7 @@
         <h3>Most wickets</h3><div class="tbl" id="kc-wkts"></div>
       </div>
       <div>
+        <div class="cap-panel" id="kc-div" style="display:none"><h3 id="kc-div-h">This season</h3><div id="kc-groups"></div></div>
         <div class="cap-panel"><h3>Since last season</h3><ul class="kc-news" id="kc-news"></ul></div>
         <div class="cap-panel"><h3>Titles</h3><ul class="squad" id="kc-titles"></ul></div>
       </div>

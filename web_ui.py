@@ -8,7 +8,8 @@
 Plain Flask, a background job per visitor, the page polls /api/status (no websockets, no CDN scripts, works
 offline). The engine is called directly as a library. Modes: Match / Series, Tournament, Classic Series and
 Classic Tournament (a nation over a year range, rated on those years), League Season, Fantasy Draft, Auction,
-Career (a league season after season, engine/career.py; kept in results/careers/<id>/), Team Builder.
+Career (a league season after season, engine/career.py, or a Mushtaq Ali Trophy state, engine/state_career.py;
+kept in results/careers/<id>/), Team Builder.
 Two players (docs/multiplayer_design.md): one match, each side captained by a person on their own device; any
 number of rooms at once.
 On your own computer there is one user: saved teams live in data/teams.json (created from data/teams_default.json
@@ -42,6 +43,7 @@ from engine.judge import AllBut, season_report
 from engine import history
 from engine.auction import Auction, season_pool, years_pool
 from engine.career import Career
+from engine.state_career import StateCareer, load as career_from_json, start_seasons
 from engine.draft import DEFAULT_TEAMS, Draft
 from engine import domestic
 from engine.leagues import LEAGUES, ui_info as league_info
@@ -618,7 +620,8 @@ def api_meta():
                                    "teams": [{"name": t["name"], "n": len(t["players"]),
                                               "plate": bool(s["format"]["plate"])
                                               and t["name"] in s["format"]["plate"]["teams"]} for t in s["teams"]]}
-                                  for s in c["seasons"]]}
+                                  for s in c["seasons"]],
+                      "career_seasons": start_seasons() if k == "sma" else []}
                      for k, c in domestic.competitions().items()],
         "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
         "teams": load_teams(), "has_results": (V().last / "summary.json").exists(), "saved": saved_runs(),
@@ -784,7 +787,7 @@ def api_run():
             if car.phase != "season":
                 return jsonify(error="Hold the auction before the season."), 400
             p["fmt"], p["comp"], p["year"] = "t20", car.league, car.cond_year()
-            total = match_count(len(car.franchises), 2, None, "ipl")
+            total = car.match_total()
             title = f"{car.name} - season {car.season_label}"
             if p.get("captain") and car.user:
                 p["captain"] = car.user
@@ -1834,7 +1837,7 @@ def _career_path(cid: str | None, v: Visitor | None = None) -> Path:
 
 
 def load_career(cid: str | None, v: Visitor | None = None) -> Career:
-    return Career.from_json(json.loads(_career_path(cid, v).read_text(encoding="utf-8")))
+    return career_from_json(json.loads(_career_path(cid, v).read_text(encoding="utf-8")))
 
 
 def save_career(cid: str, c: Career, v: Visitor | None = None) -> None:
@@ -1854,6 +1857,7 @@ def careers_list() -> list[dict]:
             if p.exists():
                 c = json.loads(p.read_text(encoding="utf-8"))
                 out.append({"id": d.name, "name": c["name"], "league": c["league_label"], "user": c["user"],
+                            "kind": c.get("kind", "franchise"),
                             "season": c["season_label"], "played": len(c["history"]), "phase": c["phase"],
                             "titles": sum(h["champion"] == c["user"] for h in c["history"]) if c["user"] else None,
                             "updated": p.stat().st_mtime})
@@ -1881,9 +1885,12 @@ def api_career_new():
         return jsonify(error="A simulation is running."), 409
     try:
         seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
-        c = Career(d.get("league") or "", d.get("season") or "", user=d.get("user") or None,
-                   mega_every=int(d.get("mega_every") or 3), seed=seed,
-                   name=" ".join(str(d.get("name") or "").split())[:80] or None)
+        name = " ".join(str(d.get("name") or "").split())[:80] or None
+        if d.get("league") == "sma":             # a state career (engine/state_career.py): Elite and Plate, no auction
+            c = StateCareer(d.get("season") or "", user=d.get("user") or None, seed=seed, name=name)
+        else:
+            c = Career(d.get("league") or "", d.get("season") or "", user=d.get("user") or None,
+                       mega_every=int(d.get("mega_every") or 3), seed=seed, name=name)
     except (ValueError, KeyError, StopIteration) as e:
         return jsonify(error=str(e) or "Could not start the career."), 400
     if (cap := _limit("careers")) and len(careers_list()) >= cap:
