@@ -240,7 +240,11 @@
         <div class="fg"><label>League</label><select id="a-league"></select></div>
         <div class="fg"><label>Season</label><select id="a-season"></select></div>
       </div>
-      <div class="hint full-only" style="margin:-4px 0 8px">Everyone who played that season goes into the auction, rated on their careers; the league is played in that season's conditions, at the franchises' home grounds.</div>
+      <div class="hint full-only" style="margin:-4px 0 8px">Everyone who played that season goes into the auction; the computer teams value each player on what was known before it, the league is played in that season's conditions, at the franchises' home grounds.</div>
+      <div class="fg"><label>What you see</label><select id="a-know">
+        <option value="realistic">What the teams know before the season (realistic)</option>
+        <option value="hindsight">Real ratings, with hindsight</option></select>
+        <div class="hint full-only" style="margin:4px 0 0">Realistic: a player's numbers are what his record before the season says, as the computer teams see them. Hindsight: his whole career, seasons to come included, so you can spot tomorrow's stars.</div></div>
     </div>
     <div id="a-years-box" style="display:none">
       <div class="fg"><label>Player pool years</label>
@@ -288,6 +292,7 @@
     <details class="how"><summary>How it works</summary><ul>
       <li>Run a franchise season after season, from a real season's squads.</li>
       <li>Players age, find form and retire; real debutants, then made-up youngsters, arrive.</li>
+      <li>The computer teams judge players on what they have seen, not on seasons yet to come.</li>
       <li>A mega auction every few seasons, mini auctions in between.</li>
       <li>Or pick the Mushtaq Ali Trophy and run a state: Elite and Plate, promotion and relegation, no auction.</li></ul></details>
     <h3 style="margin:10px 0 6px">Your careers</h3>
@@ -303,6 +308,10 @@
     <div class="fg" id="k-mega-box"><label>Mega auction</label><select id="k-mega">
       <option value="1">Every season</option><option value="2">Every 2 seasons</option>
       <option value="3" selected>Every 3 seasons (as the IPL)</option><option value="5">Every 5 seasons</option></select></div>
+    <div class="fg"><label>What you see</label><select id="k-know">
+      <option value="realistic">What the teams know before each season (realistic)</option>
+      <option value="hindsight">Real ratings, with hindsight</option></select>
+      <div class="hint full-only" style="margin:4px 0 0">Realistic: players' numbers in auctions, squads and matches are what the teams know: their record before the career, then what they did in it. Hindsight: how good each player really is.</div></div>
     <div class="fg"><label>Name (optional)</label><input type="text" id="k-name" maxlength="80" placeholder="e.g. Punjab Kings dynasty"></div>
     <div class="fg"><label>Replay code (optional)</label><input type="text" id="k-seed" placeholder="random"></div>
     </details>

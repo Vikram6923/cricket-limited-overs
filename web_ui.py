@@ -946,7 +946,8 @@ def api_auction_last():
 @app.post("/api/auction/start")
 def api_auction_start():
     """{pool: "season" | "years", league, season | fmt, y1, y2, source, home, years_mode, teams,
-    user, retain: "previous" | "last" | "saved:<id>" | "none", kind: "mega" | "mini", seed}
+    user, retain: "previous" | "last" | "saved:<id>" | "none", kind: "mega" | "mini", seed,
+    knowledge: "realistic" | "hindsight" (a season pool: the numbers shown with each player)}
     A mini auction keeps the retention source's squads at their prices (from an auction: what it paid; a real
     season's squads: expected prices, as the engine estimates them) and the teams release players instead."""
     v = V()
@@ -958,7 +959,7 @@ def api_auction_start():
         if d.get("pool") == "season":
             if not league_season(d.get("league"), d.get("season")):
                 return jsonify(error="Unknown league or season."), 400
-            pool = season_pool(d["league"], d["season"])
+            pool = season_pool(d["league"], d["season"], d.get("knowledge") or "realistic")
         else:
             fmt = d.get("fmt")
             if fmt not in ("t20", "odi"):
@@ -1886,11 +1887,12 @@ def api_career_new():
     try:
         seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
         name = " ".join(str(d.get("name") or "").split())[:80] or None
+        know = d.get("knowledge") or "realistic"  # what the person sees of the players (engine/career.py)
         if d.get("league") == "sma":             # a state career (engine/state_career.py): Elite and Plate, no auction
-            c = StateCareer(d.get("season") or "", user=d.get("user") or None, seed=seed, name=name)
+            c = StateCareer(d.get("season") or "", user=d.get("user") or None, seed=seed, name=name, knowledge=know)
         else:
             c = Career(d.get("league") or "", d.get("season") or "", user=d.get("user") or None,
-                       mega_every=int(d.get("mega_every") or 3), seed=seed, name=name)
+                       mega_every=int(d.get("mega_every") or 3), seed=seed, name=name, knowledge=know)
     except (ValueError, KeyError, StopIteration) as e:
         return jsonify(error=str(e) or "Could not start the career."), 400
     if (cap := _limit("careers")) and len(careers_list()) >= cap:

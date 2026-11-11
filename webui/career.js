@@ -55,13 +55,15 @@ function drawCareers() {
 }
 async function startCareer() {
   const d = await api('/api/career/new', {league: $('k-league').value, season: $('k-season').value, user: $('k-user').value,
-    mega_every: +$('k-mega').value, name: $('k-name').value.trim(), seed: $('k-seed').value.trim()});
+    mega_every: +$('k-mega').value, name: $('k-name').value.trim(), seed: $('k-seed').value.trim(),
+    knowledge: $('k-know').value});
   careerLoaded(d);
 }
 async function openCareer(id) {
   try { careerLoaded(await api('/api/career?id=' + encodeURIComponent(id))); }
   catch (e) { toast(e.message, true); }
 }
+const knowNote = c => c.knowledge === 'hindsight' ? ' · real ratings shown (hindsight)' : ' · ratings shown: what the teams know';
 function careerLoaded(d) {
   CAR = d.state; CAR_ID = d.id; META.careers = d.careers;
   if (!CAR_TEAM || !CAR.teams.includes(CAR_TEAM)) CAR_TEAM = CAR.user || CAR.teams[0];
@@ -77,7 +79,7 @@ function renderCareer() {
   if (c.kind === 'state') { renderStateCareer(); return; }
   $('kc-sub').textContent = `${c.league_label} from ${c.start} · ${c.history.length} season${c.history.length === 1 ? '' : 's'} played · `
     + `mega auction every ${c.mega_every === 1 ? 'season' : c.mega_every + ' seasons'} · ${c.pool_size} players in the league`
-    + (c.real ? '' : ' · past the real seasons: newcomers are made-up players');
+    + (c.real ? '' : ' · past the real seasons: newcomers are made-up players') + knowNote(c);
   const auction = c.phase === 'auction';
   $('kc-next').innerHTML = auction
     ? `<h3>${esc(c.season)}: ${c.auction_kind === 'mega' ? 'mega auction' : 'mini auction'}</h3>
@@ -124,7 +126,7 @@ function renderStateCareer() {
   const grp = t => Object.keys(c.groups).find(g => c.groups[g].includes(t));
   const was = id => $(id) && !$(id).checked ? '' : 'checked';
   $('kc-sub').textContent = `${c.league_label} from ${c.start} · ${n} season${n === 1 ? '' : 's'} played · `
-    + `${c.teams.length} states, ${c.plate.length} in the Plate · ${c.pool_size} players`;
+    + `${c.teams.length} states, ${c.plate.length} in the Plate · ${c.pool_size} players` + knowNote(c);
   $('kc-next').innerHTML = `<h3>Season ${esc(c.season)}</h3>
      ${me ? `<p class="muted small" style="margin:4px 0 8px">${esc(me)} ${tier(me) === 'Plate'
        ? 'plays in the Plate: win it to go up.' : `plays in ${esc(/elite/i.test(grp(me)) ? grp(me) : 'the Elite, group ' + grp(me))}. The lowest Elite side goes down.`}</p>` : ''}
@@ -179,7 +181,7 @@ function drawCareerSquad() {
     const age = rows.length ? (rows.reduce((a, r) => a + r.age, 0) / rows.length).toFixed(1) : '–';
     $('kc-squad-sub').textContent = `${rows.length} players, average age ${age}`;
     table($('kc-squad'), [
-      {k: 'name', label: 'Player', html: r => `${esc(r.name)}${r.made_up ? ' <span class="muted small">new</span>' : ''}`},
+      {k: 'name', label: 'Player', html: r => `${esc(r.name)}${r.made_up ? ' <span class="muted small">new</span>' : ''}${seenTag(r)}`},
       {k: 'age', label: 'Age', num: true},
       {k: 'bat_avg', label: 'Bat avg', num: true, f: r => fmtNum(r.bat_avg, 1)}, {k: 'bat_sr', label: 'SR', num: true, f: r => fmtNum(r.bat_sr, 1)},
       {k: 'econ', label: 'Econ', num: true, f: r => fmtNum(r.econ, 2)}, {k: 'bowl_avg', label: 'Bowl avg', num: true, f: r => fmtNum(r.bowl_avg, 1)},
@@ -189,7 +191,7 @@ function drawCareerSquad() {
   const os = rows.filter(r => r.overseas).length, spent = rows.reduce((a, r) => a + r.price, 0);
   $('kc-squad-sub').textContent = `${rows.length} players, ${os} overseas · contracts ${cr(spent)}`;
   table($('kc-squad'), [
-    {k: 'name', label: 'Player', html: r => `${esc(r.name)}${osTag(r)}${r.made_up ? ' <span class="muted small">new</span>' : ''}`},
+    {k: 'name', label: 'Player', html: r => `${esc(r.name)}${osTag(r)}${r.made_up ? ' <span class="muted small">new</span>' : ''}${seenTag(r)}`},
     {k: 'age', label: 'Age', num: true}, {k: 'nation', label: 'Nation', f: r => (r.nation || '').replace(/^league:.*/, '')},
     {k: 'bat_avg', label: 'Bat avg', num: true, f: r => fmtNum(r.bat_avg, 1)}, {k: 'bat_sr', label: 'SR', num: true, f: r => fmtNum(r.bat_sr, 1)},
     {k: 'econ', label: 'Econ', num: true, f: r => fmtNum(r.econ, 2)}, {k: 'bowl_avg', label: 'Bowl avg', num: true, f: r => fmtNum(r.bowl_avg, 1)},

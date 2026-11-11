@@ -13,7 +13,8 @@ many Plate sides join the Elite knockouts) and:
    played); other seasons get NEWCOMERS made-up players per state (each a copy of a real SMAT debutant's rating
    profile and debut age, named from that state's players) and MOVES uncapped players aged 24-33 change state;
 5. squads are kept between SQUAD_MIN and SQUAD_MAX: short squads get extra newcomers, long ones drop their
-   least valuable players older than PROSPECT (runs value per match, engine/selection.py).
+   least valuable players older than PROSPECT (runs value per match, engine/selection.py, of the player as the
+   state can judge him before the season: Career.seen_player, engine/belief.py).
 
 There is no auction: a state's squad carries over. Conditions and grounds are those of the newest real season
 not after the one being played. State is plain JSON (Career.to_json, with "kind": "state").
@@ -25,7 +26,7 @@ import re
 import zlib
 from functools import lru_cache
 
-from .career import FMT, OLDEST, Career, _year_rows, profile, season_leaders, tables
+from .career import FMT, OLDEST, Career, _year_rows, check_knowledge, profile, season_leaders, tables
 from .data import baseline, ratings
 from .domestic import competitions
 from .selection import value_parts
@@ -110,10 +111,11 @@ class StateCareer(Career):
     KEYS = Career.KEYS + ("kind", "format", "groups", "plate")
 
     def __init__(self, season: str, user: str | None = None, seed: int | None = None, name: str | None = None,
-                 _blank: bool = False):
+                 knowledge: str = "realistic", _blank: bool = False):
         self.kind = "state"
         if _blank:
             return
+        self.knowledge = check_knowledge(knowledge)
         pre = _presets().get(season)
         if not pre or not pre["format"].get("plate"):
             raise ValueError("A state career starts from a season with a Plate: " + ", ".join(start_seasons()) + ".")
@@ -153,7 +155,7 @@ class StateCareer(Career):
         return self._ref()["year"]
 
     def _spec(self, t: str) -> dict:
-        return {"name": t, "squad": [self.engine_player(pid) for pid in self.squads[t]]}
+        return {"name": t, "squad": [self.match_player(pid) for pid in self.squads[t]]}
 
     def elite(self) -> list[str]:
         return [t for g in self.groups.values() for t in g]
@@ -209,6 +211,7 @@ class StateCareer(Career):
              "table": e_order, **season_leaders(res)}
         self.history.append(h)
         self._add_stats(res)
+        self._observe(res)
         new_elite = [t for t in e_order if t != down] + [up]
         self.plate = [down] + [t for t in p_order if t != up]
         self.groups = _deal(new_elite, self.format["labels"], self.format["sizes"])
@@ -322,7 +325,8 @@ class StateCareer(Career):
                 k += 1
                 self.players[pid] = {"id": pid, "src": src, "name": name, "nation": "India",
                                      "born": self.year - (y - born), "ref": ref, "overseas": False, "cap_year": None,
-                                     "joined": self.year, "made_up": True, "form": {}, "retired": None, "teams": {}}
+                                     "joined": self.year, "made_up": True, "form": {}, "retired": None, "teams": {},
+                                     "obs": {}}
                 self.squads[st][pid] = 0
                 if st == self.user:
                     mine.append(name)
@@ -354,7 +358,7 @@ class StateCareer(Career):
             if extra <= 0:
                 continue
             cands = [pid for pid in self.squads[st] if self.age(pid) > PROSPECT]
-            val = {pid: sum(value_parts(self.engine_player(pid), FMT, base)) for pid in cands}
+            val = {pid: sum(value_parts(self.seen_player(pid), FMT, base)) for pid in cands}
             for pid in sorted(cands, key=lambda q: val[q])[:extra]:
                 self._leave(pid, "dropped")
                 if st == self.user:
@@ -379,7 +383,7 @@ class StateCareer(Career):
                 "format": self.format, "history": self.history, "titles": titles, "news": self.news,
                 "squads": {t: self.squad_rows(t) for t in self.franchises}, "leaders": self.leaders(),
                 "real": self.season_label in _presets(), "pool_size": len(self.active()),
-                "matches": self.match_total()}
+                "matches": self.match_total(), "knowledge": self.knowledge}
 
 
 def load(d: dict) -> Career:

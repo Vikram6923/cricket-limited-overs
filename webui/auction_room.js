@@ -196,7 +196,7 @@ function drawUpcoming(st) {
   $('au-next-title').innerHTML = `Up next in ${esc(set.name)}${st.user ? ' <span class="muted small">☆ adds a player to your wishlist</span>' : ''}`;
   $('au-upcoming').innerHTML = st.upcoming.map(id => { const p = APOOL.get(id); if (!p) return '';
     const w = (st.wish || {})[id];
-    return `<span class="ar-up ${w ? 'w' : ''}">${st.user ? starBtn(p) : ''}<span class="nm" title="${esc(p.role)} · ${esc(p.team)}">${esc(p.name)}${osTag(p)}</span>
+    return `<span class="ar-up ${w ? 'w' : ''}">${st.user ? starBtn(p) : ''}<span class="nm" title="${esc(p.role)} · ${esc(p.team)}">${esc(p.name)}${osTag(p)}${seenTag(p)}</span>
       <span class="muted">${esc(p.role)} · ${cr(p.est)}</span></span>`; }).join('')
     || '<span class="muted small">Last player of the set.</span>';
 }
@@ -297,7 +297,7 @@ function stageHTML(q, st, lot) {
     <div class="ar-pcard">
       <div class="ar-avatar ${esc(p.role.replace(/\W/g, ''))}">${esc(initials)}</div>
       <div style="min-width:0;flex:1"><div class="ar-pname">${esc(p.name)}</div>
-        <div class="ar-badges"><span class="ar-badge role">${esc(p.role)}</span>${p.overseas ? '<span class="ar-badge os">overseas</span>' : ''}
+        <div class="ar-badges"><span class="ar-badge role">${esc(p.role)}</span>${p.overseas ? '<span class="ar-badge os">overseas</span>' : ''}${seenInfo(p) ? `<span class="ar-badge seen" title="${esc(seenInfo(p).title)}">${seenInfo(p).label}</span>` : ''}
           <span class="ar-badge">${esc(p.team)} · ${p.capped ? 'capped' : 'uncapped'}</span>${prev}</div></div>
     </div>
     <div class="ar-tiles">${tiles.map(([k, v, s, c]) => `<div class="ar-tile"><div class="k">${k}</div><div class="v ${c || ''}">${esc(String(v))}</div>${s ? `<div class="s">${esc(s)}</div>` : ''}</div>`).join('')}</div>

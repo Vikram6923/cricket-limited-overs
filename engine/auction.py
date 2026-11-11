@@ -23,7 +23,9 @@ An overseas player bought for more than FEE_CAP is paid FEE_CAP (the rest goes t
 comes off the buyer's purse; Lot.fee is what he is paid, and his contract at the next mini auction.
 
 Pools: "season" = everyone who played one real league season, with that season's franchises, retention from the
-season before, career ratings and the league's conditions (as in League Season); "years" = a period's players as
+season before and the league's conditions (as in League Season); the teams value each player on his record before
+that season (engine/belief.py: no team knows the seasons he has yet to play), the matches afterwards use his career
+rating; "years" = a period's players as
 in the fantasy draft (rated on those years), overseas = not from the home nation, retention from the last auction.
 
 Computer teams (game AI on the engine's own numbers, not real franchises' habits): a player is worth what he adds
@@ -74,6 +76,13 @@ SET_LABEL = {"Batter": "batters", "All-rounder": "all-rounders", "WK": "keepers"
              "Spin": "spinners"}
 
 
+def seen_balls(p) -> dict | None:
+    """side -> balls of record the teams have seen of a player (engine/belief.py), None if not judged that way."""
+    out = {s: (p.ref.get(s) or {}).get("seen_balls") for s in ("bat", "bowl")
+           if getattr(p, f"rated_{s}", False) and p.ref.get(s)}
+    return out if out and all(v is not None for v in out.values()) else None
+
+
 def step(price: int) -> int:
     """The next bid above `price` (lakh)."""
     return price + (5 if price < 100 else 10 if price < 200 else 20 if price < 500 else 25)
@@ -116,7 +125,8 @@ class Lot:
                 "overseas": self.overseas, "capped": self.capped, "base": self.base, "est": self.est, "set": self.set,
                 "prev": self.prev, "contract": self.contract, "fee": self.fee, "status": self.status, "buyer": self.buyer, "price": self.price,
                 "bat_avg": b.get("avg"), "bat_sr": b.get("sr"),
-                "econ": w.get("econ") if self.bowler else None, "bowl_avg": w.get("avg") if self.bowler else None}
+                "econ": w.get("econ") if self.bowler else None, "bowl_avg": w.get("avg") if self.bowler else None,
+                "seen": seen_balls(self.p) if self.p is not None else None}
 
 
 @lru_cache(maxsize=None)
@@ -185,8 +195,12 @@ def league_data() -> dict:
     return json.loads((DATA / "league_seasons.json").read_text(encoding="utf-8"))
 
 
-def season_pool(league: str, season: str) -> dict:
-    """Everyone who played a league season: lots, the franchises (with home grounds), the previous season's squads."""
+def season_pool(league: str, season: str, knowledge: str = "realistic") -> dict:
+    """Everyone who played a league season: lots, the franchises (with home grounds), the previous season's squads.
+    knowledge: what the person is shown with each player, "realistic" (what the teams know before the season, as
+    they value him) or "hindsight" (his career numbers)."""
+    if knowledge not in ("realistic", "hindsight"):
+        raise ValueError("knowledge must be realistic or hindsight")
     lg = league_data()[league]
     seasons = lg["seasons"]                                      # newest first
     i = next(k for k, s in enumerate(seasons) if s["season"] == season)
@@ -194,18 +208,23 @@ def season_pool(league: str, season: str) -> dict:
     base = baseline("t20", league, s["year"])
     os_ = {pid for t in s["teams"] for pid in t["overseas"]}
     team_of = {pid: t["franchise"] for t in s["teams"] for pid in t["players"]}
+    from .belief import seen_player
     caps = first_cap()
     lots = []
     for pid in team_of:
-        p = player("t20", pid)
-        lots.append(_lot(pid, p, "t20", base, p.team or "", pid in os_, caps.get(pid, 9999) < s["year"]))
+        p = seen_player(pid, s["year"], league)      # valued on what could be known before the season
+        x = _lot(pid, p, "t20", base, p.team or "", pid in os_, caps.get(pid, 9999) < s["year"])
+        if knowledge == "hindsight":
+            x.ref = dict(player("t20", pid).ref)     # shown with his real (career) numbers
+        lots.append(x)
     prev = {}
     if i + 1 < len(seasons):
         prev = {t["franchise"]: list(t["players"]) for t in seasons[i + 1]["teams"]}
     return {"fmt": "t20", "comp": league, "year": s["year"], "label": f"{lg['label']} {s['season']}",
             "lots": lots, "teams": [t["franchise"] for t in s["teams"]],
             "homes": {t["franchise"]: t.get("home_venue") for t in s["teams"]},
-            "max_overseas": s["max_overseas"], "prev": prev, "prev_label": seasons[i + 1]["season"] if prev else None}
+            "max_overseas": s["max_overseas"], "prev": prev, "prev_label": seasons[i + 1]["season"] if prev else None,
+            "knowledge": knowledge}
 
 
 def years_pool(fmt: str, y1: int, y2: int, teams: list[str], source: str = "full", home: str | None = None,

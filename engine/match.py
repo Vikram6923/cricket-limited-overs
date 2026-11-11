@@ -922,7 +922,8 @@ class Match:
                 "bowler": {"id": bowler.id, "name": bowler.name, "kind": (bowler.bowl_kind or "").replace("_", " "),
                            "figures": f"{f.balls // 6}.{f.balls % 6}-{f.maidens}-{f.runs}-{f.wkts}",
                            "bars": None if batting else mine.get(bowler.id, NORMAL_BARS),
-                           "econ": round(6 * (self.base_of(bowler)[ph]["runs"] * bowler.bowl[ph]["runs"]), 2)},
+                           "econ": round(6 * (self.base_of(bowler)[ph]["runs"] * bowler.bowl[ph]["runs"]
+                                              * (bowler.shown.get("bowl") or {}).get("runs", 1.0)), 2)},
                 "default": None}, inn))
         for (team, _, _, _), ans in zip(items, self.ask_all(items)):
             mine = self.bars[team.name]
@@ -993,7 +994,8 @@ class Match:
         return [i for i in (getattr(self, "_i1", None), getattr(self, "_i2", None)) if i is not None]
 
     def pinfo(self, p: Player, ph: str | None = None) -> dict:
-        """What a captain sees about a player: role, career numbers, and expected rates in this phase today."""
+        """What a captain sees about a player: role, career numbers, and expected rates in this phase today
+        (p.shown: factors from what he is to what the teams believe, in a career with knowledge "realistic")."""
         r = p.ref or {}
         b, w = r.get("bat") or {}, r.get("bowl") or {}
         if p.keeper:
@@ -1011,8 +1013,9 @@ class Match:
         if ph:
             bb, bw = self.base[ph], self.base_of(p)[ph]
             d["phase"] = ph
-            d["phase_sr"] = round(100 * bb["runs"] * p.bat[ph]["runs"], 1)
-            d["phase_econ"] = round(6 * (bw["runs"] * p.bowl[ph]["runs"] + bw["wide"] * p.wide
+            sb, sw = (p.shown.get("bat") or {}).get("runs", 1.0), (p.shown.get("bowl") or {}).get("runs", 1.0)
+            d["phase_sr"] = round(100 * bb["runs"] * p.bat[ph]["runs"] * sb, 1)
+            d["phase_econ"] = round(6 * (bw["runs"] * p.bowl[ph]["runs"] * sw + bw["wide"] * p.wide
                                          + bw["noball"] * p.noball), 2)
         return d
 

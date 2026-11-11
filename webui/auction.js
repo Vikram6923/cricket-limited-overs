@@ -83,7 +83,8 @@ async function startAuction() {
     ? {pool: 'years', fmt: $('c-fmt').value, y1: +$('a-ya').value, y2: +$('a-yb').value, source: $('a-src').value,
        home: $('a-home').value, years_mode: $('a-ymode').value, teams: aTeams()}
     : {pool: 'season', league: $('a-league').value, season: $('a-season').value};
-  Object.assign(body, {user: $('a-user').value, retain: $('a-retain').value, kind: $('a-kind').value, seed: $('a-seed').value.trim()});
+  Object.assign(body, {user: $('a-user').value, retain: $('a-retain').value, kind: $('a-kind').value, seed: $('a-seed').value.trim(),
+    knowledge: $('a-know').value});
   openAuctionRoom(await api('/api/auction/start', body));
 }
 function openAuctionRoom(d) {          // d.state null: the two-player room renders when its state arrives
@@ -175,7 +176,7 @@ function drawWish() {
   const open = ws.filter(r => forSale(r.p)), gone = ws.filter(r => !forSale(r.p));
   const sum = open.reduce((a, r) => a + (r.w.max || 0), 0);
   const live = !['retain', 'release'].includes(st.phase);
-  const row = r => `<tr><td><b>${esc(r.p.name)}</b>${osTag(r.p)}<div class="muted small">${esc(r.p.role)} · ${esc(r.p.set || '')}${r.p.status === 'unsold' ? ' · unsold' : ''}</div></td>
+  const row = r => `<tr><td><b>${esc(r.p.name)}</b>${osTag(r.p)}${seenTag(r.p)}<div class="muted small">${esc(r.p.role)} · ${esc(r.p.set || '')}${r.p.status === 'unsold' ? ' · unsold' : ''}</div></td>
     <td class="num">${cr(r.p.est)}</td><td class="num">${toYou(r.p)}</td><td>${wishCell(r.p)}</td>
     <td><button class="ar-x" data-star="${esc(r.p.id)}" title="Remove from your wishlist">×</button></td></tr>`;
   const done = r => `<div class="small">${esc(r.p.name)}: ${r.p.buyer === st.user ? `<span class="w">yours for ${cr(r.p.price)}</span>`
@@ -225,7 +226,7 @@ function setHTML(q, st) {
   return `<h3>Coming up: ${esc(q.name)}</h3>
     <p class="muted small" style="margin:4px 0 8px">You are bidding by your wishlist. Change top bids for this set, then go on.</p>
     <table class="mini"><tr><th>Player</th><th>Role</th><th>Base</th><th>Expected</th><th>To you</th><th>Top bid</th></tr>
-    ${q.players.map(c => { const p = APOOL.get(c.id) || c; return `<tr><td>${esc(p.name)}${osTag(p)}${p.prev === st.user ? ' <span class="w small">your RTM</span>' : ''}</td>
+    ${q.players.map(c => { const p = APOOL.get(c.id) || c; return `<tr><td>${esc(p.name)}${osTag(p)}${seenTag(p)}${p.prev === st.user ? ' <span class="w small">your RTM</span>' : ''}</td>
       <td>${esc(p.role)}</td><td>${cr(p.base)}</td><td>${cr(p.est)}</td><td>${toYou(p)}</td><td>${wishCell(p)}</td></tr>`; }).join('')}</table>
     <div class="au-act"><button class="btn go" data-a="go">Start the set</button><button class="btn sec" data-a="self">Bid myself from here</button>
       <label class="small"><input type="checkbox" id="au-pause-q" ${st.pause_sets ? 'checked' : ''}> stop before each set</label></div>`;
@@ -309,7 +310,7 @@ function drawAuctionPool() {
   const top = r => ((AU.wish || {})[r.id] || {}).max;
   table($('ap-table'), [
     ...(mine ? [{k: 'star', label: '☆', nosort: true, html: starBtn}] : []),
-    {k: 'name', label: 'Player', html: r => `${esc(r.name)}${osTag(r)}<div class="muted small">${esc(r.role)} · ${esc(r.team)}</div>`},
+    {k: 'name', label: 'Player', html: r => `${esc(r.name)}${osTag(r)}${seenTag(r)}<div class="muted small">${esc(r.role)} · ${esc(r.team)}</div>`},
     {k: 'value', label: 'Worth', num: true, f: r => fmtNum(r.value, 1)},
     {k: 'est', label: 'Expected', num: true, f: r => cr(r.est)},
     ...(mine ? [{k: 'toyou', label: 'To you', num: true, sv: r => TOYOU[r.id], f: toYou},

@@ -528,6 +528,8 @@ details>summary{cursor:pointer}
 .opt span{display:block;font-size:.75rem;color:var(--muted)}
 .cpu-tag{position:absolute;top:8px;right:8px;font-size:.6rem;font-weight:800;letter-spacing:.06em;color:var(--amber);border:1px solid rgba(246,196,83,.5);border-radius:99px;padding:0 6px}
 .os-tag{font-size:.6rem;color:var(--blue);border:1px solid rgba(76,141,255,.5);border-radius:99px;padding:0 5px;margin-left:4px}
+.seen-tag{font-size:.6rem;color:var(--amber);border:1px solid var(--amber);border-radius:99px;padding:0 5px;margin-left:4px;white-space:nowrap}
+.ar-badge.seen{color:var(--amber);border-color:var(--amber)}
 .cap-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
 .bb-act .btn.go{flex:1 1 100%}
 .impact-box{margin-top:14px;border-top:1px dashed var(--border2);padding-top:12px}

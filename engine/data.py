@@ -88,6 +88,7 @@ class Player:
     bowl_conf: float = 0.0
     sel_opm: float | None = None                           # overs per match in the period (for XI selection)
     ref: dict = field(default_factory=dict)    # readable reference numbers from the ratings
+    shown: dict = field(default_factory=dict)  # side -> metric -> factor on the rates a captain is shown (belief)
 
     def __hash__(self):
         return hash(self.id)
@@ -220,8 +221,14 @@ def _apply_period(p: Player, fmt: str, y1: int, y2: int, mode: str = "blend") ->
     """Scale the phase indexes by period / career index; the readable 'ref' numbers follow approximately."""
     from .periods import period_ratios
     ratios = period_ratios(fmt, y1, y2, mode)
+    scale_indexes(p, {side: ratios[side].get(p.id) for side in ("bat", "bowl")}, {"period": [y1, y2, mode]})
+
+
+def scale_indexes(p: Player, ratios: dict, tag: dict | None = None) -> None:
+    """Multiply a player's phase indexes by side -> {metric: ratio} (a missing side or metric: unchanged); the
+    readable 'ref' numbers follow approximately, and `tag` is added to each scaled side's ref."""
     for side, rated in (("bat", p.rated_bat), ("bowl", p.rated_bowl)):
-        r = ratios[side].get(p.id)
+        r = ratios.get(side)
         if not rated or not r:
             continue
         idx = getattr(p, side)
@@ -236,7 +243,7 @@ def _apply_period(p: Player, fmt: str, y1: int, y2: int, mode: str = "blend") ->
             for k, f in (("avg", ru / wk), ("econ", ru), ("sr", 1 / wk)):
                 if ref.get(k) is not None:
                     ref[k] = round(ref[k] * f, 2)
-        ref["period"] = [y1, y2, mode]
+        ref.update(tag or {})
         p.ref[side] = ref
 
 

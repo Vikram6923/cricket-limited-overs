@@ -170,14 +170,27 @@ on a phone too. Modes:
   matches or not). Bid live for your team (bid, pass, or bid up to a limit), or let the computer bid for you to
   the end of the set or the auction; every call shows what the computer would bid and why. Computer teams value a
   player by what he adds to their best XI in runs per match (the engine's own ratings), at the market rate for the
-  money left. Then the squads play a league, and you can captain your team.
+  money left. With a real season's players they know only what could be known before it: each player's record up
+  to the year before, so a debutant with no record (Suryavanshi in 2025) is valued as an unknown newcomer with a
+  small scouting hint, not on the seasons he has yet to play; the matches still use his full rating. **What you
+  see** (season pools): realistic (default), each player's numbers as the teams know them, or hindsight, his real
+  career numbers; either way an amber *unknown* / *little seen* tag marks a player the teams have barely seen play.
+  Then the squads play a league, and you can captain your team.
 - **Career:** a franchise league season after season, from a real season's squads (any of the 11 leagues). You
-  run one franchise (or watch). Between seasons players age (age curves fitted from real careers), draw a new
-  season's form, retire (the real chance at each age) or leave after going unsold twice; newcomers arrive: the
+  run one franchise (or watch). Between seasons players age (age curves fitted from real careers), retire (the
+  real chance at each age) or leave after going unsold twice, and draw a new season's form once the auction is
+  over (no team bids knowing it); newcomers arrive: the
   players who really debuted in the league that year, then, once the real seasons run out, made-up youngsters
   copied from real debutants' rating profiles. A **mega auction** (retentions, Right to Match) every 1-5 seasons
   (3 by default, as the IPL) and **mini auctions** in between (keep players at their contract prices or release
-  them). Play each season, captaining your side if you like; the career page keeps the honours (champions, your
+  them). Computer teams bid, retain and release on what they can know before the season, while matches use how
+  good each player really is: a player's real record before he joined the career, then what the career's own
+  seasons showed of him (his matches in the league, and his cricket elsewhere drawn from his level), so a
+  youngster who shines in your career gets noticed and a star who flops in it loses his value. **What you see**
+  is set when the career starts: realistic (default) shows you the same in auctions, squads and the captain's
+  player cards in matches; hindsight shows how good each player really is (careers saved before this setting
+  keep hindsight). Play each
+  season, captaining your side if you like; the career page keeps the honours (champions, your
   finish, most runs and wickets, MVP, each season's full results), the trophy count, career records across all
   seasons and every squad with ages and current ratings. Careers are kept in `results/careers/` and can be
   reopened at any time.
@@ -493,6 +506,7 @@ engine/            match engine (library)
   draft.py         fantasy draft
   auction.py       IPL-style auction with retentions and Right to Match (and mini auctions)
   career.py        career mode: a league over many seasons (ageing, retirements, newcomers, auctions)
+  belief.py        what teams believe a player is worth before a season (his record up to then), apart from his rating
   state_career.py  state career: a Mushtaq Ali Trophy state over many seasons (Elite, Plate, no auction)
   render.py        text scorecard and match report
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
@@ -529,6 +543,8 @@ tests/             engine and tournament tests
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
 - [x] State career: a Mushtaq Ali Trophy state season after season, Elite and Plate with promotion and relegation
+- [x] Teams' belief apart from true rating: auctions and squad decisions use only what was known before the season;
+      in a career the teams learn from its own seasons; you see what they know (realistic) or the real ratings
 - [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
       live screen, phone layout
 - [x] UI simplification phase 1: Simple / Full stats switch, More options folds, plain words

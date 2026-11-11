@@ -14,6 +14,17 @@ const n1 = v => v === null || v === undefined ? '–' : v;
 const statLine = p => [p.role + (p.kind && p.role !== 'Batter' && p.role !== 'WK' ? ` (${p.kind})` : ''),
   p.bat_avg ? `bat avg ${p.bat_avg}, SR ${p.bat_sr}` : '', p.bowl_econ && p.overs_per_match >= 0.5 ? `bowl econ ${p.bowl_econ}, ${p.overs_per_match} ov/match` : ''].filter(Boolean).join(' · ');
 const osTag = p => p.overseas ? '<span class="os-tag">OS</span>' : '';
+/* how much the computer teams have seen of a player (engine/belief.py): p.seen = {bat: balls, bowl: balls} */
+const SEEN_LITTLE = 300;
+function seenInfo(p) {
+  const s = p && p.seen;
+  if (!s) return null;
+  const n = Math.max(...Object.values(s));
+  if (n === 0) return {label: 'unknown', title: 'The teams have no T20 record of him: they judge him as a newcomer'};
+  if (n < SEEN_LITTLE) return {label: 'little seen', title: `The teams have seen only ${Math.round(n)} balls of him`};
+  return null;
+}
+const seenTag = p => { const i = seenInfo(p); return i ? `<span class="seen-tag" title="${esc(i.title)}">${i.label}</span>` : ''; };
 const sur = n => String(n || '').trim().split(/\s+/).pop();
 const isSpin = k => /break|orthodox|googly|chinaman|spin|slow/i.test(k || '');
 const KIND_ICON = {

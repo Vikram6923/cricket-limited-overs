@@ -861,3 +861,75 @@ Other effects:
 - Re-running the Wikidata lookups also refreshed 122 dates of birth and 2 bowling styles of existing players,
   which moved the ODI selection weights slightly (real-XI overlap 8.59 -> 8.58).
 - The fantasy draft's "leagues" pool now includes SMAT players with 10+ matches in the period.
+
+## Teams' belief apart from true rating (2026-11-11)
+
+Problem (user): one rating did two jobs, how good a player is (matches) and what teams think he is worth (bids),
+and both came from his whole career, seasons not yet played included. In a 2025 auction the computer teams
+"knew" Vaibhav Suryavanshi's 2025 and 2026: he has no T20 cricket in the data before 2025, and Rajasthan really
+bought him for Rs 1.1 crore. Career mode had two more leaks: season form was drawn before the auction (teams bid
+knowing who would have a good season), and made-up newcomers were valued at their full rating on arrival.
+
+Fix (`engine/belief.py`): matches keep the career rating (the best estimate of how good he is); teams' decisions
+use a belief as of the season: his record before that calendar year (per-year actual / expected, age-adjusted to
+the age his career rating stands for), shrunk by empirical Bayes (the career fit's tau^2) toward a debutant prior
+(the average career rating of the league's real newcomers who arrived with no T20 record, per role), plus a
+scouting hint (SCOUT = 0.025 of the remaining gap to his real rating). Used by League Season auction pools, career
+auctions (bids, retentions, releases, opening contracts) and state career squad trims. The numbers shown with a
+player are unchanged (his real ones). Career form is now drawn after the auction. Made-up players copy their
+source player's record, shifted to their own debut year.
+
+SCOUT has no real prices to fit on: it is set so Suryavanshi's expected price in the 2025 pool is about his real
+one (no hint: 30 lakh; 0.025: Rs 1.19 crore; 0.1: Rs 5 crore; 0.25: Rs 12.6 crore). The market is steep near
+replacement level, so only an outstanding unknown feels it.
+
+Effect (IPL season pools, computer-only, seeds 1-3; old -> new):
+- 2025: Suryavanshi sold for Rs 21-29 crore -> Rs 1.5-3 crore. The 10 players with no earlier record cost
+  Rs 45-59 crore in all -> Rs 4-6 crore.
+- 2026 (a mini auction): unchanged; Suryavanshi is kept at his contract and his 2025 season is known by then.
+- Career from IPL 2024: in the 2025 mini auction he is valued at the 30 lakh base price (his rating at 14 is
+  age-discounted, so the hint adds less) and goes unsold.
+
+### Teams learn from the career's own seasons (2026-11-11)
+
+Until now belief inside a career still read the real record, so a player who flopped in the career was judged on
+his real seasons, and a made-up star stayed an unknown. Now a player's real record counts only before he joined
+the career (its first season for the opening squads); after that `Career._observe` adds what each season showed:
+- his league matches, from the scorecards (`belief.league_obs`). Expected counts = balls x the league baseline
+  over his usual phases x the opposition's indexes in that innings. Measured on simulated seasons (IPL 2018 and
+  2024, BBL 2023-24): with no opposition term the bias against true levels was up to 40% (bowlers' sixes +23-40%,
+  bowlers' runs +15-17%: league batters are better than average); with it, 0-9% (batters' sixes +6-9%, situations
+  the baseline doesn't model). Each season's expected counts are then scaled per side and metric so they add up
+  to the league's true levels, as the rating fit estimates its baseline from the same balls. Bowlers' runs are
+  off the bat (wides and no-balls taken out);
+- his cricket outside the league (`belief.outside_obs`), which the career doesn't play: a made-up record drawn
+  from his level that season (age and form) with the sampling noise of that many balls; as many balls a season
+  as his real T20 cricket outside this league averaged a year, at least MIN_OUTSIDE = 120 (about a domestic
+  season). Every active player gets it, the unsold too, so a good unsold youngster gets noticed.
+Observations are age-adjusted and summed as they are stored (one 12-number row per side per player: an MLC
+career after 7 seasons saves 265 KB). Saves from before keep the real record up to their first observed season.
+
+Checks (`tests/test_career.py`, and careers run for 5 seasons):
+- belief stays centred: median belief / true level (batting runs, all active players) 1.00-1.01 every season;
+  correlation of belief with true level 0.963 at the first auction -> 0.97-0.98 after;
+- the players the teams knew nothing about at the first auction: median |log belief / truth| (batting runs)
+  0.081 -> 0.033 after 3 seasons (IPL from 2024), 0.085 -> 0.033 (BBL from 2023-24). Slow, because an unsold
+  unknown is seen for only 120 balls a season;
+- Suryavanshi (IPL career from 2024): unsold at 30 lakh in 2025, then his 120 balls of outside cricket that year
+  show him (expected Rs 24.6 crore in 2026), as the real 2025 record did before.
+
+### What the person sees (2026-11-11)
+
+Until now the person always saw each player's real numbers (hindsight) while the computer teams bid on their
+belief, so a 30 lakh "expected" sat next to Suryavanshi's real strike rate of 193. A setting, `knowledge`, now
+says what the person is shown: "realistic" (default for new careers and League Season auctions) or "hindsight".
+- Realistic: auction lots, career squad pages and the captain's player cards in matches (career numbers and the
+  expected strike rate / economy today, `Player.shown`) show what the teams believe before the season. The
+  matches themselves use the real ratings either way (a test plays the same season in both modes: identical
+  fixtures and scores).
+- Hindsight: the real numbers (in a career: as good as he is this season, form included, as before).
+- Both: an amber tag marks a player the teams have barely seen (*unknown*: no record; *little seen*: under 300
+  balls on his main side), on the block, in the player lists, the wishlist and career squads; a first-visit tip
+  explains it.
+- Careers saved before the setting load as hindsight (what they showed). The two-player auction uses the default.
+

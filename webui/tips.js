@@ -36,13 +36,15 @@ const TOURS = {
     {sel: '#au-q', text: 'The player under the hammer. Bid or Pass, or set a limit and Auto-bid.'},
     {sel: '#au-strip', text: 'Every team’s purse and squad size. You need a full squad, so keep money back.'},
     {sel: '#au-mode', text: 'Short on time? Let the computer bid for you, for this set or to the end.'},
-    {sel: '#au-tabs', text: 'Your squad, your wishlist, every player and past sales are in these tabs.'}],
+    {sel: '#au-tabs', text: 'Your squad, your wishlist, every player and past sales are in these tabs.'},
+    {sel: '#au-q .ar-badge.seen', text: 'Unknown or little seen: the computer teams have barely seen him play, so they value him low. A bargain or a gamble.'}],
   results: [
     {sel: '#r-tabs', text: 'Every match’s scorecard, the batting and bowling tables and the best players.'},
     {sel: '#r-save', text: 'The next run replaces this one. Save it to keep it.'}],
   career: [
     {sel: '#kc-next', text: 'What comes next for your franchise, an auction or a season. Carry on from here.'},
-    {sel: '#kc-news', text: 'Who retired, who arrived and who changed teams since last season.'}],
+    {sel: '#kc-news', text: 'Who retired, who arrived and who changed teams since last season.'},
+    {sel: '#kc-squad .seen-tag', text: 'Amber tags mark players the teams have barely seen play: their numbers are mostly a guess.'}],
   builder: [
     {sel: '#bp-table', text: 'Tap players to add them to your team. You need 11 to 15.'},
     {sel: '#b-save', text: 'Name it and save. It then shows up wherever you pick a team.'}]};
