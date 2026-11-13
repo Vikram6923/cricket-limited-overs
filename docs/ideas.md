@@ -32,7 +32,9 @@ downloads for the last 2, 7 or 30 days.
 3. **Domestic cricket as a talent pool.** Syed Mushtaq Ali (Indian uncapped players), the English and Australian
    one-day cups. Career mode could then bring in real uncapped prospects instead of made-up ones, the IPL auction
    could have its real uncapped sets, and the inactive List A prior in the ratings would finally have data.
-   Effort: medium.
+   Effort: medium. *Partly done 2026-11-13:* a state career can play the IPL alongside, and the best uncapped
+   Trophy performers reach its auction (`engine/ipl_link.py`). Still open: the same for a franchise career, and
+   the one-day cups.
 4. **Ratings that keep themselves up to date.** A one-click "update to this week" that downloads Cricsheet's
    recent matches and rebuilds incrementally, plus a "current form" rating (weighted towards recent matches) next
    to the career rating. Effort: medium.

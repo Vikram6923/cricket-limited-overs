@@ -1,5 +1,6 @@
 /* Career mode: one league season after season (engine/career.py), or a Mushtaq Ali Trophy state with Elite and
-   Plate and no auction (engine/state_career.py, "kind": "state"). The server keeps each career in
+   Plate and no auction (engine/state_career.py, "kind": "state"), optionally with the IPL played alongside by the
+   computer (engine/ipl_link.py, state.ipl). The server keeps each career in
    results/careers/<id>/; this page starts or opens one, plays its seasons and sends it to the auction room. */
 'use strict';
 
@@ -23,6 +24,7 @@ function initCareerForm() {
     const l = kLeague(), st = l && l.state;
     fillSelect($('k-season'), l ? l.seasons.map(s => ({v: s.id || s.season, t: s.season})) : []);
     $('k-mega-box').style.display = st ? 'none' : '';
+    $('k-ipl-box').style.display = st ? '' : 'none';
     $('k-user-l').textContent = st ? 'Your state' : 'Your franchise';
     $('k-user-hint').textContent = st ? 'You can captain it each season; its squad carries over, with no auction.'
       : 'You make its auction calls and can captain it each season.';
@@ -41,7 +43,7 @@ function drawCareers() {
   const list = META.careers || [];
   $('k-list').innerHTML = list.length ? list.map(c => `<div class="sv-item" data-id="${esc(c.id)}">
       <b>${esc(c.name)}</b>
-      <span class="muted small">${esc(c.league)} · next: ${esc(c.season)} ${c.phase === 'auction' ? 'auction' : 'season'} · ${c.played} season${c.played === 1 ? '' : 's'} played${c.user ? ` · ${esc(c.user)}: ${c.titles} title${c.titles === 1 ? '' : 's'}` : ''}</span>
+      <span class="muted small">${esc(c.league)}${c.ipl ? ' + IPL' : ''} · next: ${esc(c.season)} ${c.phase === 'auction' ? 'auction' : 'season'} · ${c.played} season${c.played === 1 ? '' : 's'} played${c.user ? ` · ${esc(c.user)}: ${c.titles} title${c.titles === 1 ? '' : 's'}` : ''}</span>
       <div class="sv-btns"><button class="btn sec" data-a="open">Open</button><button class="btn sec" data-a="delete">Delete</button></div></div>`).join('')
     : '<div class="muted small">No careers yet.</div>';
   $('k-list').querySelectorAll('.sv-item').forEach(el => {
@@ -55,7 +57,7 @@ function drawCareers() {
 }
 async function startCareer() {
   const d = await api('/api/career/new', {league: $('k-league').value, season: $('k-season').value, user: $('k-user').value,
-    mega_every: +$('k-mega').value, name: $('k-name').value.trim(), seed: $('k-seed').value.trim(),
+    mega_every: +$('k-mega').value, ipl: $('k-ipl').checked, name: $('k-name').value.trim(), seed: $('k-seed').value.trim(),
     knowledge: $('k-know').value});
   careerLoaded(d);
 }
@@ -76,6 +78,7 @@ function renderCareer() {
   showView('v-career'); $('go-btn').disabled = false;
   $('kc-title').textContent = c.name;
   $('kc-div').style.display = c.kind === 'state' ? '' : 'none';
+  $('kc-ipl').style.display = c.ipl ? '' : 'none';
   if (c.kind === 'state') { renderStateCareer(); return; }
   $('kc-sub').textContent = `${c.league_label} from ${c.start} · ${c.history.length} season${c.history.length === 1 ? '' : 's'} played · `
     + `mega auction every ${c.mega_every === 1 ? 'season' : c.mega_every + ' seasons'} · ${c.pool_size} players in the league`
@@ -126,7 +129,8 @@ function renderStateCareer() {
   const grp = t => Object.keys(c.groups).find(g => c.groups[g].includes(t));
   const was = id => $(id) && !$(id).checked ? '' : 'checked';
   $('kc-sub').textContent = `${c.league_label} from ${c.start} · ${n} season${n === 1 ? '' : 's'} played · `
-    + `${c.teams.length} states, ${c.plate.length} in the Plate · ${c.pool_size} players` + knowNote(c);
+    + `${c.teams.length} states, ${c.plate.length} in the Plate · ${c.pool_size} players` + knowNote(c)
+    + (c.ipl ? ' · the IPL plays alongside' : '');
   $('kc-next').innerHTML = `<h3>Season ${esc(c.season)}</h3>
      ${me ? `<p class="muted small" style="margin:4px 0 8px">${esc(me)} ${tier(me) === 'Plate'
        ? 'plays in the Plate: win it to go up.' : `plays in ${esc(/elite/i.test(grp(me)) ? grp(me) : 'the Elite, group ' + grp(me))}. The lowest Elite side goes down.`}</p>` : ''}
@@ -136,8 +140,8 @@ function renderStateCareer() {
        <label><input type="checkbox" id="kc-rain" checked> Rain (DLS)</label></div>
      ${me ? `<div class="fg" style="margin:4px 0 8px"><label>Opponent captains</label><select id="kc-opp">
        <option value="expert">Expert</option><option value="average">Average</option><option value="easy">Easy</option></select></div>` : ''}
-     <div class="au-act"><button class="btn go" id="kc-play">▶ Play season ${esc(c.season)}</button>
-       <span class="muted small">${c.matches} matches</span></div>`;
+     <div class="au-act"><button class="btn go" id="kc-play">▶ Play season ${esc(c.season)}${c.ipl ? ` and IPL ${esc(c.ipl.next)}` : ''}</button>
+       <span class="muted small">${c.matches} matches${c.ipl ? ` + ${c.ipl.matches} IPL matches the computer plays` : ''}</span></div>`;
   $('kc-play').onclick = playCareerSeason;
   $('kc-div-h').textContent = `Groups ${c.season}`;
   /* one line per group, your state in bold */
@@ -146,14 +150,17 @@ function renderStateCareer() {
   $('kc-groups').innerHTML = Object.entries(c.groups).map(([g, ts]) => line(g, ts)).join('') + line('Plate', c.plate);
   $('kc-news').innerHTML = c.news.length ? c.news.map(x => `<li>${esc(x)}</li>`).join('') : '<li class="muted">Nothing yet.</li>';
   $('kc-hist').innerHTML = n ? `<tr><th>Season</th><th>Champions</th><th>Runners-up</th><th>Up</th><th>Down</th>${me ? '<th>' + esc(me) + '</th>' : ''}
-      <th>Most runs</th><th>Most wickets</th><th></th></tr>` + c.history.slice().reverse().map(h => `<tr>
+      <th>Most runs</th><th>Most wickets</th><th></th>${c.ipl ? '<th>IPL</th>' : ''}</tr>` + c.history.slice().reverse().map(h => `<tr>
       <td>${esc(h.season)}</td><td class="${h.champion === me ? 'w' : ''}"><b>${esc(h.champion)}</b></td><td>${esc(h.runner_up || '')}</td>
       <td>${esc(h.promoted || '')}</td><td>${esc(h.relegated || '')}</td>
       ${me ? `<td>${esc(h.user_pos || '')}${h.captaincy !== null && h.captaincy !== undefined ? ` <span class="muted small">(calls ${sgn(h.captaincy)})</span>` : ''}</td>` : ''}
       <td>${h.orange ? `${esc(h.orange.name)} <span class="muted small">${esc(h.orange.team)} ${h.orange.runs}</span>` : ''}</td>
       <td>${h.purple ? `${esc(h.purple.name)} <span class="muted small">${esc(h.purple.team)} ${h.purple.wkts}</span>` : ''}</td>
-      <td>${h.run ? `<button class="btn sec kc-open" data-run="${esc(h.run)}">Results</button>` : ''}</td></tr>`).join('')
+      <td>${h.run ? `<button class="btn sec kc-open" data-run="${esc(h.run)}">Results</button>` : ''}</td>
+      ${c.ipl ? `<td>${h.ipl ? `<span class="small">${esc(h.ipl.season)}: <b>${esc(h.ipl.champion)}</b></span>
+        ${h.ipl.run ? `<button class="btn sec kc-open" data-run="${esc(h.ipl.run)}">Results</button>` : ''}` : ''}</td>` : ''}</tr>`).join('')
     : '<tr><td class="muted">No seasons played yet.</td></tr>';
+  drawIplPanel();
   document.querySelectorAll('.kc-open').forEach(b => b.onclick = () => showResults(b.dataset.run));
   const titles = Object.entries(c.titles).sort((a, b) => b[1] - a[1]);
   $('kc-titles').innerHTML = titles.length ? titles.map(([t, k]) => `<li class="${t === me ? 'crease' : ''}">${esc(t)} <span>${'🏆'.repeat(Math.min(k, 10))} ${k}</span></li>`).join('') : '<li class="muted">No titles yet.</li>';
@@ -161,6 +168,23 @@ function renderStateCareer() {
   $('kc-team').value = CAR_TEAM; $('kc-team').onchange = () => { CAR_TEAM = $('kc-team').value; drawCareerSquad(); };
   drawCareerSquad();
   careerLeaders();
+}
+/* the IPL alongside a state career: last season, contracts by state, titles, IPL leaders */
+function drawIplPanel() {
+  const c = CAR, x = c.ipl, me = c.user;
+  if (!x) return;
+  const l = x.last, by = Object.entries(x.by_state).filter(([, n]) => n).sort((a, b) => b[1] - a[1]);
+  const lead = (rows, k, unit) => rows.filter(r => r[k]).slice(0, 5).map(r => `${esc(r.name)} <span class="muted">${r[k]} ${unit}</span>`).join(' · ');
+  const titles = Object.entries(x.titles).sort((a, b) => b[1] - a[1]);
+  $('kc-ipl').innerHTML = `<h3>IPL</h3>
+    ${l ? `<div class="small"><b>${esc(l.season)}</b>: ${esc(l.champion)} beat ${esc(l.runner_up)} in the final.
+      ${l.orange ? `Most runs ${esc(l.orange.name)} ${l.orange.runs}.` : ''} ${l.purple ? `Most wickets ${esc(l.purple.name)} ${l.purple.wkts}.` : ''}</div>`
+      : `<div class="small muted">IPL ${esc(x.next)} is played with its real squads after this Trophy season; auctions from the next year.</div>`}
+    <div class="small" style="margin-top:6px">${x.contracted} players hold IPL contracts${me ? `; ${x.by_state[me] || 0} of them play for ${esc(me)}` : ''}.</div>
+    ${by.length ? `<div class="kicker" style="margin-top:6px">Most IPL players</div><div class="small">${by.slice(0, 6).map(([s, n]) => `${s === me ? `<b>${esc(s)}</b>` : esc(s)} ${n}`).join(' · ')}</div>` : ''}
+    ${titles.length ? `<div class="kicker" style="margin-top:6px">IPL titles</div><div class="small">${titles.map(([t, n]) => `${esc(t)} ${n}`).join(' · ')}</div>` : ''}
+    ${x.leaders.runs.length ? `<div class="kicker" style="margin-top:6px">IPL most runs</div><div class="small">${lead(x.leaders.runs, 'runs', '')}</div>
+      <div class="kicker" style="margin-top:6px">IPL most wickets</div><div class="small">${lead(x.leaders.wkts, 'wkts', '')}</div>` : ''}`;
 }
 function careerLeaders() {
   const c = CAR;
@@ -185,7 +209,12 @@ function drawCareerSquad() {
       {k: 'age', label: 'Age', num: true},
       {k: 'bat_avg', label: 'Bat avg', num: true, f: r => fmtNum(r.bat_avg, 1)}, {k: 'bat_sr', label: 'SR', num: true, f: r => fmtNum(r.bat_sr, 1)},
       {k: 'econ', label: 'Econ', num: true, f: r => fmtNum(r.econ, 2)}, {k: 'bowl_avg', label: 'Bowl avg', num: true, f: r => fmtNum(r.bowl_avg, 1)},
-      {k: 'seasons', label: 'Seasons', num: true}], rows, {sort: {k: 'seasons', dir: -1}, empty: 'No players'});
+      {k: 'seasons', label: 'Seasons', num: true},
+      ...(CAR.ipl ? [{k: 'ipl', label: 'IPL team', html: r => r.ipl ? `${esc(r.ipl)} <span class="muted small">${cr(r.ipl_price)}</span>` : ''},
+        {k: 'ipl_m', label: 'IPL M', num: true}, {k: 'ipl_runs', label: 'IPL runs', num: true}, {k: 'ipl_wkts', label: 'IPL wkts', num: true}] : [])],
+      rows, {sort: {k: 'seasons', dir: -1}, empty: 'No players'});
+    const n = CAR.ipl ? rows.filter(r => r.ipl).length : 0;
+    if (n) $('kc-squad-sub').textContent += ` · ${n} with IPL contracts`;
     return;
   }
   const os = rows.filter(r => r.overseas).length, spent = rows.reduce((a, r) => a + r.price, 0);

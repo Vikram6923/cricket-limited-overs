@@ -132,6 +132,8 @@ def season_leaders(res: dict) -> dict:
 
 
 class Career:
+    TEAMS_KEY = "teams"              # player record key: season -> team played for
+
     def __init__(self, league: str, season: str, user: str | None = None, mega_every: int = 3,
                  seed: int | None = None, name: str | None = None, knowledge: str = "realistic",
                  _blank: bool = False):
@@ -310,13 +312,18 @@ class Career:
             if "obs" not in r:                 # a career saved before players were observed
                 r["obs"], r["obs_from"] = {}, self.year
             rows = belief.outside_obs(p, belief.outside_balls(r["src"], self.prior_key()), base,
-                                      self._rng("outside", self.year, pid))
+                                      self._rng("outside", self.year, pid)) if self._sees_outside(pid) else {}
             for side, row in league.get(pid, {}).items():
                 rows[side] = belief._add(rows.get(side), row)
             a = self.age(pid)
             for side, row in rows.items():
                 k = [math.exp(r["ref"][side][m] - log_f(side, m, a)) for m in METRICS]
                 r["obs"][side] = belief.accumulate(r["obs"].get(side), row, k)
+
+    def _sees_outside(self, pid: str) -> bool:
+        """Whether a made-up record of the player's cricket outside the league is added to what the teams saw
+        (not where that cricket is played and observed in the same career: a state career's IPL)."""
+        return True
 
     def _add_stats(self, res: dict) -> None:
         """A played season's batting and bowling into the career statistics; who played for whom."""
@@ -341,7 +348,7 @@ class Career:
         seen = set()
         for t in self.franchises:
             for pid in self.squads[t]:
-                self.players[pid]["teams"][self.season_label] = t
+                self.players[pid].setdefault(self.TEAMS_KEY, {})[self.season_label] = t
                 if pid in self.stats and pid not in seen:
                     self.stats[pid]["seasons"] += 1
                     seen.add(pid)
@@ -405,11 +412,13 @@ class Career:
         self.players[pid]["retired"] = self.year
         self.players[pid]["left"] = why
 
-    def _made_up(self) -> int:
-        ss = _seasons(self.league)
-        deb = _debutants(self.league)
-        recent = {s["year"] for s in ss[-NEWCOMER_SEASONS:]}
-        n = round(sum(y in recent for _, y, _ in deb) / max(1, len(recent)))
+    def _made_up(self, overseas: bool | None = None) -> int:
+        """Made-up newcomers into the auction pool (overseas=True/False: copies of overseas / local debutants
+        only, as many as the league had of those)."""
+        deb = [d for d in _debutants(self.league) if overseas is None or d[2] == overseas]
+        if not deb:
+            return 0
+        n = self.debut_rate(overseas)
         rng = self._rng("newcomers", self.year)
         names = {}
         for pid, r in self.players.items():
@@ -435,6 +444,17 @@ class Career:
             self.free[pid] = 0
             taken.add(name)
         return n
+
+    def debut_rate(self, overseas: bool | None = None) -> int:
+        """Real debutants a season over the last NEWCOMER_SEASONS seasons (overseas / local only if given)."""
+        ss = _seasons(self.league)
+        recent = {s["year"] for s in ss[-NEWCOMER_SEASONS:]}
+        deb = [d for d in _debutants(self.league) if overseas is None or d[2] == overseas]
+        return round(sum(y in recent for _, y, _ in deb) / max(1, len(recent)))
+
+    def background_matches(self) -> int:
+        """Matches played alongside a season without the person (a state career's IPL)."""
+        return 0
 
     # ---------------------------------------------------------------- auction
     def pool(self) -> dict:

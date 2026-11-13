@@ -205,9 +205,23 @@ and stops once its gate is met.
    Conditions and grounds are the newest real season's not after the one played. UI: the Career form's league
    list has "Syed Mushtaq Ali Trophy (state career)" (season chips, "Your state" with Plate sides marked, no
    mega-auction option); the dashboard shows the season's groups in one line each, honours with Up and Down and
-   your state's finish, squads without contracts, and the records. `tests/test_state_career.py`. Not done: your
-   best uncapped players in the IPL auction (idea A3), choosing your own squad changes, and the published
-   2025-26 squads.
+   your state's finish, squads without contracts, and the records. `tests/test_state_career.py`. Not done:
+   choosing your own squad changes, and the published 2025-26 squads.
+   **The IPL alongside (done 2026-11-13, idea A3 for the state career).** `engine/ipl_link.py`: an optional IPL
+   (`StateCareer(..., ipl=True)`, the form's "Play the IPL alongside", on by default) run as a franchise career with
+   the computer for every team, sharing the state career's player records (the state career ages, forms and retires
+   everyone; the IPL keeps its squads, contracts and statistics, and the franchise under "ipl" in a player's
+   record). Calendar as the real one: Trophy Y-(Y+1), then the IPL of Y+1 (2020-21 starts with IPL 2021, 2025-26
+   with IPL 2026, real squads, no auction). Each later year: departures (retired or dropped; unsold twice leaves the
+   pool, not cricket), the real IPL debutants while real seasons last plus the 6 best uncapped Trophy performers
+   (MVP points, Plate x0.6, 32 or younger), after the real seasons as many Trophy performers as the IPL's real
+   Indian debut rate (about 25) plus made-up overseas players; franchises follow the real league (new teams join,
+   renames), mega auctions in the real years (2022, 2025) and every 3 years after; the computer runs the auction
+   and plays the season (5-9 s). An IPL-contracted player is never dropped by his state. The web run plays both
+   (the progress bar counts the IPL matches) and saves the IPL as its own results (`seasons/IPL-<year>/`); the
+   dashboard has an IPL panel (last final, contracts by state, titles, IPL leaders), an IPL column in the honours,
+   and IPL team, contract and figures in the squads. Not done: India duty (stars missing state games), the reverse
+   link (a franchise career with the Trophy in the background), and capping made-up players.
 7. **One-day cups** (separate step: the ODI league tier is its own piece of engine work).
 
 Rough size: steps 1-5 are about the size of League Season plus one ratings rebuild; 6 is smaller than franchise

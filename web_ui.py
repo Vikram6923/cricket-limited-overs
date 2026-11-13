@@ -8,7 +8,8 @@
 Plain Flask, a background job per visitor, the page polls /api/status (no websockets, no CDN scripts, works
 offline). The engine is called directly as a library. Modes: Match / Series, Tournament, Classic Series and
 Classic Tournament (a nation over a year range, rated on those years), League Season, Fantasy Draft, Auction,
-Career (a league season after season, engine/career.py, or a Mushtaq Ali Trophy state, engine/state_career.py;
+Career (a league season after season, engine/career.py, or a Mushtaq Ali Trophy state, engine/state_career.py,
+optionally with the IPL played alongside, engine/ipl_link.py;
 kept in results/careers/<id>/), Team Builder.
 Two players (docs/multiplayer_design.md): one match, each side captained by a person on their own device; any
 number of rooms at once.
@@ -573,6 +574,20 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
                 shutil.rmtree(d)
             shutil.copytree(v.last, d)
             car.record(res, run=f"career/{params['career']}/{label}")
+            ipl = getattr(car, "ipl", None) and car.ipl_label()
+            if ipl:                              # the IPL alongside a state career: auction and season, unwatched
+                def bg_match(card):
+                    job.done += 1
+                folder = _safe(f"IPL-{ipl}")
+                r2 = car.play_ipl(run=f"career/{params['career']}/{folder}", on_match=bg_match, rain=rain_)
+                if r2:
+                    r2["title"], r2["mode"] = f"{car.name} - IPL {ipl}", "career"
+                    r2["career"] = {"id": params["career"], "name": car.name, "season": f"IPL {ipl}"}
+                    _augment(r2)
+                    d2 = v.careers / params["career"] / "seasons" / folder
+                    if d2.exists():
+                        shutil.rmtree(d2)
+                    save(r2, d2)
             car.advance()
             save_career(params["career"], car, v)
         job.status = "done"
@@ -787,8 +802,8 @@ def api_run():
             if car.phase != "season":
                 return jsonify(error="Hold the auction before the season."), 400
             p["fmt"], p["comp"], p["year"] = "t20", car.league, car.cond_year()
-            total = car.match_total()
-            title = f"{car.name} - season {car.season_label}"
+            total = car.match_total() + car.background_matches()
+            title = f"{car.name} - season {car.season_label}" + (" and the IPL" if car.background_matches() else "")
             if p.get("captain") and car.user:
                 p["captain"] = car.user
                 title += f" - you captain {car.user}"
@@ -1858,7 +1873,7 @@ def careers_list() -> list[dict]:
             if p.exists():
                 c = json.loads(p.read_text(encoding="utf-8"))
                 out.append({"id": d.name, "name": c["name"], "league": c["league_label"], "user": c["user"],
-                            "kind": c.get("kind", "franchise"),
+                            "kind": c.get("kind", "franchise"), "ipl": bool(c.get("ipl")),
                             "season": c["season_label"], "played": len(c["history"]), "phase": c["phase"],
                             "titles": sum(h["champion"] == c["user"] for h in c["history"]) if c["user"] else None,
                             "updated": p.stat().st_mtime})
@@ -1889,7 +1904,8 @@ def api_career_new():
         name = " ".join(str(d.get("name") or "").split())[:80] or None
         know = d.get("knowledge") or "realistic"  # what the person sees of the players (engine/career.py)
         if d.get("league") == "sma":             # a state career (engine/state_career.py): Elite and Plate, no auction
-            c = StateCareer(d.get("season") or "", user=d.get("user") or None, seed=seed, name=name, knowledge=know)
+            c = StateCareer(d.get("season") or "", user=d.get("user") or None, seed=seed, name=name, knowledge=know,
+                            ipl=bool(d.get("ipl")))
         else:
             c = Career(d.get("league") or "", d.get("season") or "", user=d.get("user") or None,
                        mega_every=int(d.get("mega_every") or 3), seed=seed, name=name, knowledge=know)

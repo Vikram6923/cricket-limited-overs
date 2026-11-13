@@ -57,6 +57,42 @@ def test_seasons_promotion_and_squads():
     assert len(c.history) == 2 and c.stats
 
 
+def test_ipl_alongside():
+    from engine.ipl_link import LinkedIpl
+    c = StateCareer("2020-21", user="Kerala", seed=3, ipl=True)
+    assert isinstance(c.ipl, LinkedIpl) and c.ipl.season_label == "2021" and c.ipl_label() == "2021"
+    assert c.ipl.players is c.players, "one record per player"
+    assert len(c.ipl.franchises) == 8 and c.background_matches() == 60
+    for k in range(2):
+        res = play_tournament(c.specs(), **c.play_args())
+        c.record(res)
+        held_before, bg = set(c.ipl.contracted()), c.background_matches()
+        r2 = c.play_ipl(run=f"x/{k}")
+        assert r2 and len(r2["matches"]) == bg == (60, 94)[k]
+        assert c.play_ipl() is None, "once per season"
+        h = c.history[-1]["ipl"]
+        assert h["season"] == ("2021", "2022")[k] and h["champion"] and h["run"] == f"x/{k}"
+        if k == 1:
+            assert len(c.ipl.franchises) == 10, "Gujarat and Lucknow join in 2022"
+            assert c.ipl.auction_kind == "mega", "2022 was a mega auction"
+            assert any("enter the IPL 2022 auction" in n for n in h["news"]), h["news"]
+            assert set(c.ipl.contracted()) != held_before
+        c.advance()
+        assert c.news[:len(h["news"])] == h["news"], "the IPL news leads the next season's news"
+        held = c.ipl.contracted()
+        assert all(c.players[p]["retired"] is None or p in held for p in held)
+        c = load(json.loads(json.dumps(c.to_json())))
+        assert c.ipl.players is c.players
+    st = c.state()
+    assert st["ipl"]["last"]["season"] == "2022" and st["ipl"]["contracted"] > 150
+    rows = [r for t in c.franchises for r in st["squads"][t] if r["ipl"]]
+    assert rows and all(r["ipl"] in c.ipl.franchises and r["ipl_price"] for r in rows)
+    assert any(r["ipl_m"] for r in rows), "IPL figures next to the state figures"
+    assert any(c.players[p].get("ipl") for p in c.ipl.contracted()), "the franchise is kept under 'ipl'"
+    plain = StateCareer("2020-21", seed=3)
+    assert plain.ipl is None and plain.background_matches() == 0 and plain.state()["ipl"] is None
+
+
 def test_web_career():
     import tempfile
     import time
@@ -82,6 +118,21 @@ def test_web_career():
     assert any(c["id"] == cid and c["kind"] == "state" for c in cl.get("/api/careers").get_json())
     r = cl.get("/api/results").get_json()
     assert r["mode"] == "career" and r["plate"]["winner"] and r["relegated"]
+    d = cl.post("/api/career/new", json={**new, "ipl": True}).get_json()        # with the IPL alongside
+    cid, st = d["id"], d["state"]
+    assert st["ipl"]["next"] == "2022" and st["ipl"]["matches"] == 94
+    assert cl.post("/api/run", json={"mode": "career", "career": cid, "fmt": "t20"}).status_code == 200
+    for _ in range(600):
+        s = cl.get("/api/status").get_json()
+        if s["status"] != "running":
+            break
+        time.sleep(0.5)
+    assert s["status"] == "done" and s["done"] == st["matches"] + 94, s
+    st = cl.get("/api/career?id=" + cid).get_json()["state"]
+    run = st["history"][0]["ipl"]["run"]
+    r = cl.get("/api/results?run=" + run).get_json()
+    assert r["career"]["season"] == "IPL 2022" and len(r["matches"] if "matches" in r else r["fixtures"]) == 94
+    assert any(c["id"] == cid and c["ipl"] for c in cl.get("/api/careers").get_json())
 
 
 if __name__ == "__main__":

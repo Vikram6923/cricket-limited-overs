@@ -16,6 +16,10 @@ many Plate sides join the Elite knockouts) and:
    least valuable players older than PROSPECT (runs value per match, engine/selection.py, of the player as the
    state can judge him before the season: Career.seen_player, engine/belief.py).
 
+Optionally the IPL is played alongside (engine/ipl_link.py): after each state season the computer holds the IPL
+auction and plays the IPL season, with the same players; the best uncapped performers of the Trophy enter the
+auction pool, and a player under an IPL contract is never dropped by his state.
+
 There is no auction: a state's squad carries over. Conditions and grounds are those of the newest real season
 not after the one being played. State is plain JSON (Career.to_json, with "kind": "state").
 """
@@ -29,6 +33,7 @@ from functools import lru_cache
 from .career import FMT, OLDEST, Career, _year_rows, check_knowledge, profile, season_leaders, tables
 from .data import baseline, ratings
 from .domestic import competitions
+from .ipl_link import LinkedIpl
 from .selection import value_parts
 
 COMP = "sma"
@@ -38,6 +43,7 @@ MOVES = 12                        # made-up seasons: players who change state (r
 PROSPECT = 23                     # this age or younger: never dropped
 DEBUT_FROM = 2019                 # made-up newcomers copy debutants from seasons Cricsheet covers fully
 MOVE_AGES = (24, 33)
+PLATE_NOTICE = 0.6                # IPL scouts: a Plate player's MVP points count this much
 
 
 def _presets() -> dict:
@@ -70,6 +76,10 @@ def _debutants() -> tuple:
                     out.append((pid, _first_year(pid, int(k[:4]))))
                 seen.add(pid)
     return tuple(out)
+
+
+def _money(lakh: int) -> str:
+    return f"Rs {lakh / 100:.2f} crore" if lakh >= 100 else f"Rs {lakh} lakh"
 
 
 def _nth(n: int) -> str:
@@ -111,8 +121,10 @@ class StateCareer(Career):
     KEYS = Career.KEYS + ("kind", "format", "groups", "plate")
 
     def __init__(self, season: str, user: str | None = None, seed: int | None = None, name: str | None = None,
-                 knowledge: str = "realistic", _blank: bool = False):
+                 knowledge: str = "realistic", ipl: bool = False, _blank: bool = False):
         self.kind = "state"
+        self.ipl: LinkedIpl | None = None
+        self.scout: list = []           # the last season's [player, MVP points] (for the IPL scouts)
         if _blank:
             return
         self.knowledge = check_knowledge(knowledge)
@@ -142,6 +154,8 @@ class StateCareer(Career):
             for pid in t["players"]:
                 self._add_real(pid, False)
             self.squads[t["name"]] = {pid: 0 for pid in t["players"]}
+        if ipl:
+            self.ipl = LinkedIpl.start(self.players, self.year + 1, self.seed, self.knowledge)
         self._draw_form()
 
     # ---------------------------------------------------------------- a season
@@ -212,6 +226,7 @@ class StateCareer(Career):
         self.history.append(h)
         self._add_stats(res)
         self._observe(res)
+        self.scout = [[r["id"], r["balanced"]] for r in (res.get("mvp") or {}).get("balanced") or []]
         new_elite = [t for t in e_order if t != down] + [up]
         self.plate = [down] + [t for t in p_order if t != up]
         self.groups = _deal(new_elite, self.format["labels"], self.format["sizes"])
@@ -225,14 +240,19 @@ class StateCareer(Career):
         self.season_no += 1
         self.season_label = _label(self.year)
         news = []
+        last = self.history[-1] if self.history else {}
+        news += (last.get("ipl") or {}).get("news") or []
         hz = tables()["retire"]
         gone = []
-        for pid in self.active():
+        everyone = dict.fromkeys(self.active() + (self.ipl.active() if self.ipl else []))   # IPL-only players too
+        for pid in everyone:
+            if self.players[pid]["retired"] is not None:
+                continue
             a = self.age(pid)
             if a >= OLDEST or self._rng("retire", self.year, pid).random() < hz.get(str(a), 0.0):
                 gone.append((pid, self._team_of(pid), a))
                 self._leave(pid, "retired")
-        news += self._retire_news(gone)
+        news += self._retire_news([g for g in gone if g[1]])
         pre = _presets().get(self.season_label)
         news += self._real_season(pre) if pre else self._made_up_season()
         self._draw_form()
@@ -291,6 +311,9 @@ class StateCareer(Career):
                 elif r["retired"] is None and (cur := self._team_of(pid)) and cur != st:
                     self._move(pid, cur, st)
                     moved.append((pid, cur, st))
+                elif r["retired"] is None and cur is None:      # an IPL-only player who now plays for a state
+                    self.squads[st][pid] = 0
+                    joined.append((pid, st))
         out = [f"The real {pre['season']} season: {len(joined)} players join or rejoin their state squads"
                + (f", {len(moved)} change state." if moved else ".")]
         mine = [self.players[p]["name"] for p, st in joined if st == self.user]
@@ -352,12 +375,13 @@ class StateCareer(Career):
     def _trim(self) -> list[str]:
         """Squads over SQUAD_MAX drop their least valuable players older than PROSPECT."""
         base = baseline(FMT, COMP, self.cond_year())
+        held = self.ipl.contracted() if self.ipl else {}
         mine = []
         for st in self.franchises:
             extra = len(self.squads[st]) - SQUAD_MAX
             if extra <= 0:
                 continue
-            cands = [pid for pid in self.squads[st] if self.age(pid) > PROSPECT]
+            cands = [pid for pid in self.squads[st] if self.age(pid) > PROSPECT and pid not in held]
             val = {pid: sum(value_parts(self.seen_player(pid), FMT, base)) for pid in cands}
             for pid in sorted(cands, key=lambda q: val[q])[:extra]:
                 self._leave(pid, "dropped")
@@ -365,12 +389,108 @@ class StateCareer(Career):
                     mine.append(self.players[pid]["name"])
         return [f"Leaving the {self.user} squad: {', '.join(mine)}."] if mine else []
 
+    # ---------------------------------------------------------------- the IPL alongside
+    def background_matches(self) -> int:
+        from .tournament import match_count
+        return match_count(self.ipl.next_teams(), 2, None, "ipl") if self.ipl else 0
+
+    def play_ipl(self, run: str | None = None, on_match=None, rain: bool = False) -> dict | None:
+        """The IPL after the state season just recorded (call between record and advance): its year, newcomers
+        and auction (after the first season), then its season. Returns play_tournament's result, or None."""
+        c = self.ipl
+        if c is None or self.phase != "advance" or not self.history or "ipl" in self.history[-1]:
+            return None
+        from .tournament import play_tournament
+        state_of = {pid: st for st in self.franchises for pid in self.squads[st]}
+
+        def who(pid):
+            return f"{self.players[pid]['name']} ({state_of[pid]})" if pid in state_of else self.players[pid]["name"]
+        me, news = self.user, []
+        if c.phase == "advance":
+            before = c.contracted()
+            got = c.advance(self._noticed())
+            c.auto_auction()
+            after = c.contracted()
+            noticed = got["noticed"]
+            if got["joined"]:
+                news.append(f"The IPL grows to {len(c.franchises)} teams: {' and '.join(got['joined'])} join.")
+            if noticed:
+                mine = [p for p in noticed if me and state_of.get(p) == me]
+                named = (mine + [p for p in noticed if p not in mine])[:4]
+                news.append(f"Noticed at the Trophy: {len(noticed)} uncapped players enter the IPL {c.season_label} "
+                            f"auction, including {', '.join(who(p) for p in named)}.")
+            buys = sorted(((p, t, v) for p, (t, v) in after.items()
+                           if p in state_of and not c.capped(p) and (before.get(p) or (None,))[0] != t),
+                          key=lambda b: -b[2])
+            mine = [b for b in buys if me and state_of[b[0]] == me]
+            kind = "mega auction" if got["kind"] == "mega" else "auction"
+            news += [f"{who(p)} bought by {t} for {_money(v)} at the IPL {kind}." for p, t, v in mine[:6]]
+            rest = [b for b in buys if b not in mine][:3]
+            if rest:
+                news.append(f"{'Other big' if mine else 'Biggest'} uncapped buys at the IPL {kind}: "
+                            + "; ".join(f"{who(p)} to {t}, {_money(v)}" for p, t, v in rest) + ".")
+        res = play_tournament(c.specs(), **c.play_args(), on_match=on_match, rain=rain)
+        c.local = frozenset(state_of)
+        hc = c.record(res, run=run)
+        ids = {r["name"]: r["id"] for r in res["batting"] + res["bowling"]}
+        line = f"IPL {c.season_label}: {res['winner']} beat {res['runner_up']} in the final."
+        o, w = hc.get("orange"), hc.get("purple")
+        if o and w:
+            line += (f" Most runs: {who(ids[o['name']])} {o['runs']};"
+                     f" most wickets: {who(ids[w['name']])} {w['wkts']}.")
+        news.append(line)
+        if me:
+            figs = {}
+            for b in res["batting"]:
+                if state_of.get(b["id"]) == me:
+                    figs.setdefault(b["id"], [b["team"], 0, 0])[1] += b["runs"]
+            for b in res["bowling"]:
+                if state_of.get(b["id"]) == me:
+                    figs.setdefault(b["id"], [b["team"], 0, 0])[2] += b["wickets"]
+            top = sorted(figs.items(), key=lambda kv: -(kv[1][1] + 20 * kv[1][2]))[:6]
+
+            def fig(p, t, r, k):
+                bits = [x for x in (f"{r} run{'s' * (r != 1)}" if r else "",
+                                    f"{k} wicket{'s' * (k != 1)}" if k else "") if x]
+                return f"{self.players[p]['name']} ({t}) {', '.join(bits) or 'played'}"
+            if top:
+                news.append(f"{me} players in the IPL: " + "; ".join(fig(p, *v) for p, v in top) + ".")
+        self.history[-1]["ipl"] = {"season": c.season_label, "champion": res["winner"], "runner_up": res["runner_up"],
+                                   "orange": o, "purple": w, "mvp": hc.get("mvp"), "run": run, "news": news}
+        return res
+
+    def _noticed(self) -> list[str]:
+        """The last season's players in order of merit for the IPL scouts: MVP points, Plate points discounted
+        (the Plate's opposition is weaker)."""
+        last = self.history[-1] if self.history else {}
+        plate = set(self.plate) - {last.get("relegated")} | {last.get("promoted")}   # the Plate as it was
+        state_of = {pid: st for st in self.franchises for pid in self.squads[st]}
+        pts = dict(self.scout)
+        return sorted(pts, key=lambda p: -pts[p] * (PLATE_NOTICE if state_of.get(p) in plate else 1.0))
+
+    def ipl_label(self) -> str | None:
+        """The IPL season that follows the current state season."""
+        c = self.ipl
+        if not c:
+            return None
+        if c.phase == "season":
+            return c.season_label
+        from .career import _seasons
+        ss = _seasons(c.league)
+        return ss[c.real_i + 1]["season"] if c.real_i + 1 < len(ss) else str(c.year + 1)
+
     # ---------------------------------------------------------------- views
     def squad_rows(self, t: str) -> list[dict]:
         rows = super().squad_rows(t)
+        held = self.ipl.contracted() if self.ipl else {}
         for r in rows:
             r.pop("price", None)
             r["nation"] = ""
+            if self.ipl:
+                f, v = held.get(r["id"], (None, None))
+                s = self.ipl.stats.get(r["id"]) or {}
+                r.update(ipl=f, ipl_price=v, ipl_m=s.get("matches", 0), ipl_runs=s.get("runs", 0),
+                         ipl_wkts=s.get("wkts", 0))
         return sorted(rows, key=lambda r: (-(r["seasons"] or 0), r["age"]))
 
     def state(self) -> dict:
@@ -383,7 +503,35 @@ class StateCareer(Career):
                 "format": self.format, "history": self.history, "titles": titles, "news": self.news,
                 "squads": {t: self.squad_rows(t) for t in self.franchises}, "leaders": self.leaders(),
                 "real": self.season_label in _presets(), "pool_size": len(self.active()),
-                "matches": self.match_total(), "knowledge": self.knowledge}
+                "matches": self.match_total(), "knowledge": self.knowledge,
+                "ipl": self._ipl_state()}
+
+    def _ipl_state(self) -> dict | None:
+        c = self.ipl
+        if not c:
+            return None
+        titles: dict[str, int] = {}
+        for h in c.history:
+            titles[h["champion"]] = titles.get(h["champion"], 0) + 1
+        held = c.contracted()
+        return {"next": self.ipl_label(), "matches": self.background_matches(),
+                "last": c.history[-1] if c.history else None, "titles": titles, "contracted": len(held),
+                "by_state": {st: sum(p in held for p in self.squads[st]) for st in self.franchises},
+                "leaders": c.leaders(10)}
+
+    # ---------------------------------------------------------------- storage
+    def to_json(self) -> dict:
+        d = super().to_json()
+        d["scout"] = self.scout
+        d["ipl"] = self.ipl.to_json() if self.ipl else None
+        return d
+
+    @classmethod
+    def from_json(cls, d: dict) -> "StateCareer":
+        c = super().from_json(d)
+        c.scout = d.get("scout") or []
+        c.ipl = LinkedIpl.load(d["ipl"], c.players) if d.get("ipl") else None
+        return c
 
 
 def load(d: dict) -> Career:

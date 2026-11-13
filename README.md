@@ -203,6 +203,15 @@ on a phone too. Modes:
   uncapped players changing state. Squads stay between 16 and 22 (the least valuable players over 23 leave). The
   career page shows the season's groups, honours with who went up and down, your state's finish, squads and
   records.
+- **IPL alongside a state career** (tick "Play the IPL alongside" when you start one; on by default): after each
+  Trophy season the computer holds the IPL auction and plays the IPL season (a few seconds), with the same players,
+  ageing and retiring together. The first IPL season after your start uses its real squads; then the season's real
+  debutants and the best uncapped Trophy performers (by MVP points, Plate points discounted) join the auction pool,
+  and past the real seasons the Trophy is where all the new Indian players come from. The IPL follows the real
+  league while the data lasts (Gujarat and Lucknow join in 2022, mega auctions in 2022 and 2025, then every three
+  years). The news says which of your players were noticed, who bought them and for how much, and how they did;
+  squads show each player's IPL team, contract and IPL figures; the honours have each IPL champion with its full
+  results. A player with an IPL contract is never dropped by his state. You don't run a franchise in this mode.
 - **Saved runs:** "Save this run" on the results page keeps a run (any mode) under a name in `results/saved/`,
   so the next run doesn't overwrite it; the Saved runs mode lists them to open (the full results page), rename or
   delete. A saved league (an auction league or a League Season) of the same league can be retained from in a later
@@ -480,7 +489,7 @@ python -m engine.calibrate             # compare simulated v real
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
-python tests/test_state_career.py      # state career: promotion, relegation, squads, a season through the server
+python tests/test_state_career.py      # state career: promotion, relegation, squads, the IPL alongside, the server
 python tests/test_selection.py         # also test_history.py, test_draft.py
 ```
 
@@ -508,6 +517,7 @@ engine/            match engine (library)
   career.py        career mode: a league over many seasons (ageing, retirements, newcomers, auctions)
   belief.py        what teams believe a player is worth before a season (his record up to then), apart from his rating
   state_career.py  state career: a Mushtaq Ali Trophy state over many seasons (Elite, Plate, no auction)
+  ipl_link.py      the IPL played by the computer alongside a state career, sharing its players
   render.py        text scorecard and match report
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
@@ -545,6 +555,7 @@ tests/             engine and tournament tests
 - [x] State career: a Mushtaq Ali Trophy state season after season, Elite and Plate with promotion and relegation
 - [x] Teams' belief apart from true rating: auctions and squad decisions use only what was known before the season;
       in a career the teams learn from its own seasons; you see what they know (realistic) or the real ratings
+- [x] The IPL alongside a state career: the best uncapped Trophy players reach the IPL auction
 - [x] UI redesign: home launcher, team colours and badges, match centre with HTML scorecards, broadcast-style
       live screen, phone layout
 - [x] UI simplification phase 1: Simple / Full stats switch, More options folds, plain words
