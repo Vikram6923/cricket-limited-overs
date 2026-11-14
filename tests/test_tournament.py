@@ -215,6 +215,30 @@ def test_plate_promotion_relegation_and_plate_side_in_quarter_finals():
     assert all(k["stage"] != "Final" for k in res["knockouts"][:-1]) and res["knockouts"][-1]["stage"] == "Final"
 
 
+def test_knockout_tie_without_a_super_over_has_a_winner():
+    """A knockout can end tied with no super over (a DLS tie when rain stops the chase on the par score): the
+    higher-placed side, named first, goes through, and the tournament finishes."""
+    from engine import tournament as T
+    real, n = T.simulate_match, [0]
+
+    def tied(*args, **kw):
+        card = real(*args, **kw)
+        n[0] += 1
+        if n[0] > 6:                                   # after the 6 league games: every knockout is a DLS tie
+            card["result"] = {"type": "tie", "winner": None, "no_super_over": True, "dls": True, "par": 100,
+                              "text": "Match tied (DLS method, par 100)"}
+        return card
+    T.simulate_match = tied
+    try:
+        res = play_tournament(TEAMS[:4], fmt="t20", comp="t20i_full", year=2024, knockout="semis", seed=2)
+    finally:
+        T.simulate_match = real
+    top = [r["team"] for r in res["tables"]["League"]]
+    assert [k["winner"] for k in res["knockouts"]] == [top[0], top[1], top[0]]
+    assert res["winner"] == top[0] and res["runner_up"] == top[1]
+    assert all("go through as the higher-placed side" in k["result"] for k in res["knockouts"])
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

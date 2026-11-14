@@ -933,3 +933,62 @@ says what the person is shown: "realistic" (default for new careers and League S
   explains it.
 - Careers saved before the setting load as hindsight (what they showed). The two-player auction uses the default.
 
+
+## Audit: bookkeeping fixes and speed (2026-11-15)
+
+A whole-project audit (engine, fits, server, page, scripts, tests). No change to how a ball is played: no table,
+rate or random draw was touched, so the calibration above stands. Every speed-up was checked against the engine
+before it on 520 seeded matches (T20I, ODI, IPL with the Impact Player, rain, weaker captains, random captains,
+shortened matches, every `use_*` switch), a tournament and a career season with its auction: identical scorecards.
+
+Fixed (each with a test that fails on the old code):
+- **A wicket off the last ball of an innings** brought the next batter in: he was listed "not out 0 (0)" instead
+  of "did not bat" and counted as an innings in the batting tables (about 1 innings in 20). In IPL matches the
+  side batting first could also spend its Impact Player on a batter at that moment, after its innings was over
+  (2 of 150 matches). `Innings.wicket`.
+- **Every all-out innings had its last partnership twice** (the 10th-wicket stand again as an "unbroken 11th"),
+  so the partnership chart showed an extra row and partnerships did not add up to the total.
+- **A chase stopped by rain with the chasing side ahead of par** was recorded as a win "by N wickets" with no
+  balls left; the records table then failed (`KeyError: balls_left`) and the whole tournament or season was lost
+  at the summary. Now a win by the lead over par, in runs, as scorers record a DLS result. Rare: about 1 match in
+  1,500 with rain on in India, so roughly 1 IPL season in 20.
+- **A knockout tied with no super over** (a DLS tie on the par score) had no winner and stopped the tournament
+  (`KeyError: loser`). The higher-placed side now goes through, as after a washed-out reserve day.
+  `tests/test_engine.py` (`test_last_ball_wicket_and_partnerships`,
+  `test_chase_stopped_by_rain_is_decided_by_runs`), `tests/test_tournament.py`
+  (`test_knockout_tie_without_a_super_over_has_a_winner`).
+
+Speed (interleaved old v new in one process, pinned to one core; the ratios are steadier than the times):
+
+| | before | after | |
+|---|---|---|---|
+| T20I, squads of 15 | 36.1 ms | 27.5 ms | x1.31 |
+| T20I, fixed XIs | 33.8 ms | 25.7 ms | x1.31 |
+| ODI, squads | 45.9 ms | 37.3 ms | x1.23 |
+| IPL with the Impact Player | 77.8 ms | 44.4 ms | x1.75 |
+
+Where the time was (cProfile): in IPL matches about two thirds was the Impact Player valuation
+(`impact._best_now`, `_first_innings_option`: 1.2 million `Values.bat` calls in 19 matches); elsewhere the
+bowling plan's constructor (23%, mostly hashing players as dictionary keys: 13,000 `Player.__hash__` calls a
+match), the win probability worked out twice a ball (15%) and the batting depth recomputed every ball (7%).
+- `engine/impact.py`: the two loops work on lists of numbers; a substitute's batting gain is worked out once
+  when the player going out is not among those still to come.
+- `engine/captain.py` `BowlingPlan`: lists indexed by bowler and phase in place of dictionaries keyed by Player
+  (same arithmetic in the same order, same random draws).
+- `engine/match.py`: the win probability is kept with the innings state it was worked out for (the state after
+  a ball is the state before the next); `Innings.depth` is kept until a batter goes in or a substitution
+  changes the order (`cards_changed`). This closes item 6 of the depth review above.
+- `python -m engine.calibrate --jobs N`: replays in worker processes (default: the cores but one, at most 8).
+  Each replay has its own seed, so the numbers are the same for any N; 240 replays took 9.3 s with one process
+  and 3.8 s with six, start-up included.
+
+Found and left for a decision (they change seeded results or a rule, so they are the owner's call):
+- A no-ball that also has byes or leg byes loses those runs, but the batters still change ends (`ballmodel.py`:
+  the no-ball overwrites the extra). About 1 match in 130.
+- The points table orders by points, then net run rate, then wins; ICC events and the IPL use wins before net
+  run rate. It only matters when sides level on points have different numbers of no-results or ties.
+- In a career with knowledge "realistic" the person sees what the teams believe, but the computer captains pick
+  XIs, bowlers and batting orders on the true ratings, this season's form included.
+- A career player counts as capped from the year he was really first capped, whatever happened in the career.
+- The same batters and bowler can play every super over (the laws bar the bowler and any dismissed batter from
+  the next one).

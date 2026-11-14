@@ -95,6 +95,12 @@ class _Runner:
                 card["result"] = {"type": "no_result", "winner": a["name"], "loser": b["name"], "by": "no_result",
                                   "text": f"No result (reserve day washed out too) - {a['name']} go through "
                                           "as the higher-placed side"}
+        if knockout and not card["result"].get("winner"):
+            # a knockout needs a winner: a tie that no super over settled (a DLS tie when rain ended the chase)
+            # sends the higher-placed side (named first) through, as a washed-out reserve day does
+            r = card["result"]
+            card["result"] = {**r, "winner": a["name"], "loser": b["name"], "by": "tie",
+                              "text": f"{r['text']} - {a['name']} go through as the higher-placed side"}
         card["match_no"], card["stage"], card["knockout"] = no, stage, knockout
         self.cards.append(card)
         if self.on_match:

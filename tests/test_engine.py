@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from engine import scorecard_text, simulate_match  # noqa: E402
+from engine import match_report, scorecard_text, simulate_match  # noqa: E402
 from engine.data import search  # noqa: E402
 
 
@@ -126,6 +126,51 @@ def test_rain():
             assert (r["winner"] == i2["team"]) == (i2["runs"] >= i2["target"])
         scorecard_text(c)
     assert {"win", "win_dls", "no_result"} <= kinds, kinds
+
+
+def test_last_ball_wicket_and_partnerships():
+    """A wicket off the last ball of an innings brings nobody else in (he "did not bat"), and the partnerships
+    are one per wicket plus the unbroken one, adding up to the total (an all-out innings has no unbroken one)."""
+    a, b = {"name": "India", "players": _ids(T20_A, "t20")}, {"name": "Australia", "players": _ids(T20_B, "t20")}
+    last_ball = all_out = 0
+    for seed in range(300):
+        c = simulate_match(a, b, fmt="t20", year=2024, seed=seed)
+        for inn in c["innings"]:
+            ps = inn["partnerships"]
+            assert sum(p["runs"] for p in ps) == inn["runs"], "partnerships don't add up to the total"
+            assert sum(1 for p in ps if not p.get("unbroken")) == inn["wickets"]
+            on_wicket = bool(inn["overs_log"]) and inn["overs_log"][-1]["balls"][-1] == "W"
+            assert sum(1 for p in ps if p.get("unbroken")) <= (0 if on_wicket else 1)
+            batted = sum(1 for x in inn["batting"] if x["batted"])
+            assert batted == inn["wickets"] + (1 if on_wicket else 2), "a batter came in after the innings ended"
+            last_ball += on_wicket and inn["wickets"] < 10
+            all_out += inn["wickets"] >= 10
+    assert last_ball > 5 and all_out > 5, (last_ball, all_out)
+
+
+def test_chase_stopped_by_rain_is_decided_by_runs():
+    """Rain ends a chase for good: the result goes by the DLS par score, by runs whichever side is ahead (the
+    side batting second wins by its lead over par), and the tournament records can list it."""
+    from engine.match import Match
+    from engine.tournament import points_table, records
+    a, b = {"name": "India", "players": _ids(T20_A, "t20")}, {"name": "Australia", "players": _ids(T20_B, "t20")}
+    kinds = set()
+    for seed in range(120):
+        m = Match("t20", a, b, year=2024, seed=seed)
+        m.rain_profile = {"stop2": 0.6, "u": 0.0}          # the chase is stopped after 12 overs
+        c = m.play()
+        c["match_no"], c["stage"], c["knockout"] = 1, "League", False
+        r, i2 = c["result"], c["innings"][1]
+        if "par" in r and r["type"] == "win":
+            ahead = r["winner"] == i2["team"]
+            assert r["by"] == "runs" and r["margin"] == abs(i2["runs"] - r["par"]) and r["margin"] > 0
+            assert ahead == (i2["runs"] > r["par"])
+            kinds.add("chaser" if ahead else "defender")
+        records([c])
+        points_table([c], c["teams"])
+        scorecard_text(c)
+        match_report(c)
+    assert kinds == {"chaser", "defender"}, kinds
 
 
 if __name__ == "__main__":

@@ -220,104 +220,114 @@ class BowlingPlan:
     def __init__(self, fielders: list[Player], keeper: Player, fmt: str, base: dict, max_overs: int,
                  quota: int, rng: random.Random, base_of=None):
         self.fmt = fmt
-        from .data import FORMATS
+        # Lists indexed by bowler and phase, not dicts keyed by Player: a plan is built twice a match and hashing
+        # players dominated it. The arithmetic and its order are unchanged (same plans, same random draws).
         phases = phases_for(fmt, max_overs)
-        ph_overs = {name: hi - lo + 1 for lo, hi, name in phases}
+        phs = [name for lo, hi, name in phases]
+        pov = [hi - lo + 1 for lo, hi, name in phases]          # overs in each phase
         bowlers = [p for p in fielders if p is not keeper] or list(fielders)
-        cost = {p: {ph: bowling_cost(p, ph, (base_of(p) if base_of else base)[ph], fmt) + (0.0 if p.rated_bowl else 0.3)
-                    for ph in ph_overs}
-                for p in bowlers}
-        med = {ph: sorted(c[ph] for c in cost.values())[len(cost) // 2] for ph in ph_overs}
-
-        def rel(p, ph):
-            # relative cost, >1 = worse than this XI's median bowler (costs can be negative; shift to stay > 0)
-            shift = 1.0 + abs(min(c[ph] for c in cost.values()))
-            return (cost[p][ph] + shift) / (med[ph] + shift)
+        nb, npn = len(bowlers), len(phs)
+        cost = []
+        for p in bowlers:
+            b0 = base_of(p) if base_of else base
+            cost.append([bowling_cost(p, ph, b0[ph], fmt) + (0.0 if p.rated_bowl else 0.3) for ph in phs])
+        med = [sorted(c[k] for c in cost)[nb // 2] for k in range(npn)]
+        # relative cost, >1 = worse than this XI's median bowler (costs can be negative; shift to stay > 0),
+        # raised to -QUALITY: how strongly overs move toward better bowlers
+        shift = [1.0 + abs(min(c[k] for c in cost)) for k in range(npn)]
+        relq = [[((c[k] + shift[k]) / (med[k] + shift[k])) ** -self.QUALITY for k in range(npn)] for c in cost]
 
         # 1. overs per bowler
-        weight = {p: max(p.bowl_overs_per_match, 0.05 if p.rated_bowl else 0.01) *
-                  sum(rel(p, ph) ** -self.QUALITY * ph_overs[ph] for ph in ph_overs) / max_overs for p in bowlers}
+        weight = [max(p.bowl_overs_per_match, 0.05 if p.rated_bowl else 0.01) *
+                  sum(relq[b][k] * pov[k] for k in range(npn)) / max_overs for b, p in enumerate(bowlers)]
         total = max_overs
         lo_f, hi_f = 0.0, 1000.0
         for _ in range(60):
             f = (lo_f + hi_f) / 2
-            if sum(min(quota, weight[p] * f) for p in bowlers) < total:
+            if sum(min(quota, w * f) for w in weight) < total:
                 lo_f = f
             else:
                 hi_f = f
-        want = {p: min(quota, weight[p] * hi_f) for p in bowlers}
-        n = {p: int(want[p]) for p in bowlers}
-        for p in sorted(bowlers, key=lambda p: -(want[p] - n[p])):
-            if sum(n.values()) >= total:
+        want = [min(quota, w * hi_f) for w in weight]
+        n = [int(x) for x in want]
+        for b in sorted(range(nb), key=lambda b: -(want[b] - n[b])):
+            if sum(n) >= total:
                 break
-            if n[p] < quota:
-                n[p] += 1
-        while sum(n.values()) < total:          # not enough bowling: stretch anyone with quota left
-            p = min((p for p in bowlers if n[p] < quota), key=lambda p: sum(cost[p].values()), default=None)
-            if p is None:
+            if n[b] < quota:
+                n[b] += 1
+        while sum(n) < total:                   # not enough bowling: stretch anyone with quota left
+            b = min((b for b in range(nb) if n[b] < quota), key=lambda b: sum(cost[b]), default=None)
+            if b is None:
                 break
-            n[p] += 1
+            n[b] += 1
 
         # 2. overs per phase (IPF on seed = real usage x quality)
-        seed = {p: {ph: (p.bowl_phase_share.get(ph, 1 / 3) + 0.02) * rel(p, ph) ** -self.QUALITY
-                    for ph in ph_overs} for p in bowlers}
-        x = {p: dict(seed[p]) for p in bowlers}
+        x = [[(p.bowl_phase_share.get(ph, 1 / 3) + 0.02) * relq[b][k] for k, ph in enumerate(phs)]
+             for b, p in enumerate(bowlers)]
         for _ in range(30):                       # converges in well under 30 rounds
-            for p in bowlers:
-                s = sum(x[p].values())
-                for ph in ph_overs:
-                    x[p][ph] *= (n[p] / s) if s else 0
-            for ph in ph_overs:
-                s = sum(x[p][ph] for p in bowlers)
-                for p in bowlers:
-                    x[p][ph] *= (ph_overs[ph] / s) if s else 0
-        alloc = {p: {ph: int(x[p][ph]) for ph in ph_overs} for p in bowlers}
-        cap = {ph: math.ceil(ph_overs[ph] / 2) + 1 for ph in ph_overs}
-        cells = sorted(((x[p][ph] - alloc[p][ph], p, ph) for p in bowlers for ph in ph_overs), key=lambda t: -t[0])
+            for b in range(nb):
+                row = x[b]
+                s = sum(row)
+                f = (n[b] / s) if s else 0
+                for k in range(npn):
+                    row[k] *= f
+            for k in range(npn):
+                s = sum(row[k] for row in x)
+                f = (pov[k] / s) if s else 0
+                for row in x:
+                    row[k] *= f
+        alloc = [[int(v) for v in row] for row in x]
+        rows = [sum(a) for a in alloc]                                   # overs given to each bowler so far
+        cols = [sum(a[k] for a in alloc) for k in range(npn)]            # overs filled in each phase so far
+        cap = [math.ceil(pov[k] / 2) + 1 for k in range(npn)]
+        cells = sorted(((x[b][k] - alloc[b][k], b, k) for b in range(nb) for k in range(npn)), key=lambda t: -t[0])
         for _ in range(3):
-            for frac, p, ph in cells:
-                row = n[p] - sum(alloc[p].values())
-                col = ph_overs[ph] - sum(alloc[q][ph] for q in bowlers)
-                if row > 0 and col > 0 and alloc[p][ph] < cap[ph]:
-                    alloc[p][ph] += 1
-        for ph in ph_overs:                       # anything still unfilled: cheapest bowler with quota left
-            while sum(alloc[q][ph] for q in bowlers) < ph_overs[ph]:
-                spare = [p for p in bowlers if sum(alloc[p].values()) < quota]
+            for frac, b, k in cells:
+                if n[b] - rows[b] > 0 and pov[k] - cols[k] > 0 and alloc[b][k] < cap[k]:
+                    alloc[b][k] += 1
+                    rows[b] += 1
+                    cols[k] += 1
+        for k in range(npn):                      # anything still unfilled: cheapest bowler with quota left
+            while cols[k] < pov[k]:
+                spare = [b for b in range(nb) if rows[b] < quota]
                 if not spare:
                     break
-                alloc[min(spare, key=lambda p: cost[p][ph])][ph] += 1
+                b = min(spare, key=lambda b: cost[b][k])
+                alloc[b][k] += 1
+                rows[b] += 1
+                cols[k] += 1
 
         # 3. sequence into spells
-        self.seq: list[Player | None] = []
-        rem = {p: dict(alloc[p]) for p in bowlers}
-        order = [name for lo, hi, name in phases if name in ph_overs]
-        for ph in order:
-            for _ in range(ph_overs[ph]):
-                last = self.seq[-1] if self.seq else None
-                prev2 = self.seq[-2] if len(self.seq) >= 2 else None
-                avail = [p for p in bowlers if rem[p][ph] > 0 and p is not last]
+        seq: list[int | None] = []
+        rem = [list(a) for a in alloc]
+        for k in range(npn):
+            for _ in range(pov[k]):
+                last = seq[-1] if seq else None
+                prev2 = seq[-2] if len(seq) >= 2 else None
+                avail = [b for b in range(nb) if rem[b][k] > 0 and b != last]
                 if not avail:
                     # jam: borrow an over from a later phase for someone else
-                    later = [q for q in order[order.index(ph) + 1:]]
-                    donors = [p for p in bowlers if p is not last and any(rem[p][q] > 0 for q in later)]
-                    if donors and last is not None and rem[last][ph] > 0:
-                        d = max(donors, key=lambda p: sum(rem[p][q] for q in later))
+                    later = range(k + 1, npn)
+                    donors = [b for b in range(nb) if b != last and any(rem[b][q] > 0 for q in later)]
+                    if donors and last is not None and rem[last][k] > 0:
+                        d = max(donors, key=lambda b: sum(rem[b][q] for q in later))
                         q = next(q for q in later if rem[d][q] > 0)
                         rem[d][q] -= 1
-                        rem[d][ph] += 1
-                        rem[last][ph] -= 1
+                        rem[d][k] += 1
+                        rem[last][k] -= 1
                         rem[last][q] += 1
                         avail = [d]
                 if not avail:
-                    self.seq.append(None)
+                    seq.append(None)
                     continue
-                if prev2 in avail:
+                if prev2 is not None and prev2 in avail:
                     pick = prev2                  # continue the spell from this end
                 else:
-                    pick = max(avail, key=lambda p: (rem[p][ph], -cost[p][ph] + rng.random() * 1e-3))
-                rem[pick][ph] -= 1
-                self.seq.append(pick)
-        self.alloc = alloc
+                    pick = max(avail, key=lambda b: (rem[b][k], -cost[b][k] + rng.random() * 1e-3))
+                rem[pick][k] -= 1
+                seq.append(pick)
+        self.seq: list[Player | None] = [None if b is None else bowlers[b] for b in seq]
+        self.alloc = {p: dict(zip(phs, alloc[b])) for b, p in enumerate(bowlers)}
 
     def bowler_for(self, over: int, last: Player | None, quota_left: dict) -> Player | None:
         if over < len(self.seq):

@@ -133,12 +133,23 @@ class Innings:
         self.done = False
         self.rain_stopped = False    # play could not resume (rain): the result goes by DLS par
         self.streak: dict[Player, int] = {}   # consecutive legal balls taking wickets, per bowler (hat-tricks)
+        self._depth: tuple = (None, 0.0)      # (next_in, cards) -> batting still to come (depth)
+        self._wp: tuple = (None, 0.0)         # innings state -> win probability of the side batting first
 
     # ------------------------------------------------------------------ helpers
     def depth(self) -> float:
-        """Batting still to come: the batting average indexes of the players yet to bat (fit_depth.py)."""
-        tail = depth_table(self.m.fmt)["tail"]
-        return sum(bat_quality(c.p, tail) for c in self.cards[self.next_in:])
+        """Batting still to come: the batting average indexes of the players yet to bat (fit_depth.py).
+        Asked for on every ball but it changes only when a batter goes in or the order still to come is changed
+        (an Impact Player swap: cards_changed), so it is kept between those."""
+        key = (self.next_in, len(self.cards))
+        if self._depth[0] != key:
+            tail = depth_table(self.m.fmt)["tail"]
+            self._depth = (key, sum(bat_quality(c.p, tail) for c in self.cards[self.next_in:]))
+        return self._depth[1]
+
+    def cards_changed(self) -> None:
+        """The batters still to come were changed in place (a substitution): forget the cached depth."""
+        self._depth = (None, 0.0)
 
     def offset(self) -> int:
         """Balls to add so the situation tables (full-innings states) see the right balls left in a shortened
@@ -473,8 +484,13 @@ class Innings:
         self.partnerships.append({"wkt": self.wkts, "runs": p["runs"], "balls": p["balls"],
                                   "batters": [p["a"].p.name, p["b"].p.name], "split": [p["a_runs"], p["b_runs"]]})
         new = None
-        if self.wkts >= self.max_wkts or self.next_in >= len(self.cards):
+        all_out = self.wkts >= self.max_wkts or self.next_in >= len(self.cards)
+        if all_out:
             self.done = True
+        if all_out or self.legal >= self.max_overs * 6 or self.chase_won():
+            # the innings is over (all out, or the wicket fell off its last ball): nobody else comes in, and the
+            # partnership just recorded was its last (close_partnership has nothing to add)
+            self.pship = {"runs": 0, "balls": 0, "a": self.striker, "b": self.non_striker, "a_runs": 0, "b_runs": 0}
         else:
             if self.m.impact_player and not self.super_over and not self.m.manual(self.bat, "impact"):
                 self.m.impact_mid_innings(self)
@@ -669,7 +685,15 @@ class Match:
         return self.base_type.get(p.bowl_type or "", self.base)
 
     def wp_first(self, inn: "Innings") -> float:
-        """Win probability of the side batting first, at the current state of `inn` (design T1-8)."""
+        """Win probability of the side batting first, at the current state of `inn` (design T1-8).
+        It is asked for before and after every ball; the state after one ball is the state before the next, so
+        the last answer is kept with the state it was worked out for (everything the answer depends on)."""
+        key = (inn.legal, inn.wkts, inn.runs, inn.max_overs, inn.target, inn.done)
+        if inn._wp[0] != key:
+            inn._wp = (key, self._wp_first(inn))
+        return inn._wp[1]
+
+    def _wp_first(self, inn: "Innings") -> float:
         n, off = inn.max_overs * 6, inn.offset()
         if inn.number == 1:
             if inn.done or inn.wkts >= 10 or inn.legal >= n:
@@ -742,6 +766,7 @@ class Match:
         team.order = [new if p is out else p for p in team.order]
         inn_.cards = [c for k, c in enumerate(inn_.cards) if k < inn_.next_in or c.p is not out]
         inn_.cards.insert(inn_.next_in + i, BatInns(new, 0))
+        inn_.cards_changed()
         for k, c in enumerate(inn_.cards):
             c.pos = k + 1
 
@@ -1093,6 +1118,7 @@ class Match:
             else:
                 inn.cards = [c for k, c in enumerate(inn.cards) if k < inn.next_in or c.p is not out]
                 inn.cards.insert(inn.next_in + (index or 0), BatInns(new, 0))
+            inn.cards_changed()
             for k, c in enumerate(inn.cards):
                 c.pos = k + 1
         if quota_left is not None:
@@ -1382,11 +1408,11 @@ class Match:
             used = self.dls.r2 - self.dls.res(i2.max_overs * 6 - i2.legal, i2.wkts)
             par = int(self.dls.par(i1.runs, used))
             self.rain_log.append(f"DLS par score at the stoppage: {par}.")
-            if i2.runs > par:
-                w = 10 - i2.wkts
-                return {"type": "win", "winner": i2.bat.name, "loser": i1.bat.name, "by": "wickets", "margin": w,
+            if i2.runs > par:          # ahead of par when play ended: a win by runs, as scorers record it
+                r = i2.runs - par
+                return {"type": "win", "winner": i2.bat.name, "loser": i1.bat.name, "by": "runs", "margin": r,
                         "dls": True, "par": par,
-                        "text": f"{i2.bat.name} won by {w} wicket{'s' if w != 1 else ''} (DLS method, par {par})"}
+                        "text": f"{i2.bat.name} won by {r} run{'s' if r != 1 else ''} (DLS method, par {par})"}
             if i2.runs == par:
                 return {"type": "tie", "winner": None, "no_super_over": True, "dls": True, "par": par,
                         "text": f"Match tied (DLS method, par {par})"}
