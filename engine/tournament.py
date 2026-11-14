@@ -272,7 +272,9 @@ def records(cards: list[dict], n: int = 10) -> dict:
         r = c["result"]
         if r.get("by") == "runs":
             runs_wins.append({**tag, "winner": r["winner"], "loser": r["loser"], "margin": r["margin"], "text": r["text"]})
-        elif r.get("by") == "wickets":
+        # A chase rain stopped while ahead of the DLS par is a win by wickets that was never finished: it has no
+        # balls left, so it is neither a biggest win by wickets nor a narrowest chase.
+        elif r.get("by") == "wickets" and "balls_left" in r:
             wkt_wins.append({**tag, "winner": r["winner"], "loser": r["loser"], "margin": r["margin"],
                              "balls_left": r["balls_left"], "text": r["text"]})
         elif r.get("by") == "super_over":

@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from engine.tournament import match_count, play_series, play_tournament, points_table  # noqa: E402
+from engine.tournament import match_count, play_series, play_tournament, points_table, records  # noqa: E402
 
 CFG = json.loads((ROOT / "examples" / "t20_world_cup_style.json").read_text(encoding="utf-8"))
 TEAMS = CFG["teams"]
@@ -213,6 +213,20 @@ def test_plate_promotion_relegation_and_plate_side_in_quarter_finals():
     assert res["relegated"] == min(elite_rows, key=lambda r: (r["points"], r["nrr"], r["team"]))["team"]
     assert res["relegated"] in res["teams"] and res["promoted"] not in res["teams"]
     assert all(k["stage"] != "Final" for k in res["knockouts"][:-1]) and res["knockouts"][-1]["stage"] == "Final"
+
+
+def test_records_skip_a_chase_rain_stopped_ahead_of_par():
+    """Rain stopping a chase ahead of the DLS par is a win by wickets with no balls left to report; it used to
+    stop the whole tournament with KeyError: 'balls_left' when the records were drawn up."""
+    def card(no, result):
+        return {"match_no": no, "stage": "League", "innings": [], "events": [], "result": result}
+    finished = {"type": "win", "winner": "A", "loser": "B", "by": "wickets", "margin": 6, "balls_left": 9,
+                "dls": False, "text": "A won by 6 wickets (9 balls left)"}
+    stopped = {"type": "win", "winner": "C", "loser": "D", "by": "wickets", "margin": 8, "dls": True, "par": 41,
+               "text": "C won by 8 wickets (DLS method, par 41)"}
+    rec = records([card(1, finished), card(2, stopped)])
+    assert [x["match_no"] for x in rec["biggest_wins_by_wickets"]] == [1]
+    assert [x["match_no"] for x in rec["narrowest_chases"]] == [1]
 
 
 if __name__ == "__main__":
