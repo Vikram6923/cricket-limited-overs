@@ -378,6 +378,7 @@ class Innings:
             "bowl_kind": (bowler.bowl_kind or "").replace("_", " "),
             "plan": self.m.bars_of(self.bowl, bowler, self), "bars": self.m.bars_of(self.bat, st.p, self),
             "runs": o.bat_runs, "extra": o.extra, "extra_runs": o.extra_runs, "ran": o.ran,
+            "byes": o.byes, "bye_kind": o.bye_kind,
             "wicket": o.wicket or None, "out": out.p.name if out else None,
             "out_end": ("striker" if out is st else "non_striker") if out else None,
             "fielder": how.get("fielder"), "fielder_role": role, "how": how.get("text"),
@@ -388,7 +389,9 @@ class Innings:
         total = o.bat_runs + o.extra_runs
         self.runs += total
         if o.extra:
-            self.extras[o.extra] += o.extra_runs
+            self.extras[o.extra] += o.extra_runs - o.byes
+            if o.byes:
+                self.extras[o.bye_kind] += o.byes
         if o.faced:
             s.balls += 1
             self.pship["balls"] += 1
@@ -420,7 +423,7 @@ class Innings:
             f.balls += 1
             if total == 0:
                 f.dots += 1
-        f.runs += o.bat_runs + (o.extra_runs if o.extra in ("w", "nb") else 0)
+        f.runs += o.bat_runs + (o.extra_runs - o.byes if o.extra in ("w", "nb") else 0)
         if o.extra == "w":
             f.wides += 1
         elif o.extra == "nb":
@@ -431,7 +434,7 @@ class Innings:
         elif o.extra == "w":
             seq.append(f"{o.extra_runs}wd" if o.extra_runs > 1 else "wd")
         elif o.extra == "nb":
-            seq.append(f"{o.bat_runs}nb" if o.bat_runs else "nb")
+            seq.append(f"{o.bat_runs}nb" if o.bat_runs else f"nb+{o.byes}{o.bye_kind}" if o.byes else "nb")
         elif o.extra in ("b", "lb"):
             seq.append(f"{o.extra_runs}{o.extra}")
         else:
@@ -1428,10 +1431,15 @@ class Match:
     def play_super_overs(self, first: Team, second: Team, result: dict) -> dict:
         """Super overs until there is a winner; the side that batted second bats first in the super over."""
         bat_first, bat_second = second, first
+        out_before = {first.name: set(), second.name: set()}    # dismissed in an earlier super over: can't bat again
+        bowled_last = {first.name: None, second.name: None}     # bowled the side's last super over: can't bowl the next
         for n in range(1, 21):
             base = self.base["death"]
-            bats1, bowler1 = captain.super_over_picks(bat_first.players, base, self.fmt)
-            bats2, bowler2 = captain.super_over_picks(bat_second.players, base, self.fmt)
+            bats1, bowler1 = captain.super_over_picks(bat_first.players, base, self.fmt,
+                                                      out_before[bat_first.name], bowled_last[bat_first.name])
+            bats2, bowler2 = captain.super_over_picks(bat_second.players, base, self.fmt,
+                                                      out_before[bat_second.name], bowled_last[bat_second.name])
+            bowled_last[bat_first.name], bowled_last[bat_second.name] = bowler1, bowler2
             s1 = Innings(self, bat_first, bat_second, 100 + 2 * n - 1, None, 1, max_wkts=2, order=bats1,
                          bowlers=[bowler2], super_over=True)
             s1.play()
@@ -1439,6 +1447,8 @@ class Match:
                          bowlers=[bowler1], super_over=True)
             s2.play()
             self.super_overs += [s1, s2]
+            for s in (s1, s2):
+                out_before[s.bat.name] |= {c.p for c in s.cards if c.out}
             if s1.runs != s2.runs:
                 w, l = (s1, s2) if s1.runs > s2.runs else (s2, s1)
                 so = "super over" if n == 1 else f"{n} super overs"

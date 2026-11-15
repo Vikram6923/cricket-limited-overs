@@ -89,7 +89,7 @@ def _appearances(fmt: str, y1: int, y2: int, source: str) -> dict:
                     for t, n in teams.items():
                         c[t] = c.get(t, 0) + n
     out = {}
-    for pid in set(intl) | set(league):
+    for pid in sorted(set(intl) | set(league)):    # sorted: a set's order differs from run to run
         ci = {t: n for t, n in intl.get(pid, {}).items() if source == "intl" or t in FULL_MEMBERS}
         cl = league.get(pid, {})
         m = sum(ci.values()) + sum(cl.values())

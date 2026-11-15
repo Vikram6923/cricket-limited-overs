@@ -395,7 +395,8 @@ save(res, "results/my_cup")
   differ per group (a list), `win_points=4` gives India's 4 points a win, and `plate={"teams": [...]}` plays a
   second division in the same run (its own league and final; `advance` sends its top sides into the knockouts)
   and reports the promoted and relegated sides.
-- **Points table:** net run rate by the ICC method (a side bowled out is charged its full quota of overs; super
+- **Points table:** ordered by points, then wins, then net run rate (as ICC events and the IPL do); net run rate
+  by the ICC method (a side bowled out is charged its full quota of overs; super
   overs don't count; in a DLS match the side batting first is credited with the par score in the chase's overs;
   no-results earn a point each and are left out). With `rain=True`, knockouts get a reserve day, after which the
   higher-placed side goes through.
@@ -486,6 +487,7 @@ python -m engine.fit.fit_reactive      # reactive bowling changes
 python -m engine.fit.fit_career        # career mode: age curves, season form, retirements
 python -m engine.fit.fit_depth         # T20 batting depth still to come, a trend that extrapolates (after fit_situation)
 python -m engine.calibrate             # compare simulated v real
+python tests/run_all.py                # every test script, several at a time (about a minute); -j 1: one by one
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -522,9 +524,12 @@ engine/            match engine (library)
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
   fit/             scripts that learn the engine's tables from Cricsheet
-web_ui.py          Flask server for the browser UI
-webui/             the page: index.html, style.css, app.js, teams.js (team colours, badges), one script per room
-                   (captain, auction, career, two players); no external scripts or fonts
+web_ui.py          starts the browser UI's server (--lan, --public, --jobs N: processes for league matches)
+server/            the Flask server by mode: core.py (app, visitors, storage), runs.py (the job that plays a run),
+                   draft.py, auction.py, rooms.py (two players), careers.py, saved.py
+webui/             the page: index.html, style.css, one script per screen (base, home, setup, draft, run, results,
+                   matchcentre, stats, builder, app) and per room (captain, auction, career, two players),
+                   teams.js (team colours, badges); no external scripts or fonts
 scripts/           data pipeline: download, raw stats, Afghanistan, pre-2002 players, styles, ratings,
                    league presets, validation
 data/              ratings_*.json (+ ratings_*_years.json for year ranges), engine/*.json (fitted tables), raw_stats/ (derived),
@@ -532,7 +537,8 @@ data/              ratings_*.json (+ ratings_*_years.json for year ranges), engi
                    raw/ and cache/ are rebuilt locally and not in git
 docs/              design document and calibration/progress log
 examples/          tournament and series configs
-tests/             engine and tournament tests
+tests/             engine, tournament, mode and server tests; run_all.py runs them all (also on every push,
+                   .github/workflows/tests.yml)
 ```
 
 ## Roadmap

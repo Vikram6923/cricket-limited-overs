@@ -159,5 +159,9 @@ def main() -> None:
           "wickets", {k: round(v, 1) for k, v in wk.items()})
 
 
+def test_aggression_dials():        # so that pytest runs it too (it found no test in this file before)
+    main()
+
+
 if __name__ == "__main__":
     main()

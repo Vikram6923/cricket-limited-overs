@@ -7,10 +7,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Only what the site needs: the engine, the page and the data (not the build scripts or raw downloads).
+# Only what the site needs: the engine, the server, the page and the data (not the build scripts or raw downloads).
 COPY engine engine
 COPY webui webui
 COPY data data
+COPY server server
 COPY web_ui.py .
 
 # Run as an ordinary user; results/ (visitors' runs, teams and careers) is the only folder it writes to.

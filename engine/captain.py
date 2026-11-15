@@ -337,9 +337,16 @@ class BowlingPlan:
         return None
 
 
-def super_over_picks(players: list[Player], base: dict, fmt: str) -> tuple[list[Player], Player]:
-    """Three batters with the highest death-overs run rate, and the best death bowler."""
-    bats = sorted(players, key=lambda p: -(p.bat["death"]["runs"] * (1.0 + p.bat["death"]["six"]) /
+def super_over_picks(players: list[Player], base: dict, fmt: str, out_before=(),
+                     bowled_last: Player | None = None) -> tuple[list[Player], Player]:
+    """Three batters with the highest death-overs run rate, and the best death bowler.
+    In a second or later super over a batter dismissed in an earlier one (out_before) may not bat again and
+    the bowler of the side's previous super over (bowled_last) may not bowl this one."""
+    can_bat = [p for p in players if p not in out_before]
+    if len(can_bat) < 3:        # only after many super overs: nobody left to bar
+        can_bat = list(players)
+    bats = sorted(can_bat, key=lambda p: -(p.bat["death"]["runs"] * (1.0 + p.bat["death"]["six"]) /
                                            max(p.bat["death"]["wkt"], 0.3)))[:3]
-    bowler = min(players, key=lambda p: bowling_cost(p, "death", base, fmt) + (0 if p.rated_bowl else 1))
+    bowler = min((p for p in players if p is not bowled_last),
+                 key=lambda p: bowling_cost(p, "death", base, fmt) + (0 if p.rated_bowl else 1))
     return bats, bowler

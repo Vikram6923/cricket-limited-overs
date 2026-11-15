@@ -90,15 +90,23 @@ def test_seed_reproducible():
 
 
 def test_super_over_happens():
-    # with enough matches some end level; every tie must be settled by super overs
+    """Every tie is settled by super overs. (A level finish is about 1 match in 300, so the tie is forced here;
+    the invariant tests above check the ones that come up by themselves.)"""
+    from engine import match as M
     a, b = {"name": "India", "players": _ids(T20_A, "t20")}, {"name": "Australia", "players": _ids(T20_B, "t20")}
-    ties = 0
-    for seed in range(1500):
-        c = simulate_match(a, b, fmt="t20", year=2024, seed=seed)
-        if c["super_overs"]:
-            ties += 1
-            assert c["result"]["winner"] in ("India", "Australia")
-    assert ties > 0, "no ties in 1500 T20s - suspicious"
+    real = M.Match.result
+    M.Match.result = lambda self, i1, i2: {"type": "tie", "winner": None, "dls": False, "text": "Match tied"}
+    try:
+        for seed in range(40):
+            c = simulate_match(a, b, fmt="t20", year=2024, seed=seed)
+            r, so = c["result"], c["super_overs"]
+            assert so and len(so) % 2 == 0 and r["by"] == "super_over" and r["winner"] in ("India", "Australia")
+            assert so[-2]["runs"] != so[-1]["runs"] and all(x["runs"] == y["runs"] for x, y in zip(so[:-2:2], so[1:-2:2]))
+            assert r["winner"] == max(so[-2:], key=lambda s: s["runs"])["team"]
+            assert all(s["balls"] <= 6 and s["wickets"] <= 2 for s in so)
+            scorecard_text(c)
+    finally:
+        M.Match.result = real
 
 
 def test_unknown_players():
@@ -171,6 +179,75 @@ def test_chase_stopped_by_rain_is_decided_by_runs():
         scorecard_text(c)
         match_report(c)
     assert kinds == {"chaser", "defender"}, kinds
+
+
+def test_second_super_over_bars_the_bowler_and_dismissed_batters():
+    """When the first super over is tied too, nobody dismissed in it bats in the next one and neither side's
+    bowler bowls two super overs running."""
+    from engine import match as M
+    a, b = {"name": "India", "players": _ids(T20_A, "t20")}, {"name": "Australia", "players": _ids(T20_B, "t20")}
+    real_play, real_result, first = M.Innings.play, M.Match.result, {}
+
+    def play(self):
+        real_play(self)
+        if self.number == 101:
+            first["runs"] = self.runs
+        elif self.number == 102:
+            self.runs = first["runs"]                   # the first super over ends level
+    M.Innings.play = play
+    M.Match.result = lambda self, i1, i2: {"type": "tie", "winner": None, "dls": False, "text": "Match tied"}
+    try:
+        seen_out = 0
+        for seed in range(12):
+            c = simulate_match(a, b, fmt="t20", year=2024, seed=seed)
+            so = c["super_overs"]
+            assert len(so) >= 4 and c["result"]["winner"]
+            for k in range(2, len(so)):
+                earlier = [s for s in so[:k - k % 2] if s["team"] == so[k]["team"]]
+                out = {x["name"] for s in earlier for x in s["batting"] if x["out"]}
+                seen_out += len(out)
+                assert not out & {x["name"] for x in so[k]["batting"] if x["batted"]}, "dismissed batter batted again"
+                prev = [s for s in so[:k] if s["bowling_team"] == so[k]["bowling_team"]][-1]
+                assert prev["bowling"][0]["name"] != so[k]["bowling"][0]["name"], "bowler bowled two super overs running"
+        assert seen_out, "no wicket fell in any first super over - the test checked nothing"
+    finally:
+        M.Innings.play, M.Match.result = real_play, real_result
+
+
+def test_no_ball_is_not_a_free_hit_and_keeps_its_byes():
+    """The no-ball itself scores at its own (near-normal) rate, not the free hit's; byes and leg byes run off it
+    are added to the penalty run, go down as byes / leg byes and are not charged to the bowler."""
+    import random
+    from engine.match import Match
+    a, b = {"name": "India", "players": _ids(T20_A, "t20")}, {"name": "Australia", "players": _ids(T20_B, "t20")}
+    m = Match("t20", a, b, year=2024, seed=1)
+    bat, bowl = m.teams[0].players[2], m.teams[1].players[-1]
+    rng = random.Random(7)
+    base = dict(m.base["middle"], noball=0.5)            # half the balls are no-balls, to get plenty of them
+    nb, free, normal, byes = [], [], [], []
+    for k in range(60000):
+        o = m.model.delivery(rng, base, bat, bowl, "middle", "pace", free_hit=k % 2 == 1)
+        if o.extra == "nb":
+            nb.append(o.bat_runs)
+            assert not o.legal and o.wicket in ("", "run_out") and o.extra_runs == 1 + o.byes
+            if o.byes:
+                byes.append(o)
+                assert o.bye_kind in ("b", "lb") and o.bat_runs == 0 and o.ran == (o.byes if o.byes != 4 else 0)
+        elif not o.extra:
+            (free if k % 2 == 1 else normal).append(o.bat_runs)
+    mean = lambda x: sum(x) / len(x)
+    assert len(byes) > 50
+    assert abs(mean(nb) / mean(normal) - 1.0) < 0.2, (mean(nb), mean(normal))     # fitted: x1.03 in these overs
+    assert mean(free) > 1.4 * mean(nb), (mean(free), mean(nb))
+    # in a match: the scorecard still adds up when a no-ball has byes (check_card), and the over log shows them
+    seen = 0
+    for seed in range(300):
+        c = simulate_match(a, b, fmt="t20", year=2024, seed=seed)
+        syms = [x for inn in c["innings"] for o in inn["overs_log"] for x in o["balls"] if "nb+" in x]
+        if syms:
+            seen += 1
+            check_card(c)
+    assert seen, "no no-ball with byes in 300 matches"
 
 
 if __name__ == "__main__":

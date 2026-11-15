@@ -992,3 +992,64 @@ Found and left for a decision (they change seeded results or a rule, so they are
 - A career player counts as capped from the year he was really first capped, whatever happened in the career.
 - The same batters and bowler can play every super over (the laws bar the bowler and any dismissed batter from
   the next one).
+
+
+## Audit, second part: rule fixes, the no-ball, tests, worker processes, the server by mode (2026-11-15)
+
+Decided by the owner from the list above: fix the no-ball (both items), the points order and the super overs;
+leave the belief gap and the capped status as they are.
+
+Rules and the ball model (these change seeded results; calibration re-run below):
+- **The no-ball delivery has its own rates.** It was scored at the free hit's rates, which were fitted on the
+  ball *after* a no-ball. On the no-ball itself the batter does not know yet, and the data says so
+  (`fit_basics.py`, new `no_ball` block in `basics_*.json`; multipliers on a normal ball):
+
+  | | runs: powerplay / middle / death | sixes | the free hit's runs (for comparison) |
+  |---|---|---|---|
+  | T20 (8,900 no-balls) | 0.96 / 1.03 / 1.04 | 1.10 / 1.34 / 1.43 | 1.77 / 1.73 / 1.29 |
+  | ODI (2,200 no-balls) | 1.14 / 1.20 / 1.25 | 1.82 / 2.09 / 1.96 | 2.75 / 2.47 / 1.58 |
+
+  Only the `no_ball` block was added to the two files; every other table is as committed (the raw T20 zips on
+  this computer hold 8,862 matches against the 9,557 of the committed fit, so a full refit would have moved
+  them all).
+- **Byes and leg byes off a no-ball count.** They were dropped (the no-ball overwrote the extra) while the
+  batters still changed ends. Now the penalty run goes to no-balls and the bowler, the byes to byes / leg byes
+  and nobody's figures (`Outcome.byes`, `bye_kind`; over log `nb+2lb`). Their chance on a no-ball not scored
+  off is fitted too: byes 4-7% in T20s against 1% on a legal ball (no-balls are often high or wide of the keeper).
+- **Points table:** points, then wins, then net run rate (was net run rate before wins).
+- **Super overs:** in a second or later super over a batter dismissed in an earlier one does not bat again and
+  a side's bowler does not bowl two super overs running (`captain.super_over_picks`).
+- **Fantasy Draft pool:** built in sorted player order. It was built in a set's order, which differs from run to
+  run, so equal-valued players could in principle come out in another order (never seen to change a draft).
+
+Calibration after the no-ball change (4 replays a fixture, sim before -> after, real):
+T20I first innings 167.8 -> 167.7 (168.7), extras 8.07 -> 8.09 (8.41); IPL 188.2 -> 187.7 (186.3), sixes
+8.87 -> 8.81 (8.51); ODI 264.5 -> 264.3 (267.5), extras 12.81 -> 12.87 (12.25). Nothing moved by more than
+0.3%, as expected of one ball in 250. (The Mushtaq Ali suite was not re-run: its zip is not on this computer.)
+
+Tests:
+- `python tests/run_all.py`: every script in its own process, several at a time: 64-71 s on this laptop against
+  about 5 minutes one after the other. `.github/workflows/tests.yml` runs it on every push and pull request.
+- `test_super_over_happens` played 1,500 matches (23 s) to meet a tie; it now forces one and checks more (0.3 s).
+- `test_aggression.py` had no `test_` function, so pytest ran nothing from it; it has one now.
+- New: the second super over's bars, the no-ball's rates and byes, wins before net run rate, worker processes.
+
+Worker processes for league stages (`engine/tournament.py` `set_jobs`, `--jobs` on `web_ui.py` and
+`python -m engine.tournament`): league matches nobody captains are played on a pool of processes, kept between
+runs. Every match already had its own seed and its venue by its number, so the result is the same for any
+number of processes (checked on an IPL season, a Mushtaq Ali season and a career season with weaker captains:
+identical JSON). On this laptop (2 fast cores) with 4 processes: IPL season 6.0 s -> 2.4 s once the pool is up
+(4.4 s the first time), Mushtaq Ali season 2.5 s -> 1.0 s. Knockouts, series, and any stage with a person
+captaining stay in the main process. Default: up to 4 on your own computer, 1 with `--public` (a process holds
+the ratings, and a hosted site has many visitors).
+
+The server by mode: `web_ui.py` (2,176 lines) is now `server/` - `core.py`, `runs.py`, `draft.py`,
+`auction.py`, `rooms.py`, `careers.py`, `saved.py` - with the same 43 routes and the same names (checked against
+the old file by import); `web_ui.py` starts it and still offers every name, and `web_ui.LAST = folder` still
+moves where it keeps things. `webui/app.js` (1,655 lines) is split by screen into ten files loaded in the old
+order, so the statements run exactly as before.
+
+Read in this part (no bug found beyond the draft order above): `selection.py`, `judge.py`, `draft.py`,
+`history.py`, `periods.py`, `ipl_link.py`, `domestic.py`, `leagues.py`, the rest of `auction.py`,
+`fit_basics.py`, `fit_depth.py`, `fit_impact.py`, `fit_toss.py`, `fit_dls.py`. Only scanned for hazards (unseeded
+random draws, set order reaching output, swallowed errors): the other fit scripts and `scripts/`.

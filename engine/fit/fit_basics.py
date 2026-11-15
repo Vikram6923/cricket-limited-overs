@@ -8,6 +8,8 @@ Per format (T20 = T20Is + leagues, ODI), matches since 2010:
                             caught_bowler / stumped / hit_wicket   (type = pace / spin / unknown bowler)
   run_out                   share of run-outs that remove the non-striker; runs completed on run-out balls
   free_hit                  multipliers on the legal ball after a no-ball (runs, fours, sixes, dots)
+  no_ball                   the same multipliers for the no-ball delivery itself (the batter does not know it is
+                            one until it is called), and P(byes) / P(leg byes) when he does not score off it
 
 Writes data/engine/basics_{odi,t20}.json.   Run:  python -m engine.fit.fit_basics
 """
@@ -73,6 +75,7 @@ def fit(fmt: str, kp: set, btype: dict) -> dict:
     ro_nonstriker = Counter()
     ro_runs = Counter()
     fh = defaultdict(lambda: [0, 0, 0, 0, 0])   # after-no-ball / normal: balls, runs, fours, sixes, dots (by phase)
+    nbb = defaultdict(lambda: [0, 0, 0])        # no-balls not scored off, no wicket: balls, with byes, with leg byes
     n_matches = 0
     for z in SOURCES[fmt]:
         if not (RAW / z).exists():
@@ -108,14 +111,17 @@ def fit(fmt: str, kp: set, btype: dict) -> dict:
                             if wide:
                                 wide_runs[min(ex["wides"], 5)] += 1
                                 continue
-                            if not nb:
-                                key = ("after_nb" if prev_nb else "normal", ph)
-                                x = fh[key]
-                                x[0] += 1
-                                x[1] += br
-                                x[2] += br == 4 and not d["runs"].get("non_boundary")
-                                x[3] += br == 6
-                                x[4] += br == 0
+                            x = fh[("nb" if nb else "after_nb" if prev_nb else "normal", ph)]
+                            x[0] += 1
+                            x[1] += br
+                            x[2] += br == 4 and not d["runs"].get("non_boundary")
+                            x[3] += br == 6
+                            x[4] += br == 0
+                            if nb and br == 0 and not wk:
+                                y = nbb[ph]
+                                y[0] += 1
+                                y[1] += "byes" in ex
+                                y[2] += "legbyes" in ex
                             prev_nb = nb
                             if br in (1, 2, 3, 5):
                                 run_split[ph][br] += 1
@@ -154,14 +160,20 @@ def fit(fmt: str, kp: set, btype: dict) -> dict:
             share = ck / (ck + cf) if ck + cf else 0.12
             c["caught_keeper"] = ck + u * share
             c["caught_fielder"] = cf + u * (1 - share)
-    free_hit = {}
+    free_hit, no_ball = {}, {}
     for ph in [p[2] for p in PHASES[fmt]]:
-        a, b = fh[("after_nb", ph)], fh[("normal", ph)]
-        if a[0] and b[0]:
-            free_hit[ph] = {"balls": a[0], "runs": round((a[1] / a[0]) / (b[1] / b[0]), 3),
-                            "four": round((a[2] / a[0]) / (b[2] / b[0]), 3),
-                            "six": round((a[3] / a[0]) / (b[3] / b[0]), 3),
-                            "dot": round((a[4] / a[0]) / (b[4] / b[0]), 3)}
+        b = fh[("normal", ph)]
+        for key, out in (("after_nb", free_hit), ("nb", no_ball)):
+            a = fh[(key, ph)]
+            if a[0] and b[0]:
+                out[ph] = {"balls": a[0], "runs": round((a[1] / a[0]) / (b[1] / b[0]), 3),
+                           "four": round((a[2] / a[0]) / (b[2] / b[0]), 3),
+                           "six": round((a[3] / a[0]) / (b[3] / b[0]), 3),
+                           "dot": round((a[4] / a[0]) / (b[4] / b[0]), 3)}
+        if ph in no_ball:
+            y = nbb[ph]
+            no_ball[ph]["p_bye"] = round(y[1] / max(y[0], 1), 5)
+            no_ball[ph]["p_legbye"] = round(y[2] / max(y[0], 1), 5)
     out = {
         "format": fmt, "matches": n_matches, "since": FIRST_YEAR,
         "run_split": {ph: norm(c) for ph, c in run_split.items()},
@@ -174,6 +186,7 @@ def fit(fmt: str, kp: set, btype: dict) -> dict:
         "run_out": {"non_striker_share": round(ro_nonstriker[True] / max(sum(ro_nonstriker.values()), 1), 4),
                     "runs_completed": norm(ro_runs)},
         "free_hit": free_hit,
+        "no_ball": no_ball,
     }
     return out
 
@@ -186,6 +199,7 @@ def main() -> int:
         b["keepers"] = sorted(kp)
         (OUT / f"basics_{fmt}.json").write_text(json.dumps(b, indent=1), encoding="utf-8")
         print(f"{fmt}: {b['matches']} matches; free hit {b['free_hit']}")
+        print(f"   no-ball itself {b['no_ball']}")
         print(f"   death dismissals pace: {b['dismissal']['death'].get('pace')}")
         print(f"   middle dismissals spin: {b['dismissal']['middle'].get('spin')}")
         print(f"   run split middle {b['run_split']['middle']}  wides {b['wide_runs']}")
