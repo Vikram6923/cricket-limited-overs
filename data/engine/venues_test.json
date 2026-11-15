@@ -1,0 +1,630 @@
+{
+ "format": "test",
+ "matches": 894,
+ "reps": 3,
+ "method": "match_total",
+ "venue_sd": {
+  "runs": 0.0315,
+  "wkt": 0.0675
+ },
+ "pitch": {
+  "sd_runs": 0.0738,
+  "sd_wkt": 0.1766,
+  "corr": 0.042,
+  "matches": 783
+ },
+ "pitch_by_comp": {
+  "test_full": {
+   "sd_runs": 0.0738,
+   "sd_wkt": 0.1766,
+   "corr": 0.042,
+   "matches": 783
+  }
+ },
+ "venues": {
+  "lord s": {
+   "name": "Lord's",
+   "matches": 42,
+   "runs": 1.0037,
+   "wkt": 1.0073
+  },
+  "galle international stadium": {
+   "name": "Galle International Stadium",
+   "matches": 40,
+   "runs": 1.0057,
+   "wkt": 1.0314
+  },
+  "basin reserve": {
+   "name": "Basin Reserve, Wellington",
+   "matches": 28,
+   "runs": 1.0027,
+   "wkt": 1.0143
+  },
+  "shere bangla national stadium": {
+   "name": "Shere Bangla National Stadium, Mirpur",
+   "matches": 28,
+   "runs": 0.9984,
+   "wkt": 1.0475
+  },
+  "newlands": {
+   "name": "Newlands, Cape Town",
+   "matches": 27,
+   "runs": 1.0133,
+   "wkt": 1.0001
+  },
+  "sydney cricket ground": {
+   "name": "Sydney Cricket Ground",
+   "matches": 25,
+   "runs": 1.0257,
+   "wkt": 0.9515
+  },
+  "the oval": {
+   "name": "The Oval",
+   "matches": 24,
+   "runs": 1.0404,
+   "wkt": 1.0394
+  },
+  "brisbane cricket ground": {
+   "name": "Brisbane Cricket Ground",
+   "matches": 22,
+   "runs": 1.0159,
+   "wkt": 0.9819
+  },
+  "melbourne cricket ground": {
+   "name": "Melbourne Cricket Ground",
+   "matches": 22,
+   "runs": 0.9705,
+   "wkt": 0.978
+  },
+  "adelaide oval": {
+   "name": "Adelaide Oval",
+   "matches": 21,
+   "runs": 0.9766,
+   "wkt": 0.9747
+  },
+  "edgbaston": {
+   "name": "Edgbaston",
+   "matches": 20,
+   "runs": 1.0543,
+   "wkt": 0.9981
+  },
+  "sinhalese sports club ground": {
+   "name": "Sinhalese Sports Club Ground",
+   "matches": 20,
+   "runs": 0.9973,
+   "wkt": 0.919
+  },
+  "supersport park": {
+   "name": "SuperSport Park, Centurion",
+   "matches": 20,
+   "runs": 1.042,
+   "wkt": 1.0574
+  },
+  "headingley": {
+   "name": "Headingley",
+   "matches": 19,
+   "runs": 1.0377,
+   "wkt": 1.0559
+  },
+  "wanderers stadium": {
+   "name": "Wanderers Stadium, Johannesburg",
+   "matches": 19,
+   "runs": 1.0368,
+   "wkt": 1.1133
+  },
+  "zahur ahmed chowdhury stadium": {
+   "name": "Zahur Ahmed Chowdhury Stadium, Chittagong",
+   "matches": 18,
+   "runs": 0.9975,
+   "wkt": 0.9386
+  },
+  "trent bridge": {
+   "name": "Trent Bridge",
+   "matches": 18,
+   "runs": 1.0285,
+   "wkt": 1.0417
+  },
+  "seddon park": {
+   "name": "Seddon Park, Hamilton",
+   "matches": 16,
+   "runs": 1.0013,
+   "wkt": 0.9666
+  },
+  "queens sports club": {
+   "name": "Queens Sports Club, Bulawayo",
+   "matches": 16,
+   "runs": 0.9974,
+   "wkt": 0.9766
+  },
+  "old trafford": {
+   "name": "Old Trafford",
+   "matches": 16,
+   "runs": 1.0104,
+   "wkt": 0.9781
+  },
+  "hagley oval": {
+   "name": "Hagley Oval, Christchurch",
+   "matches": 15,
+   "runs": 1.01,
+   "wkt": 0.9712
+  },
+  "sabina park": {
+   "name": "Sabina Park",
+   "matches": 15,
+   "runs": 0.9793,
+   "wkt": 1.092
+  },
+  "harare sports club": {
+   "name": "Harare Sports Club",
+   "matches": 15,
+   "runs": 0.9881,
+   "wkt": 0.9737
+  },
+  "kingsmead": {
+   "name": "Kingsmead, Durban",
+   "matches": 15,
+   "runs": 0.9882,
+   "wkt": 1.0363
+  },
+  "sir vivian richards stadium": {
+   "name": "Sir Vivian Richards Stadium, North Sound, Antigua",
+   "matches": 14,
+   "runs": 0.9845,
+   "wkt": 0.9143
+  },
+  "kensington oval": {
+   "name": "Kensington Oval",
+   "matches": 14,
+   "runs": 0.9914,
+   "wkt": 1.0215
+  },
+  "waca": {
+   "name": "WACA, Perth",
+   "matches": 13,
+   "runs": 1.0346,
+   "wkt": 1.0038
+  },
+  "dubai international cricket stadium": {
+   "name": "Dubai International Cricket Stadium",
+   "matches": 13,
+   "runs": 0.9573,
+   "wkt": 0.9811
+  },
+  "sheikh zayed stadium": {
+   "name": "Sheikh Zayed Stadium, Abu Dhabi",
+   "matches": 13,
+   "runs": 0.9836,
+   "wkt": 0.9704
+  },
+  "st george s park": {
+   "name": "St George's Park, Port Elizabeth",
+   "matches": 13,
+   "runs": 0.9903,
+   "wkt": 1.0305
+  },
+  "p saravanamuttu stadium": {
+   "name": "P Saravanamuttu Stadium, Colombo",
+   "matches": 13,
+   "runs": 0.9666,
+   "wkt": 1.0453
+  },
+  "eden gardens": {
+   "name": "Eden Gardens, Kolkata",
+   "matches": 10,
+   "runs": 1.0029,
+   "wkt": 1.0517
+  },
+  "rawalpindi cricket stadium": {
+   "name": "Rawalpindi Cricket Stadium",
+   "matches": 10,
+   "runs": 0.9945,
+   "wkt": 0.9485
+  },
+  "pallekele international cricket stadium": {
+   "name": "Pallekele International Cricket Stadium",
+   "matches": 9,
+   "runs": 0.9978,
+   "wkt": 0.9778
+  },
+  "queen s park oval": {
+   "name": "Queen's Park Oval, Port of Spain, Trinidad",
+   "matches": 9,
+   "runs": 0.9743,
+   "wkt": 0.9545
+  },
+  "bellerive oval": {
+   "name": "Bellerive Oval, Hobart",
+   "matches": 8,
+   "runs": 0.9943,
+   "wkt": 0.9964
+  },
+  "ma chidambaram stadium": {
+   "name": "MA Chidambaram Stadium",
+   "matches": 8,
+   "runs": 1.0041,
+   "wkt": 0.9842
+  },
+  "m chinnaswamy stadium": {
+   "name": "M Chinnaswamy Stadium, Bengaluru",
+   "matches": 8,
+   "runs": 1.0127,
+   "wkt": 1.0034
+  },
+  "multan cricket stadium": {
+   "name": "Multan Cricket Stadium",
+   "matches": 8,
+   "runs": 1.0123,
+   "wkt": 1.0268
+  },
+  "university oval": {
+   "name": "University Oval, Dunedin",
+   "matches": 7,
+   "runs": 0.9809,
+   "wkt": 0.9926
+  },
+  "wankhede stadium": {
+   "name": "Wankhede Stadium, Mumbai",
+   "matches": 7,
+   "runs": 1.0158,
+   "wkt": 1.074
+  },
+  "the rose bowl": {
+   "name": "The Rose Bowl, Southampton",
+   "matches": 7,
+   "runs": 0.9711,
+   "wkt": 1.0044
+  },
+  "vidarbha cricket association stadium": {
+   "name": "Vidarbha Cricket Association Stadium, Jamtha, Nagpur",
+   "matches": 7,
+   "runs": 0.9524,
+   "wkt": 0.9998
+  },
+  "darren sammy national cricket stadium": {
+   "name": "Darren Sammy National Cricket Stadium, Gros Islet, St Lucia",
+   "matches": 6,
+   "runs": 0.9893,
+   "wkt": 1.0172
+  },
+  "green park": {
+   "name": "Green Park, Kanpur",
+   "matches": 6,
+   "runs": 0.9914,
+   "wkt": 1.0474
+  },
+  "rajiv gandhi international stadium": {
+   "name": "Rajiv Gandhi International Stadium, Uppal",
+   "matches": 6,
+   "runs": 0.9927,
+   "wkt": 0.9702
+  },
+  "windsor park": {
+   "name": "Windsor Park, Roseau",
+   "matches": 6,
+   "runs": 0.9609,
+   "wkt": 1.0162
+  },
+  "feroz shah kotla": {
+   "name": "Feroz Shah Kotla, Delhi",
+   "matches": 6,
+   "runs": 0.9761,
+   "wkt": 0.9815
+  },
+  "perth stadium": {
+   "name": "Perth Stadium",
+   "matches": 6,
+   "runs": 0.9968,
+   "wkt": 1.0157
+  },
+  "sylhet international cricket stadium": {
+   "name": "Sylhet International Cricket Stadium",
+   "matches": 6,
+   "runs": 0.9966,
+   "wkt": 1.0011
+  },
+  "bay oval": {
+   "name": "Bay Oval, Mount Maunganui",
+   "matches": 6,
+   "runs": 0.9684,
+   "wkt": 0.967
+  },
+  "national stadium": {
+   "name": "National Stadium, Karachi",
+   "matches": 6,
+   "runs": 1.0076,
+   "wkt": 0.9713
+  },
+  "gaddafi stadium": {
+   "name": "Gaddafi Stadium, Lahore",
+   "matches": 6,
+   "runs": 0.9926,
+   "wkt": 0.9798
+  },
+  "punjab cricket association stadium": {
+   "name": "Punjab Cricket Association Stadium, Mohali, Chandigarh",
+   "matches": 6,
+   "runs": 0.9781,
+   "wkt": 0.9941
+  },
+  "sharjah cricket stadium": {
+   "name": "Sharjah Cricket Stadium",
+   "matches": 5,
+   "runs": 0.9752,
+   "wkt": 1.0114
+  },
+  "eden park": {
+   "name": "Eden Park, Auckland",
+   "matches": 5,
+   "runs": 0.9894,
+   "wkt": 0.9865
+  },
+  "antigua recreation ground": {
+   "name": "Antigua Recreation Ground, St John's",
+   "matches": 5,
+   "runs": 1.0064,
+   "wkt": 0.9281
+  },
+  "riverside ground": {
+   "name": "Riverside Ground, Chester-le-Street",
+   "matches": 5,
+   "runs": 1.0331,
+   "wkt": 1.0254
+  },
+  "sardar patel stadium": {
+   "name": "Sardar Patel Stadium, Motera, Ahmedabad",
+   "matches": 5,
+   "runs": 0.9837,
+   "wkt": 0.9606
+  },
+  "r premadasa stadium": {
+   "name": "R Premadasa Stadium, Colombo",
+   "matches": 4,
+   "runs": 1.0034,
+   "wkt": 1.0059
+  },
+  "narendra modi stadium": {
+   "name": "Narendra Modi Stadium, Ahmedabad",
+   "matches": 4,
+   "runs": 0.9912,
+   "wkt": 1.005
+  },
+  "national cricket stadium": {
+   "name": "National Cricket Stadium, St George's, Grenada",
+   "matches": 4,
+   "runs": 0.9795,
+   "wkt": 1.0368
+  },
+  "bir shrestha shahid ruhul amin stadium": {
+   "name": "Bir Shrestha Shahid Ruhul Amin Stadium, Chittagong",
+   "matches": 4,
+   "runs": 1.0188,
+   "wkt": 1.0144
+  },
+  "mclean park": {
+   "name": "McLean Park, Napier",
+   "matches": 4,
+   "runs": 1.0023,
+   "wkt": 0.9778
+  },
+  "holkar cricket stadium": {
+   "name": "Holkar Cricket Stadium, Indore",
+   "matches": 3,
+   "runs": 0.9979,
+   "wkt": 1.0002
+  },
+  "andhra cricket association visakhapatnam district cricket association stadium": {
+   "name": "Andhra Cricket Association-Visakhapatnam District Cricket Association Stadium, Visakhapatnam",
+   "matches": 3,
+   "runs": 0.9868,
+   "wkt": 0.9875
+  },
+  "punjab cricket association is bindra stadium": {
+   "name": "Punjab Cricket Association IS Bindra Stadium, Mohali, Chandigarh",
+   "matches": 3,
+   "runs": 0.9861,
+   "wkt": 1.0206
+  },
+  "maharashtra cricket association stadium": {
+   "name": "Maharashtra Cricket Association Stadium, Pune",
+   "matches": 3,
+   "runs": 1.0042,
+   "wkt": 1.0055
+  },
+  "jsca international stadium complex": {
+   "name": "JSCA International Stadium Complex, Ranchi",
+   "matches": 3,
+   "runs": 0.9826,
+   "wkt": 0.9714
+  },
+  "national bank cricket arena": {
+   "name": "National Bank Cricket Arena, Karachi",
+   "matches": 3,
+   "runs": 1.0066,
+   "wkt": 0.9795
+  },
+  "providence stadium": {
+   "name": "Providence Stadium, Guyana",
+   "matches": 3,
+   "runs": 0.9853,
+   "wkt": 1.013
+  },
+  "iqbal stadium": {
+   "name": "Iqbal Stadium, Faisalabad",
+   "matches": 3,
+   "runs": 0.9935,
+   "wkt": 0.9847
+  },
+  "asgiriya stadium": {
+   "name": "Asgiriya Stadium, Kandy",
+   "matches": 3,
+   "runs": 1.0005,
+   "wkt": 1.0147
+  },
+  "warner park": {
+   "name": "Warner Park, St Kitts",
+   "matches": 3,
+   "runs": 1.0072,
+   "wkt": 0.9592
+  },
+  "sophia gardens": {
+   "name": "Sophia Gardens, Cardiff",
+   "matches": 3,
+   "runs": 1.0185,
+   "wkt": 0.9882
+  },
+  "sheikh abu naser stadium": {
+   "name": "Sheikh Abu Naser Stadium, Khulna",
+   "matches": 3,
+   "runs": 1.0009,
+   "wkt": 0.9826
+  },
+  "saurashtra cricket association stadium": {
+   "name": "Saurashtra Cricket Association Stadium, Rajkot",
+   "matches": 2,
+   "runs": 1.0227,
+   "wkt": 0.9834
+  },
+  "himachal pradesh cricket association stadium": {
+   "name": "Himachal Pradesh Cricket Association Stadium, Dharamsala",
+   "matches": 2,
+   "runs": 1.0066,
+   "wkt": 1.0124
+  },
+  "mangaung oval": {
+   "name": "Mangaung Oval, Bloemfontein",
+   "matches": 2,
+   "runs": 1.0217,
+   "wkt": 1.0149
+  },
+  "arun jaitley stadium": {
+   "name": "Arun Jaitley Stadium",
+   "matches": 2,
+   "runs": 1.0152,
+   "wkt": 1.0187
+  },
+  "civil service cricket club": {
+   "name": "Civil Service Cricket Club, Stormont, Belfast",
+   "matches": 2,
+   "runs": 1.0058,
+   "wkt": 1.0088
+  },
+  "marrara cricket ground": {
+   "name": "Marrara Cricket Ground, Darwin",
+   "matches": 2,
+   "runs": 0.9753,
+   "wkt": 1.0033
+  },
+  "beausejour stadium": {
+   "name": "Beausejour Stadium, Gros Islet, St Lucia",
+   "matches": 2,
+   "runs": 0.9872,
+   "wkt": 0.9936
+  },
+  "jade stadium": {
+   "name": "Jade Stadium, Christchurch",
+   "matches": 2,
+   "runs": 0.9917,
+   "wkt": 1.0165
+  },
+  "arnos vale ground": {
+   "name": "Arnos Vale Ground, Kingstown",
+   "matches": 2,
+   "runs": 0.9656,
+   "wkt": 0.9918
+  },
+  "bangabandhu national stadium": {
+   "name": "Bangabandhu National Stadium, Dhaka",
+   "matches": 2,
+   "runs": 1.002,
+   "wkt": 1.0099
+  },
+  "chittagong stadium": {
+   "name": "Chittagong Stadium",
+   "matches": 2,
+   "runs": 1.0083,
+   "wkt": 1.0072
+  },
+  "senwes park": {
+   "name": "Senwes Park, Potchefstroom",
+   "matches": 1,
+   "runs": 0.9988,
+   "wkt": 0.9921
+  },
+  "malahide cricket ground": {
+   "name": "Malahide Cricket Ground, Dublin",
+   "matches": 1,
+   "runs": 1.0019,
+   "wkt": 0.9953
+  },
+  "manuka oval": {
+   "name": "Manuka Oval, Canberra",
+   "matches": 1,
+   "runs": 1.0075,
+   "wkt": 0.988
+  },
+  "niranjan shah stadium": {
+   "name": "Niranjan Shah Stadium, Rajkot",
+   "matches": 1,
+   "runs": 1.0006,
+   "wkt": 0.9741
+  },
+  "bir sreshtho flight lieutenant matiur rahman stadium": {
+   "name": "Bir Sreshtho Flight Lieutenant Matiur Rahman Stadium, Chattogram",
+   "matches": 1,
+   "runs": 0.9863,
+   "wkt": 0.9935
+  },
+  "barsapara cricket stadium": {
+   "name": "Barsapara Cricket Stadium, Guwahati",
+   "matches": 1,
+   "runs": 0.9953,
+   "wkt": 0.9903
+  },
+  "great barrier reef arena": {
+   "name": "Great Barrier Reef Arena, Mackay",
+   "matches": 1,
+   "runs": 0.991,
+   "wkt": 1.0226
+  },
+  "brian lara stadium": {
+   "name": "Brian Lara Stadium, Tarouba, Trinidad",
+   "matches": 1,
+   "runs": 0.999,
+   "wkt": 1.0169
+  },
+  "shaheed chandu stadium": {
+   "name": "Shaheed Chandu Stadium, Bogra",
+   "matches": 1,
+   "runs": 0.9969,
+   "wkt": 1.0156
+  },
+  "narayanganj osmani stadium": {
+   "name": "Narayanganj Osmani Stadium, Fatullah",
+   "matches": 1,
+   "runs": 0.9869,
+   "wkt": 0.9857
+  },
+  "vidarbha cricket association ground": {
+   "name": "Vidarbha Cricket Association Ground, Nagpur",
+   "matches": 1,
+   "runs": 0.9897,
+   "wkt": 0.989
+  },
+  "brabourne stadium": {
+   "name": "Brabourne Stadium, Mumbai",
+   "matches": 1,
+   "runs": 1.0197,
+   "wkt": 1.004
+  },
+  "khan shaheb osman ali stadium": {
+   "name": "Khan Shaheb Osman Ali Stadium, Fatullah",
+   "matches": 1,
+   "runs": 1.0087,
+   "wkt": 0.9899
+  }
+ },
+ "mean_residual": {
+  "runs": -0.0025,
+  "wkt": -0.0092
+ }
+}

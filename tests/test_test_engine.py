@@ -125,19 +125,22 @@ def check_card(c: dict):
         else:
             assert inn["target"] is None
         new_balls = [e for e in c["events"] if e["innings"] == inn["number"] and e["kind"] == "new_ball"]
-        assert len(new_balls) == (len(log) - 1) // 80, "a new ball every 80 overs"
+        assert len(new_balls) == max(len(log) - 1, 0) // 80, "a new ball every 80 overs"
     # ---- time: never more than the scheduled overs
     bowled = sum(len(i["overs_log"]) for i in inns)
-    assert bowled + 2 * (len(inns) - 1) <= days * day_overs + 2, "more overs than the match has"
+    lost = sum(d["lost"] for d in c["days"])
+    assert bowled + lost <= days * day_overs, "more overs than the match has"
+    assert lost == sum(e["overs"] for e in c["events"] if e["kind"] == "weather")
     assert sum(d["overs"] for d in c["days"]) == bowled
     assert [d["day"] for d in c["days"]] == list(range(1, len(c["days"]) + 1)) and len(c["days"]) <= days
     for d in c["days"]:
-        assert 0 < d["overs"] <= day_overs, "a day of more than its overs"
+        assert d["overs"] + d["lost"] <= day_overs, "a day of more than its overs"
+        assert d["overs"] or d["lost"] or d["day"] == len(c["days"]), "a day with nothing in it"
     per_day = {}
     for i in inns:
         for o in i["overs_log"]:
             per_day[o["day"]] = per_day.get(o["day"], 0) + 1
-    assert per_day == {d["day"]: d["overs"] for d in c["days"]}
+    assert per_day == {d["day"]: d["overs"] for d in c["days"] if d["overs"]}
     assert sum(d["runs"] for d in c["days"]) == sum(i["runs"] for i in inns)
     assert sum(d["wickets"] for d in c["days"]) == sum(i["wickets"] for i in inns)
     # ---- the result agrees with the scores
@@ -146,7 +149,9 @@ def check_card(c: dict):
         assert r.get(key) == v, f"result {r} but the scores say {want}"
     if r["type"] == "draw":
         assert r["text"] == "Match drawn"
-        assert inns[-1]["ended"] == "time" or bowled + 2 * len(inns) >= days * day_overs, "a draw with time left"
+        # a draw uses all the time: overs bowled, lost to the weather, or gone at a change of innings
+        used = bowled + lost + 2 * len(inns)
+        assert inns[-1]["ended"] == "time" or used >= days * day_overs, "a draw with time left"
     elif r["type"] == "tie":
         assert r["text"] == "Match tied"
     else:
@@ -225,6 +230,7 @@ class Script:
 
 def scripted(plan: dict, **kw) -> dict:
     kw.setdefault("declare", False)
+    kw.setdefault("use_weather", False)
     m = TestMatch(SIDE_A, SIDE_B, seed=1, toss="a", decision="bat", **kw)
     m.model = Script(m, plan)
     c = m.play()

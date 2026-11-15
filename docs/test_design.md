@@ -318,3 +318,157 @@ day's overs and runs add up to the innings', every total adds up, the result rec
 with time left. Each result type is forced with a scripted ball model (innings and runs with and without the
 follow-on, runs, one run, wickets, tie, a blocked-out draw, a win after following on). Seed reproducibility, the
 dispatch, the four-innings text scorecard, the clock, and the direction of each fitted call.
+
+# Phase 3: calibration against real Tests
+
+Built 2026-11-15. `python -m engine.calibrate --suite test` replays the 473 Tests between full members of 2015-26
+(real XIs, each side's first-innings batting order, toss, ground, year) and compares the simulation with what
+happened on the plan's targets. The code is `engine/test_calibrate.py`; every run is kept in
+`data/engine/calibration_test.json`.
+
+## Result: 29 of 32 gates met
+
+Final run, 8 replays of each Test (3,784 simulations):
+
+| Target | Real | Simulated | Gate | |
+|---|---|---|---|---|
+| Runs per wicket | 30.80 | 30.76 | 2% | met |
+| Run rate | 3.31 | 3.34 | 2% | met |
+| First-innings total, mean | 331.7 | 329.5 | 2% | met |
+| First-innings total, spread (SD) | 137.4 | 142.1 | 10% | met |
+| Draws | 13.1% | 18.2% | 3 points | **missed by 5.1** |
+| Won by an innings | 18.6% | 17.6% | 3 points | met |
+| Won by runs | 42.3% | 37.3% | 3 points | **missed by 4.9** |
+| Won by wickets | 26.0% | 26.8% | 3 points | met |
+| Home wins | 53.4% | 51.3% | 3 points | met |
+| Over in 3 days or fewer / on day 4 / went to day 5 | 19.7 / 33.4 / 46.9% | 24.0 / 32.5 / 43.5% | 5 points | met |
+| Overs per match | 305.8 | 299.7 | 5% | met |
+| Innings all out | 72.6% | 73.6% | 5% | met |
+| Overs per innings | 82.0 | 80.1 | 5% | met |
+| Chases won, target under 200 | 88.6% | 81.2% | 10 points | met |
+| Chases won, target 200-299 | 28.2% | 29.9% | 10 points | met |
+| Chases won, target 300+ | 5.6% | 7.2% | reported | |
+| Declarations per match | 0.54 | 0.54 | 10% | met |
+| Lead at third-innings declarations | 416 | 403 | 10% | met |
+| Follow-ons enforced per match | 0.09 | 0.09 | 10% | met |
+| Hundreds per match | 1.73 | 1.66 | 10% | met |
+| Five-fors per match | 1.30 | 1.08 | 10% | **missed, -17.5%** |
+| Double hundreds / ten-fors per match | 0.17 / 0.18 | 0.16 / 0.12 | reported | |
+| Spin's share of overs / wickets | 40.5 / 37.0% | 38.9 / 35.0% | 3 points | met |
+| Spell length, pace / spin (overs) | 4.07 / 5.31 | 4.16 / 5.27 | 10% | met |
+| Overs by the most-used bowler in an innings | 24.8 | 24.2 | 10% | met |
+| Dismissals: caught / bowled / lbw / run out / stumped | 61.6 / 18.0 / 16.1 / 2.4 / 1.9% | 60.1 / 17.6 / 16.3 / 2.2 / 1.7% | 2 points | met |
+
+The plan gave no number for three gates; the choices are: total overs 5%, the two chase bands 10 points (about
+60 real chases in each).
+
+### The three misses, and why tuning stopped
+
+- **Draws (18% against 13%) and wins by runs (the same 5 points the other way).** The extra draws are matches
+  that real sides finish on the last day: real Tests get a result on day 5 in 34% of matches, the simulation in
+  about 25%. After a third-innings declaration real sides bowl the other out 76% of the time and draw 22%; the
+  simulation 56% and 34%. Less time lost does not fix it: with overs lost scaled to 0.6 the draw gate was met
+  (14.9%) but too few Tests reached day 5 (39% against 47%), so that constant was not kept. What is missing is
+  how real cricket changes on the last day (attacking fields, a pitch that has worn more in some matches than
+  others, batting that fails under pressure); the engine's last-innings table sees only wickets down and runs
+  needed per over left. Left open.
+- **Five-fors (1.08 a match against 1.30), ten-fors more so.** Wickets are shared too evenly among a side's
+  bowlers. The spin edge of the day moved it from 1.05 to 1.11; the rest would need a bowler's form on the day,
+  which the engine does not have in any format.
+
+### The runs, in order (4 replays each unless said)
+
+| Step | Gates met | Draws | Note |
+|---|---|---|---|
+| Phase 2 engine as committed | 21 of 32 | 5.1% | no weather; 27% of Tests went to day 5 (real 47%) |
+| + overs lost by host | 27 | 18.1% | match length met at once |
+| + home edge | 29 | 19.0% | home wins 43.8% -> 51.6% (real 53.4%) |
+| + spin edge by ground and day | 26 | 16.7% | runs per wicket fell to -2.5% (see the pitch draw below) |
+| + venue factor | 26 | 17.5% | |
+| + pitch of the day | 29 | 20.4% | first-innings spread -3% -> +4% |
+| overs left from the match dates (refit) | 29 | 19.4% | |
+| overs lost: dry and wet matches | 28 | 17.5% | |
+| overs left = scheduled time as seen then (refit) | 27 | 16.5% | |
+| pitch draw leaves average rates unchanged | 28 | 18.4% | runs per wicket -1.9% -> +0.5%, innings length met |
+| a draw's last-hour overs not counted as lost | 28 | 18.7% | no effect |
+| overs lost scaled by 0.6 (trial, not kept) | 27 | 14.9% | day 5: 39% against 47% |
+| as committed, 8 replays | 29 | 18.2% | |
+
+## What was fitted
+
+`python -m engine.fit.fit_test_conditions` (about 40 s) -> `data/engine/test_conditions.json`, `spin_test.json`;
+`python -m engine.fit.fit_test_venues` (about 2 minutes) -> `data/engine/venues_test.json`.
+
+| Table | Fitted on | Result |
+|---|---|---|
+| Host of a ground | 899 Tests | 84 grounds: the side with the most Tests there, when one side is alone at the top |
+| Overs lost in a day | 898 Tests, totals only | two kinds of match: dry (94.3%; 56% of days lose nothing, 32% about 5 overs; mean 6.8 a day) and wet (5.7%; mean 41 a day, a fifth of days washed out). A host has its own share of wet matches: England 10%, Bangladesh 11%, Australia and New Zealand 3.6%, Zimbabwe 2.6% (shrunk toward the pooled share with 20 matches) |
+| Home edge | 875 Tests with a home side | the home side scores 3.6% faster and is dismissed 9.7% less often per ball than the visitors, after the ratings. Similar for every host (wickets -6.6% to -11.6%) |
+| Spin edge | 737 Tests | between grounds SD 0.15 on wickets (Dubai, SSC Colombo, Chennai most for spin; North Sound, Centurion least); day to day SD 0.26 |
+| Venue factor | 894 Tests replayed 3 times | between grounds SD 3.2% runs, 6.8% wickets |
+| Pitch of the day | 783 matches at grounds with 3 or more | SD 7.4% on the run rate, 17.7% on the wicket rate, uncorrelated (0.04) |
+
+### How overs lost are estimated, and what that cannot see
+
+Cricsheet has no clock, so a match gives one number: scheduled overs minus overs bowled minus 2 for each change
+of innings. A draw used all its days, so its loss is known, less up to 15 overs if it was agreed in the last
+hour. A decided match ended at an unknown point of its last day, so its loss over the earlier days is known to
+within that day's overs (taken as equally likely from 1 to 90). The daily distribution, on a grid of 5 overs, is
+the maximum-likelihood one for those totals; days are independent within a dry or a wet match. It cannot see
+time made up on later days or the extra half hour, and it treats which matches were drawn as if rain had nothing
+to do with it. The plan's checks on it: overs in decided Tests by the day they ended are within 2% (day 3: 224
+real, 224 simulated; day 4: 297, 295; day 5: 366, 362); simulated draws use 376 overs against 347 real, so
+simulated draws need less rain than real ones, which is the miss described above. Draw rate by host is in the
+calibration file (England 10% real, 19% simulated; Sri Lanka 6.5%, 22%; West Indies 24%, 21%).
+
+### Two corrections to the Phase 2 fits
+
+Both are in the "overs left" estimate that the situation and captaincy fits read (`overs_left` in
+`engine/fit/fit_test_situation.py`); both tables were refitted.
+
+1. For a decided match Phase 2 used 450 minus the overs bowled so far, which forgets rain. A side batting out a
+   rain-hit match looked as if it had time to spare, so the "save the match" cells were filled mostly by sides
+   that did save it.
+2. For a draw Phase 2 used the overs that really were still bowled, which knows about rain that had not yet
+   fallen. Captains then seemed to declare with less time in hand than they thought they had, and simulated
+   captains (who see the schedule) declared about 20 overs late.
+
+Now "overs left" is the scheduled time left as the players saw it: the match's playing time (to the end of day
+5 in a draw; to its last day, taken as half used, in a decided match), with lost overs spread evenly over it,
+plus the days a decided match never reached.
+
+## Constants that are not fitted
+
+| Constant | Value | Where | Why not fitted |
+|---|---|---|---|
+| Last day of a decided match | half used (45 overs), or 1-90 equally likely | `fit_test_situation.py`, `fit_test_conditions.py` | Cricsheet does not record the hour a match ended |
+| Last hour | 15 overs | `fit_test_conditions.py` | playing conditions: when a draw may be agreed |
+| Loss grid | 5 overs | `fit_test_conditions.py` | resolution of the estimate, not a behaviour |
+| Shrink for a host's wet share | 20 matches | `fit_test_conditions.py` | a prior weight, as `SHRINK_BALLS` is |
+| Hosts need 15 Tests for their own share | 15 | `fit_test_conditions.py` | below that the pooled share is used |
+| An early close | up to 10 overs lost come at the end of the day and are called "bad light and a slow over rate"; more is "rain" at a random point of the day | `engine/test_conditions.py` | no data on when in a day time is lost, or why |
+| Pitch draw less half its variance | from the fitted SDs | `engine/test_match.py` | not a free number: it makes the draw leave average rates unchanged. Without it the wicket rate rose 1.6% and innings were 2% short |
+| Minimum for a spin-edge match | 300 balls of pace and of spin | `fit_test_conditions.py` | sample floor |
+
+## Differences from the plan
+
+- **Home advantage** is a fitted edge on the batting of both sides (home up, visitors down by half the gap
+  each), applied when one side is the host of the ground or `host=` is given. The plan said "fit it and apply
+  it when a series has a host"; a single match now has it too, from its venue.
+- **The host of a ground** is counted from the data (who has played there most), since Cricsheet has no country
+  field. Pakistan's Tests in the UAE therefore count as home Tests. `data/home_grounds.json` is Phase 4.
+- **Overs lost** are fitted from all matches with the last day treated as unknown, not only from matches that
+  reached the last day (plan section 3), and as dry and wet matches rather than one distribution a day.
+- **The new ball** is still always taken at 80 overs. The plan's "wait when spin is well ahead" was not added:
+  Cricsheet does not record when it was taken, so there is nothing to fit or check it against.
+- **No hand x bowling kind matchups for Tests** (plan section 2 lists a refit). Not done.
+- **No aggression bars for Tests** (the runs v risk curve). They are for a person's captaincy: Phase 6.
+- **No era suite** (plan section 7: each decade's classic sides in that decade's baseline). Not done; nothing
+  before 2015 has been checked beyond the Phase 1 ratings tests.
+- **The Test calibration lives in `engine/test_calibrate.py`**; `engine/calibrate.py` only passes `--suite test`
+  on to it, as `simulate_match` does for the engine.
+- **Scheduled days.** Cricsheet does not say which Tests were scheduled for four days; all are replayed as five.
+- **Replays use each side's first-innings batting order**, so nightwatchmen never appear in calibration.
+- Shared code touched: `engine/conditions.py` (the Test competitions join `PITCH_COMPS`), `engine/fit/fit_venues.py`
+  (the fit after the replays is a function Tests can call), `engine/calibrate.py` (the dispatch), `engine/render.py`
+  (a day's lost overs in the close-of-play line). The golden test passes.

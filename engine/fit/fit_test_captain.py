@@ -143,7 +143,7 @@ def fit() -> dict:
         if info.get("toss", {}).get("decision") in ("bat", "field"):
             toss[0] += info["toss"]["decision"] == "bat"
             toss[1] += 1
-        total, draw = match_overs(m), is_draw(m)
+        total, draw, days = match_overs(m), is_draw(m), len(m["info"]["dates"])
         inns = m.get("innings", [])[:4]
         gone = 0
         team_runs = defaultdict(int)
@@ -155,7 +155,7 @@ def fit() -> dict:
             if k == 2 and len(inns[1].get("overs", [])):
                 d = team_runs[inns[0]["team"]] - team_runs[inns[1]["team"]]
                 if d >= FOLLOW_ON_LEAD:
-                    frows.append((follow_x(d, overs_left(gone, total, draw), len(inns[1]["overs"])),
+                    frows.append((follow_x(d, overs_left(gone, total, draw, days), len(inns[1]["overs"])),
                                   int(team == inns[1]["team"]), 0.0))
             xi = [reg.get(n) for n in info.get("players", {}).get(other, [])]
             xi = [p for p in xi if p]
@@ -198,7 +198,7 @@ def fit() -> dict:
                     sp = spell[end] = [bw, 0, 0.0, 0.0, 0.0, 0.0]
                 g = group_of(rec.get(bw))
                 fcells = [fat[(g, "spell", min(sp[1] // 2, 5))], fat[(g, "innings", min(inns_overs[bw] // 10, 4))]]
-                left = overs_left(gone, total, draw)
+                left = overs_left(gone, total, draw, days)
                 ty = btype.get(bw, "unknown")
                 for d in dl:
                     ex = d.get("extras", {})
@@ -246,7 +246,7 @@ def fit() -> dict:
                 if k < 3 and (declared or not last) and wk < 10:
                     lead = lead0 + runs
                     nineties = any(90 <= score[b] % 100 for b in crease[-2:])
-                    x = declare_x(k + 1, runs, lead, wk, overs_left(gone, total, draw), nineties)
+                    x = declare_x(k + 1, runs, lead, wk, overs_left(gone, total, draw, days), nineties)
                     drows[k + 1].append((runs if k == 0 else lead, x, int(declared)))
             team_runs[team] += runs
 

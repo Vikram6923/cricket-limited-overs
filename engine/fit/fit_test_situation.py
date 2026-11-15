@@ -11,8 +11,14 @@ backfitting, so what they share is not counted twice:
     fourth[wickets down][runs needed per over left]        the last innings: chase, steady or save
 A thin state cell is shrunk toward its innings x wickets parent, the parent toward 1.
 
-Cricsheet has no clock. "Overs left" is: in a drawn match, the overs that really were still bowled (exact);
-otherwise the larger of that and 450 minus the overs bowled so far (which forgets overs lost to weather).
+Cricsheet has no clock. "Overs left" is the scheduled time left as the players saw it, estimated from the
+match's dates. The match's playing time ran to the end of the fifth day if it was drawn; if it was decided, to
+its last day, taken as half used because the hour it ended is not recorded. Overs lost in that time (weather,
+light, over rate) are taken as spread evenly over it, so each over still to be bowled stands for
+(playing time / overs bowled) overs of the schedule; the scheduled days a decided match never reached are added.
+(Until Phase 3 this was 450 minus the overs bowled so far, or in a draw the overs really still bowled. The first
+forgets rain, so a side batting out a rain-hit match looked as if it had time to spare; the second knows about
+rain that had not yet fallen, so captains seemed to declare with less time left than they thought they had.)
 A new ball is assumed at every 80th over of an innings (its taking is not recorded).
 
 Writes data/engine/test_situation.json.   Run:  python -m engine.fit.fit_test_situation
@@ -36,6 +42,8 @@ NM = len(METRICS)
 BOWLER_WICKETS = {"bowled", "caught", "caught and bowled", "lbw", "stumped", "hit wicket"}
 NOT_OUT = {"retired hurt", "retired not out"}
 SCHEDULED = 450                                   # 5 days x 90 overs
+DAY_OVERS = 90
+LAST_DAY_UNUSED = 45                              # a decided match ends at an unknown point of its last day
 
 SETTLE_EDGES = [10, 30, 60, 120, 200]             # bucket i = edges[i-1] <= x < edges[i]
 WEAR_EDGES = [90, 180, 270, 360]
@@ -85,10 +93,11 @@ def match_overs(m: dict) -> int:
     return sum(len(i.get("overs", [])) for i in m.get("innings", []))
 
 
-def overs_left(gone: int, total: int, draw: bool) -> int:
-    """Overs left in the match after `gone` overs (see the module text)."""
+def overs_left(gone: int, total: int, draw: bool, days: int = 5) -> int:
+    """Overs left in the match after `gone` overs (see the module text). days: the days the match lasted."""
     rem = total - gone
-    return max(1, rem if draw else max(SCHEDULED - gone, rem))
+    played = SCHEDULED if draw else min(days, 5) * DAY_OVERS - LAST_DAY_UNUSED     # the match's playing time
+    return max(1, round(rem * max(1.0, played / max(total, 1)) + SCHEDULED - played))
 
 
 def outs(d: dict) -> int:
@@ -107,7 +116,7 @@ def fit() -> dict:
             continue
         n_matches += 1
         reg = info["registry"]["people"]
-        total, draw = match_overs(m), is_draw(m)
+        total, draw, days = match_overs(m), is_draw(m), len(info["dates"])
         gone = 0
         team_runs = defaultdict(int)
         for k, inn in enumerate(m.get("innings", [])[:4]):
@@ -118,7 +127,7 @@ def fit() -> dict:
             faced = defaultdict(int)
             for ov in inn.get("overs", []):
                 a_b, w_b = bucket(ov["over"] % 80, AGE_EDGES), bucket(gone, WEAR_EDGES)
-                left = overs_left(gone, total, draw)
+                left = overs_left(gone, total, draw, days)
                 for d in ov["deliveries"]:
                     ex = d.get("extras", {})
                     wide, nb = "wides" in ex, "noballs" in ex

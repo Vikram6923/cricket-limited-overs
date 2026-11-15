@@ -37,7 +37,7 @@ def venue_factor(fmt: str, venue: str | None) -> dict:
 
 # The pitch-of-the-day draw passed calibration for internationals but over-dispersed IPL totals (+15% SD; leagues
 # play on more uniform pitches), so it applies to internationals only (docs/engine_progress.md, step 6).
-PITCH_COMPS = {"t20i_full", "t20i", "odi_full", "odi"}
+PITCH_COMPS = {"t20i_full", "t20i", "odi_full", "odi", "test_full", "test"}
 
 
 def draw_pitch(fmt: str, rng: random.Random, comp: str | None = None) -> dict:

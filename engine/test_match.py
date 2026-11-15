@@ -14,10 +14,11 @@ No printing, no files, no global state; `seed` makes a match reproducible.
 """
 from __future__ import annotations
 
+import math
 import random
 import zlib
 
-from . import conditions, test_captain
+from . import conditions, test_captain, test_conditions
 from .ballmodel import NO_SITUATION, BallModel
 from .captain import choose_keeper
 from .data import FORMATS, Player, baseline, basics, player
@@ -56,6 +57,19 @@ def make_team(spec: dict) -> Team:
     capt = by_id.get(spec.get("captain")) or max(ps, key=lambda p: p.bat_balls + p.bowl_balls)
     return Team(spec["name"], ps, keeper, capt, order, fixed_order=bool(spec.get("order")),
                 bench=[p for p in squad if p not in ps], squad=ps + [p for p in squad if p not in ps])
+
+
+def draw_pitch(rng: random.Random, comp: str) -> dict:
+    """The day's pitch, as in limited overs, less half its variance on the log scale: the draw then leaves the
+    average run and wicket rates unchanged (a five-day match feels a 1.6% rise in the wicket rate; calibration
+    showed it as innings 2% too short)."""
+    p = conditions.draw_pitch(FMT, rng, comp)
+    t = conditions.venue_table(FMT)
+    sd = (t.get("pitch_by_comp") or {}).get(comp) or t.get("pitch") or {}
+    if comp in conditions.PITCH_COMPS:
+        p["runs"] *= math.exp(-0.5 * sd.get("sd_runs", 0.0) ** 2)
+        p["wkt"] *= math.exp(-0.5 * sd.get("sd_wkt", 0.0) ** 2)
+    return p
 
 
 class Clock:
@@ -136,6 +150,7 @@ class TestInnings(Scorebook):
     def play(self) -> None:
         m, clock = self.m, self.m.clock
         while not self.done:
+            m.lose_time(self)
             if clock.left <= 0:
                 self.ended = "time"
                 break
@@ -166,7 +181,7 @@ class TestInnings(Scorebook):
         sit = m.sit
         bowler = self.bowling.pick(n, age, m.overs_bowled, due, sit.t)
         f = self.fig(bowler)
-        base = m.base_of(bowler)[PHASE]
+        base = m.base_of(bowler, self.bat)[PHASE]
         btype = bowler.bowl_type or "unknown"
         left = m.clock.left
         if self.target is not None:
@@ -250,10 +265,13 @@ class TestMatch:
                  decision: str | None = None, days: int | None = None, day_overs: int | None = None,
                  pitch: dict | None = None, use_situation: bool = True, use_venue: bool = True,
                  use_pitch: bool = True, use_spin: bool = True, declare: bool = True,
-                 follow_on: bool | None = None, nightwatchman: bool = True):
+                 follow_on: bool | None = None, nightwatchman: bool = True, host: str | None = None,
+                 use_weather: bool = True, use_home: bool = True):
         """toss: "a" | "b" (who wins it); decision: "bat" | "bowl"; days, day_overs: the match's length
         (default 5 x 90); declare: False = nobody declares; follow_on: True / False = always / never enforced when
-        it is on offer, None = the captain's (fitted) choice; nightwatchman: False = never used."""
+        it is on offer, None = the captain's (fitted) choice; nightwatchman: False = never used; host: the
+        country whose ground it is (default: looked up from the venue; None with no venue = neutral): it sets
+        the overs lost to weather and, when one of the sides is the host, the home edge."""
         self.year, self.venue = year, venue
         self.comp = comp or FORMATS[FMT]["intl"]
         self.seed = seed if seed is not None else random.randrange(1 << 30)
@@ -267,33 +285,64 @@ class TestMatch:
         # tables for these are fitted in Phase 3; until then every factor is 1.
         self.venue_info = conditions.venue_factor(FMT, venue) if use_venue else {"runs": 1.0, "wkt": 1.0,
                                                                                   "known": False, "name": venue}
-        self.pitch = pitch or (conditions.draw_pitch(FMT, self.rng, self.comp) if use_pitch
-                               else {"runs": 1.0, "wkt": 1.0})
+        self.pitch = pitch or (draw_pitch(self.rng, self.comp) if use_pitch else {"runs": 1.0, "wkt": 1.0})
         cr = self.venue_info["runs"] * self.pitch["runs"]
         cw = self.venue_info["wkt"] * self.pitch["wkt"]
         self.base = conditions.apply(self.base, cr, cw)
         self.spin = conditions.spin_edge(FMT, venue, self.seed) if use_spin else {"runs": 0.0, "wkt": 0.0}
         self.base_type = conditions.by_type(self.base, self.spin, FMT)
+        self.host = host or test_conditions.host_of(venue)
+        self.weather = (test_conditions.draw_weather(self.host, self.seed, self.days, self.clock.day_overs)
+                        if use_weather else {})
+        self.use_home = use_home
         self.conditions = {"venue": venue, "venue_known": self.venue_info["known"],
                            "venue_runs": round(self.venue_info["runs"], 3), "venue_wkt": round(self.venue_info["wkt"], 3),
                            "pitch_runs": round(self.pitch["runs"], 3), "pitch_wkt": round(self.pitch["wkt"], 3),
                            "report": conditions.pitch_report(cr, cw)
                            + (f"; {sr}" if (sr := conditions.spin_report(self.spin)) else ""),
-                           "spin_edge": {k: round(v, 3) for k, v in self.spin.items()}}
+                           "spin_edge": {k: round(v, 3) for k, v in self.spin.items()},
+                           "host": self.host}
         self.model = BallModel(basics(FMT))
         self.sit = TestSituation()
         self.use_situation = use_situation
         self.declare_on, self.follow_on_spec, self.nightwatchman = declare, follow_on, nightwatchman
         self.teams = [make_team(team_a), make_team(team_b)]
+        # the home edge: the host's batters do better than their ratings, the visitors' worse
+        self.home = next((t for t in self.teams if use_home and self.host and t.name == self.host), None)
+        self.base_side = {}
+        if self.home:
+            h = test_conditions.home_factors()
+            for t in self.teams:
+                fr, fw = (h["runs"], h["wkt"]) if t is self.home else (1 / h["runs"], 1 / h["wkt"])
+                self.base_side[t.name] = (conditions.apply(self.base, fr, fw),
+                                          {k: conditions.apply(b, fr, fw) for k, b in self.base_type.items()})
+        self.conditions["home"] = self.home.name if self.home else None
         self.toss_spec, self.decision_spec = toss, decision
         self.innings: list[TestInnings] = []
         self.overs_bowled = 0                  # in the match (pitch wear)
         self.day_log: list[dict] = []
-        self._today = {"overs": 0, "runs": 0, "wickets": 0}
+        self._today = {"overs": 0, "runs": 0, "wickets": 0, "lost": 0}
 
     # ------------------------------------------------------------------ helpers
-    def base_of(self, p: Player) -> dict:
-        return self.base_type.get(p.bowl_type or "", self.base)
+    def base_of(self, p: Player, bat: Team) -> dict:
+        """The baseline for this bowler's type against this batting side."""
+        base, by_type = self.base_side.get(bat.name) or (self.base, self.base_type)
+        return by_type.get(p.bowl_type or "", base)
+
+    def lose_time(self, inn: TestInnings) -> None:
+        """Today's lost overs (weather, light, over rate) go off the clock when their time comes."""
+        clock = self.clock
+        while clock.left > 0:
+            w = self.weather.get(clock.day)
+            if not w or w.get("done") or clock.used < w["start"]:
+                return
+            w["done"] = True
+            day, n = clock.day, min(w["overs"], clock.left_today)
+            if n <= 0:
+                return
+            self._today["lost"] += n
+            inn.event(f"Day {day}: {w['why']}, {n} over{'' if n == 1 else 's'} lost", "weather", overs=n, day=day)
+            self.intervals(inn, clock.spend(n))
 
     def total(self, team: Team) -> int:
         return sum(i.runs for i in self.innings if i.bat is team)
@@ -324,13 +373,14 @@ class TestMatch:
         extra = "" if inn.ended == "target" else inn.margin_text()
         self.day_log.append({"day": day, **self._today, "innings": inn.number,
                              "close": f"{inn.bat.name} {inn.score_str()}" + (f", {extra}" if extra else ""),
-                             "lost": 0})
-        self._today = {"overs": 0, "runs": 0, "wickets": 0}
+                             })
+        self._today = {"overs": 0, "runs": 0, "wickets": 0, "lost": 0}
 
     def start(self, bat: Team, bowl: Team, target: int | None = None, follow_on: bool = False) -> TestInnings | None:
         """Play the next innings; None when there is no time left to start it."""
         if self.innings:
             self.intervals(self.innings[-1], self.clock.spend(CHANGE_OVERS))
+            self.lose_time(self.innings[-1])       # rain that has come by now: no innings starts only to stop
         if self.clock.left <= 0:
             return None
         inn = TestInnings(self, bat, bowl, len(self.innings) + 1, target, follow_on)

@@ -1098,3 +1098,27 @@ in `docs/test_design.md` ("Phase 2"). In short:
   lost to weather until Phase 3), wins by wickets 43% (real 26%), by an innings 10% (real 19%). Not tuned.
 - `tests/test_test_engine.py`: laws and bookkeeping over 300 Tests, a scripted match for each result type, seed
   reproducibility. All 16 test scripts and the golden test pass.
+
+### Phase 3 (2026-11-15): Tests calibrated against real matches
+
+The full table, every run, what was fitted, the constants and the differences from the plan are in
+`docs/test_design.md` ("Phase 3"). In short:
+
+- `python -m engine.calibrate --suite test` replays the 473 full-member Tests of 2015-26 and checks the plan's
+  targets (`engine/test_calibrate.py`, history in `data/engine/calibration_test.json`).
+- **29 of 32 gates met** (8 replays, 3,784 simulations): runs per wicket 30.76 (real 30.80), run rate 3.34
+  (3.31), first-innings mean 329.5 (331.7) and SD 142 (137), wins by an innings 17.6% (18.6%), by wickets 26.8%
+  (26.0%), home wins 51.3% (53.4%), went to day 5 43.5% (46.9%), overs per match 300 (306), declarations 0.54
+  (0.54), hundreds 1.66 (1.73), spin's share of overs 38.9% (40.5%), spell lengths, dismissal mix.
+- **Missed:** draws 18.2% (real 13.1%) and so wins by runs 37.3% (42.3%); five-fors 1.08 a match (1.30). Real
+  sides finish more Tests on the last day than the simulation does; wickets are shared too evenly among a
+  side's bowlers. Left open, with the diagnosis, rather than tuned with a constant.
+- New, all fitted: overs lost in a day by host (dry and wet matches), the home edge (the home side scores 3.6%
+  faster and is out 9.7% less often than the visitors), the spin edge by ground and day, the venue factor, the
+  pitch of the day (`engine/test_conditions.py`, `engine/fit/fit_test_conditions.py`, `fit_test_venues.py`).
+- Two errors in the Phase 2 "overs left" estimate were found by the calibration and fixed; the situation and
+  captaincy tables were refitted. Simulated captains had been declaring about 20 overs late.
+- From 21 gates (the Phase 2 engine) to 29: weather +6, home edge +2, then the conditions and corrections.
+- Not done: the era suite, Test matchups, aggression bars for Tests, the new ball delayed for spin.
+- `tests/test_test_calibration.py`: 200 fixed Tests inside wide bands, weather, host and home edge, the
+  calibration's sums. All 17 test scripts and the golden test pass.

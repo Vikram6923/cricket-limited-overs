@@ -7,6 +7,7 @@ individual scores, chase success. Rain-reduced and no-result matches are skipped
     python -m engine.calibrate                       # all suites, 4 replays per fixture
     python -m engine.calibrate --suite t20i --reps 10
     python -m engine.calibrate --jobs 1              # one process (default: most of this computer's cores)
+    python -m engine.calibrate --suite test          # Test matches: engine/test_calibrate.py
 Every replay has its own seed, so the worker processes give exactly the numbers one process gives.
 Writes data/engine/calibration_<suite>.json (history of results, newest last).
 """
@@ -249,7 +250,7 @@ def run_suite(name: str, reps: int, limit: int | None, flags: dict, label: str, 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--suite", choices=sorted(SUITES), action="append")
+    ap.add_argument("--suite", choices=sorted(SUITES) + ["test"], action="append")
     ap.add_argument("--reps", type=int, default=4)
     ap.add_argument("--limit", type=int, help="only the most recent N fixtures")
     ap.add_argument("--label", default="", help="name of this calibration step (stored in the history)")
@@ -258,6 +259,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-matchups", action="store_true", help="switch off batting-hand x bowling-kind (T2-1)")
     ap.add_argument("--no-spin", action="store_true", help="switch off the pace v spin pitch edge")
     ap.add_argument("--no-depth", action="store_true", help="switch off batting depth still to come")
+    ap.add_argument("--no-weather", action="store_true", help="Tests: no overs lost to weather and over rate")
+    ap.add_argument("--no-home", action="store_true", help="Tests: no home advantage")
     ap.add_argument("--jobs", type=int, default=default_jobs(),
                     help="worker processes (default: the cores but one, at most 8; 1 = no workers). "
                          "The numbers are the same for any value")
@@ -265,6 +268,12 @@ def main(argv: list[str] | None = None) -> int:
     flags = {"use_venue": not args.no_venue, "use_pitch": not args.no_pitch, "use_matchups": not args.no_matchups,
              "use_spin": not args.no_spin, "use_depth": not args.no_depth}
     for name in args.suite or ["t20i", "ipl", "odi"]:
+        if name == "test":               # Tests have their own targets and gates: engine/test_calibrate.py
+            from . import test_calibrate
+            test_calibrate.run(args.reps, args.limit, {"use_venue": not args.no_venue, "use_pitch": not args.no_pitch,
+                                                       "use_spin": not args.no_spin, "use_weather": not args.no_weather,
+                                                       "use_home": not args.no_home}, args.label, args.jobs)
+            continue
         run_suite(name, args.reps, args.limit, flags, args.label, args.jobs)
     return 0
 

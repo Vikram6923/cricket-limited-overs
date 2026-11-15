@@ -29,7 +29,8 @@ def _days(card: dict) -> list[str]:
     if not days:
         return []
     return ["", "Close of play"] + [f"  Day {d['day']}: {d['close']} ({d['overs']} overs, {d['runs']} runs, "
-                                    f"{d['wickets']} wicket{'' if d['wickets'] == 1 else 's'} in the day)"
+                                    f"{d['wickets']} wicket{'' if d['wickets'] == 1 else 's'} in the day"
+                                    + (f", {d['lost']} lost" if d.get("lost") else "") + ")"
                                     for d in days]
 
 

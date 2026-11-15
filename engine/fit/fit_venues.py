@@ -157,7 +157,11 @@ def pitch_params(rows: list) -> dict:
 
 
 def fit(fmt: str) -> dict:
-    rows, names = replay_rows(fmt)
+    return fit_rows(fmt, *replay_rows(fmt))
+
+
+def fit_rows(fmt: str, rows: list, names: dict) -> dict:
+    """Venue factors and pitch variance from per-match residual rows (also used for Tests)."""
     cr = sum(r[2] for r in rows) / len(rows)
     cw = sum(r[3] for r in rows) / len(rows)
     rows = [(k, comp, a - cr, b - cw, vr, vw) for k, comp, a, b, vr, vw in rows]

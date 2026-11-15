@@ -20,9 +20,9 @@ and its historical, draft and league modes inspired the modes here. See [Credits
 >
 > **Test matches are being added** (plan: [`docs/test_match_plan.md`](docs/test_match_plan.md)). So far: the
 > data and the player ratings for about 3,270 Test cricketers since 1877, and a Test match engine you can call
-> from Python (`simulate_match(fmt="test", ...)`: five days, two innings a side, declarations, the follow-on).
-> It is not yet calibrated against real Tests and is not in the browser UI
-> ([`docs/test_design.md`](docs/test_design.md)).
+> from Python (`simulate_match(fmt="test", ...)`: five days, two innings a side, declarations, the follow-on,
+> rain, home advantage), calibrated against the 473 real Tests of 2015-26 (29 of 32 targets met; it draws too
+> often). It is not in the browser UI yet ([`docs/test_design.md`](docs/test_design.md)).
 
 ## Quick start
 
@@ -464,6 +464,24 @@ results with what happened:
 Known gaps: too many all-out innings (T20I 17% v 12.6%) and too few ODI hundreds (-13%). Details are in
 [`docs/engine_progress.md`](docs/engine_progress.md).
 
+Test matches (`python -m engine.calibrate --suite test`: the 473 Tests between full members of 2015-26, each
+replayed 8 times):
+
+| | Real | Sim |
+|---|---|---|
+| Runs per wicket / run rate | 30.8 / 3.31 | 30.8 / 3.34 |
+| First-innings total, mean / spread (SD) | 332 / 137 | 330 / 142 |
+| Won by an innings / by runs / by wickets | 18.6 / 42.3 / 26.0% | 17.6 / 37.3 / 26.8% |
+| Draws | 13.1% | 18.2% |
+| Home wins | 53.4% | 51.3% |
+| Over in 3 days or fewer / on day 4 / went to day 5 | 19.7 / 33.4 / 46.9% | 24.0 / 32.5 / 43.5% |
+| Declarations / hundreds / five-fors per match | 0.54 / 1.73 / 1.30 | 0.54 / 1.66 / 1.08 |
+| Spin's share of overs | 40.5% | 38.9% |
+
+29 of the plan's 32 targets are met. Known gaps: too many draws (and so too few wins by runs), because real
+sides finish more Tests on the last day; too few five-fors. Details are in
+[`docs/test_design.md`](docs/test_design.md) ("Phase 3").
+
 ## Rebuilding the data
 
 The repository includes the derived data (ratings and fitted tables) so the engine works straight after cloning.
@@ -486,6 +504,8 @@ python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free
 python -m engine.fit.probe_test        # Test data probes (cell sizes and raw rates; docs/test_design.md)
 python -m engine.fit.fit_test_situation # Tests: settling in, pitch wear, ball age, innings x wickets x lead
 python -m engine.fit.fit_test_captain  # Tests: declarations, follow-on, bowling spells, toss (after the line above)
+python -m engine.fit.fit_test_conditions # Tests: hosts, overs lost in a day, home edge, spin edge by ground
+python -m engine.fit.fit_test_venues   # Tests: venue factors and the pitch of the day (replays; after the line above)
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
 python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 min: replays every real match)
@@ -498,10 +518,12 @@ python -m engine.fit.fit_reactive      # reactive bowling changes
 python -m engine.fit.fit_career        # career mode: age curves, season form, retirements
 python -m engine.fit.fit_depth         # T20 batting depth still to come, a trend that extrapolates (after fit_situation)
 python -m engine.calibrate             # compare simulated v real
+python -m engine.calibrate --suite test # the same for Test matches (targets and gates of the plan)
 python tests/run_all.py                # every test script, several at a time (about a minute); -j 1: one by one
 python tests/test_golden.py            # 63 fixed matches still play exactly as recorded (--write: record them again)
 python tests/test_test_data.py         # Test ratings: players of every era load and rate sensibly
 python tests/test_test_engine.py       # Test matches: laws and bookkeeping, every result type, seeds
+python tests/test_test_calibration.py  # Test matches: 200 fixed Tests inside wide bands, weather, home edge
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -539,6 +561,8 @@ engine/            match engine (library)
   test_match.py    Test matches: days and sessions, two innings a side, follow-on, results
   test_captain.py  Test captaincy: declarations, follow-on, bowling spells, nightwatchman
   test_situation.py  Test situation tables: settling in, pitch wear, ball age, lead, the last innings
+  test_conditions.py  Test conditions: the host of a ground, overs lost in a day, the home edge
+  test_calibrate.py  replay real Tests and compare, with the plan's gates
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
   fit/             scripts that learn the engine's tables from Cricsheet
@@ -574,8 +598,8 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
 - [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
-- [ ] Test matches: data, ratings and the match engine done (Python only, not yet calibrated); calibration,
-      series, records and captaincy to come
+- [ ] Test matches: data, ratings, the match engine and its calibration done (Python only); series, records
+      and captaincy to come
       ([`docs/test_match_plan.md`](docs/test_match_plan.md))
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
