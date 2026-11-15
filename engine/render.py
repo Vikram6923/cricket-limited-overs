@@ -19,8 +19,18 @@ def scorecard_text(card: dict) -> str:
     out = _header(card)
     for inn in card["innings"] + card.get("super_overs", []):
         out += _innings_card(inn, _marks(card))
-    out += _footer(card)
+    out += _days(card) + _footer(card)
     return "\n".join(out)
+
+
+def _days(card: dict) -> list[str]:
+    """Close of play, day by day, for a match played over days (a card with "days")."""
+    days = card.get("days") or []
+    if not days:
+        return []
+    return ["", "Close of play"] + [f"  Day {d['day']}: {d['close']} ({d['overs']} overs, {d['runs']} runs, "
+                                    f"{d['wickets']} wicket{'' if d['wickets'] == 1 else 's'} in the day)"
+                                    for d in days]
 
 
 def _header(card: dict) -> list[str]:
@@ -61,7 +71,7 @@ def _marks(card: dict) -> dict:
 def _innings_card(inn: dict, marks: dict | None = None) -> list[str]:
     marks = marks or {}
     out = [""]
-    head = inn["team"] + (f"  (target {inn['target']})" if inn.get("target") else "")
+    head = (inn.get("label") or inn["team"]) + (f"  (target {inn['target']})" if inn.get("target") else "")
     if inn["number"] > 100:
         head = f"Super over: {inn['team']}"
     out.append(head)
@@ -76,7 +86,7 @@ def _innings_card(inn: dict, marks: dict | None = None) -> list[str]:
     ex = inn["extras"]
     out.append(f"  {'Extras':24} (b {ex['b']}, lb {ex['lb']}, w {ex['w']}, nb {ex['nb']}){sum(ex.values()):>23}")
     rr = 6 * inn["runs"] / inn["balls"] if inn["balls"] else 0
-    wk = "all out" if inn["wickets"] >= 10 else f"{inn['wickets']} wkts"
+    wk = "all out" if inn["wickets"] >= 10 else f"{inn['wickets']} wkts" + (" dec" if inn.get("declared") else "")
     out.append(f"  {'TOTAL':24} ({wk}, {inn['overs']} ov, RR {rr:.2f}){inn['runs']:>27}")
     dnb = [b["name"] + marks.get(b.get("id"), "") for b in inn["batting"] if not b["batted"]]
     if dnb:
@@ -173,6 +183,9 @@ def _bat_report(b: dict, rng: random.Random) -> str:
 def match_report(card: dict) -> str:
     """Narrative report in the style of the Test sim's matchreport."""
     rng = random.Random(card.get("seed", 0))
+    if card.get("days"):                      # a match played over days: its report by days is still to be written
+        return " ".join([f"{i.get('label') or i['team']}: {_score(i)}{' declared' if i.get('declared') else ''}."
+                         for i in card["innings"]] + [card["result"]["text"] + "."])
     if len(card["innings"]) < 2:              # washed out before the chase
         i1 = card["innings"][0]
         return (f"{i1['team']} made {i1['runs']}/{i1['wickets']} in {i1['overs']} overs before rain ended the "
@@ -240,5 +253,5 @@ def full_text(card: dict) -> str:
         label = "Super over log" if inn["number"] > 100 else "Innings log"
         out += ["", f"{label}: {inn['team']}"] + innings_log(card, inn)
         out += _innings_card(inn, _marks(card))
-    out += _footer(card)
+    out += _days(card) + _footer(card)
     return "\n".join(out) + "\n\nMatch Report: " + match_report(card) + "\n"

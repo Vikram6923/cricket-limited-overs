@@ -386,6 +386,8 @@ class Match:
                  control: dict | None = None, skill: dict | None = None, use_depth: bool = True):
         if fmt not in FORMATS:
             raise ValueError(f"format must be one of {sorted(FORMATS)}")
+        if FORMATS[fmt]["overs"] is None:
+            raise ValueError(f"{fmt!r} has no over limit: play it with simulate_match, not Match")
         self.fmt, self.year, self.venue = fmt, year, venue
         self.comp = comp or FORMATS[fmt]["intl"]
         self.seed = seed if seed is not None else random.randrange(1 << 30)
@@ -1311,4 +1313,8 @@ def turning_point(card: dict) -> dict | None:
 
 def simulate_match(team_a: dict, team_b: dict, fmt: str = "t20", comp: str | None = None, year: int = 2025,
                    venue: str | None = None, seed: int | None = None, **kw) -> dict:
+    """Play one match. This is the single place that sends a Test to its own controller (engine/test_match.py)."""
+    if fmt == "test":
+        from .test_match import simulate_test
+        return simulate_test(team_a, team_b, comp, year, venue, seed, **kw)
     return Match(fmt, team_a, team_b, comp, year, venue, seed, **kw).play()

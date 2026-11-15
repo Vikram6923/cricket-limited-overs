@@ -1077,3 +1077,24 @@ Details, validation tables and the data probes are in `docs/test_design.md`. In 
 - Year ranges: `TAU_SCALE["test"] = {"bat": 0.2, "bowl": 0.05}` from four held-out years.
 - `FORMATS["test"]`, `data/engine/basics_test.json` (682 Tests since 2010), `tests/test_test_data.py`.
 - ODI and T20 ratings rebuild as before; the golden test passes.
+
+### Phase 2 (2026-11-15): the Test match engine
+
+Details, fitted cells with sample sizes, every constant that is not fitted and the differences from the plan are
+in `docs/test_design.md` ("Phase 2"). In short:
+
+- `simulate_match(fmt="test", ...)` plays a Test: 5 days x 90 overs in three sessions, two innings a side,
+  declarations, the follow-on, the new ball at 80 overs, bowling by spells from two ends, the nightwatchman,
+  results by an innings, runs or wickets, draw, tie. `engine/test_match.py`, `test_captain.py`,
+  `test_situation.py`; the scorecard is `Scorebook`, the ball is `BallModel`.
+- `python -m engine.fit.fit_test_situation` -> `data/engine/test_situation.json`: settling in, pitch wear and
+  ball age by pace and spin, innings x wickets x lead, the last innings by runs needed per over left; fitted
+  jointly on 1,715,672 balls of 899 Tests.
+- `python -m engine.fit.fit_test_captain` -> `data/engine/test_captain.json`: toss (bat 68%), declarations (530),
+  the follow-on (176 chances), whether a spell goes on (280,482 decisions), who comes on (61,242 choices).
+- Found by the fits: adjusted for who is batting, a batter's first ten balls cost 15% of his scoring but only 5%
+  more dismissals; tiredness does not show in a bowler's rates; real sides rarely chase in the last innings.
+- Sanity only, 300 Tests India v Australia: runs per wicket 32.0, 3.49 an over, draws 4% (real 19%: no overs are
+  lost to weather until Phase 3), wins by wickets 43% (real 26%), by an innings 10% (real 19%). Not tuned.
+- `tests/test_test_engine.py`: laws and bookkeeping over 300 Tests, a scripted match for each result type, seed
+  reproducibility. All 16 test scripts and the golden test pass.

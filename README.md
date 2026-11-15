@@ -19,8 +19,10 @@ and its historical, draft and league modes inspired the modes here. See [Credits
 > See [Roadmap](#roadmap).
 >
 > **Test matches are being added** (plan: [`docs/test_match_plan.md`](docs/test_match_plan.md)). So far: the
-> data and the player ratings for about 3,270 Test cricketers since 1877
-> ([`docs/test_design.md`](docs/test_design.md)). There is no Test match engine yet.
+> data and the player ratings for about 3,270 Test cricketers since 1877, and a Test match engine you can call
+> from Python (`simulate_match(fmt="test", ...)`: five days, two innings a side, declarations, the follow-on).
+> It is not yet calibrated against real Tests and is not in the browser UI
+> ([`docs/test_design.md`](docs/test_design.md)).
 
 ## Quick start
 
@@ -482,6 +484,8 @@ python scripts/build_home_grounds.py   # national sides' home grounds -> data/ho
 python scripts/build_domestic_presets.py # Mushtaq Ali Trophy seasons -> data/domestic_seasons.json
 python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free hit (Tests: add "test")
 python -m engine.fit.probe_test        # Test data probes (cell sizes and raw rates; docs/test_design.md)
+python -m engine.fit.fit_test_situation # Tests: settling in, pitch wear, ball age, innings x wickets x lead
+python -m engine.fit.fit_test_captain  # Tests: declarations, follow-on, bowling spells, toss (after the line above)
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
 python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 min: replays every real match)
@@ -497,6 +501,7 @@ python -m engine.calibrate             # compare simulated v real
 python tests/run_all.py                # every test script, several at a time (about a minute); -j 1: one by one
 python tests/test_golden.py            # 63 fixed matches still play exactly as recorded (--write: record them again)
 python tests/test_test_data.py         # Test ratings: players of every era load and rate sensibly
+python tests/test_test_engine.py       # Test matches: laws and bookkeeping, every result type, seeds
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -531,6 +536,9 @@ engine/            match engine (library)
   state_career.py  state career: a Mushtaq Ali Trophy state over many seasons (Elite, Plate, no auction)
   ipl_link.py      the IPL played by the computer alongside a state career, sharing its players
   render.py        text scorecard and match report
+  test_match.py    Test matches: days and sessions, two innings a side, follow-on, results
+  test_captain.py  Test captaincy: declarations, follow-on, bowling spells, nightwatchman
+  test_situation.py  Test situation tables: settling in, pitch wear, ball age, lead, the last innings
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
   fit/             scripts that learn the engine's tables from Cricsheet
@@ -566,7 +574,8 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
 - [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
-- [ ] Test matches: data and ratings done; engine, calibration, series, records and captaincy to come
+- [ ] Test matches: data, ratings and the match engine done (Python only, not yet calibrated); calibration,
+      series, records and captaincy to come
       ([`docs/test_match_plan.md`](docs/test_match_plan.md))
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions

@@ -166,3 +166,155 @@ Balls the batter has faced in the innings:
   fitted probability by lead and time left.
 - **Time**: 73.5 overs per day with play against 90 scheduled is the size of what the overs-lost model has to
   explain (weather, light, slow over rates, early finishes on the last day).
+
+# Phase 2: the Test match engine (2026-11-15)
+
+`simulate_match(fmt="test", ...)` plays a Test and returns a scorecard. Files: `engine/test_match.py` (clock,
+innings, results, card), `engine/test_captain.py` (declarations, follow-on, bowling spells, nightwatchman, batting
+order, XI by rule), `engine/test_situation.py` (the tables at a ball), `engine/fit/fit_test_situation.py` and
+`engine/fit/fit_test_captain.py` (the fits, about 12 s and 35 s), `tests/test_test_engine.py`. This phase is not
+calibrated against real matches; that is Phase 3.
+
+## How a Test is played
+
+- **Time** is counted in overs: `days` x `day_overs` (5 x 90), three sessions a day. Lunch, tea and stumps are
+  events with the score; `card["days"]` has each day's overs, runs, wickets and close-of-play score. A change of
+  innings costs 2 overs; what is left of a day is not carried over. When the last day's overs are gone the match
+  is drawn. **No overs are lost to weather, light or slow over rates yet** (Phase 3), so every day has its full
+  90 overs.
+- **Innings**: built on `Scorebook`. An innings ends all out, declared, with the target reached, or when time is
+  up (`ended`). Order A, B, A, B, or A, B, B, A after a follow-on. Results: an innings and runs, runs, wickets,
+  draw, tie (the side batting last all out with the scores level).
+- **A ball**: `BallModel.delivery` with the Test baseline of the year, the two players' indexes, and the product
+  of four fitted tables (below). No free hit. Venue factor, pitch of the day and spin edge go through the shared
+  `conditions.py` and are all 1 until Phase 3 fits them.
+- **New ball**: taken at once at 80 overs of an innings; the ball-age table starts again.
+- **Bowling**: two ends, a spell at each. After his over the bowler at that end goes on with a fitted chance;
+  otherwise the captain picks from the others by fitted weights. Nobody bowls two overs running; the keeper does
+  not bowl.
+- **Random numbers**: one stream for the balls, a second for the captains' calls (declarations, follow-on,
+  bowling changes). A seed reproduces a Test, also across processes.
+
+## What was fitted, and on how much data
+
+All from the 899 Cricsheet Tests. A table value is observed / predicted, where predicted is the year's baseline
+x batter index x bowler index, on 1,715,672 legal balls between rated players.
+
+**Situation (`data/engine/test_situation.json`)**: four tables fitted jointly by backfitting (15 rounds), so
+what they share is counted once. A state cell is shrunk toward its innings x wickets parent with 400
+pseudo-balls, the parent toward 1.
+
+| Table | Cells | Balls per cell | Wicket multiplier | Runs multiplier |
+|---|---|---|---|---|
+| Settling in, balls faced 0 / 10 / 30 / 60 / 120 / 200 | 6 | 88,881 to 402,012 | 1.05, 1.00, 0.97, 0.95, 1.01, 1.04 | 0.85, 1.00, 1.02, 1.04, 1.08, 1.09 |
+| Pitch wear, pace, match overs 0 / 90 / 180 / 270 / 360 | 5 | 34,187 to 319,697 | 1.13, 1.03, 0.94, 0.89, 0.92 | 1.03, 1.01, 0.97, 0.99, 0.98 |
+| Pitch wear, spin | 5 | 41,595 to 177,330 | 0.99, 1.01, 0.98, 1.00, 0.95 | 1.04, 1.00, 0.97, 0.99, 0.94 |
+| Ball age, pace, overs 0 / 10 / 20 / 40 / 60 | 5 | 126,733 to 270,617 | 1.06, 1.01, 0.99, 0.97, 0.94 | 1.04, 1.02, 0.99, 0.97, 0.97 |
+| Ball age, spin | 5 | 51,616 to 210,544 | 1.14, 1.07, 1.03, 0.96, 0.93 | 1.01, 1.02, 1.01, 0.99, 0.99 |
+| Innings 1-3 x wickets down (0-2, 3-5, 6-9) x lead (under -200, -100, 0, 100, 200, 350, above) | 54 with balls | 210 to 133,745; 10 cells under 5,000 | 0.74 to 1.38 | 0.90 to 1.30 |
+| Innings 4 x wickets down x runs needed per over left (1.5, 2.5, 3.5, 5, 8) | 18 | 2,691 to 36,403 | 0.84 to 1.36 | 0.77 to 1.17 |
+
+The full tables, with the ball count of every cell, are printed by the fit and stored in the JSON (`*_n`).
+
+What the tables say:
+
+- **Settling in is mostly about scoring, not dismissal.** The probe's raw wicket rate halved between a batter's
+  first ten balls and his 200th. Once the prediction knows who is batting and bowling, the first ten balls carry
+  5% more dismissals and 15% fewer runs, and balls 60-120 are the safest (0.95). The raw slope was better batters
+  lasting longer. The dismissal part is in the table as fitted.
+- **Wear and innings number are read together.** Wear alone shows pace losing wickets as the match goes on and
+  spin flat; the later innings' state cells carry wicket multipliers of 1.0-1.4 for everyone. The product is the
+  probe's picture: spin gains on pace through the match. The two are strongly correlated in real matches, so
+  neither table should be read alone.
+- **The push for a declaration is there**: third innings 350 or more ahead, runs x1.29 and wickets x1.36.
+- **Saving the match is there**: last innings, 6-9 down needing 8 or more an over, runs x0.77, dots x1.10,
+  wickets x0.91. **A run chase barely is**: at 3.5-5 an over needed the runs multiplier is 0.87-0.95. Real sides
+  seldom go for them, and the engine copies that. A cell is called "save" when its runs multiplier is under 0.9
+  and "chase" above 1.08 (labels on the over log and one event; they change nothing).
+
+**Captaincy (`data/engine/test_captain.json`)**:
+
+| Call | Model | Data |
+|---|---|---|
+| Toss | bat with probability 0.682 | 899 tosses |
+| Declare, innings 1 | logistic at each over-end: runs, wickets down, overs left, a batter in the nineties | 171 declarations in 30,266 over-ends from 237 runs up |
+| Declare, innings 2 | logistic: lead, runs, wickets, overs left, nineties | 92 in 45,923 over-ends from a lead of -181 up |
+| Declare, innings 3 | logistic: lead, overs left, runs an over the other side would need, wickets, nineties | 267 in 38,557 over-ends from a lead of 47 up |
+| Follow-on | logistic: lead, overs left, overs the bowlers have just bowled | 176 chances, 91 enforced |
+| Spell goes on | table by kind (specialist pace, specialist spin, part-timer) x overs in the spell (1 to 7, 8-9, 10-12, 13-16, 17+) x new ball due, times a logistic correction for runs and wickets in the spell against prediction and overs bowled in the innings | 162,059 pace, 99,882 spin, 18,541 part-timer decisions |
+| Who comes on | weight = career overs per match x kind by ball age x kind by wear x kind by rest since he last bowled x overs-per-match band, fitted by iterative scaling to the bowler chosen | 61,242 choices |
+
+- Below the lowest lead (or first-innings score) at which anyone has declared, nobody declares.
+- A batter in the nineties cuts the odds of a declaration by a factor of 6 to 9 (coefficients -1.9 to -2.2). The
+  old simulator had this as a rule; here it is fitted.
+- Pace spells: 95% go on after one over, 55-60% after six to eight. Spin: 84-90% at every length. When the new
+  ball is due, about half the spinners and two thirds of the part-timers come off.
+- A bowler who has gone for 10 more than predicted in the spell is 0.3-0.5 less likely (log odds) to go on; a
+  wicket more than predicted, 0.4-0.45 more likely.
+- **Tiredness does not show in the rates.** Observed / predicted (situation tables included) for specialist pace
+  by over of spell: wickets 0.98, 1.01, 1.01, 1.04, 1.02 for overs 1-2 to 9-10; by overs already bowled in the
+  innings 1.00, 1.01, 1.00, 0.97 up to 30-39. So fatigue acts only through who bowls (spell lengths and rest),
+  as the plan said it would if the data showed nothing.
+
+## What is not fitted, and why
+
+| Constant | Value | Why it is not fitted |
+|---|---|---|
+| Days, overs a day, sessions | 5 x 90, 3 | the playing conditions; `days` and `day_overs` are parameters |
+| Overs lost at a change of innings | 2 | the playing conditions |
+| New ball | at 80 overs, taken at once | Cricsheet does not record it; the fits assume the same |
+| Follow-on mark | 200; 150 in a 3-4 day match, 100 in two days, 75 in one | Law 14.1 |
+| Nightwatchman | a wicket with 6 overs or fewer left in the day and one of the top six due: the lowest dismissal index of Nos. 8-10 goes in; not on the last day, not with an explicit batting order | no day data; the plan's rule. `nightwatchman=False` turns it off |
+| Spells end overnight | both ends choose afresh each morning, everyone rested | no day data. Real spells cut by stumps look unbroken in the fit, so simulated spells may come out a little short |
+| "Overs left" in the fits | drawn match: the overs really still bowled; otherwise the larger of that and 450 minus overs bowled | no clock in the data; forgets overs lost to weather in matches with a result |
+| Shrinkage | 400 pseudo-balls (situation cells), 20 pseudo-decisions (spell table), ridge 1.0 (logistic models), 0.5 a cell (choice) | regularisation, as in the limited-overs fits |
+| Weight of a man who never bowls | 0.15 overs a match | so that he can be chosen at all |
+| Cap on "runs an over needed" as a declaration feature | 8 | keeps the last overs of a match from dominating |
+| Player of the match | runs x (era runs per wicket / the match's), era runs per wicket for a wicket, 5 a catch or stumping, 25 for the winning side | the plan's interim award until the win / draw / loss table (Phase 5) |
+| XI from a squad | best-batting keeper, four best specialist bowlers with a spinner if there is one, six best batters of the rest | the plan's v1 rule; a learned model is deferred |
+
+## Where this differs from the plan
+
+- **No weather or over-rate losses yet.** The plan puts the overs-lost fit in Phase 3; until then a Test has all
+  450 overs, so draws are far too rare (see the numbers below).
+- **The new ball is always taken at 80.** The plan lets the captain wait when spin is well ahead; that needs the
+  spin edge, which is fitted in Phase 3.
+- **Hand x bowling-kind matchups, venue factors, pitch of the day and the spin edge are not fitted for Tests
+  yet.** The engine reads the last three through `conditions.py`, so Phase 3 only has to add the files.
+- **No promotion of a hitter in a declaration push**; the batting order changes only for the nightwatchman.
+- **Two fit scripts**, not one per topic, and the tables are `test_situation.json` and `test_captain.json`.
+- **`Match(fmt="test")` raises** because the format has no over limit (no format name in `match.py`); the one
+  dispatch is in `simulate_match`. `render.py` reads `label`, `declared` and `days` if a card has them, without
+  asking the format. `match_report` gives a plain list of scores for a match played over days; the report by days
+  is Phase 4.
+- **Not wired to anything else**: series, tournaments, the server and manual captaincy do not accept Tests yet
+  (Phases 4 and 6). `TestMatch` refuses arguments it does not know (`rain_on`, `control`, `skill` ...).
+
+## Sanity numbers (not calibration)
+
+300 Tests, India v Australia with 2023 baselines, seeds 0-299, one run:
+
+| | Simulated | Real, all 899 Tests (probe) |
+|---|---|---|
+| Won by runs / wickets / an innings / drawn | 43% / 43% / 10% / 4% | 37% / 26% / 19% / 19% |
+| Overs bowled per match | 320 | not measured per match; 73.5 a day with play |
+| Runs per wicket, runs per over (extras included) | 32.0, 3.49 | 2023 baseline: 29.5 a wicket, 3.15 off the bat an over |
+| Innings declared: 1st / 2nd / 3rd | 13% / 5% / 22% | 19% / 10% / 30% |
+| Follow-on enforced when on offer | 25 of 42 | 91 of 176 |
+| Matches ending on day 2 / 3 / 4 / 5 | 1% / 18% / 56% / 25% | 1% / 15% / 32% / 52% |
+| Hundreds, five-fors per match | 1.87, 1.09 | not yet measured |
+| Nightwatchmen | 1.1 per match | not in the data; likely too many |
+
+One fixture is not the real mix of sides, so only the large gaps mean anything: too few draws and too many
+matches over by day four (no lost overs), too many wins by wickets and too few by an innings. Phase 3 starts
+from these. A Test takes roughly 30 ms here (300 in 8 s, one run on this laptop, not a benchmark).
+
+## Tests
+
+`tests/test_test_engine.py` (15 s): the laws and the bookkeeping over 300 Tests in four set-ups (five days; a
+named ground; four days; three days of 60 overs): innings order, follow-on only with the lead for it, no bowler
+two overs running, the keeper never bowls, a new ball every 80 overs, never more than the scheduled overs, each
+day's overs and runs add up to the innings', every total adds up, the result recomputed from the scores, no draw
+with time left. Each result type is forced with a scripted ball model (innings and runs with and without the
+follow-on, runs, one run, wickets, tie, a blocked-out draw, a win after following on). Seed reproducibility, the
+dispatch, the four-innings text scorecard, the clock, and the direction of each fitted call.
