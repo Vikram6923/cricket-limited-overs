@@ -21,9 +21,9 @@ and its historical, draft and league modes inspired the modes here. See [Credits
 > **Test matches** can be played as a Match / Series or a Classic Series (any nation and years since 1877,
 > e.g. West Indies 1980-85 v Australia 1999-2003), in the browser or from Python: declarations, the follow-on,
 > rain, home advantage, about 3,270 rated Test cricketers. They are calibrated against the 473 real Tests of
-> 2015-26 (29 of 32 targets met; it draws too often). The computer plays both sides for now; records, a
-> win / draw / loss chart and captaincy are still to come ([`docs/test_design.md`](docs/test_design.md), plan:
-> [`docs/test_match_plan.md`](docs/test_match_plan.md)).
+> 2015-26 (29 of 32 targets met; it draws too often). Results come with Test records and a win / draw / loss
+> chart. The computer plays both sides for now; captaining a Test is still to come
+> ([`docs/test_design.md`](docs/test_design.md), plan: [`docs/test_match_plan.md`](docs/test_match_plan.md)).
 
 ## Quick start
 
@@ -380,6 +380,14 @@ and the home side gets the edge real home sides have. The results show the serie
 four innings, a day-by-day strip (lunch, tea, stumps), the lead over the match, and Test batting and bowling
 tables. Other modes (tournament, league, draft, auction, two players, careers) are T20 and ODI only.
 
+Every Test also shows **Win, draw or loss**: the chance of each result after every over, in three bands. It
+comes from a table made by playing 20,000 Tests between equal sides, so it knows the score, the wickets and the
+time left but not which side is stronger. The same table gives each player's impact (how much he moved his
+side's chances, which with runs and wickets picks the player of the match and of the series) and the turning
+point (the session that moved the match most towards the winner). A series of three Tests or more lists Test
+records: hundreds, doubles and triples, carrying the bat, a hundred in each innings, best match bowling,
+ten-wicket matches, hat-tricks, the best partnership for each wicket, the highest successful chases.
+
 ```python
 from engine import history, match_report
 from engine.test_series import play_test_series
@@ -531,6 +539,7 @@ python -m engine.fit.fit_test_conditions # Tests: hosts, overs lost in a day, ho
 python -m engine.fit.fit_test_venues   # Tests: venue factors and the pitch of the day (replays; after the line above)
 python scripts/build_home_grounds.py   # home grounds, and each host's Test grounds (after fit_test_conditions)
 python scripts/build_test_presets.py   # the preset Test squads ("India Test 2025" ...) into the saved-team lists
+python -m engine.fit.fit_wdl           # Tests: the win / draw / loss table (20,000 simulated Tests, minutes; redo after any Test recalibration)
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
 python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 min: replays every real match)
@@ -550,6 +559,7 @@ python tests/test_test_data.py         # Test ratings: players of every era load
 python tests/test_test_engine.py       # Test matches: laws and bookkeeping, every result type, seeds
 python tests/test_test_calibration.py  # Test matches: 200 fixed Tests inside wide bands, weather, home edge
 python tests/test_test_series.py       # Test series: result, host and grounds, stats, report, a run through the server
+python tests/test_test_records.py      # Test records; win / draw / loss chances, impact, turning point, rankings
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -591,6 +601,8 @@ engine/            match engine (library)
   test_calibrate.py  replay real Tests and compare, with the plan's gates
   test_series.py   Test series: host, grounds in turn, the result with draws, Test statistics
   test_report.py   a Test's report by days and its day-by-day strip
+  test_records.py  Test records over a set of matches
+  test_wdl.py      win / draw / loss chances from the state of a Test; the turning point
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
   fit/             scripts that learn the engine's tables from Cricsheet
@@ -626,8 +638,8 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
 - [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
-- [ ] Test matches: data, ratings, the match engine, its calibration, series and the results pages done;
-      records, the win / draw / loss chart and captaincy to come
+- [ ] Test matches: data, ratings, the match engine, its calibration, series, the results pages, records
+      and the win / draw / loss chart done; captaincy to come
       ([`docs/test_match_plan.md`](docs/test_match_plan.md))
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions

@@ -7,8 +7,8 @@
 
 `engine.tournament.play_series(..., fmt="test")` sends a Test series here, as `simulate_match` sends a Test to
 engine/test_match.py. The result has the shape of a limited-overs series (so it is saved and shown the same way)
-with Test figures: draws, wins by an innings, best match bowling, ten-wicket matches, and a points ranking in
-place of win probability added (that needs the win / draw / loss table of Phase 5).
+with Test figures: draws, best match bowling, ten-wicket matches, Test records (engine/test_records.py) and two
+rankings: by points, and by points plus impact (win chance plus half the draw chance added, engine/test_wdl.py).
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from functools import lru_cache
 
 from .data import DATA, ratings
 from .match import simulate_match
+from .test_records import test_records
 from .tournament import _seed, team_spec, tournament_stats
 
 FMT = "test"
@@ -102,9 +103,10 @@ def match_figures(cards: list[dict]) -> dict:
 
 
 def points(cards: list[dict], wins: dict) -> list[dict]:
-    """The Test ranking: each match's player-of-the-match points summed (engine/test_match.py: runs weighted by
+    """The Test ranking by points: each match's balanced points summed (engine/test_match.py: runs weighted by
     how low-scoring the match was, a wicket worth the era's runs per wicket, 5 a catch or stumping, 25 for a
-    win). It picks the player of the series."""
+    win), with each player's impact over the series beside it (card["impact"]; 0 without the win / draw / loss
+    table)."""
     people: dict = {}
     for c in cards:
         team_of = {p["id"]: t for t, xi in c["xi"].items() for p in xi}
@@ -115,11 +117,16 @@ def points(cards: list[dict], wins: dict) -> list[dict]:
                 continue
             p = people.setdefault((pid, t), {"id": pid, "name": name_of[pid], "team": t, "runs": 0, "wickets": 0,
                                              "catches": 0, "bat_pts": 0.0, "bowl_pts": 0.0, "field_pts": 0.0,
-                                             "win_pts": 0.0, "sr_bonus": 0.0, "econ_bonus": 0.0, "impact": 0.0})
+                                             "win_pts": 0.0, "sr_bonus": 0.0, "econ_bonus": 0.0, "impact": 0.0,
+                                             "impact_pts": 0.0})
             p["bat_pts"] += bat
             p["bowl_pts"] += bowl
             p["field_pts"] += field
             p["win_pts"] += win
+        for pid, v in (c.get("impact") or {}).items():
+            if (pid, team_of.get(pid)) in people:
+                people[(pid, team_of[pid])]["impact"] += v
+                people[(pid, team_of[pid])]["impact_pts"] += v * (c.get("runs_per_win") or 0.0)
         for inn in c["innings"]:
             for b in inn["batting"]:
                 if (b["id"], inn["team"]) in people:
@@ -133,6 +140,9 @@ def points(cards: list[dict], wins: dict) -> list[dict]:
         for k in ("bat_pts", "bowl_pts", "field_pts", "win_pts"):
             p[k] = round(p[k], 1)
         p["balanced"] = round(p["bat_pts"] + p["bowl_pts"] + p["field_pts"] + p["win_pts"], 1)
+        p["impact"] = round(p["impact"], 3)
+        p["impact_pts"] = round(p["impact_pts"], 1)
+        p["score"] = round(p["balanced"] + p["impact_pts"], 1)     # the player-of-the-match score, summed
         rows.append(p)
     rows.sort(key=lambda p: (-p["balanced"], p["name"]))
     return [dict(p, rank=i) for i, p in enumerate(rows, 1)]
@@ -140,7 +150,10 @@ def points(cards: list[dict], wins: dict) -> list[dict]:
 
 def test_stats(cards: list[dict], wins: dict) -> dict:
     """The limited-overs tables (engine/tournament.py) with the Test columns added: best match figures and
-    ten-wicket matches for bowlers; the ranking is by points."""
+    ten-wicket matches for bowlers; Test records; the rankings. With the win / draw / loss table the official
+    ranking is by the score that picks the player of each match, added up (points plus impact turned into
+    runs), and it picks the player of the series ("kind": "test"); without the table both rankings are the
+    points ("kind": "test_points")."""
     st = tournament_stats(cards, wins)
     figs = match_figures(cards)
     for r in st["bowling"]:
@@ -150,15 +163,13 @@ def test_stats(cards: list[dict], wins: dict) -> dict:
         r["best_match_figures"] = f"{bm[0]}/{bm[1]}" if bm else None
         r["best_match_no"] = bm[2] if bm else None
     rank = points(cards, wins)
-    st["mvp"] = {"official": rank, "balanced": rank, "kind": "test_points"}
-    inn_wins = [{"match_no": c["match_no"], "stage": c["stage"], "winner": c["result"]["winner"],
-                 "loser": c["result"]["loser"], "margin": c["result"]["margin"], "text": c["result"]["text"]}
-                for c in cards if c["result"].get("by") == "innings"]
-    st["records"]["biggest_wins_by_an_innings"] = sorted(inn_wins, key=lambda x: -x["margin"])
-    wk = [{"match_no": c["match_no"], "stage": c["stage"], "winner": c["result"]["winner"],
-           "loser": c["result"]["loser"], "margin": c["result"]["margin"], "text": c["result"]["text"]}
-          for c in cards if c["result"].get("by") == "wickets"]
-    st["records"]["wins_by_wickets"] = sorted(wk, key=lambda x: x["margin"])
+    if all("impact" in c for c in cards):
+        by_score = sorted(rank, key=lambda p: (-p["score"], p["rank"]))
+        st["mvp"] = {"official": [dict(p, rank=i) for i, p in enumerate(by_score, 1)], "balanced": rank,
+                     "kind": "test"}
+    else:
+        st["mvp"] = {"official": rank, "balanced": rank, "kind": "test_points"}
+    st["records"] = test_records(cards)
     return st
 
 

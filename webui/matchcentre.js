@@ -104,7 +104,7 @@ function statTiles(c) {
 }
 function mcSummary() {
   const {c, d} = MC, pom = c.player_of_match || {}, test = isTest(c), mainInns = test ? c.innings : c.innings.slice(0, 2);
-  const wp = small => test ? leadChartHTML(c, small) : winProbHTML(c, small);
+  const wp = small => test ? leadChartHTML(c, small) + wdlChartHTML(c, small) : winProbHTML(c, small);
   const tl = momentsHTML(c);
   const best = mainInns.flatMap(i => {
     const b = [...i.batting].filter(x => x.batted).sort((x, y) => y.runs - x.runs)[0];

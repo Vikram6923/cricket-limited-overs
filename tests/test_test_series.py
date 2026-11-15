@@ -128,9 +128,10 @@ def test_stats_add_up():
         assert w["five_w"] == sum(x["wickets"] >= 5 for x in mine) and w["maidens"] == sum(x["maidens"] for x in mine)
         bw, br = (int(v) for v in w["best"].split("/"))
         assert (bw, -br) == max((x["wickets"], -x["runs"]) for x in mine)
-    # the ranking: each match's points (four parts) summed; it picks the player of the series
-    rank = r["mvp"]["official"]
-    assert r["mvp"]["kind"] == "test_points" and r["player_of_series"]["id"] == rank[0]["id"]
+    # the points ranking: each match's points (four parts) summed. The official ranking (by impact, with the
+    # win / draw / loss table) picks the player of the series: tests/test_test_records.py
+    rank = r["mvp"]["balanced"]
+    assert r["mvp"]["kind"] in ("test", "test_points") and r["player_of_series"]["id"] == r["mvp"]["official"][0]["id"]
     assert [p["rank"] for p in rank] == list(range(1, len(rank) + 1))
     assert all(a["balanced"] >= b["balanced"] for a, b in zip(rank, rank[1:]))
     for p in rank[:6]:
@@ -139,10 +140,11 @@ def test_stats_add_up():
         assert p["win_pts"] == 25 * sum(c["result"].get("winner") == p["team"] for c in cards)
     for c in cards:
         pom = c["player_of_match"]
-        assert pom["id"] == max(c["points"], key=lambda k: sum(c["points"][k]))
+        k, imp = c.get("runs_per_win") or 0, c.get("impact") or {}
+        assert pom["id"] == max(c["points"], key=lambda q: sum(c["points"][q]) + k * imp.get(q, 0))
     rec = r["records"]
     assert len(rec["biggest_wins_by_an_innings"]) == sum(c["result"].get("by") == "innings" for c in cards)
-    assert len(rec["wins_by_wickets"]) == sum(c["result"].get("by") == "wickets" for c in cards)
+    assert len(rec["narrowest_wins_by_wickets"]) == sum(c["result"].get("by") == "wickets" for c in cards)
     assert rec["highest_totals"][0]["runs"] == max(i["runs"] for i in inns)
 
 

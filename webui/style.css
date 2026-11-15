@@ -1194,3 +1194,5 @@ body.fmt-test .lo-only{display:none!important}
 svg.chart .dayline{stroke:var(--muted);stroke-dasharray:2 4;stroke-width:1;opacity:.55}
 .legend i.dl{width:0;height:11px;border-left:1px dashed var(--muted);border-radius:0;background:none}
 .chart-box.wide{grid-column:1/-1}
+.legend.wdl-key{margin:0 0 6px;font-size:.78rem}
+.chart-card+.chart-card{margin-top:16px}

@@ -76,7 +76,43 @@ function leadChartHTML(c, small) {
   return `<div class="card chart-card"><h4>Lead over the match</h4><svg viewBox="0 0 ${W} ${H}" class="chart">${g}</svg></div>`;
 }
 
-/* charts for a Test: the lead, then a Manhattan and the partnerships of each innings */
+/* the chances over the match in three bands: the side that batted first wins, a draw, the other side wins
+   (engine/test_wdl.py; a match saved before that table has no bands) */
+function wdlChartHTML(c, small) {
+  const inns = c.innings.filter(i => i.overs_log && i.overs_log.length);
+  const A = (c.innings[0] || {}).team, B = c.teams.find(t => t !== A) || '';
+  const col = t => TEAM_COL[Math.max(0, c.teams.indexOf(t))];
+  const pts = [], dayLines = [], ends = [];
+  let x = 0, day = null;
+  inns.forEach(inn => {
+    inn.overs_log.forEach(o => {
+      if (day !== null && o.day !== day) dayLines.push({x, day: o.day});
+      day = o.day; x++;
+      if (o.wdl) pts.push({x, a: o.wdl[0], d: o.wdl[1], o, inn});
+    });
+    ends.push(x);
+  });
+  if (pts.length < 2) return '';
+  pts.unshift({x: 0, a: pts[0].a, d: pts[0].d});
+  const W = small ? 460 : 560, H = small ? 190 : 230, P = {l: 40, r: 10, t: 12, b: 24};
+  const X = v => P.l + (W - P.l - P.r) * v / Math.max(1, x), Y = p => H - P.b - (H - P.t - P.b) * p;
+  const line = f => pts.map(p => `${X(p.x).toFixed(1)},${Y(f(p)).toFixed(1)}`);
+  const lo = line(p => Math.max(0, 1 - p.a - p.d)), hi = line(p => 1 - p.a);      // B's band below, A's above
+  const x0 = X(0).toFixed(1), x1 = X(pts[pts.length - 1].x).toFixed(1);
+  let g = `<polygon points="${x0},${Y(1)} ${hi.join(' ')} ${x1},${Y(1)}" fill="${col(A)}" opacity=".8"/>
+    <polygon points="${hi.join(' ')} ${[...lo].reverse().join(' ')}" fill="var(--muted)" opacity=".28"/>
+    <polygon points="${x0},${Y(0)} ${lo.join(' ')} ${x1},${Y(0)}" fill="${col(B)}" opacity=".8"/>`;
+  [0, .5, 1].forEach(v => { g += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" class="grid"/><text x="${P.l - 6}" y="${Y(v) + 4}" text-anchor="end">${v * 100}%</text>`; });
+  ends.slice(0, -1).forEach(e => { g += `<line x1="${X(e).toFixed(1)}" x2="${X(e).toFixed(1)}" y1="${P.t}" y2="${H - P.b}" class="grid"/>`; });
+  dayLines.forEach(d => { g += `<line x1="${X(d.x).toFixed(1)}" x2="${X(d.x).toFixed(1)}" y1="${P.t}" y2="${H - P.b}" class="dayline"/>
+    <text x="${(X(d.x) + 3).toFixed(1)}" y="${H - P.b + 14}" class="ax">Day ${d.day}</text>`; });
+  g += `<text x="${P.l + 3}" y="${H - P.b + 14}" class="ax">Day ${pts[1].o.day}</text>`;
+  pts.forEach(p => { if (p.o && p.o.wkts) g += `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(1 - p.a - p.d / 2).toFixed(1)}" r="2" fill="var(--text)" class="wkt"><title>${esc(p.inn.team)} ${p.o.total}/${p.o.wickets} (day ${p.o.day}): ${esc(A)} ${Math.round(100 * p.a)}%, draw ${Math.round(100 * p.d)}%, ${esc(B)} ${Math.round(100 * Math.max(0, 1 - p.a - p.d))}%</title></circle>`; });
+  const key = `<div class="legend wdl-key"><span><i style="background:${col(A)}"></i>${esc(dn(A))} win</span><span><i style="background:var(--muted);opacity:.5"></i>Draw</span><span><i style="background:${col(B)}"></i>${esc(dn(B))} win</span></div>`;
+  return `<div class="card chart-card"><h4>Win, draw or loss</h4>${key}<svg viewBox="0 0 ${W} ${H}" class="chart">${g}</svg></div>`;
+}
+
+/* charts for a Test: the lead, the chances, then a Manhattan and the partnerships of each innings */
 function testChartsHTML(c) {
   const inns = c.innings.filter(i => i.overs_log && i.overs_log.length);
   if (!inns.length) return '';
@@ -97,7 +133,7 @@ function testChartsHTML(c) {
     return `<div class="chart-box"><h4>Manhattan · ${innTag(c, inn)} ${innScore(inn)}</h4><svg viewBox="0 0 ${W} ${H}" class="chart">${body}</svg></div>`;
   }).join('');
   const legendT = `<div class="legend">${c.teams.map((t, k) => `<span><i style="background:${TEAM_COL[k]}"></i>${esc(dn(t))}</span>`).join('')}<span><i class="wk"></i>wicket</span><span><i class="dl"></i>new day</span></div>`;
-  return `<div class="charts">${legendT}<div class="chart-grid">${leadChartHTML(c, false).replace('card chart-card', 'chart-box wide')}${man}
+  return `<div class="charts">${legendT}<div class="chart-grid">${leadChartHTML(c, false).replace('card chart-card', 'chart-box wide')}${wdlChartHTML(c, false).replace('card chart-card', 'chart-box wide')}${man}
     ${inns.map(inn => partnershipChart(inn, Math.max(0, c.teams.indexOf(inn.team)), inns)).join('')}</div></div>`;
 }
 

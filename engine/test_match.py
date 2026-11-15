@@ -18,7 +18,7 @@ import math
 import random
 import zlib
 
-from . import conditions, test_captain, test_conditions
+from . import conditions, test_captain, test_conditions, test_wdl
 from .ballmodel import NO_SITUATION, BallModel
 from .captain import choose_keeper
 from .data import FORMATS, Player, baseline, basics, player
@@ -137,6 +137,11 @@ class TestInnings(Scorebook):
         left = [c for c in (self.striker, self.non_striker) if c.batted and not c.out]
         return ", ".join(f"{c.p.name} {c.runs}* ({c.balls}b)" for c in left)
 
+    def x(self) -> int:
+        """The state the win / draw / loss table reads: the batting side's lead, or in the last innings minus
+        the runs still needed."""
+        return self.runs - self.target if self.target is not None else self.lead0 + self.runs
+
     def margin_text(self) -> str:
         """'lead by 120' / 'trail by 45' / 'need 88 more' for break and close-of-play lines."""
         if self.target is not None:
@@ -193,7 +198,11 @@ class TestInnings(Scorebook):
         runs0, wkts0, conceded0, fw0, er0, ew0 = self.runs, self.wkts, f.runs, f.wkts, f.exp_runs, f.exp_wkts
         balls = 0
         seq: list = []
+        wdl = m.wdl
+        # the batting side's chances now (time lost before this over is nobody's doing)
+        v = wdl.value(self.number, self.wkts, self.x(), left) if wdl else 0.0
         while balls < 6 and not self.done:
+            striker = self.striker
             if m.use_situation:
                 if self.target is None:
                     cell = sit.cell(self.number, self.wkts, self.lead0 + self.runs)
@@ -214,14 +223,26 @@ class TestInnings(Scorebook):
                 self.done, self.ended = True, "target"
             elif self.done:                           # next_batter found nobody left
                 self.ended = "all out"
+            if wdl:
+                # each ball moves the chances; the move goes to the striker and against the bowler. The ball
+                # that ends the innings is worth what it leads to: settled when that is known (TestMatch.settle)
+                if self.done:
+                    m.pending = (striker.p.id, bowler.id, v)
+                else:
+                    v2 = wdl.value(self.number, self.wkts, self.x(), left - balls / 6)
+                    m.credit(striker.p.id, bowler.id, v2 - v)
+                    v = v2
         if balls == 6 and f.runs == conceded0:
             f.maidens += 1
         self.bowling.record(bowler, n, (f.runs - conceded0) - (f.exp_runs - er0),
                             (f.wkts - fw0) - (f.exp_wkts - ew0))
         over = {"over": n + 1, "bowler": bowler.name, "runs": self.runs - runs0, "wkts": self.wkts - wkts0,
-                "total": self.runs, "wickets": self.wkts, "balls": seq, "day": day, "session": session}
+                "total": self.runs, "wickets": self.wkts, "balls": seq, "day": day, "session": session,
+                "left": left - 1}
         if self.mode:
             over["mode"] = self.mode
+        if wdl and not self.done:
+            over["wdl"] = m.chances(self, left - 1)
         self.overs.append(over)
 
     def declaration(self) -> bool:
@@ -266,12 +287,13 @@ class TestMatch:
                  pitch: dict | None = None, use_situation: bool = True, use_venue: bool = True,
                  use_pitch: bool = True, use_spin: bool = True, declare: bool = True,
                  follow_on: bool | None = None, nightwatchman: bool = True, host: str | None = None,
-                 use_weather: bool = True, use_home: bool = True):
+                 use_weather: bool = True, use_home: bool = True, use_wdl: bool = True):
         """toss: "a" | "b" (who wins it); decision: "bat" | "bowl"; days, day_overs: the match's length
         (default 5 x 90); declare: False = nobody declares; follow_on: True / False = always / never enforced when
         it is on offer, None = the captain's (fitted) choice; nightwatchman: False = never used; host: the
         country whose ground it is (default: looked up from the venue; None with no venue = neutral): it sets
-        the overs lost to weather and, when one of the sides is the host, the home edge."""
+        the overs lost to weather and, when one of the sides is the host, the home edge. use_wdl: False = no
+        win / draw / loss chances on the card (they never change how the match is played)."""
         self.year, self.venue = year, venue
         self.comp = comp or FORMATS[FMT]["intl"]
         self.seed = seed if seed is not None else random.randrange(1 << 30)
@@ -324,8 +346,32 @@ class TestMatch:
         self.overs_bowled = 0                  # in the match (pitch wear)
         self.day_log: list[dict] = []
         self._today = {"overs": 0, "runs": 0, "wickets": 0, "lost": 0}
+        self.wdl = test_wdl.table() if use_wdl else None     # None also when the table has not been built
+        self.wpa: dict[str, float] = {}        # each player's impact: chances added (win + half a draw)
+        self.pending: tuple | None = None      # the ball that ended the last innings, until it is settled
 
     # ------------------------------------------------------------------ helpers
+    def credit(self, striker_id: str, bowler_id: str, d: float) -> None:
+        self.wpa[striker_id] = self.wpa.get(striker_id, 0.0) + d
+        self.wpa[bowler_id] = self.wpa.get(bowler_id, 0.0) - d
+
+    def chances(self, inn: TestInnings, left: float) -> list:
+        """[the side that batted first wins, a draw] in the innings' present state, for the chart."""
+        pw, pd = self.wdl.probs(inn.number, inn.wkts, inn.x(), left)
+        if inn.bat is not self.innings[0].bat:
+            pw = max(1.0 - pw - pd, 0.0)
+        return [round(pw, 3), round(pd, 3)]
+
+    def settle(self, inn: TestInnings, v: float, chances: list, force: bool = False) -> None:
+        """An innings is over. v: its batting side's chances as things now stand (the next innings' first
+        state, or the result). The ball that ended it gets the difference; its last over gets the chart point."""
+        if self.pending:
+            sid, bid, v0 = self.pending
+            self.credit(sid, bid, v - v0)
+            self.pending = None
+        if inn.overs and (force or "wdl" not in inn.overs[-1]):
+            inn.overs[-1]["wdl"] = chances
+
     def base_of(self, p: Player, bat: Team) -> dict:
         """The baseline for this bowler's type against this batting side."""
         base, by_type = self.base_side.get(bat.name) or (self.base, self.base_type)
@@ -387,6 +433,10 @@ class TestMatch:
             return None
         inn = TestInnings(self, bat, bowl, len(self.innings) + 1, target, follow_on)
         self.innings.append(inn)
+        if self.wdl and len(self.innings) > 1:
+            prev = self.innings[-2]
+            v = self.wdl.value(inn.number, 0, inn.x(), self.clock.left)
+            self.settle(prev, v if prev.bat is bat else 1.0 - v, self.chances(inn, self.clock.left))
         inn.play()
         inn.close_partnership()
         return inn
@@ -401,6 +451,10 @@ class TestMatch:
         result = self.play_innings(first, second)
         if self.innings and not any(d["day"] == self.clock.day for d in self.day_log) and self._today["overs"]:
             self.close_day(self.innings[-1], self.clock.day)          # the match ended during a day
+        if self.wdl and self.innings:
+            last, win = self.innings[-1], result.get("winner")
+            self.settle(last, 0.5 if not win else float(win == last.bat.name),
+                        [float(win == self.innings[0].bat.name), float(not win)], force=True)
         card = {
             "format": FMT, "competition": self.comp, "year": self.year, "venue": self.venue, "seed": self.seed,
             "overs": None, "scheduled_days": self.days, "day_overs": self.clock.day_overs,
@@ -413,6 +467,15 @@ class TestMatch:
             "result": result,
             "events": [e for i in self.innings for e in i.events],
         }
+        if self.wdl:
+            card["impact"] = {pid: round(v, 3) for pid, v in sorted(self.wpa.items(), key=lambda kv: -kv[1])}
+            card["runs_per_win"] = self.wdl.runs_per_win
+            tp = test_wdl.turning_point(card)
+            if tp:
+                card["turning_point"] = tp
+                card["events"].append({"innings": tp["innings"], "over": f"{tp['over']}.0", "score": tp["to"],
+                                       "kind": "turning_point", "text": tp["text"], "day": tp["day"],
+                                       "session": tp["session"]})
         card["player_of_match"] = player_of_match(card, self.base[PHASE])
         return card
 
@@ -462,11 +525,13 @@ class TestMatch:
 
 
 def player_of_match(card: dict, base: dict) -> dict:
-    """The balanced score until the win / draw / loss table exists (plan section 5): runs, weighted by how
-    low-scoring the match was against the era; a wicket worth the era's runs per wicket; 5 a catch or stumping;
-    a bonus for the winning side. No strike-rate credit. Everyone's points, in their four parts (batting,
-    bowling, fielding, winning), are kept on the card as card["points"]: a series adds them up
-    (engine/test_series.py)."""
+    """The balanced score (plan section 5): runs, weighted by how low-scoring the match was against the era; a
+    wicket worth the era's runs per wicket; 5 a catch or stumping; a bonus for the winning side. No strike-rate
+    credit. Everyone's points, in their four parts (batting, bowling, fielding, winning), are kept on the card
+    as card["points"]: a series adds them up (engine/test_series.py).
+
+    With the win / draw / loss table the award adds each player's impact (win chance plus half the draw chance
+    added, card["impact"]) turned into runs (card["runs_per_win"]), as the limited-overs award does."""
     inns = card["innings"]
     par = base["runs"] / max(base["wkt"] + base["other_out"], 1e-6)        # the era's runs per wicket
     wk = sum(i["wickets"] for i in inns)
@@ -495,11 +560,14 @@ def player_of_match(card: dict, base: dict) -> dict:
         if win and team_of.get(pid) == win:
             add(pid, 3, 25)
     card["points"] = {pid: [round(x, 1) for x in v] for pid, v in parts.items()}
-    score = {pid: sum(v) for pid, v in parts.items()}
+    impact = card.get("impact") or {}
+    k = card.get("runs_per_win") or 0.0
+    score = {pid: sum(v) + k * impact.get(pid, 0.0) for pid, v in parts.items()}
     if not score:
         return {}
     best = max(score, key=score.get)
-    return {"id": best, "name": names[best], "team": team_of[best], "score": round(score[best], 1), "impact": None}
+    return {"id": best, "name": names[best], "team": team_of[best], "score": round(score[best], 1),
+            "impact": impact.get(best)}
 
 
 def simulate_test(team_a: dict, team_b: dict, comp: str | None = None, year: int = 2025,

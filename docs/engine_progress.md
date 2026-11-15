@@ -1141,3 +1141,24 @@ Details and the differences from the plan are in `docs/test_design.md` ("Phase 4
 - Not done: captaining a Test (Phase 6); full Test records and the win / draw / loss chart (Phase 5).
 - `tests/test_test_series.py` (7 tests, with a Test run through the server). All 18 test scripts and the golden
   test pass. Pages checked in the browser on port 5071, desktop and phone width.
+
+### Phase 5 (2026-11-15): Test records and the win / draw / loss table
+
+Details and the differences from the plan are in `docs/test_design.md` ("Phase 5"). In short:
+
+- `engine/fit/fit_wdl.py` -> `data/engine/wdl_test.json`: 20,000 Tests between equal sides (every real XI of
+  2015-26 against itself, on its ground), every over's state counted with the result, smoothed into a table.
+  Held-out Tests: Brier 0.447 against 0.659 for the overall shares; when it says 70% for a win, 73% happen.
+  **Rebuild it after any recalibration of the Test engine.**
+- `engine/test_wdl.py`: the chances for a state; the turning point (the session that moved the match most
+  towards the winner).
+- `engine/test_match.py`: every over carries the chances; each ball's move is the striker's and the bowler's
+  impact; the player of the match is the points plus impact in runs. A Test plays the same with or without the
+  table for the same seed.
+- `engine/test_records.py`: the Test records (hundreds, doubles, triples, carrying the bat, a hundred in each
+  innings, match figures, ten-wicket matches, hat-tricks, a partnership for each wicket, successful chases ...).
+- `engine/test_series.py`: the official ranking is points plus impact and picks the player of the series.
+- Pages: the three-band "Win, draw or loss" chart, the record cards, Impact / Points / Score in Best players.
+- `tests/test_test_records.py` (6 tests). All 19 test scripts and the golden test pass. Pages checked in the
+  browser on port 5071, desktop and phone width.
+- Not done: captaining a Test, and the advice to a person from this table (Phase 6).

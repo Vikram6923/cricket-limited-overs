@@ -112,6 +112,11 @@ def report(card: dict) -> str:
             bits.append(f"At stumps {d['close']}.")      # the score and how the side stands
         if bits:
             s.append(f"Day {d['day']}: " + " ".join(bits))
+    tp = card.get("turning_point")
+    if tp:
+        when = ("before lunch", "between lunch and tea", "after tea")[min(tp["session"], 3) - 1]
+        s.append(f"The match turned {when} on day {tp['day']}, when {tp['team']} went from {tp['from']} to "
+                 f"{tp['to']}: it swung {tp['swing'] * 100:.0f}% towards {tp['towards']}.")
     r = card["result"]
     if r["type"] == "draw":
         s.append("Match drawn" + (f", spoiled by the weather ({lost_total} overs lost)." if lost_total >= 90 else "."))

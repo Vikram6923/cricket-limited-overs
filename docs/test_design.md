@@ -535,3 +535,86 @@ sideways scroll). Choosing another mode sends the format back to T20 and greys o
 - Shared code touched: `engine/tournament.py` (the dispatch, the refusal), `engine/history.py` (Tests),
   `engine/render.py` (the report of a match played over days), the server and the page scripts. The golden test
   passes.
+
+# Phase 5: Test records and the win / draw / loss table
+
+Built 2026-11-15.
+
+## What was built
+
+| Part | Where | What it does |
+|---|---|---|
+| Win / draw / loss table | `engine/fit/fit_wdl.py` -> `data/engine/wdl_test.json`, read by `engine/test_wdl.py` | The chance that the batting side wins, and that the match is drawn, from the state: innings (1-4), wickets down, lead (or minus the runs needed in the last innings), overs left in the match |
+| Chances on the scorecard | `engine/test_match.py` | Every over of a Test carries `"wdl": [the side that batted first wins, a draw]` and `"left"` (overs left in the match). The last over of the match carries the result |
+| Impact | `engine/test_match.py` | Every ball moves the batting side's chance of winning plus half its chance of a draw; the move goes to the striker and against the bowler (`card["impact"]`, as in limited overs). Surviving a ball when batting for a draw earns credit, because the time left is part of the state |
+| Player of the match | `engine/test_match.py` | The balanced points of Phase 3 plus impact turned into runs (`card["runs_per_win"]`), as the limited-overs award does |
+| Turning point | `engine/test_wdl.py` | The session that moved the match most towards the side that won it: "day 3, before lunch (Australia from 186/4 to 256/9) swung the match 17% towards India". In the key moments, the report and the text scorecard |
+| Series rankings | `engine/test_series.py` | Official: each match's award score added up (points + impact in runs); it picks the player of the series. Balanced: the points alone |
+| Records | `engine/test_records.py` | Highest and lowest totals; top scores; hundreds with the count of doubles and triples; a hundred in each innings; carrying the bat; longest innings in balls; best innings and match figures; ten-wicket matches; hat-tricks; best partnership for each wicket; highest successful chases; biggest wins by an innings, runs and wickets; narrowest wins; fastest fifties and hundreds |
+| Pages | `webui/testmatch.js`, `results.js`, `stats.js` | "Win, draw or loss": three bands over the match under the lead chart; the Test record cards; Best players with Impact, Points and Score |
+
+## How the table is made
+
+`python -m engine.fit.fit_wdl` (20,000 Tests, about four and a half minutes on nine processes of this laptop).
+
+- **Who plays.** Every real Test XI of 2015-26 (946 of them) plays itself on its real ground, in its real year,
+  with that country's weather. The sides are equal, so the table favours nobody; the grounds, eras and weather
+  vary as they do in real Tests. There is no home edge in these matches.
+- **What is counted.** The state at the start of each innings and after every over, with how the match ended
+  for the side batting (a tie counts as a draw). 6.6 million states.
+- **The grid.** Lead from -600 to 600 in steps of 30, overs left from 0 to 450 in steps of 18, each wicket and
+  each innings on its own: 42,640 cells. A state is shared between its four nearest cells.
+- **Smoothing.** A 1-2-1 average along the lead and the overs left and a light 1-6-1 along the wickets, applied
+  once where a cell then has 150 states or more and up to four times where it has fewer. Cells that no Test came
+  near (a lead of 500 in the second innings, say) copy the nearest filled cell.
+- **Two rows are the laws, not the fit:** no time left is a draw; nothing left to get in the last innings is a
+  win.
+- **Reading it.** Straight-line interpolation between the cells for the lead and the overs left.
+
+One Test in ten was kept out of the table to score it (605,183 states):
+
+| | The table | Always saying the overall shares |
+|---|---|---|
+| Brier score (lower is better) | 0.447 | 0.659 |
+| Log loss | 0.743 | 1.087 |
+
+| When it said a win was | 7% | 31% | 46% | 70% | 89% |
+|---|---|---|---|---|---|
+| It happened | 6% | 30% | 47% | 73% | 90% |
+
+| When it said a draw was | 7% | 29% | 49% | 69% | 91% |
+|---|---|---|---|---|---|
+| It happened | 6% | 27% | 50% | 72% | 94% |
+
+One run, and the plan's test for it passes (the chances sum to 1 and move the right way: fewer runs to get, more
+wickets in hand and a bigger lead are better; less time left means more draws for a side far behind), so it was
+not tuned further.
+
+**The table must be rebuilt whenever the Test engine is recalibrated.** It knows nothing of the two sides'
+strength or of the home edge: a strong home side starts near 50%, as a limited-overs match does.
+
+## Constants that are not fitted
+
+| Constant | Value | Where | Why not fitted |
+|---|---|---|---|
+| The grid | lead steps of 30, overs-left steps of 18 | `engine/fit/fit_wdl.py` | The size of the table (288 KB); finer cells were emptier |
+| States for a trusted cell | 150 | `engine/fit/fit_wdl.py` | A choice between noise and blur; the held-out score above is the check |
+| Where a run's worth is read | third innings starting level, half the time left | `engine/fit/fit_wdl.py` | Turns impact into runs for the award (one whole win = 511 runs there); the slope differs elsewhere in a match |
+| Tests held out | 1 in 10 | `engine/fit/fit_wdl.py` | Scoring only |
+
+## Differences from the plan
+
+- **"Average sides" are real XIs playing themselves**, not one invented average XI: equal sides, but with the
+  spread of real line-ups, grounds and eras.
+- **The turning point is a session, and it points to the winner.** In limited overs it is the over with the
+  biggest swing. One over of a Test rarely moves the chances by more than a few points, and the biggest swing
+  of a match can be towards the side that then lost, so a Test's turning point is the session that moved it most
+  towards the winner (in a draw: most, either way).
+- **The player of the series is picked by points plus impact**, the same score that picks the player of each
+  match, added up. Limited overs uses impact alone; over a Test series that put a batter with one great innings
+  above a bowler with 26 wickets.
+- **Advice to a person** ("declaring now: win 44%, draw 51%") uses this table but belongs to Phase 6.
+- **Hat-tricks are counted within an innings**, as the scorebook does for every format; one spread over two
+  innings of a match is not found.
+- Shared code touched: none. `engine/tournament.py`'s `records` is called, not changed. The golden test passes,
+  and a Test plays the same with or without the table for the same seed (tested).

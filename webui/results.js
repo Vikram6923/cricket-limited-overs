@@ -162,21 +162,32 @@ function renderSummary() {
 }
 function recordsHTML(rec) {
   if (!rec) return '';
-  const card = (title, list, fmt) => list && list.length ? `<div class="card rec"><b>${title}</b><ol>${list.slice(0, 5).map(x =>
+  const card = (title, list, fmt, max = 5) => list && list.length ? `<div class="card rec"><b>${title}</b><ol>${list.slice(0, max).map(x =>
     `<li><a data-match="${x.match_no}">${fmt(x)}</a></li>`).join('')}</ol></div>` : '';
   const m = x => ` <span class="muted">· M${x.match_no}</span>`;
+  const H = rec.hundreds || {}, plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  const sc = x => `<b>${x.runs}${x.not_out ? '*' : ''}</b> ${esc(x.name)} <span class="muted">(${x.balls}b) v ${esc(dn(x.vs))}</span>${m(x)}`;
   const cards = [
     card('Highest totals', rec.highest_totals, x => `<b>${x.runs}/${x.wickets}</b> ${esc(dn(x.team))} <span class="muted">v ${esc(dn(x.vs))}</span>${m(x)}`),
     card('Lowest all-out totals', rec.lowest_all_out, x => `<b>${x.runs}</b> ${esc(dn(x.team))} <span class="muted">v ${esc(dn(x.vs))} (${x.overs} ov)</span>${m(x)}`),
     card('Highest scores', rec.highest_scores, x => `<b>${x.runs}${x.not_out ? '*' : ''}</b> ${esc(x.name)} <span class="muted">(${x.balls}b) v ${esc(dn(x.vs))}</span>${m(x)}`),
     card('Best bowling', rec.best_bowling, x => `<b>${x.wickets}/${x.runs}</b> ${esc(x.name)} <span class="muted">v ${esc(dn(x.vs))}</span>${m(x)}`),
+    card(`Hundreds: ${H.hundreds || 0}` + (H.doubles ? `, ${plural(H.doubles, 'double')}` : '') + (H.triples ? `, ${plural(H.triples, 'triple')}` : ''), H.list, sc),
+    card('A hundred in each innings', rec.hundred_in_each_innings, x => `<b>${x.scores.join(' &amp; ')}</b> ${esc(x.name)} <span class="muted">v ${esc(dn(x.vs))}</span>${m(x)}`),
+    card('Carried the bat', rec.carried_bat, x => `<b>${x.runs}*</b> ${esc(x.name)} <span class="muted">out of ${x.total} v ${esc(dn(x.vs))}</span>${m(x)}`),
+    card('Longest innings', rec.longest_innings, x => `<b>${x.balls} balls</b> ${esc(x.name)} <span class="muted">${x.runs}${x.not_out ? '*' : ''} v ${esc(dn(x.vs))}</span>${m(x)}`),
+    card('Best match bowling', rec.best_match_bowling, x => `<b>${x.wickets}/${x.runs}</b> ${esc(x.name)} <span class="muted">(${x.innings.join(' &amp; ')}) v ${esc(dn(x.vs))}</span>${m(x)}`),
+    card('Ten wickets in a match', rec.ten_wicket_matches, x => `<b>${x.wickets}/${x.runs}</b> ${esc(x.name)} <span class="muted">v ${esc(dn(x.vs))}</span>${m(x)}`),
+    card('Hat-tricks', rec.hat_tricks, x => `<b>${esc(x.name)}</b> <span class="muted">v ${esc(dn(x.vs))}</span>${m(x)}`),
+    card('Best partnership for each wicket', rec.best_partnerships, x => `<b>${x.runs}${x.unbroken ? '*' : ''}</b> ${esc(x.batters.join(' and '))} <span class="muted">${esc(dn(x.team))}</span>${m(x)}`, 10),
+    card('Highest successful chases', rec.highest_successful_chases, x => `<b>${x.runs}/${x.wickets}</b> ${esc(dn(x.team))} <span class="muted">v ${esc(dn(x.vs))}</span>${m(x)}`),
     card('Fastest fifties', rec.fastest_fifties, x => `<b>${x.balls} balls</b> ${esc(x.name)}${m(x)}`),
     card('Fastest hundreds', rec.fastest_hundreds, x => `<b>${x.balls} balls</b> ${esc(x.name)}${m(x)}`),
     card('Wins by an innings', rec.biggest_wins_by_an_innings, x => `<span class="w">${esc(dn(x.winner))}</span> by an innings and ${x.margin} run${x.margin === 1 ? '' : 's'} <span class="muted">v ${esc(dn(x.loser))}</span>${m(x)}`),
     card('Biggest wins by runs', rec.biggest_wins_by_runs, x => `<span class="w">${esc(dn(x.winner))}</span> by ${x.margin} runs <span class="muted">v ${esc(dn(x.loser))}</span>${m(x)}`),
-    card('Biggest wins by wickets', rec.biggest_wins_by_wickets, x => `<span class="w">${esc(dn(x.winner))}</span> by ${x.margin} wkt${x.margin === 1 ? '' : 's'} <span class="muted">(${x.balls_left} ball${x.balls_left === 1 ? '' : 's'} left)</span>${m(x)}`),
+    card('Biggest wins by wickets', rec.biggest_wins_by_wickets, x => `<span class="w">${esc(dn(x.winner))}</span> by ${x.margin} wkt${x.margin === 1 ? '' : 's'} <span class="muted">${x.balls_left === undefined ? 'v ' + esc(dn(x.loser)) : `(${x.balls_left} ball${x.balls_left === 1 ? '' : 's'} left)`}</span>${m(x)}`),
     card('Wins by wickets', rec.wins_by_wickets, x => `<span class="w">${esc(dn(x.winner))}</span> by ${x.margin} wkt${x.margin === 1 ? '' : 's'} <span class="muted">v ${esc(dn(x.loser))}</span>${m(x)}`),
-    card('Closest finishes', [...(rec.super_overs || []).map(x => ({...x, so: true})), ...(rec.narrowest_wins_by_runs || []), ...(rec.narrowest_chases || [])]
+    card('Closest finishes', [...(rec.super_overs || []).map(x => ({...x, so: true})), ...(rec.narrowest_wins_by_runs || []), ...(rec.narrowest_chases || []), ...(rec.narrowest_wins_by_wickets || [])]
       .sort((a, b) => (a.so ? -1 : 0) - (b.so ? -1 : 0) || (a.margin ?? 0) - (b.margin ?? 0)).slice(0, 5),
       x => x.so ? `<span class="d">Super over</span> ${esc(dn(x.winner))} beat ${esc(dn(x.loser))}${m(x)}` : `${esc(dn(x.winner))} ${esc(dnt(x.text).split(' won ')[1] || '')}${m(x)}`),
   ].join('');
