@@ -207,8 +207,8 @@ def _mp_auction_play(r: dict) -> str | None:
 
 def _mp_settings(p: dict) -> dict | str:
     fmt = p.get("fmt")
-    if fmt not in ("t20", "odi"):
-        return "Choose T20 or ODI."
+    if fmt not in LIMITED:
+        return NOT_FOR_TESTS if fmt == "test" else "Choose T20 or ODI."
     try:
         year = int(p.get("year"))
     except (TypeError, ValueError):

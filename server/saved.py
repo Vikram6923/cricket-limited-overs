@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from .runs import *  # noqa: F401,F403
+from engine.test_report import day_strip
 
 @app.get("/api/saved")
 def api_saved():
@@ -61,7 +62,8 @@ def api_match(n: int):
     if not p.exists():
         abort(404)
     card = json.loads(p.read_text(encoding="utf-8"))
-    return jsonify(card=card, text=full_text(card), report=match_report(card))
+    strip = day_strip(card) if card.get("days") else None        # Tests: lunch, tea and stumps of every day
+    return jsonify(card=card, text=full_text(card), report=match_report(card), strip=strip)
 
 
 __all__ = [n for n in dir() if not n.startswith("__")]      # everything, underscore names too: one program in several files

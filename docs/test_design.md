@@ -472,3 +472,66 @@ plus the days a decided match never reached.
 - Shared code touched: `engine/conditions.py` (the Test competitions join `PITCH_COMPS`), `engine/fit/fit_venues.py`
   (the fit after the replays is a function Tests can call), `engine/calibrate.py` (the dispatch), `engine/render.py`
   (a day's lost overs in the close-of-play line). The golden test passes.
+
+# Phase 4: Test series and results pages
+
+Built 2026-11-15. Tests can now be played from the browser as a Match / Series or a Classic Series; the computer
+plays both sides (captaining a Test is Phase 6).
+
+## What was built
+
+| Part | Where | What it does |
+|---|---|---|
+| Test series | `engine/test_series.py` | `play_test_series(a, b, n, host=...)`: 1 to 6 Tests, all played; the result ("India won the series 2-1", "Series drawn 1-1"; draws counted); the same result shape as a limited-overs series, so it is saved and shown the same way. `play_series(..., fmt="test")` sends a Test series here |
+| Host | `engine/test_series.py` | A series is played in a country: the first side's by default, or `host="Australia"`, or `host="neutral"`. Its grounds are used in turn, it sets the weather, and the side whose nation it is gets the home edge of Phase 3 |
+| Grounds | `scripts/build_home_grounds.py` -> `data/home_grounds.json` (`test`, `test_grounds`) | Each host's Test grounds, most used since 2019 first, at most six |
+| Test statistics | `engine/test_series.py` | The limited-overs batting, bowling and fielding tables plus best match figures and ten-wicket matches; wins by an innings and by wickets among the records |
+| Ranking and player of the series | `engine/test_match.py`, `engine/test_series.py` | Every match keeps each player's points in four parts (runs, wickets, catches, the win) as `card["points"]`; the series adds them up. It replaces "win probability added", which needs the win / draw / loss table of Phase 5 |
+| Report by days | `engine/test_report.py` | "Day 2: Australia were bowled out for 285 (Smith 72; Bumrah 5/61), a deficit of 115. At stumps India 102/1, lead by 217." Declarations, the follow-on, days with no play, a draw "spoiled by the weather" |
+| Day strip | `engine/test_report.py` (`day_strip`) | Lunch, tea and stumps of every day with how the batting side stands; the last row is the result |
+| Classic Test sides | `engine/history.py` | A nation over any years from 1877: "West Indies 1980-85" against "Australia 1999-2003" |
+| Preset squads | `scripts/build_test_presets.py` -> `data/teams_default.json` | Nine "… Test 2025" squads: the 15 players with the most Tests in 2024-25 |
+| Server | `server/core.py`, `runs.py` | The formats come from one list (`FMTS`, `LIMITED`). League and domestic seasons, tournament, draft, auction, two players and careers refuse a Test with one sentence. A Test cannot be captained yet |
+| Pages | `webui/testmatch.js` and small changes elsewhere | Format T20 / ODI / Test; chips 1 / 2 / 3 / 5 Tests; "Played in"; both innings in the score ("400 & 444/7d"); a tab for each of up to four innings, declared and follow-on marked; the day strip; the lead over the match in place of the run worm (innings shaded, day lines); a Manhattan and the partnerships for each innings; Team Builder shows Test ratings |
+
+## Checked in the browser (port 5071)
+
+India v Australia, five Tests in India (3-1, one drawn); West Indies 1980-85 v Australia 1999-2003 on neutral
+grounds; the match centre's four tabs; the batting, bowling and Best players tables; a phone-width screen (no
+sideways scroll). Choosing another mode sends the format back to T20 and greys out Test. No console errors.
+
+## Constants that are not fitted
+
+| Constant | Value | Where | Why not fitted |
+|---|---|---|---|
+| "Now" for a host's grounds | Tests since 2019 | `scripts/build_home_grounds.py` | A choice of what "home" means today: Pakistan played its home Tests in the UAE until 2019 |
+| Grounds in a series | at most 6 | `scripts/build_home_grounds.py` | A five-Test series visits five grounds |
+| A saved side's nation | at least 6 of its players | `engine/test_series.py` | A rule for whose home it is, as the limited-overs home ground uses |
+| Preset squads | 15 players, Tests of 2024-25 | `scripts/build_test_presets.py` | A choice of squad, not behaviour |
+| Report wording | fifties and four-wicket hauls are named; 15 lost overs are mentioned; 90 lost overs "spoil" a draw | `engine/test_report.py` | Wording only; no effect on a match |
+
+## Differences from the plan
+
+- **The home side is found by nation, not only by name.** A side is at home when its name is the host's, or its
+  spec's `nation` is (a Classic side), or most of its players are that country's (a saved side). Phase 3 matched
+  the name only, so "India 2021-24" would not have been at home in India.
+- **The series dispatch is in `play_series`** (one `if fmt == "test"`), the Test code in `engine/test_series.py`.
+  The plan named `simulate_match` as the only dispatch; that rule covers `match.py`, `impact.py`, `rain.py` and
+  `captain.py`, which are untouched. `play_tournament` refuses a Test.
+- **1 to 6 Tests are accepted**; the page offers 1, 2, 3 and 5 as the plan says.
+- **Classic sides before coverage are ranked by Tests spread evenly over a career.** A player with 60 Tests from
+  1975 to 1990 counts as 3.75 a year, whatever he really played each year, because the career file has totals
+  only. Squads of famous sides come out right (checked for West Indies 1980-85, Australia 1946-48 and 1999-2003),
+  but a player who was dropped for some years can still be picked for them.
+- **No "either era's conditions" switch of its own.** The Era box under More options already sets the year of the
+  conditions; it follows the later side unless you change it.
+- **The lead chart shows days as lines, not rain as gaps.** Its x-axis is overs bowled, so lost time has no
+  width; a day's lost overs are in the day strip and the score header.
+- **Records are the limited-overs ones plus wins by an innings and by wickets.** The full Test records
+  (partnerships by wicket, carrying the bat, a hundred in each innings ...) are Phase 5.
+- **Rain cannot be switched off for a Test** in the page: overs lost are part of the calibrated match.
+- **An existing `data/teams.json` does not get the Test presets by itself** (it is your own list). Run
+  `python scripts/build_test_presets.py` once to add them.
+- Shared code touched: `engine/tournament.py` (the dispatch, the refusal), `engine/history.py` (Tests),
+  `engine/render.py` (the report of a match played over days), the server and the page scripts. The golden test
+  passes.

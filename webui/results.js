@@ -15,13 +15,13 @@ async function showResults(run) {
   for (const k in MCACHE) delete MCACHE[k];
   showView('v-results');
   $('last-btn').style.display = '';
-  const fmt = R.format.toUpperCase();
+  const fmt = fmtLabel(R.format), tests = R.format === 'test';
   RTEAMS = [...new Set([...(R.teams || []), ...R.fixtures.flatMap(f => f.teams)])];
   setDisplayTeams(RTEAMS);
   const lead = R.kind === 'series' ? (R.winner || '') : R.winner;
   $('r-hero').setAttribute('style', lead ? tStyle(lead) : '');
   const single = R.fixtures.length === 1;
-  $('r-kick').textContent = `${fmt} · ${compName(R.format, R.competition)} conditions ${R.year}${R.best_of > 1 ? ` · best of ${R.best_of}` : ''}${single ? '' : ` · ${R.fixtures.length} matches`}`;
+  $('r-kick').textContent = `${fmt} · ${compName(R.format, R.competition)} conditions ${R.year}${R.best_of > 1 ? ` · best of ${R.best_of}` : ''}${single ? '' : ` · ${R.fixtures.length} ${tests ? 'Tests' : 'matches'}`}${tests && R.host ? ` · in ${R.host}` : ''}`;
   $('r-title').innerHTML = R.kind === 'series' ? esc(dnText(R.result, RTEAMS)) : `${badge(R.winner)} ${esc(dn(R.winner))} win the tournament`;
   /* one match: the scoreboard below names the teams, so no "India v Australia" line (6.8) */
   $('r-sub').textContent = single ? '' : dnt(R.title || '');
@@ -67,10 +67,10 @@ function formOf(team) {
 function seriesBoard() {
   const [a, b] = R.teams;
   const strip = R.fixtures.map(f => `<a class="sm-res" data-match="${f.match_no}" title="${esc(dnt(f.result))}" style="${f.winner ? tStyle(f.winner) : ''}">
-    <small>M${f.match_no}</small>${f.winner ? badge(f.winner, 'sm') : '<span class="badge sm tie">T</span>'}</a>`).join('');
+    <small>M${f.match_no}</small>${f.winner ? badge(f.winner, 'sm') : '<span class="badge sm tie">' + (R.format === 'test' ? 'D' : 'T') + '</span>'}</a>`).join('');
   return `<div class="card sboard"><div class="sb-side" style="${tStyle(a)}">${badge(a, 'lg')}<b>${esc(dn(a))}</b></div>
     <div class="sb-mid"><div class="sb-sc"><span class="${R.score[a] > R.score[b] ? 'win' : ''}">${R.score[a]}</span><i>–</i><span class="${R.score[b] > R.score[a] ? 'win' : ''}">${R.score[b]}</span></div>
-      <div class="sb-strip">${strip}</div></div>
+      ${R.draws ? `<div class="muted small">${R.draws} drawn</div>` : ''}<div class="sb-strip">${strip}</div></div>
     <div class="sb-side r" style="${tStyle(b)}">${badge(b, 'lg')}<b>${esc(dn(b))}</b></div></div>`;
 }
 function champBanner() {
@@ -172,8 +172,10 @@ function recordsHTML(rec) {
     card('Best bowling', rec.best_bowling, x => `<b>${x.wickets}/${x.runs}</b> ${esc(x.name)} <span class="muted">v ${esc(dn(x.vs))}</span>${m(x)}`),
     card('Fastest fifties', rec.fastest_fifties, x => `<b>${x.balls} balls</b> ${esc(x.name)}${m(x)}`),
     card('Fastest hundreds', rec.fastest_hundreds, x => `<b>${x.balls} balls</b> ${esc(x.name)}${m(x)}`),
+    card('Wins by an innings', rec.biggest_wins_by_an_innings, x => `<span class="w">${esc(dn(x.winner))}</span> by an innings and ${x.margin} run${x.margin === 1 ? '' : 's'} <span class="muted">v ${esc(dn(x.loser))}</span>${m(x)}`),
     card('Biggest wins by runs', rec.biggest_wins_by_runs, x => `<span class="w">${esc(dn(x.winner))}</span> by ${x.margin} runs <span class="muted">v ${esc(dn(x.loser))}</span>${m(x)}`),
     card('Biggest wins by wickets', rec.biggest_wins_by_wickets, x => `<span class="w">${esc(dn(x.winner))}</span> by ${x.margin} wkt${x.margin === 1 ? '' : 's'} <span class="muted">(${x.balls_left} ball${x.balls_left === 1 ? '' : 's'} left)</span>${m(x)}`),
+    card('Wins by wickets', rec.wins_by_wickets, x => `<span class="w">${esc(dn(x.winner))}</span> by ${x.margin} wkt${x.margin === 1 ? '' : 's'} <span class="muted">v ${esc(dn(x.loser))}</span>${m(x)}`),
     card('Closest finishes', [...(rec.super_overs || []).map(x => ({...x, so: true})), ...(rec.narrowest_wins_by_runs || []), ...(rec.narrowest_chases || [])]
       .sort((a, b) => (a.so ? -1 : 0) - (b.so ? -1 : 0) || (a.margin ?? 0) - (b.margin ?? 0)).slice(0, 5),
       x => x.so ? `<span class="d">Super over</span> ${esc(dn(x.winner))} beat ${esc(dn(x.loser))}${m(x)}` : `${esc(dn(x.winner))} ${esc(dnt(x.text).split(' won ')[1] || '')}${m(x)}`),

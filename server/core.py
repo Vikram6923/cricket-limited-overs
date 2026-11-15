@@ -43,6 +43,7 @@ from engine.leagues import LEAGUES, ui_info as league_info
 from engine.data import ratings
 from engine.render import full_text, match_report
 from engine.tournament import match_count, play_series, play_tournament, save
+from engine.test_series import SIZES as TEST_SIZES, nation_of, play_test_series
 
 ROOT = Path(__file__).resolve().parent.parent
 UI = ROOT / "webui"
@@ -68,10 +69,18 @@ def league_season(league: str | None, season: str | None) -> dict | None:
     s = next((x for x in lg["seasons"] if x["season"] == season), None) if season else lg["seasons"][0]
     return {**s, "label": lg["label"]} if s else None
 
+# The formats, in one place. Tests are played as a Match / Series or a Classic Series; every other mode (league
+# and domestic seasons, tournament, draft, auction, two players, careers) is limited overs only.
+LIMITED = ("t20", "odi")
+FMTS = LIMITED + ("test",)
+FMT_NAME = history.FMT_NAME
+NOT_FOR_TESTS = "Tests can be played as a Match / Series or a Classic Series; this mode is for T20 and ODI."
+
 COMP_LABELS = {
     "t20i_full": "T20 internationals (full members)", "t20i": "T20 internationals (all teams)",
     **{c: lg.long for c, lg in LEAGUES.items()},
     "odi_full": "ODIs (full members)", "odi": "ODIs (all teams)",
+    "test_full": "Tests (full members)", "test": "Tests (all teams)",
 }
 KNOCKOUTS = {"semis": "Semi-finals + final", "ipl": "IPL playoffs (Q1, Eliminator, Q2, Final)",
              "final": "Final (top two)", "none": "No knockouts (league winner)"}
@@ -301,9 +310,9 @@ def check_entries(entries: list, fmt: str, owners: list | None = None) -> str | 
             if y1 > y2:
                 return f"Start year {y1} is after end year {y2}."
             if y1 < lo or y2 > hi:
-                return f"{fmt.upper()} data covers {lo}-{hi}."
+                return f"{FMT_NAME[fmt]} data covers {lo}-{hi}."
             if e.get("nation") not in dict(history.nations(fmt, y1, y2)):
-                return f"{e.get('nation')} has too few {fmt.upper()} players in {y1}-{y2}."
+                return f"{e.get('nation')} has too few {FMT_NAME[fmt]} players in {y1}-{y2}."
             key = history.team_name(e["nation"], y1, y2)
         else:
             if e not in {t["name"] for t in load_teams(owners[len(seen)])}:

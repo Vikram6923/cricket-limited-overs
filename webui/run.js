@@ -40,7 +40,7 @@ function payload() {
   const base = {mode: MODE, fmt: $('c-fmt').value, comp: $('c-comp').value, year: +$('c-year').value,
     venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
     rain: $('c-rain').checked};
-  if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value};
+  if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value, host: $('s-host').value};
   if (MODE === 'league') return {mode: 'league', league: $('l-league').value, season: $('l-season').value, seed: $('l-seed').value.trim(), venues: [],
     rain: $('l-rain').checked, captain: $('l-captain').value, opponents: $('l-opp').value,
     manual: [...$('l-manual').querySelectorAll('input:checked')].map(i => i.value).filter(k => k !== 'impact' || CAP.impact)};
@@ -48,7 +48,7 @@ function payload() {
     venues: [], rain: $('dm-rain').checked, captain: $('dm-captain').value, opponents: $('dm-opp').value,
     manual: [...$('dm-manual').querySelectorAll('input:checked')].map(i => i.value)};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
-    team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, squad_size: document.querySelector('.c-squad').value,
+    team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, host: $('cs-host').value, squad_size: document.querySelector('.c-squad').value,
     years_mode: document.querySelector('.c-ymode').value};
   if (MODE === 'classic_t') return {...base, mode: 'tournament', squad_size: document.querySelector('.c-squad').value,
     years_mode: document.querySelector('.c-ymode').value,
@@ -69,7 +69,7 @@ function capSides() {
 }
 function capOptions() {
   const sides = capSides();
-  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE) && sides.length > 0;   // a draft: once it is done
+  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE) && sides.length > 0 && $('c-fmt').value !== 'test';   // a draft: once it is done
   $('g-cap-box').style.display = show ? '' : 'none';
   if (!show) { $('g-manual-box').style.display = 'none'; return; }
   const sel = $('g-captain'), keep = sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : '';

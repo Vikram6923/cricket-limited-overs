@@ -1122,3 +1122,22 @@ The full table, every run, what was fitted, the constants and the differences fr
 - Not done: the era suite, Test matchups, aggression bars for Tests, the new ball delayed for spin.
 - `tests/test_test_calibration.py`: 200 fixed Tests inside wide bands, weather, host and home edge, the
   calibration's sums. All 17 test scripts and the golden test pass.
+
+### Phase 4 (2026-11-15): Test series and results pages
+
+Details and the differences from the plan are in `docs/test_design.md` ("Phase 4"). In short:
+
+- Tests are in the browser: Match / Series and Classic Series, format T20 / ODI / Test, 1 / 2 / 3 / 5 Tests,
+  played at home, away or on neutral grounds. The computer plays both sides.
+- `engine/test_series.py`: the series (host, its grounds in turn, weather, home edge), its result with draws
+  counted, Test statistics (best match figures, ten-wicket matches), a points ranking and the player of the series.
+- `engine/test_report.py`: the report by days and the day strip (lunch, tea, stumps).
+- `engine/history.py`: Classic Test sides from 1877 (West Indies 1980-85 v Australia 1999-2003).
+- Server: one list of formats; every other mode refuses a Test with a clear sentence.
+- Pages: both innings in the score, a tab per innings, the day strip, the lead over the match, a Manhattan and
+  partnerships per innings, Test ratings in Team Builder, nine preset Test squads.
+- No engine behaviour changed: the Phase 3 calibration stands (29 of 32 gates). One fix: a side is at home by
+  its nation, not only by its name.
+- Not done: captaining a Test (Phase 6); full Test records and the win / draw / loss chart (Phase 5).
+- `tests/test_test_series.py` (7 tests, with a Test run through the server). All 18 test scripts and the golden
+  test pass. Pages checked in the browser on port 5071, desktop and phone width.

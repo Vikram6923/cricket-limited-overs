@@ -1,7 +1,7 @@
-# Limited-overs cricket simulator (ODI + T20)
+# Cricket simulator (ODI, T20 and Test matches)
 
-A ball-by-ball simulator for **One-Day Internationals (50 overs)** and **Twenty20 (20 overs)**, with players rated
-from real ball-by-ball data. Pick any XIs from about 8,900 rated players (internationals since ~2002, ODI players back
+A ball-by-ball simulator for **One-Day Internationals (50 overs)**, **Twenty20 (20 overs)** and **Test matches**
+(five days, two innings a side), with players rated from real ball-by-ball data. Pick any XIs from about 8,900 rated players (internationals since ~2002, ODI players back
 to 1971, eleven franchise leagues and India's Syed Mushtaq Ali Trophy). Play them in any era's conditions and get a
 full scorecard, a match report, charts (run worm, Manhattan, win probability, partnerships) and a player of the
 match. Rain with DLS targets and the IPL Impact Player rule are modelled.
@@ -18,11 +18,12 @@ and its historical, draft and league modes inspired the modes here. See [Credits
 > browser UI with historical teams, league seasons, a fantasy draft, rain/DLS and the Impact Player rule are built.
 > See [Roadmap](#roadmap).
 >
-> **Test matches are being added** (plan: [`docs/test_match_plan.md`](docs/test_match_plan.md)). So far: the
-> data and the player ratings for about 3,270 Test cricketers since 1877, and a Test match engine you can call
-> from Python (`simulate_match(fmt="test", ...)`: five days, two innings a side, declarations, the follow-on,
-> rain, home advantage), calibrated against the 473 real Tests of 2015-26 (29 of 32 targets met; it draws too
-> often). It is not in the browser UI yet ([`docs/test_design.md`](docs/test_design.md)).
+> **Test matches** can be played as a Match / Series or a Classic Series (any nation and years since 1877,
+> e.g. West Indies 1980-85 v Australia 1999-2003), in the browser or from Python: declarations, the follow-on,
+> rain, home advantage, about 3,270 rated Test cricketers. They are calibrated against the 473 real Tests of
+> 2015-26 (29 of 32 targets met; it draws too often). The computer plays both sides for now; records, a
+> win / draw / loss chart and captaincy are still to come ([`docs/test_design.md`](docs/test_design.md), plan:
+> [`docs/test_match_plan.md`](docs/test_match_plan.md)).
 
 ## Quick start
 
@@ -370,6 +371,28 @@ teams = d.team_specs()                                   # ready for play_tourna
 Teams from different eras can meet. Ratings are relative to each player's own era, so the 2007 Australians can play
 the 2023 Indians under 2023 conditions, or under 2007 conditions.
 
+## Test matches
+
+In the browser: choose **Match / Series** or **Classic Series**, open More options and set Format to **Test**
+(picking two "… Test 2025" squads does it for you). Choose 1, 2, 3 or 5 Tests and where the series is played:
+the first side's country, the second's, or neutral grounds. The host's grounds are used in turn, with its weather,
+and the home side gets the edge real home sides have. The results show the series score with draws, each match's
+four innings, a day-by-day strip (lunch, tea, stumps), the lead over the match, and Test batting and bowling
+tables. Other modes (tournament, league, draft, auction, two players, careers) are T20 and ODI only.
+
+```python
+from engine import history, match_report
+from engine.test_series import play_test_series
+
+wi = history.historical_team("test", "West Indies", 1980, 1985)
+aus = history.historical_team("test", "Australia", 1999, 2003)
+res = play_test_series(wi, aus, n=5, year=1984, seed=1)        # in the West Indies; host="Australia" / "neutral"
+print(res["result"])                                           # e.g. "West Indies 1980-85 won the series 2-1"
+print(match_report(res["matches"][0]))                         # the first Test, day by day
+```
+
+A single Test: `simulate_match(a, b, fmt="test", year=2024, venue="Lord's", seed=1)`.
+
 ## Series and tournaments
 
 ```bash
@@ -506,6 +529,8 @@ python -m engine.fit.fit_test_situation # Tests: settling in, pitch wear, ball a
 python -m engine.fit.fit_test_captain  # Tests: declarations, follow-on, bowling spells, toss (after the line above)
 python -m engine.fit.fit_test_conditions # Tests: hosts, overs lost in a day, home edge, spin edge by ground
 python -m engine.fit.fit_test_venues   # Tests: venue factors and the pitch of the day (replays; after the line above)
+python scripts/build_home_grounds.py   # home grounds, and each host's Test grounds (after fit_test_conditions)
+python scripts/build_test_presets.py   # the preset Test squads ("India Test 2025" ...) into the saved-team lists
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
 python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 min: replays every real match)
@@ -524,6 +549,7 @@ python tests/test_golden.py            # 63 fixed matches still play exactly as 
 python tests/test_test_data.py         # Test ratings: players of every era load and rate sensibly
 python tests/test_test_engine.py       # Test matches: laws and bookkeeping, every result type, seeds
 python tests/test_test_calibration.py  # Test matches: 200 fixed Tests inside wide bands, weather, home edge
+python tests/test_test_series.py       # Test series: result, host and grounds, stats, report, a run through the server
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -563,6 +589,8 @@ engine/            match engine (library)
   test_situation.py  Test situation tables: settling in, pitch wear, ball age, lead, the last innings
   test_conditions.py  Test conditions: the host of a ground, overs lost in a day, the home edge
   test_calibrate.py  replay real Tests and compare, with the plan's gates
+  test_series.py   Test series: host, grounds in turn, the result with draws, Test statistics
+  test_report.py   a Test's report by days and its day-by-day strip
   tournament.py    series and tournaments: points tables, NRR, knockouts, stats, records, MVP
   calibrate.py     replay real matches and compare
   fit/             scripts that learn the engine's tables from Cricsheet
@@ -598,8 +626,8 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
 - [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
-- [ ] Test matches: data, ratings, the match engine and its calibration done (Python only); series, records
-      and captaincy to come
+- [ ] Test matches: data, ratings, the match engine, its calibration, series and the results pages done;
+      records, the win / draw / loss chart and captaincy to come
       ([`docs/test_match_plan.md`](docs/test_match_plan.md))
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions

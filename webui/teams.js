@@ -75,7 +75,7 @@ const TEAM_PAL = ['#4c8dff', '#e3b341', '#2fbf71', '#f85149', '#a371f7', '#f778b
 // "Punjab Kings 2026" / "India T20 2024" / "India 2007-11" -> "Punjab Kings" / "India"
 function teamKey(name) {
   let s = String(name || '').trim(), prev;
-  do { prev = s; s = s.replace(/\s+(\d{4}(?:\s*[-–]\s*\d{2,4})?|T20I?|ODI|XI)$/i, ''); } while (s !== prev && s);
+  do { prev = s; s = s.replace(/\s+(\d{4}(?:\s*[-–]\s*\d{2,4})?|T20I?|ODI|Test|XI)$/i, ''); } while (s !== prev && s);
   return s || String(name || '');
 }
 const _lum = h => { const n = parseInt(h.slice(1).padEnd(6, '0').slice(0, 6), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => v / 255);

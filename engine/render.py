@@ -184,9 +184,9 @@ def _bat_report(b: dict, rng: random.Random) -> str:
 def match_report(card: dict) -> str:
     """Narrative report in the style of the Test sim's matchreport."""
     rng = random.Random(card.get("seed", 0))
-    if card.get("days"):                      # a match played over days: its report by days is still to be written
-        return " ".join([f"{i.get('label') or i['team']}: {_score(i)}{' declared' if i.get('declared') else ''}."
-                         for i in card["innings"]] + [card["result"]["text"] + "."])
+    if card.get("days"):                      # a match played over days has its own report, by days
+        from .test_report import report
+        return report(card)
     if len(card["innings"]) < 2:              # washed out before the chase
         i1 = card["innings"][0]
         return (f"{i1['team']} made {i1['runs']}/{i1['wickets']} in {i1['overs']} overs before rain ended the "

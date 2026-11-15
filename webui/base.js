@@ -39,7 +39,7 @@ function fillSelect(sel, items, keep) {
 
 /* names for people: competitions, preset teams, detail level */
 // leagues are added from META.league_info (engine/leagues.py) by setLeagueInfo()
-const COMP_NAME = {t20i_full: 'international', t20i: 'international (all teams)', odi_full: 'international', odi: 'international (all teams)'};
+const COMP_NAME = {t20i_full: 'international', t20i: 'international (all teams)', odi_full: 'international', odi: 'international (all teams)', test_full: 'international', test: 'international (all teams)'};
 function compName(fmt, id) {
   if (!id) return '';
   if (COMP_NAME[id]) return COMP_NAME[id];

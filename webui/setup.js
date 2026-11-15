@@ -11,6 +11,7 @@ function setMode(m, show = true) {
   $('mp-clock-box').style.display = m === 'mp' ? '' : 'none';
   if (m === 'mp') mpPane('');
   if (m === 'auction') aRefresh();
+  testModeGuard();
   capHome();
   capOptions();
   autoConds();
@@ -58,7 +59,7 @@ function filterVenues() {
 }
 /* era & grounds (and the format) follow the teams chosen until you change them yourself under More options */
 const COND = {user: false, fmt: false, auto: false};
-const teamFmt = n => / ODI \d{4}$/.test(n) ? 'odi' : / T20 \d{4}$/.test(n) || isFranchise(n) ? 't20' : null;
+const teamFmt = n => / Test \d{4}$/.test(n) ? 'test' : / ODI \d{4}$/.test(n) ? 'odi' : / T20 \d{4}$/.test(n) || isFranchise(n) ? 't20' : null;
 function condTeams() {
   if (MODE === 'series') return [$('s-t1').value, $('s-t2').value];
   if (MODE === 'tournament') return [...document.querySelectorAll('#t-list input:checked')].map(i => i.value);
@@ -80,13 +81,13 @@ function autoConds() {
   }
   if (!META || !['series', 'tournament', 'classic', 'classic_t', 'draft', 'auction'].includes(MODE)) { COND.auto = false; condLine(); return; }
   const tt = condTeams(), fmts = [...new Set(tt.map(teamFmt).filter(Boolean))];
-  if (!COND.fmt && fmts.length === 1 && fmts[0] !== $('c-fmt').value) { $('c-fmt').value = fmts[0]; $('c-fmt').dispatchEvent(new Event('change')); return; }
+  if (!COND.fmt && fmts.length === 1 && fmts[0] !== $('c-fmt').value && (fmts[0] !== 'test' || TEST_MODES.includes(MODE))) { $('c-fmt').value = fmts[0]; $('c-fmt').dispatchEvent(new Event('change')); return; }
   if (COND.user) { COND.auto = false; condLine(); return; }
   const fmt = $('c-fmt').value, comps = META.formats[fmt].competitions;
   let cond = null;
   if (tt.length) cond = quickConds(tt.length > 1 ? tt : [tt[0], tt[0]], fmt);
   else {
-    const ys = condYears().filter(Boolean), id = fmt === 'odi' ? 'odi_full' : 't20i_full';
+    const ys = condYears().filter(Boolean), id = {odi: 'odi_full', test: 'test_full'}[fmt] || 't20i_full';
     const c = comps.find(x => x.id === id) || comps[0];
     if (ys.length) cond = {comp: c.id, year: Math.max(c.first, Math.min(c.last, Math.max(...ys)))};
   }
@@ -100,9 +101,9 @@ function condLine() {
 }
 /* number chips (Matches: 1 3 5 7) in front of a hidden number input */
 function numChips(inp) {
-  const vals = inp.dataset.chips.split(','), box = document.createElement('div');
+  const box = document.createElement('div');
   box.className = 'picker chips'; inp.after(box); inp.classList.add('picked');
-  const draw = () => { box.innerHTML = vals.map(v => `<button type="button" class="${String(+inp.value) === v ? 'on' : ''}" data-v="${v}">${v}</button>`).join(''); };
+  const draw = () => { const vals = inp.dataset.chips.split(','); box.innerHTML = vals.map(v => `<button type="button" class="${String(+inp.value) === v ? 'on' : ''}" data-v="${v}">${v}</button>`).join(''); };
   box.onclick = e => { const b = e.target.closest('button'); if (!b) return; inp.value = b.dataset.v; inp.dispatchEvent(new Event('change')); inp.dispatchEvent(new Event('input')); draw(); };
   inp.addEventListener('change', draw); draw();
 }
@@ -183,7 +184,7 @@ function classicRow(box, a, b, nation, removable) {
     const names = d.nations.map(n => n.name).sort();
     fillSelect(sel, names);
     if (names.includes(want)) sel.value = want;
-    err.textContent = ya < d.first || yb > d.last ? `${$('c-fmt').value.toUpperCase()} data covers ${d.first}–${d.last}.`
+    err.textContent = ya < d.first || yb > d.last ? `${fmtLabel($('c-fmt').value)} data covers ${d.first}–${d.last}.`
       : names.length ? '' : 'No nation has enough players in these years.';
   };
   ia.onchange = row.refresh; ib.onchange = row.refresh;

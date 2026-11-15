@@ -1177,3 +1177,20 @@ input.picked{display:none}
 .q-ic{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
   border:1px solid currentColor;font-size:.75rem;font-weight:700;margin-right:4px}
 .pre-row .seg button{padding:6px 12px}
+/* Test matches */
+body:not(.fmt-test) .test-only{display:none!important}
+body.fmt-test .lo-only{display:none!important}
+.mc-side .sc.tsc{font-size:1.9rem;line-height:1.15}
+.mc-side .sc.tsc i{font-style:normal;color:var(--dim);font-size:1.2rem;margin:0 2px}
+.mc-side .sc.tsc small{font-size:.8rem;margin-left:2px}
+.daystrip{padding:14px 18px;margin:14px 0}
+.ds-day{padding:8px 0;border-top:1px solid var(--border)}
+.ds-day:first-of-type{border-top:0}
+.ds-h{font-weight:650;margin-bottom:4px;display:flex;gap:10px;align-items:baseline}
+.ds-row{display:grid;grid-template-columns:64px minmax(110px,auto) 1fr;gap:10px;align-items:center;padding:2px 0;font-size:.92rem}
+.ds-when{color:var(--muted);text-transform:capitalize}
+.ds-sc{display:inline-flex;gap:7px;align-items:center;font-variant-numeric:tabular-nums}
+.ds-pos{color:var(--muted)}
+svg.chart .dayline{stroke:var(--muted);stroke-dasharray:2 4;stroke-width:1;opacity:.55}
+.legend i.dl{width:0;height:11px;border-left:1px dashed var(--muted);border-radius:0;background:none}
+.chart-box.wide{grid-column:1/-1}

@@ -3,6 +3,7 @@ every mode uses: the page itself, the catalogue, saved teams, starting a run, it
 from __future__ import annotations
 
 from .core import *  # noqa: F401,F403
+from engine.test_series import home_grounds as test_grounds
 
 # ------------------------------------------------------------------------------------------------ job
 
@@ -153,6 +154,14 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
                               control=control)
             if params.get("draft_info"):
                 res["draft"] = params["draft_info"]
+        elif params["mode"] == "series" and fmt == "test":
+            # a Test series: its host (the first side's country, the second's, or nobody's), that country's
+            # grounds in rotation unless grounds were ticked, its weather and the home edge
+            t1, t2 = (team_spec(params[k], fmt, size, ym, v) for k in ("team1", "team2"))
+            where = params.get("host") or "home"
+            host = "neutral" if where == "neutral" else (nation_of(t2) or "neutral") if where == "away" else None
+            res = play_test_series(t1, t2, n=int(params["matches"]), comp=comp, year=year, venues=venues_, seed=seed,
+                                   on_match=on_match, host=host)
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym, v), team_spec(params["team2"], fmt, size, ym, v),
                               n=int(params["matches"]),
@@ -237,7 +246,7 @@ def ui(name):
 @app.get("/api/meta")
 def api_meta():
     return jsonify({
-        "formats": {f: {"competitions": competitions(f), "venues": venues(f)} for f in ("t20", "odi")},
+        "formats": {f: {"competitions": competitions(f), "venues": venues(f)} for f in FMTS},
         # a list, not a dict: Flask sorts dict keys, which would put "final" first in the dropdown
         "knockouts": [{"id": k, "label": v} for k, v in KNOCKOUTS.items()],
         "draft_teams": DEFAULT_TEAMS,
@@ -261,7 +270,8 @@ def api_meta():
                                   for s in c["seasons"]],
                       "career_seasons": start_seasons() if k == "sma" else []}
                      for k, c in domestic.competitions().items()],
-        "years": {f: [history.first_year(f), history.last_year(f)] for f in ("t20", "odi")},
+        "years": {f: [history.first_year(f), history.last_year(f)] for f in FMTS},
+        "test_hosts": sorted(test_grounds()),          # nations with Test grounds (a series' host)
         "teams": load_teams(), "has_results": (V().last / "summary.json").exists(), "saved": saved_runs(),
         "careers": careers_list(),
         "job": V().job.to_dict() if V().job else None,
@@ -272,7 +282,7 @@ def api_meta():
 @app.get("/api/players")
 def api_players():
     fmt = request.args.get("fmt", "t20")
-    if fmt not in ("t20", "odi"):
+    if fmt not in FMTS:
         abort(400)
     return jsonify(players(fmt))
 
@@ -281,7 +291,7 @@ def api_players():
 def api_nations():
     """Nations with enough players in a format and year range (for the Classic modes)."""
     fmt = request.args.get("fmt", "t20")
-    if fmt not in ("t20", "odi"):
+    if fmt not in FMTS:
         abort(400)
     lo, hi = history.first_year(fmt), history.last_year(fmt)
     try:
@@ -338,8 +348,13 @@ def api_run():
         if p.get("mode") in ("league", "domestic"):
             p["fmt"] = "t20"
         fmt = p.get("fmt")
-        if fmt not in ("t20", "odi"):
-            return jsonify(error="Choose T20 or ODI."), 400
+        if fmt not in FMTS:
+            return jsonify(error="Choose T20, ODI or Test."), 400
+        test = fmt == "test"
+        if test and p.get("mode") != "series":
+            return jsonify(error=NOT_FOR_TESTS), 400
+        if test and str(p.get("captain_i", "")).strip() != "":
+            return jsonify(error="You cannot captain a Test yet: the computer plays both sides."), 400
         label = lambda e: history.team_name(e["nation"], int(e["y1"]), int(e["y2"])) if isinstance(e, dict) else e
         if p.get("mode") == "series":
             a, b = p.get("team1"), p.get("team2")
@@ -350,9 +365,13 @@ def api_run():
                 return jsonify(error=err), 400
             a, b = label(a), label(b)
             n = int(p.get("matches") or 1)
+            if test and n not in TEST_SIZES:
+                return jsonify(error=f"A Test series has {TEST_SIZES[0]} to {TEST_SIZES[-1]} matches."), 400
+            if test and p.get("host") not in (None, "", "home", "away", "neutral"):
+                return jsonify(error="The series is played at home, away or on neutral grounds."), 400
             if not 1 <= n <= 7:
                 return jsonify(error="A series has 1 to 7 matches."), 400
-            title = f"{a} v {b}" + (f" - {n}-match series" if n > 1 else "")
+            title = f"{a} v {b}" + (f" - {n}-{'Test' if test else 'match'} series" if n > 1 else "")
             sides = [a, b]
             total = n
         elif p.get("mode") == "league":

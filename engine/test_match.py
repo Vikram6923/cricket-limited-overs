@@ -308,7 +308,9 @@ class TestMatch:
         self.declare_on, self.follow_on_spec, self.nightwatchman = declare, follow_on, nightwatchman
         self.teams = [make_team(team_a), make_team(team_b)]
         # the home edge: the host's batters do better than their ratings, the visitors' worse
-        self.home = next((t for t in self.teams if use_home and self.host and t.name == self.host), None)
+        # (a side is the host's by its name, or by the "nation" of its spec: "India 2021-24" is India)
+        nations = [sp.get("nation") or sp["name"] for sp in (team_a, team_b)]
+        self.home = next((t for t, n in zip(self.teams, nations) if use_home and self.host and n == self.host), None)
         self.base_side = {}
         if self.home:
             h = test_conditions.home_factors()
@@ -462,31 +464,38 @@ class TestMatch:
 def player_of_match(card: dict, base: dict) -> dict:
     """The balanced score until the win / draw / loss table exists (plan section 5): runs, weighted by how
     low-scoring the match was against the era; a wicket worth the era's runs per wicket; 5 a catch or stumping;
-    a bonus for the winning side. No strike-rate credit."""
+    a bonus for the winning side. No strike-rate credit. Everyone's points, in their four parts (batting,
+    bowling, fielding, winning), are kept on the card as card["points"]: a series adds them up
+    (engine/test_series.py)."""
     inns = card["innings"]
     par = base["runs"] / max(base["wkt"] + base["other_out"], 1e-6)        # the era's runs per wicket
     wk = sum(i["wickets"] for i in inns)
     rpw = sum(i["runs"] for i in inns) / wk if wk else par
     weight = min(max(par / max(rpw, 1.0), 0.5), 2.0)
-    score, names, team_of = {}, {}, {}
+    parts, names, team_of = {}, {}, {}
+
+    def add(pid, k, v):
+        parts.setdefault(pid, [0.0, 0.0, 0.0, 0.0])[k] += v
     for i in inns:
         for b in i["batting"]:
             if b["batted"]:
                 names[b["id"]], team_of[b["id"]] = b["name"], i["team"]
-                score[b["id"]] = score.get(b["id"], 0.0) + b["runs"] * weight
+                add(b["id"], 0, b["runs"] * weight)
             h = b.get("how_out") or {}
             fid = h.get("fielder_id")
             if fid and h["kind"] in ("caught_fielder", "caught_keeper", "stumped", "run_out"):
-                score[fid] = score.get(fid, 0.0) + 5
+                add(fid, 2, 5)
                 team_of.setdefault(fid, i["bowling_team"])
                 names.setdefault(fid, h["fielder"])
         for w in i["bowling"]:
             names[w["id"]], team_of[w["id"]] = w["name"], i["bowling_team"]
-            score[w["id"]] = score.get(w["id"], 0.0) + par * w["wickets"]
+            add(w["id"], 1, par * w["wickets"])
     win = card["result"].get("winner")
-    for pid in score:
+    for pid in parts:
         if win and team_of.get(pid) == win:
-            score[pid] += 25
+            add(pid, 3, 25)
+    card["points"] = {pid: [round(x, 1) for x in v] for pid, v in parts.items()}
+    score = {pid: sum(v) for pid, v in parts.items()}
     if not score:
         return {}
     best = max(score, key=score.get)

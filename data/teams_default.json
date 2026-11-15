@@ -656,6 +656,591 @@
   "preset": true
  },
  {
+  "name": "India Test 2025",
+  "players": [
+   {
+    "id": "6c19c6e5",
+    "name": "YBK Jaiswal"
+   },
+   {
+    "id": "2f49c897",
+    "name": "Mohammed Siraj"
+   },
+   {
+    "id": "fe93fd9d",
+    "name": "RA Jadeja"
+   },
+   {
+    "id": "462411b3",
+    "name": "JJ Bumrah"
+   },
+   {
+    "id": "b4b99816",
+    "name": "Shubman Gill"
+   },
+   {
+    "id": "b17e2f24",
+    "name": "KL Rahul"
+   },
+   {
+    "id": "919a3be2",
+    "name": "RR Pant"
+   },
+   {
+    "id": "740742ef",
+    "name": "RG Sharma"
+   },
+   {
+    "id": "f19ccfad",
+    "name": "Washington Sundar"
+   },
+   {
+    "id": "495d42a5",
+    "name": "R Ashwin"
+   },
+   {
+    "id": "ba607b88",
+    "name": "V Kohli"
+   },
+   {
+    "id": "0a67aec0",
+    "name": "Akash Deep"
+   },
+   {
+    "id": "aad0c365",
+    "name": "Nithish Kumar Reddy"
+   },
+   {
+    "id": "8d2c70ad",
+    "name": "Kuldeep Yadav"
+   },
+   {
+    "id": "bcf325d2",
+    "name": "Dhruv Jurel"
+   }
+  ]
+ },
+ {
+  "name": "Australia Test 2025",
+  "players": [
+   {
+    "id": "12b610c2",
+    "name": "TM Head"
+   },
+   {
+    "id": "3fb19989",
+    "name": "MA Starc"
+   },
+   {
+    "id": "69d03465",
+    "name": "AT Carey"
+   },
+   {
+    "id": "331ea488",
+    "name": "UT Khawaja"
+   },
+   {
+    "id": "30a45b23",
+    "name": "SPD Smith"
+   },
+   {
+    "id": "96a6a7ad",
+    "name": "NM Lyon"
+   },
+   {
+    "id": "fa433be6",
+    "name": "M Labuschagne"
+   },
+   {
+    "id": "ded9240e",
+    "name": "PJ Cummins"
+   },
+   {
+    "id": "eaa76d3c",
+    "name": "C Green"
+   },
+   {
+    "id": "03806cf8",
+    "name": "JR Hazlewood"
+   },
+   {
+    "id": "3d8feaf8",
+    "name": "MR Marsh"
+   },
+   {
+    "id": "d167edd3",
+    "name": "SM Boland"
+   },
+   {
+    "id": "56b93d46",
+    "name": "BJ Webster"
+   },
+   {
+    "id": "3c34c9e1",
+    "name": "S Konstas"
+   },
+   {
+    "id": "989889ff",
+    "name": "JP Inglis"
+   }
+  ]
+ },
+ {
+  "name": "England Test 2025",
+  "players": [
+   {
+    "id": "5f26f677",
+    "name": "BM Duckett"
+   },
+   {
+    "id": "a343262c",
+    "name": "JE Root"
+   },
+   {
+    "id": "e94bc520",
+    "name": "OJ Pope"
+   },
+   {
+    "id": "922e1b19",
+    "name": "Z Crawley"
+   },
+   {
+    "id": "4ae1755b",
+    "name": "HC Brook"
+   },
+   {
+    "id": "e087956b",
+    "name": "BA Stokes"
+   },
+   {
+    "id": "c834c290",
+    "name": "JL Smith"
+   },
+   {
+    "id": "e36e9dd3",
+    "name": "Shoaib Bashir"
+   },
+   {
+    "id": "70d57519",
+    "name": "AAP Atkinson"
+   },
+   {
+    "id": "4c5d73db",
+    "name": "CR Woakes"
+   },
+   {
+    "id": "cad40f5e",
+    "name": "BA Carse"
+   },
+   {
+    "id": "8d92a2c3",
+    "name": "MA Wood"
+   },
+   {
+    "id": "1f1b4c89",
+    "name": "JC Tongue"
+   },
+   {
+    "id": "22b98d7c",
+    "name": "TW Hartley"
+   },
+   {
+    "id": "3c55c703",
+    "name": "JG Bethell"
+   }
+  ]
+ },
+ {
+  "name": "South Africa Test 2025",
+  "players": [
+   {
+    "id": "bf814547",
+    "name": "K Verreynne"
+   },
+   {
+    "id": "6a26221c",
+    "name": "AK Markram"
+   },
+   {
+    "id": "85b3fab2",
+    "name": "T Stubbs"
+   },
+   {
+    "id": "a1b69936",
+    "name": "DG Bedingham"
+   },
+   {
+    "id": "d3a1c63d",
+    "name": "T de Zorzi"
+   },
+   {
+    "id": "0b60eb09",
+    "name": "KA Maharaj"
+   },
+   {
+    "id": "c96f6ac5",
+    "name": "PWA Mulder"
+   },
+   {
+    "id": "e62dd25d",
+    "name": "K Rabada"
+   },
+   {
+    "id": "e66732f8",
+    "name": "RD Rickelton"
+   },
+   {
+    "id": "81c36ee9",
+    "name": "M Jansen"
+   },
+   {
+    "id": "9ffd1ac1",
+    "name": "T Bavuma"
+   },
+   {
+    "id": "462d7c62",
+    "name": "D Paterson"
+   },
+   {
+    "id": "7dfb8890",
+    "name": "S Muthusamy"
+   },
+   {
+    "id": "172dff15",
+    "name": "C Bosch"
+   },
+   {
+    "id": "23638956",
+    "name": "SR Harmer"
+   }
+  ]
+ },
+ {
+  "name": "New Zealand Test 2025",
+  "players": [
+   {
+    "id": "ba5e1069",
+    "name": "R Ravindra"
+   },
+   {
+    "id": "21e5f325",
+    "name": "TA Blundell"
+   },
+   {
+    "id": "e824e6ee",
+    "name": "TWM Latham"
+   },
+   {
+    "id": "eade4650",
+    "name": "DJ Mitchell"
+   },
+   {
+    "id": "9a46c4e5",
+    "name": "GD Phillips"
+   },
+   {
+    "id": "df5a6881",
+    "name": "DP Conway"
+   },
+   {
+    "id": "d027ba9f",
+    "name": "KS Williamson"
+   },
+   {
+    "id": "e84ac20c",
+    "name": "MJ Henry"
+   },
+   {
+    "id": "13c35c9e",
+    "name": "TG Southee"
+   },
+   {
+    "id": "cb9b8664",
+    "name": "W O'Rourke"
+   },
+   {
+    "id": "8afe73e2",
+    "name": "WA Young"
+   },
+   {
+    "id": "e4a0deae",
+    "name": "MJ Santner"
+   },
+   {
+    "id": "fbd4f01f",
+    "name": "AY Patel"
+   },
+   {
+    "id": "05b1aef8",
+    "name": "NG Smith"
+   },
+   {
+    "id": "30f92334",
+    "name": "ZGF Foulkes"
+   }
+  ]
+ },
+ {
+  "name": "Pakistan Test 2025",
+  "players": [
+   {
+    "id": "2f26ac1a",
+    "name": "Mohammad Rizwan"
+   },
+   {
+    "id": "6843a783",
+    "name": "Shan Masood"
+   },
+   {
+    "id": "89c16049",
+    "name": "Agha Salman"
+   },
+   {
+    "id": "d07c1b2f",
+    "name": "Saud Shakeel"
+   },
+   {
+    "id": "8a75e999",
+    "name": "Babar Azam"
+   },
+   {
+    "id": "33609a8c",
+    "name": "Saim Ayub"
+   },
+   {
+    "id": "fc2fffb5",
+    "name": "Abdullah Shafique"
+   },
+   {
+    "id": "bbc192a4",
+    "name": "Sajid Khan"
+   },
+   {
+    "id": "35f4cf7e",
+    "name": "Kamran Ghulam"
+   },
+   {
+    "id": "54c58a5e",
+    "name": "Nauman Ali"
+   },
+   {
+    "id": "a8e54ef4",
+    "name": "Aamer Jamal"
+   },
+   {
+    "id": "27c5715d",
+    "name": "Khurram Shahzad"
+   },
+   {
+    "id": "45a7e761",
+    "name": "Shaheen Shah Afridi"
+   },
+   {
+    "id": "abb7c76c",
+    "name": "Abrar Ahmed"
+   },
+   {
+    "id": "9c9af282",
+    "name": "Naseem Shah"
+   }
+  ]
+ },
+ {
+  "name": "Sri Lanka Test 2025",
+  "players": [
+   {
+    "id": "08548b13",
+    "name": "PHKD Mendis"
+   },
+   {
+    "id": "7d608e12",
+    "name": "DM de Silva"
+   },
+   {
+    "id": "8dd02a98",
+    "name": "LD Chandimal"
+   },
+   {
+    "id": "127bc5ca",
+    "name": "NGRP Jayasuriya"
+   },
+   {
+    "id": "5d1e7582",
+    "name": "BKG Mendis"
+   },
+   {
+    "id": "896d78ad",
+    "name": "AD Mathews"
+   },
+   {
+    "id": "400e2d4d",
+    "name": "FDM Karunaratne"
+   },
+   {
+    "id": "de3d549a",
+    "name": "AM Fernando"
+   },
+   {
+    "id": "8ee36b18",
+    "name": "P Nissanka"
+   },
+   {
+    "id": "4751caa3",
+    "name": "CBRLS Kumara"
+   },
+   {
+    "id": "5eef2118",
+    "name": "MVT Fernando"
+   },
+   {
+    "id": "afe830a2",
+    "name": "RMMP Rathnayake"
+   },
+   {
+    "id": "d2a2bb1a",
+    "name": "KNM Fernando"
+   },
+   {
+    "id": "d0cc2738",
+    "name": "KN Peiris"
+   },
+   {
+    "id": "07b6c3c1",
+    "name": "LU Igalagamage"
+   }
+  ]
+ },
+ {
+  "name": "West Indies Test 2025",
+  "players": [
+   {
+    "id": "ded9ff1e",
+    "name": "JNT Seales"
+   },
+   {
+    "id": "58c2fac4",
+    "name": "A Athanaze"
+   },
+   {
+    "id": "74d12124",
+    "name": "JP Greaves"
+   },
+   {
+    "id": "49dc9cb4",
+    "name": "KAR Hodge"
+   },
+   {
+    "id": "7d5af2ea",
+    "name": "KC Brathwaite"
+   },
+   {
+    "id": "97290faf",
+    "name": "S Joseph"
+   },
+   {
+    "id": "1d8c298b",
+    "name": "M Louis"
+   },
+   {
+    "id": "b0946605",
+    "name": "AS Joseph"
+   },
+   {
+    "id": "78eb4223",
+    "name": "KAJ Roach"
+   },
+   {
+    "id": "bab78fa2",
+    "name": "J Da Silva"
+   },
+   {
+    "id": "1fc6ef83",
+    "name": "SD Hope"
+   },
+   {
+    "id": "3feda4fa",
+    "name": "RL Chase"
+   },
+   {
+    "id": "6fd0c8e1",
+    "name": "JD Campbell"
+   },
+   {
+    "id": "cc23e91e",
+    "name": "JA Warrican"
+   },
+   {
+    "id": "6020a3c6",
+    "name": "KU Carty"
+   }
+  ]
+ },
+ {
+  "name": "Bangladesh Test 2025",
+  "players": [
+   {
+    "id": "de0a3209",
+    "name": "Mominul Haque"
+   },
+   {
+    "id": "c58b0108",
+    "name": "Mehedi Hasan Miraz"
+   },
+   {
+    "id": "1274d7ab",
+    "name": "Nazmul Hossain Shanto"
+   },
+   {
+    "id": "0404d43c",
+    "name": "Liton Das"
+   },
+   {
+    "id": "246d11a2",
+    "name": "Shadman Islam"
+   },
+   {
+    "id": "80ad39ac",
+    "name": "Hasan Mahmud"
+   },
+   {
+    "id": "9d1d34bd",
+    "name": "Taijul Islam"
+   },
+   {
+    "id": "a94e08ea",
+    "name": "Mushfiqur Rahim"
+   },
+   {
+    "id": "5318ee68",
+    "name": "Nahid Rana"
+   },
+   {
+    "id": "4b51bd51",
+    "name": "Mahmudul Hasan Joy"
+   },
+   {
+    "id": "e3e09091",
+    "name": "Zakir Hasan"
+   },
+   {
+    "id": "cd56a813",
+    "name": "Jaker Ali"
+   },
+   {
+    "id": "5dbdecf1",
+    "name": "Khaled Ahmed"
+   },
+   {
+    "id": "7dc35884",
+    "name": "Shakib Al Hasan"
+   },
+   {
+    "id": "1670dcfd",
+    "name": "Nayeem Hasan"
+   }
+  ]
+ },
+ {
   "name": "Chennai Super Kings 2026",
   "players": [
    {

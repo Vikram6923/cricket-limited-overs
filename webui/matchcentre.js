@@ -16,21 +16,21 @@ function pairCols(teams) {
   return cs;
 }
 function drawMatchCentre() {
-  const {c, d, f} = MC, mainInns = c.innings.slice(0, 2), teams = c.teams;
+  const {c, d, f} = MC, mainInns = c.innings.slice(0, 2), teams = c.teams, test = isTest(c);
   const pom = c.player_of_match || {}, cond = c.conditions || {}, res = c.result || {};
-  TEAM_COL = pairCols(mainInns.map(i => i.team));
+  TEAM_COL = pairCols(test ? teams : mainInns.map(i => i.team));
   const scoreOf = t => mainInns.find(i => i.team === t);
   const side = (t, r) => { const i = scoreOf(t), won = res.winner === t;
     return `<div class="mc-side ${r ? 'r' : ''} ${res.winner && !won ? 'lost' : ''}" style="${tStyle(t)}">${badge(t, 'md')}
-      <div><div class="nm">${esc(dn(t))}</div><div class="sc">${i ? `${i.runs}${i.wickets < 10 ? '/' + i.wickets : ''}<small>${esc(i.overs)} ov${i.target ? ' · target ' + i.target : ''}</small>` : '<small>did not bat</small>'}</div>
+      <div><div class="nm">${esc(dn(t))}</div><div class="sc${test ? ' tsc' : ''}">${test ? (testScore(c, t) || '<small>did not bat</small>') : i ? `${i.runs}${i.wickets < 10 ? '/' + i.wickets : ''}<small>${esc(i.overs)} ov${i.target ? ' · target ' + i.target : ''}</small>` : '<small>did not bat</small>'}</div>
       ${won ? '<span class="won">WON</span>' : ''}</div></div>`; };
   const tabs = [['sum', 'Summary'], ['sc', 'Scorecard'], ['bb', 'Ball by ball'], ['ch', 'Charts'], ...(c.captaincy ? [['calls', 'Your calls']] : [])];
   if (!tabs.some(t => t[0] === MC_TAB)) MC_TAB = 'sum';
   $('m-body').innerHTML = `<div class="card mc-hero"><div class="teams2">${side(teams[0], false)}
-      <div class="mc-mid"><span class="kicker">${esc((c.format || '').toUpperCase())}</span><span>v</span></div>${side(teams[1], true)}</div>
+      <div class="mc-mid"><span class="kicker">${esc(fmtLabel(c.format))}</span><span>v</span></div>${side(teams[1], true)}</div>
     <div class="mc-res">${R.fixtures.length === 1 ? '' : `<span class="r">${esc(dnt(res.text || ''))}</span>
       <span>${esc(f.stage)}</span>`}${c.venue ? `<span>Venue <b>${esc(c.venue)}</b></span>` : ''}
-      <span>Toss <b>${esc(dn(c.toss.winner))}</b>, chose to ${esc(c.toss.decision)}</span><span>Pitch <b>${esc(cond.report || '–')}</b></span>
+      <span>Toss <b>${esc(dn(c.toss.winner))}</b>, chose to ${esc(c.toss.decision)}</span><span>Pitch <b>${esc(cond.report || '–')}</b></span>${test ? testHeroLine(c) : ''}
       ${(c.rain || []).map(t => `<span>&#9730; ${esc(t)}</span>`).join('')}</div></div>
     <div class="subtabs" id="mc-tabs">${tabs.map(([k, l]) => `<button data-t="${k}" class="${k === MC_TAB ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div id="mc-pane"></div>`;
@@ -40,7 +40,7 @@ function drawMatchCentre() {
     pane.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { const r = b.previousElementSibling; r.hidden = !r.hidden; b.textContent = r.hidden ? 'Read more' : 'Show less'; }); }
   else if (MC_TAB === 'sc') { pane.innerHTML = mcScorecard(); pane.querySelectorAll('[data-inn]').forEach(b => b.onclick = () => { MC.inn = +b.dataset.inn; drawMatchCentre(); }); }
   else if (MC_TAB === 'bb') pane.innerHTML = mcOvers();
-  else if (MC_TAB === 'ch') pane.innerHTML = chartsHTML(c);
+  else if (MC_TAB === 'ch') pane.innerHTML = test ? testChartsHTML(c) : chartsHTML(c);
   else pane.innerHTML = `<div class="card pad">${callsHTML(c)}</div>`;
 }
 function pomLine(c, pom) {
@@ -54,7 +54,7 @@ function pomLine(c, pom) {
 /* key moments (6.8): one short line per moment behind an icon tag; partnership, new batter, boundary counts and the
    balls of a big over are Full only */
 const TL_TAG = {wicket: 'OUT', big_over: 'OVER', hat_trick: 'HAT-TRICK', five_wickets: '5W', turning_point: '★', end_of_innings: 'END',
-  rain: '☂', partnership: 'P\'SHIP', info: '•'};
+  rain: '☂', partnership: 'P\'SHIP', info: '•', weather: '☂', declaration: 'DEC', follow_on: 'F/O', new_ball: 'NEW', nightwatchman: 'NW', mode: '•'};
 const fo = s => s ? `<span class="full-only">${s}</span>` : '';
 function momentLine(e, c) {
   const inn = c.innings[(e.innings || 1) - 1] || {};
@@ -66,20 +66,21 @@ function momentLine(e, c) {
   if (e.kind === 'milestone' && e.player) { const m = e.text.match(/b, (.*)\)$/);
     return `<b>${esc(e.player)} ${e.mark}</b> (${e.balls}b)` + fo(m ? ' · ' + esc(m[1]) : ''); }
   if (e.kind === 'end_of_innings') { const [a, ...rest] = e.text.replace(/^End of innings: /, '').split(' - ');
-    return `<b>${esc(dn(inn.team || ''))} ${esc(a)}</b>` + fo(rest.length ? ' · ' + esc(rest.join(' - ')) : ''); }
+    return `<b>${isTest(c) ? esc(dnt(a)) : `${esc(dn(inn.team || ''))} ${esc(a)}`}</b>` + fo(rest.length ? ' · ' + esc(rest.join(' - ')) : ''); }
   if (e.kind === 'big_over') { const m = e.text.match(/^(.*?)( \(.*\))$/); return m ? esc(m[1]) + fo(esc(m[2])) : esc(e.text); }
   if (e.kind === 'turning_point') { const t = e.text.replace(/^Turning point: /, ''); return esc(dnt(t.charAt(0).toUpperCase() + t.slice(1))); }
   return esc(dnt(e.text));
 }
 function momentsHTML(c) {
-  const SKIP = new Set(['team_50', 'bowling_change']);
+  const test = isTest(c);                     /* a Test: the intervals are in the day strip; every wicket is Full only */
+  const SKIP = new Set(['team_50', 'bowling_change', ...(test ? ['break', 'new_ball'] : [])]);
   const evs = (c.events || []).filter(e => !SKIP.has(e.kind))
     .filter(e => e.kind !== 'partnership' || (e.runs || 0) >= 50 || /\b(50|100|150) partnership/.test(e.text))
     .map((e, i) => ({e, i, k: [(e.innings || 1), e.kind === 'end_of_innings' ? 1e3 : oversNum(e.over), i]}))
     .sort((a, b) => a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2]).map(x => x.e);   // the turning point in its place
   return evs.map(e => { const inn = c.innings[(e.innings || 1) - 1] || {};
     const tag = e.kind === 'milestone' ? String(e.mark || '50') : TL_TAG[e.kind] || '•';
-    return `<div class="tl ${esc(e.kind)}${e.kind === 'partnership' ? ' full-only' : ''}"><div class="ov">${e.kind === 'end_of_innings' ? '' : esc(e.over)}</div>
+    return `<div class="tl ${esc(e.kind)}${e.kind === 'partnership' || (test && e.kind === 'wicket') ? ' full-only' : ''}"><div class="ov">${e.kind === 'end_of_innings' ? '' : esc(e.over)}</div>
       <span class="tg">${tag}</span><div class="tx">${momentLine(e, c)}${e.score && e.kind !== 'end_of_innings' ? `<span class="s">${esc(tcol(inn.team || '').short)} ${esc(e.score)}</span>` : ''}</div></div>`; }).join('');
 }
 /* the written report: 2 sentences, then Read more */
@@ -90,18 +91,20 @@ function reportHTML(text, extra) {
     <button type="button" class="more-btn" data-more>Read more</button>` : ''}${extra || ''}</div>`;
 }
 function statTiles(c) {
-  const mainInns = c.innings.slice(0, 2), bat = mainInns.flatMap(i => i.batting.filter(x => x.batted).map(x => ({...x, team: i.team})));
+  const mainInns = isTest(c) ? c.innings : c.innings.slice(0, 2), bat = mainInns.flatMap(i => i.batting.filter(x => x.batted).map(x => ({...x, team: i.team})));
   const bowl = mainInns.flatMap(i => i.bowling.map(x => ({...x, team: i.bowling_team})));
   const hs = [...bat].sort((x, y) => y.runs - x.runs || x.balls - y.balls)[0];
   const bb = [...bowl].sort((x, y) => y.wickets - x.wickets || x.runs - y.runs)[0];
-  const per = k => mainInns.map(i => `${esc(tcol(i.team).short)} ${i.batting.reduce((a, x) => a + (x[k] || 0), 0)}`).join(' · ');
+  const per = k => [...new Set(mainInns.map(i => i.team))].map(t => `${esc(tcol(t).short)} ${mainInns.filter(i => i.team === t)
+    .reduce((n, i) => n + i.batting.reduce((a, x) => a + (x[k] || 0), 0), 0)}`).join(' · ');
   const tile = (k, v, s) => `<div class="stat-tile"><span class="k">${k}</span><b>${v}</b><span class="s">${s}</span></div>`;
   return `<div class="stat-tiles">${hs ? tile('Top score', `${hs.runs}${hs.out ? '' : '*'} <small>(${hs.balls})</small>`, esc(hs.name)) : ''}
     ${bb ? tile('Best bowling', `${bb.wickets}/${bb.runs}`, esc(bb.name)) : ''}
     ${tile('Sixes', per('sixes'), '')}${tile('Fours', per('fours'), '')}</div>`;
 }
 function mcSummary() {
-  const {c, d} = MC, pom = c.player_of_match || {}, mainInns = c.innings.slice(0, 2);
+  const {c, d} = MC, pom = c.player_of_match || {}, test = isTest(c), mainInns = test ? c.innings : c.innings.slice(0, 2);
+  const wp = small => test ? leadChartHTML(c, small) : winProbHTML(c, small);
   const tl = momentsHTML(c);
   const best = mainInns.flatMap(i => {
     const b = [...i.batting].filter(x => x.batted).sort((x, y) => y.runs - x.runs)[0];
@@ -116,11 +119,12 @@ function mcSummary() {
       ${pom.name ? `<div class="card pom">${avatar(pom.name, pom.team, 'xl')}<div><div class="kicker k">Player of the match</div>
         <div class="nm">${esc(pom.name)}</div><div class="fig">${esc(dn(pom.team))}${pomLine(c, pom) ? ' · ' + esc(pomLine(c, pom)) : ''}</div></div></div>` : ''}
       ${statTiles(c)}
-      <div class="wp-first">${winProbHTML(c, true)}</div>
+      <div class="wp-first">${wp(true)}</div>
+      ${test ? dayStripHTML(d.strip, c) : ''}
       ${reportHTML(dnt(d.report), imp ? '<div style="margin-top:8px">' + imp + '</div>' : '')}
       ${tl ? `<div class="card"><div class="kicker" style="padding:16px 20px 4px">Key moments</div><div class="timeline">${tl}</div></div>` : ''}
     </div><div>
-      <div class="wp-side">${winProbHTML(c, true)}</div>
+      <div class="wp-side">${wp(true)}</div>
       <div class="card perf full-only"><div class="kicker">Top performers</div>${best.map(x => `<div class="prow">${avatar(x.n, x.t)}
         <div class="what"><b>${esc(x.n)}</b><span>${x.what} · ${esc(dn(x.t))}</span></div><div class="v">${x.v}</div></div>`).join('')}</div>
     </div></div>`;
@@ -134,8 +138,8 @@ function mcScorecard() {
   const dnb = inn.batting.filter(b => !b.batted).map(b => esc(b.name));
   const bestW = Math.max(0, ...inn.bowling.map(b => b.wickets));
   const ov = oversNum(inn.overs), rr = ov ? (inn.runs / ov).toFixed(2) : '–';
-  const sw = all.map((i, n) => `<button class="${n === k ? 'on' : ''}" data-inn="${n}" style="${tStyle(i.team)}">${badge(i.team, 'sm')}<span>${n >= c.innings.length ? 'Super over' : esc(dn(i.team))}</span>
-    <span class="s">${i.runs}/${i.wickets}</span><span class="small">(${esc(i.overs)})</span></button>`).join('');
+  const sw = all.map((i, n) => `<button class="${n === k ? 'on' : ''}" data-inn="${n}" style="${tStyle(i.team)}">${badge(i.team, 'sm')}<span>${n >= c.innings.length ? 'Super over' : isTest(c) ? innTag(c, i) : esc(dn(i.team))}</span>
+    <span class="s">${isTest(c) ? innScore(i) : `${i.runs}/${i.wickets}`}</span><span class="small">(${esc(i.overs)})</span></button>`).join('');
   return `<div class="inn-switch">${sw}</div>
     <div class="card"><div class="tblwrap"><table class="sctbl"><tr><th class="l">Batter</th><th class="l hide-s"></th><th>R</th><th>B</th><th class="hide-s">4s</th><th class="hide-s">6s</th><th>SR</th></tr>
     ${bat.map(b => { const sr = b.balls ? 100 * b.runs / b.balls : 0;
@@ -144,7 +148,7 @@ function mcScorecard() {
       <td class="l how hide-s">${b.out ? esc(b.dismissal) : '<span class="no">not out</span>'}</td><td class="r">${b.runs}${b.out ? '' : '*'}</td><td>${b.balls}</td>
       <td class="hide-s">${b.fours}</td><td class="hide-s">${b.sixes}</td><td>${b.balls ? sr.toFixed(1) : '–'}<span class="srbar hide-s" style="--c:${t.hi}"><i style="width:${Math.min(100, sr / 3)}%"></i></span></td></tr>`; }).join('')}</table></div>
     <div class="sc-foot"><span>Extras <b>${exT}</b> (b ${ex.b || 0}, lb ${ex.lb || 0}, w ${ex.w || 0}, nb ${ex.nb || 0})</span>
-      <span>Total <b>${inn.runs}/${inn.wickets}</b> (${esc(inn.overs)} ov, RR ${rr})</span>${dnb.length ? `<span>Did not bat: ${dnb.join(', ')}</span>` : ''}</div>
+      <span>Total <b>${inn.runs}/${inn.wickets}${inn.declared ? ' declared' : ''}</b> (${esc(inn.overs)} ov, RR ${rr})${inn.follow_on ? ' · following on' : ''}</span>${dnb.length ? `<span>Did not bat: ${dnb.join(', ')}</span>` : ''}</div>
     ${inn.fall_of_wickets && inn.fall_of_wickets.length ? `<div class="kicker" style="padding:4px 14px 0">Fall of wickets</div><div class="fowstrip" style="--c:${t.hi}"><div class="line"></div>
       ${inn.fall_of_wickets.map(w => `<div class="w" style="left:${Math.min(100, 100 * w.runs / Math.max(1, inn.runs))}%" title="${esc(w.batter)}: ${w.runs}/${w.wkt} (${esc(w.over)} ov)">${w.wkt}<span>${w.runs}</span></div>`).join('')}</div>` : ''}</div>
     <div class="card" style="margin-top:16px"><div class="tblwrap"><table class="sctbl"><tr><th class="l">Bowler · ${esc(dn(inn.bowling_team))}</th><th>O</th><th class="hide-s">M</th><th>R</th><th>W</th><th>Econ</th><th class="hide-s">Dots</th><th class="hide-s">Extras</th></tr>
@@ -154,7 +158,7 @@ function mcScorecard() {
 function mcOvers() {
   const {c, d} = MC;
   const evAt = (n, o) => (c.events || []).filter(e => e.innings === n && overOf(e.over) === o && ['wicket', 'big_over', 'milestone'].includes(e.kind));
-  return `<div class="card">${c.innings.map((inn, i) => ({inn, i})).reverse().map(({inn, i}) => `<div class="ib" style="${tStyle(inn.team)}">${badge(inn.team, 'sm')} ${esc(dn(inn.team))} · ${inn.runs}/${inn.wickets} (${esc(inn.overs)})</div>` +
+  return `<div class="card">${c.innings.map((inn, i) => ({inn, i})).reverse().map(({inn, i}) => `<div class="ib" style="${tStyle(inn.team)}">${badge(inn.team, 'sm')} ${isTest(c) ? innTag(c, inn) : esc(dn(inn.team))} · ${inn.runs}/${inn.wickets} (${esc(inn.overs)})</div>` +
     [...(inn.overs_log || [])].reverse().map(o => `<div class="over-card"><div class="o"><b>Over ${o.over}</b><span>${esc(o.bowler)}</span></div>
       <div class="balls">${(o.balls || []).map(b => chip(b, true)).join('')}</div>
       <div class="tot"><b>${o.runs}${o.wkts ? ` · ${o.wkts}W` : ''}</b><span>${esc(tcol(inn.team).short)} ${o.total}/${o.wickets}</span></div>
@@ -282,7 +286,7 @@ function partnershipChart(inn, k, inns) {
       <text x="${(cx + X(b) + 4).toFixed(1)}" y="${y + 14}">${b} ${esc(nb)}</text>
       <text x="${W - 2}" y="${y + 14}" text-anchor="end" class="ax">${p.runs}${p.unbroken ? '*' : ''} (${p.balls})</text></g>`;
   });
-  return `<div class="chart-box"><h4>Partnerships · ${esc(dn(inn.team))}</h4><svg viewBox="0 0 ${W} ${H}" class="chart">${g}</svg></div>`;
+  return `<div class="chart-box"><h4>Partnerships · ${esc(inn.label ? dnt(inn.label) : dn(inn.team))}</h4><svg viewBox="0 0 ${W} ${H}" class="chart">${g}</svg></div>`;
 }
 
 /* batting / bowling */

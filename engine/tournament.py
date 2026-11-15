@@ -450,7 +450,13 @@ def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: 
                 rain: bool = False, control: dict | None = None, skill: dict | None = None,
                 best_of: bool = False) -> dict:
     """Bilateral series of n matches. All n are played, unless best_of: then it stops as soon as one side can no
-    longer be caught (2-0 in a best of 3). control, skill: as in play_tournament."""
+    longer be caught (2-0 in a best of 3). control, skill: as in play_tournament. A Test series is played by
+    engine/test_series.py (its host, grounds and weather; nobody captains a Test yet)."""
+    if fmt == "test":
+        from .test_series import play_test_series
+        if control or best_of:
+            raise ValueError("A Test series cannot be captained or played as a best-of yet.")
+        return play_test_series(team_a, team_b, n, comp, year, venues, seed, on_match)
     a, b = team_spec(fmt, team_a), team_spec(fmt, team_b)
     run = _Runner(fmt, comp, year, seed, venues, None, None, rain, control, skill)
     run.on_match = on_match
@@ -707,6 +713,8 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
     control:  {team name: engine.control.Controller} for sides a person captains (their decisions are asked).
     skill:    {team name: "expert" | "average" | "easy"} for computer captains (engine/judge.py; default expert).
     """
+    if FORMATS[fmt]["overs"] is None:
+        raise ValueError("Tests are played as a match or a series: there is no Test tournament yet.")
     if knockout not in KNOCKOUTS:
         raise ValueError(f"knockout must be one of {KNOCKOUTS}")
     plate = dict(plate) if plate else None

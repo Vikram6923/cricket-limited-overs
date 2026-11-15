@@ -43,6 +43,7 @@ function drawModeTiles() {
    the XI, the next batter and the Impact Player (6.3). The two teams live in the Match or series form (s-t1 / s-t2). */
 const heroTeams = () => { const n = META.teams.map(t => t.name); return [$('s-t1').value || n[0], $('s-t2').value || n[1] || n[0]]; };
 function drawHero() {
+  if ($('c-fmt').value === 'test') { heroFormat('t20'); return; }     // quick play is T20 / ODI: nobody captains a Test yet
   const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, tt = heroTeams();
   const side = i => `<button class="qh-team" data-side="${i}" title="Change team">${badge(tt[i], 'lg')}
     <span class="qh-nm">${esc(pickName(tt[i], names))}</span></button>`;
@@ -73,7 +74,7 @@ function heroFormat(f) {
   drawHero();
 }
 /* the team sheet: nations, franchises and your own teams, big rows */
-const isNationPreset = n => / (T20|ODI) \d{4}$/.test(n);
+const isNationPreset = n => / (T20|ODI|Test) \d{4}$/.test(n);
 const isFranchise = n => !isNationPreset(n) && / (19|20)\d{2}$/.test(n) && !!TEAM_ID[teamKey(n)];
 function teamSheet(side) {
   const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, cur = heroTeams()[side];
@@ -104,7 +105,7 @@ function closeSheet() {
    international; the year is the teams' own (clamped to the data) */
 function quickConds(tt, fmt) {
   const comps = META.formats[fmt].competitions;
-  const comp = fmt === 't20' && tt.every(isFranchise) && comps.some(c => c.id === 'ipl') ? 'ipl' : fmt === 'odi' ? 'odi_full' : 't20i_full';
+  const comp = fmt === 't20' && tt.every(isFranchise) && comps.some(c => c.id === 'ipl') ? 'ipl' : {odi: 'odi_full', test: 'test_full'}[fmt] || 't20i_full';
   const c = comps.find(x => x.id === comp) || comps[0];
   const ys = tt.map(n => +((n.match(/(19|20)\d{2}$/) || [])[0] || 0)).filter(Boolean);
   const y = ys.length ? Math.max(...ys) : +$('c-year').value || c.last;
@@ -294,7 +295,8 @@ async function init() {
   const sumObs = new MutationObserver(syncSum);
   document.querySelectorAll('#v-setup .total').forEach(t => sumObs.observe(t, {subtree: true, childList: true, characterData: true}));
   document.querySelectorAll('.tab').forEach(t => t.onclick = () => openTab(t.dataset.pane));
-  $('c-fmt').onchange = e => { if (e.isTrusted) COND.fmt = true; fillConditions(); refreshClassic(); fillTeams(); autoConds(); };
+  $('c-fmt').onchange = e => { if (e.isTrusted) COND.fmt = true; fmtChanged(); fillConditions(); refreshClassic(); fillTeams();
+    if (e.isTrusted) followFormat(); autoConds(); capOptions(); };
   $('c-comp').onchange = e => { if (e.isTrusted) COND.user = true; checkYear(); condLine(); };
   $('c-year').oninput = e => { if (e.isTrusted) COND.user = true; checkYear(); condLine(); };
   $('c-vsearch').oninput = filterVenues;

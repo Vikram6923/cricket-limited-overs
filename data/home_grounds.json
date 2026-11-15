@@ -69,5 +69,90 @@
   "United Arab Emirates": "ICC Academy",
   "West Indies": "Kensington Oval, Bridgetown",
   "Zimbabwe": "Harare Sports Club"
+ },
+ "test_grounds": {
+  "Australia": [
+   "Sydney Cricket Ground",
+   "Brisbane Cricket Ground",
+   "Melbourne Cricket Ground",
+   "Adelaide Oval",
+   "Perth Stadium",
+   "Bellerive Oval, Hobart"
+  ],
+  "Bangladesh": [
+   "Shere Bangla National Stadium, Mirpur",
+   "Zahur Ahmed Chowdhury Stadium, Chittagong",
+   "Sylhet International Cricket Stadium"
+  ],
+  "England": [
+   "Lord's",
+   "The Oval",
+   "Old Trafford",
+   "Edgbaston",
+   "Headingley",
+   "Trent Bridge"
+  ],
+  "India": [
+   "Narendra Modi Stadium, Ahmedabad",
+   "MA Chidambaram Stadium",
+   "Eden Gardens, Kolkata",
+   "M Chinnaswamy Stadium, Bangalore",
+   "Wankhede Stadium, Mumbai",
+   "Green Park, Kanpur"
+  ],
+  "Ireland": [
+   "Civil Service Cricket Club, Stormont, Belfast"
+  ],
+  "New Zealand": [
+   "Hagley Oval, Christchurch",
+   "Basin Reserve, Wellington",
+   "Bay Oval, Mount Maunganui",
+   "Seddon Park, Hamilton"
+  ],
+  "Pakistan": [
+   "Rawalpindi Cricket Stadium",
+   "Multan Cricket Stadium",
+   "National Stadium, Karachi",
+   "National Bank Cricket Arena, Karachi",
+   "Gaddafi Stadium, Lahore"
+  ],
+  "South Africa": [
+   "Newlands, Cape Town",
+   "SuperSport Park, Centurion",
+   "Wanderers Stadium, Johannesburg",
+   "St George's Park, Port Elizabeth",
+   "Kingsmead, Durban"
+  ],
+  "Sri Lanka": [
+   "Galle International Stadium",
+   "Sinhalese Sports Club Ground",
+   "Pallekele International Cricket Stadium",
+   "P Saravanamuttu Stadium, Colombo"
+  ],
+  "West Indies": [
+   "Sir Vivian Richards Stadium, North Sound, Antigua",
+   "Sabina Park",
+   "Darren Sammy National Cricket Stadium, Gros Islet, St Lucia",
+   "Kensington Oval",
+   "Queen's Park Oval, Port of Spain, Trinidad",
+   "National Cricket Stadium, St George's, Grenada"
+  ],
+  "Zimbabwe": [
+   "Queens Sports Club, Bulawayo",
+   "Harare Sports Club"
+  ]
+ },
+ "test": {
+  "Australia": "Sydney Cricket Ground",
+  "Bangladesh": "Shere Bangla National Stadium, Mirpur",
+  "England": "Lord's",
+  "India": "Narendra Modi Stadium, Ahmedabad",
+  "Ireland": "Civil Service Cricket Club, Stormont, Belfast",
+  "New Zealand": "Hagley Oval, Christchurch",
+  "Pakistan": "Rawalpindi Cricket Stadium",
+  "South Africa": "Newlands, Cape Town",
+  "Sri Lanka": "Galle International Stadium",
+  "West Indies": "Sir Vivian Richards Stadium, North Sound, Antigua",
+  "Zimbabwe": "Queens Sports Club, Bulawayo"
  }
 }

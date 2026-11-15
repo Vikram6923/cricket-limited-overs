@@ -15,8 +15,8 @@ def api_draft_start():
     v = V()
     d = request.get_json(force=True)
     fmt = d.get("fmt")
-    if fmt not in ("t20", "odi"):
-        return jsonify(error="Choose T20 or ODI."), 400
+    if fmt not in LIMITED:
+        return jsonify(error=NOT_FOR_TESTS if fmt == "test" else "Choose T20 or ODI."), 400
     if v.busy():
         return jsonify(error="A simulation is running."), 409
     try:

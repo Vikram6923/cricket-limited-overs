@@ -1,7 +1,7 @@
 """Historical teams: a nation over a year range ("India 2007-2011"), as in the Test sim's Classic modes.
 
 The squad is the most-capped players for that nation in those years (international matches from Cricsheet: ODIs
-from ~2002, T20Is from 2005), 20 by default, with at least one keeper. Ratings are for that period
+from ~2002, T20Is from 2005; Tests from 1877, with career totals before Cricsheet's coverage), 20 by default, with at least one keeper. Ratings are for that period
 (engine/periods.py) and batting slots are those of the period. The captain picks the best XI from the squad for each
 match, as in the Test sim.
 
@@ -15,18 +15,19 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 
-from .data import DATA, _keepers
+from .data import DATA, RAW_STATS, _keepers
 
 FULL_MEMBERS = {"Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland", "New Zealand", "Pakistan",
                 "South Africa", "Sri Lanka", "West Indies", "Zimbabwe"}   # as in scripts/build_ratings.py
 SQUAD_SIZE = 20   # default squad: the 20 most-capped players of the period
 MIN_PLAYERS = 15  # a nation needs this many players in the period to be offered
+FMT_NAME = {"t20": "T20", "odi": "ODI", "test": "Test"}
 
 
 @lru_cache(maxsize=None)
 def _intl_years(fmt: str) -> dict:
     """pid -> {year: {team: matches}} for international matches only."""
-    path = DATA / "raw_stats" / ("players_odi.json" if fmt == "odi" else "players_t20.json")
+    path = DATA / "raw_stats" / RAW_STATS[fmt][0]
     out = {}
     for pid, r in json.loads(path.read_text(encoding="utf-8")).items():
         out[pid] = {int(y): rec.get("teams") or {} for y, rec in (r.get("by_year") or {}).items()}
@@ -40,6 +41,18 @@ def _intl_years(fmt: str) -> dict:
             for y in ys:
                 if y not in by:
                     by[y] = {q["nation"]: q["matches"] / len(ys)}
+    if fmt == "test":  # before and outside Cricsheet (1877 on): career totals, Tests spread evenly over the years
+        pre = DATA / "raw_stats" / "test_careers.json"
+        for pid, q in (json.loads(pre.read_text(encoding="utf-8")) if pre.exists() else {}).items():
+            part = q if pid not in out else q.get("pre")       # a covered player: only his part before coverage
+            if not part or not part.get("tests"):
+                continue
+            ys = range(part["first"], part["last"] + 1)
+            by = out.setdefault(pid, {})
+            free = [y for y in ys if y not in by] or list(ys)
+            for y in free:
+                by.setdefault(y, {})
+                by[y][q["nation"]] = by[y].get(q["nation"], 0) + part["tests"] / len(free)
     return out
 
 
@@ -101,6 +114,6 @@ def historical_team(fmt: str, nation: str, y1: int, y2: int, size: int | None = 
     """Team spec for engine.match / engine.tournament: {"name", "squad", "years", "years_mode"}."""
     ids = squad(fmt, nation, y1, y2, size)
     if len(ids) < 11:
-        raise ValueError(f"Only {len(ids)} players played for {nation} in {fmt.upper()}s in {y1}-{y2}.")
+        raise ValueError(f"Only {len(ids)} players played for {nation} in {FMT_NAME.get(fmt, fmt.upper())}s in {y1}-{y2}.")
     return {"name": name or team_name(nation, y1, y2), "squad": ids, "years": [y1, y2], "years_mode": years_mode,
             "nation": nation}
