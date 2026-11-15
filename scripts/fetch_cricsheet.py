@@ -24,6 +24,7 @@ RAW = ROOT / "data" / "raw"
 FILES = {
     "odis_male_json.zip": "https://cricsheet.org/downloads/odis_male_json.zip",
     "t20s_male_json.zip": "https://cricsheet.org/downloads/t20s_male_json.zip",
+    "tests_male_json.zip": "https://cricsheet.org/downloads/tests_male_json.zip",
     "people.csv": "https://cricsheet.org/register/people.csv",
     # Cricsheet's list of matches it knows it lacks (excludes the withheld Afghanistan games).
     "missing.html": "https://cricsheet.org/missing/",

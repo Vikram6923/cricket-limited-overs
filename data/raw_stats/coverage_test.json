@@ -1,0 +1,961 @@
+{
+ "min_number": 1578,
+ "max_number": 2640,
+ "missing_count": 164,
+ "note": "Afghanistan men's matches are withheld by Cricsheet and never appear here",
+ "listed_missing": [
+  {
+   "date": "2001-12-14",
+   "teams": [
+    "Australia",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2001-12-18",
+   "teams": [
+    "New Zealand",
+    "Bangladesh"
+   ]
+  },
+  {
+   "date": "2002-06-21",
+   "teams": [
+    "New Zealand",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2003-04-10",
+   "teams": [
+    "West Indies",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2003-04-19",
+   "teams": [
+    "Australia",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2003-04-24",
+   "teams": [
+    "Bangladesh",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2003-04-25",
+   "teams": [
+    "New Zealand",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2003-05-01",
+   "teams": [
+    "Australia",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2003-05-03",
+   "teams": [
+    "New Zealand",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2003-05-22",
+   "teams": [
+    "England",
+    "Zimbabwe"
+   ]
+  },
+  {
+   "date": "2003-06-05",
+   "teams": [
+    "England",
+    "Zimbabwe"
+   ]
+  },
+  {
+   "date": "2003-06-20",
+   "teams": [
+    "Sri Lanka",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2003-06-27",
+   "teams": [
+    "Sri Lanka",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2003-07-25",
+   "teams": [
+    "Bangladesh",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2003-07-31",
+   "teams": [
+    "England",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2003-08-20",
+   "teams": [
+    "Bangladesh",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2003-08-27",
+   "teams": [
+    "Bangladesh",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2003-10-08",
+   "teams": [
+    "India",
+    "New Zealand"
+   ]
+  },
+  {
+   "date": "2003-11-04",
+   "teams": [
+    "Zimbabwe",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2003-12-02",
+   "teams": [
+    "Sri Lanka",
+    "England"
+   ]
+  },
+  {
+   "date": "2003-12-10",
+   "teams": [
+    "Sri Lanka",
+    "England"
+   ]
+  },
+  {
+   "date": "2003-12-12",
+   "teams": [
+    "Australia",
+    "India"
+   ]
+  },
+  {
+   "date": "2003-12-19",
+   "teams": [
+    "New Zealand",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2003-12-26",
+   "teams": [
+    "India",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2004-01-02",
+   "teams": [
+    "South Africa",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2004-01-16",
+   "teams": [
+    "South Africa",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2004-02-19",
+   "teams": [
+    "Zimbabwe",
+    "Bangladesh"
+   ]
+  },
+  {
+   "date": "2004-02-26",
+   "teams": [
+    "Bangladesh",
+    "Zimbabwe"
+   ]
+  },
+  {
+   "date": "2004-03-10",
+   "teams": [
+    "South Africa",
+    "New Zealand"
+   ]
+  },
+  {
+   "date": "2004-03-11",
+   "teams": [
+    "West Indies",
+    "England"
+   ]
+  },
+  {
+   "date": "2004-03-16",
+   "teams": [
+    "Australia",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2004-03-19",
+   "teams": [
+    "West Indies",
+    "England"
+   ]
+  },
+  {
+   "date": "2004-03-24",
+   "teams": [
+    "Australia",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2004-03-28",
+   "teams": [
+    "India",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2004-04-01",
+   "teams": [
+    "West Indies",
+    "England"
+   ]
+  },
+  {
+   "date": "2004-04-05",
+   "teams": [
+    "India",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2004-05-06",
+   "teams": [
+    "Zimbabwe",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2004-05-14",
+   "teams": [
+    "Zimbabwe",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2004-05-20",
+   "teams": [
+    "New Zealand",
+    "England"
+   ]
+  },
+  {
+   "date": "2004-05-28",
+   "teams": [
+    "Bangladesh",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2004-06-03",
+   "teams": [
+    "New Zealand",
+    "England"
+   ]
+  },
+  {
+   "date": "2004-06-04",
+   "teams": [
+    "Bangladesh",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2004-06-10",
+   "teams": [
+    "New Zealand",
+    "England"
+   ]
+  },
+  {
+   "date": "2004-07-01",
+   "teams": [
+    "Australia",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2004-07-09",
+   "teams": [
+    "Australia",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2004-07-22",
+   "teams": [
+    "England",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2004-08-04",
+   "teams": [
+    "Sri Lanka",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2004-08-11",
+   "teams": [
+    "Sri Lanka",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2004-08-12",
+   "teams": [
+    "West Indies",
+    "England"
+   ]
+  },
+  {
+   "date": "2004-10-06",
+   "teams": [
+    "Australia",
+    "India"
+   ]
+  },
+  {
+   "date": "2004-10-19",
+   "teams": [
+    "Bangladesh",
+    "New Zealand"
+   ]
+  },
+  {
+   "date": "2004-10-20",
+   "teams": [
+    "Sri Lanka",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2004-10-26",
+   "teams": [
+    "Australia",
+    "India"
+   ]
+  },
+  {
+   "date": "2004-10-28",
+   "teams": [
+    "Sri Lanka",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2004-12-17",
+   "teams": [
+    "South Africa",
+    "England"
+   ]
+  },
+  {
+   "date": "2004-12-26",
+   "teams": [
+    "Pakistan",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2005-01-02",
+   "teams": [
+    "Pakistan",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2005-01-06",
+   "teams": [
+    "Bangladesh",
+    "Zimbabwe"
+   ]
+  },
+  {
+   "date": "2005-01-13",
+   "teams": [
+    "England",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2005-01-14",
+   "teams": [
+    "Zimbabwe",
+    "Bangladesh"
+   ]
+  },
+  {
+   "date": "2005-01-21",
+   "teams": [
+    "South Africa",
+    "England"
+   ]
+  },
+  {
+   "date": "2005-03-08",
+   "teams": [
+    "Pakistan",
+    "India"
+   ]
+  },
+  {
+   "date": "2005-03-16",
+   "teams": [
+    "India",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2005-03-24",
+   "teams": [
+    "Pakistan",
+    "India"
+   ]
+  },
+  {
+   "date": "2005-03-26",
+   "teams": [
+    "New Zealand",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2005-03-31",
+   "teams": [
+    "West Indies",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2005-04-04",
+   "teams": [
+    "New Zealand",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2005-04-08",
+   "teams": [
+    "West Indies",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2005-05-26",
+   "teams": [
+    "Bangladesh",
+    "England"
+   ]
+  },
+  {
+   "date": "2005-06-03",
+   "teams": [
+    "Pakistan",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2005-07-13",
+   "teams": [
+    "West Indies",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2005-07-22",
+   "teams": [
+    "Sri Lanka",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2005-08-11",
+   "teams": [
+    "England",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2005-09-20",
+   "teams": [
+    "Zimbabwe",
+    "India"
+   ]
+  },
+  {
+   "date": "2005-11-03",
+   "teams": [
+    "Australia",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2005-11-25",
+   "teams": [
+    "West Indies",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2005-11-29",
+   "teams": [
+    "England",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2005-12-02",
+   "teams": [
+    "India",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2005-12-10",
+   "teams": [
+    "India",
+    "Sri Lanka"
+   ]
+  },
+  {
+   "date": "2005-12-16",
+   "teams": [
+    "Australia",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2006-01-13",
+   "teams": [
+    "Pakistan",
+    "India"
+   ]
+  },
+  {
+   "date": "2006-03-17",
+   "teams": [
+    "West Indies",
+    "New Zealand"
+   ]
+  },
+  {
+   "date": "2006-03-18",
+   "teams": [
+    "England",
+    "India"
+   ]
+  },
+  {
+   "date": "2006-03-25",
+   "teams": [
+    "West Indies",
+    "New Zealand"
+   ]
+  },
+  {
+   "date": "2006-03-26",
+   "teams": [
+    "Sri Lanka",
+    "Pakistan"
+   ]
+  },
+  {
+   "date": "2006-04-16",
+   "teams": [
+    "Bangladesh",
+    "Australia"
+   ]
+  },
+  {
+   "date": "2006-11-27",
+   "teams": [
+    "Pakistan",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2007-01-11",
+   "teams": [
+    "Pakistan",
+    "South Africa"
+   ]
+  },
+  {
+   "date": "2008-10-17",
+   "teams": [
+    "Bangladesh",
+    "New Zealand"
+   ]
+  },
+  {
+   "date": "2008-12-11",
+   "teams": [
+    "New Zealand",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2008-12-19",
+   "teams": [
+    "New Zealand",
+    "West Indies"
+   ]
+  },
+  {
+   "date": "2008-12-26",
+   "teams": [
+    "Bangladesh",
+    "Sri Lanka"
+   ]
+  }
+ ],
+ "missing": [
+  1579,
+  1580,
+  1581,
+  1582,
+  1583,
+  1584,
+  1585,
+  1586,
+  1587,
+  1588,
+  1589,
+  1590,
+  1591,
+  1592,
+  1593,
+  1594,
+  1595,
+  1596,
+  1597,
+  1598,
+  1599,
+  1600,
+  1601,
+  1602,
+  1603,
+  1604,
+  1605,
+  1606,
+  1607,
+  1608,
+  1609,
+  1610,
+  1611,
+  1612,
+  1613,
+  1614,
+  1615,
+  1616,
+  1617,
+  1618,
+  1619,
+  1620,
+  1621,
+  1622,
+  1623,
+  1624,
+  1625,
+  1626,
+  1627,
+  1628,
+  1629,
+  1630,
+  1631,
+  1632,
+  1633,
+  1638,
+  1639,
+  1640,
+  1641,
+  1642,
+  1643,
+  1644,
+  1646,
+  1647,
+  1648,
+  1649,
+  1652,
+  1653,
+  1655,
+  1657,
+  1660,
+  1668,
+  1670,
+  1672,
+  1673,
+  1676,
+  1677,
+  1678,
+  1679,
+  1681,
+  1682,
+  1683,
+  1684,
+  1686,
+  1687,
+  1688,
+  1690,
+  1691,
+  1693,
+  1694,
+  1695,
+  1698,
+  1699,
+  1700,
+  1701,
+  1702,
+  1703,
+  1704,
+  1705,
+  1706,
+  1707,
+  1709,
+  1710,
+  1711,
+  1713,
+  1715,
+  1716,
+  1718,
+  1719,
+  1727,
+  1728,
+  1729,
+  1730,
+  1731,
+  1733,
+  1734,
+  1735,
+  1736,
+  1738,
+  1741,
+  1743,
+  1744,
+  1745,
+  1746,
+  1747,
+  1751,
+  1752,
+  1754,
+  1755,
+  1757,
+  1760,
+  1767,
+  1769,
+  1773,
+  1774,
+  1775,
+  1776,
+  1777,
+  1781,
+  1790,
+  1791,
+  1793,
+  1794,
+  1799,
+  1818,
+  1828,
+  1888,
+  1897,
+  1900,
+  1903,
+  2307,
+  2351,
+  2361,
+  2370,
+  2413,
+  2415,
+  2506,
+  2527,
+  2532,
+  2573,
+  2574,
+  2604,
+  2621,
+  2636
+ ],
+ "by_decade": {
+  "2000s": {
+   "have": 217
+  },
+  "2010s": {
+   "have": 429
+  },
+  "2020s": {
+   "have": 253
+  }
+ },
+ "by_year": {
+  "2001": {
+   "have": 1,
+   "span": 1,
+   "pct": 100.0
+  },
+  "2002": {
+   "have": 2,
+   "span": 2,
+   "pct": 100.0
+  },
+  "2003": {
+   "have": 20,
+   "span": 40,
+   "pct": 50.0
+  },
+  "2004": {
+   "have": 17,
+   "span": 47,
+   "pct": 36.2
+  },
+  "2005": {
+   "have": 24,
+   "span": 48,
+   "pct": 50.0
+  },
+  "2006": {
+   "have": 39,
+   "span": 46,
+   "pct": 84.8
+  },
+  "2007": {
+   "have": 30,
+   "span": 31,
+   "pct": 96.8
+  },
+  "2008": {
+   "have": 43,
+   "span": 46,
+   "pct": 93.5
+  },
+  "2009": {
+   "have": 41,
+   "span": 41,
+   "pct": 100.0
+  },
+  "2010": {
+   "have": 43,
+   "span": 43,
+   "pct": 100.0
+  },
+  "2011": {
+   "have": 39,
+   "span": 39,
+   "pct": 100.0
+  },
+  "2012": {
+   "have": 42,
+   "span": 42,
+   "pct": 100.0
+  },
+  "2013": {
+   "have": 44,
+   "span": 44,
+   "pct": 100.0
+  },
+  "2014": {
+   "have": 41,
+   "span": 41,
+   "pct": 100.0
+  },
+  "2015": {
+   "have": 43,
+   "span": 43,
+   "pct": 100.0
+  },
+  "2016": {
+   "have": 47,
+   "span": 47,
+   "pct": 100.0
+  },
+  "2017": {
+   "have": 47,
+   "span": 47,
+   "pct": 100.0
+  },
+  "2018": {
+   "have": 47,
+   "span": 48,
+   "pct": 97.9
+  },
+  "2019": {
+   "have": 36,
+   "span": 39,
+   "pct": 92.3
+  },
+  "2020": {
+   "have": 22,
+   "span": 22,
+   "pct": 100.0
+  },
+  "2021": {
+   "have": 42,
+   "span": 44,
+   "pct": 95.5
+  },
+  "2022": {
+   "have": 43,
+   "span": 43,
+   "pct": 100.0
+  },
+  "2023": {
+   "have": 33,
+   "span": 34,
+   "pct": 97.1
+  },
+  "2024": {
+   "have": 50,
+   "span": 52,
+   "pct": 96.2
+  },
+  "2025": {
+   "have": 40,
+   "span": 41,
+   "pct": 97.6
+  },
+  "2026": {
+   "have": 23,
+   "span": 25,
+   "pct": 92.0
+  }
+ }
+}

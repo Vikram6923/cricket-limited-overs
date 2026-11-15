@@ -7,7 +7,7 @@ same for every variant, so differences between variants are what matter.
 
 Variants: full model | no shrinkage | no opponent adjustment | raw career rates (neither) | flat.
 
-    python scripts/validate_ratings.py               # both formats, train <= 2023, test 2024+
+    python scripts/validate_ratings.py               # every format, train <= 2023, test 2024+
     python scripts/validate_ratings.py --until 2021 --min-balls 200
 """
 from __future__ import annotations
@@ -83,11 +83,11 @@ def score(pred: dict, min_balls: int, known: set) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--format", choices=["odi", "t20"], action="append")
+    ap.add_argument("--format", choices=["odi", "t20", "test"], action="append")
     ap.add_argument("--until", type=int, default=2023)
     ap.add_argument("--min-balls", type=int, default=120, help="players need this many test balls to count")
     args = ap.parse_args(argv)
-    for fmt in args.format or ["odi", "t20"]:
+    for fmt in args.format or ["odi", "t20", "test"]:
         data = merge_tiers(load_cells(fmt))
         base_all = baselines(data["cells"], data["extras"], data["other"])
         test = {k: v for k, v in data["cells"].items() if k[3] > args.until}

@@ -17,6 +17,10 @@ and its historical, draft and league modes inspired the modes here. See [Credits
 > **Status:** the data pipeline, player ratings, match engine (calibrated), series/tournament runners and a
 > browser UI with historical teams, league seasons, a fantasy draft, rain/DLS and the Impact Player rule are built.
 > See [Roadmap](#roadmap).
+>
+> **Test matches are being added** (plan: [`docs/test_match_plan.md`](docs/test_match_plan.md)). So far: the
+> data and the player ratings for about 3,270 Test cricketers since 1877
+> ([`docs/test_design.md`](docs/test_design.md)). There is no Test match engine yet.
 
 ## Quick start
 
@@ -465,16 +469,19 @@ To rebuild everything from scratch, for example each season:
 
 ```bash
 python scripts/fetch_cricsheet.py      # downloads Cricsheet zips into data/raw/ (cached; --refresh to update)
-python scripts/build_raw_stats.py      # per-player raw stats with phase splits
+python scripts/build_raw_stats.py      # per-player raw stats with phase splits (ODI, T20, leagues, Tests)
 python scripts/build_afghanistan.py    # Afghanistan players from Wikipedia (Cricsheet withholds their matches)
 python scripts/fetch_styles.py         # batting hand / bowling type from Wikipedia (cached, ~10 min first time)
 python scripts/build_pre2002.py        # pre-2002 ODI players' career totals from Wikipedia lists
 python scripts/fetch_wiki_matches.py   # ODI match summaries (top scorers' runs and balls), cached
-python scripts/build_ratings.py        # player ratings -> data/ratings_{odi,t20}.json (+ _years, _comps)
+python scripts/build_pre_tests.py      # Test career totals since 1877 and the era table; needs the old Test
+                                       #   simulator's folder beside this one (--source), see Credits
+python scripts/build_ratings.py        # player ratings -> data/ratings_{odi,t20,test}.json (+ _years, _comps)
 python scripts/build_league_presets.py # every season of 11 leagues (+ home grounds) -> data/league_seasons.json
 python scripts/build_home_grounds.py   # national sides' home grounds -> data/home_grounds.json
 python scripts/build_domestic_presets.py # Mushtaq Ali Trophy seasons -> data/domestic_seasons.json
-python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free hit
+python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free hit (Tests: add "test")
+python -m engine.fit.probe_test        # Test data probes (cell sizes and raw rates; docs/test_design.md)
 python -m engine.fit.fit_situation     # settling in, intent, par, win probability, matchups
 python -m engine.fit.fit_toss          # toss decisions
 python -m engine.fit.fit_venues        # venue factors and pitch variation (~25 min: replays every real match)
@@ -489,6 +496,7 @@ python -m engine.fit.fit_depth         # T20 batting depth still to come, a tren
 python -m engine.calibrate             # compare simulated v real
 python tests/run_all.py                # every test script, several at a time (about a minute); -j 1: one by one
 python tests/test_golden.py            # 63 fixed matches still play exactly as recorded (--write: record them again)
+python tests/test_test_data.py         # Test ratings: players of every era load and rate sensibly
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -532,8 +540,8 @@ server/            the Flask server by mode: core.py (app, visitors, storage), r
 webui/             the page: index.html, style.css, one script per screen (base, home, setup, draft, run, results,
                    matchcentre, stats, builder, app) and per room (captain, auction, career, two players),
                    teams.js (team colours, badges); no external scripts or fonts
-scripts/           data pipeline: download, raw stats, Afghanistan, pre-2002 players, styles, ratings,
-                   league presets, validation
+scripts/           data pipeline: download, raw stats, Afghanistan, pre-2002 players, Test career totals,
+                   styles, ratings, league presets, validation
 data/              ratings_*.json (+ ratings_*_years.json for year ranges), engine/*.json (fitted tables), raw_stats/ (derived),
                    teams_default.json (preset squads);
                    raw/ and cache/ are rebuilt locally and not in git
@@ -558,6 +566,8 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
 - [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
+- [ ] Test matches: data and ratings done; engine, calibration, series, records and captaincy to come
+      ([`docs/test_match_plan.md`](docs/test_match_plan.md))
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
 - [x] State career: a Mushtaq Ali Trophy state season after season, Elite and Plate with promotion and relegation
@@ -608,6 +618,11 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
   The Classic Series and Classic Tournament modes follow its `historical.py` and `historicalleague.py`. Fantasy Draft
   follows its `draft.py`, and Team Builder follows its `custom.py`. Thanks to Jamie for the original program. Jamie's
   code is not included in this repository. That repository has no licence file, so its terms are Jamie's to set.
+- **Test career totals and the Test era table** (`data/raw_stats/test_careers.json`, `years_test_pre.json`): made
+  by `scripts/build_pre_tests.py` from the data files of that Test simulator (one row of career figures per Test
+  cricketer since 1877, and runs per wicket and per over by year). Jamie collected them from ESPNcricinfo's public
+  statistics; this project's owner has kept his copy up to date and corrected it against Wikipedia and Cricsheet.
+  They rate the Test cricketers Cricsheet's ball-by-ball data does not reach.
 
 Code licence: [MIT](LICENSE). Data keeps the licences of its sources above.
 

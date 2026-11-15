@@ -1,6 +1,7 @@
-"""Player ratings per format (ODI, T20) from ball-by-ball data, with opponent adjustment, shrinkage and era adjustment.
+"""Player ratings per format (ODI, T20, Test) from ball-by-ball data, with opponent adjustment, shrinkage and era
+adjustment.
 
-Model (fitted separately for ODI and for T20 = T20Is + franchise leagues):
+Model (fitted separately for ODI, for T20 = T20Is + franchise leagues, and for Tests):
 
     expected count on a ball = era_baseline[competition, year, phase, metric] * bat_index[batter] * bowl_index[bowler]
 
@@ -11,10 +12,12 @@ strength estimated from the data (tau^2 = observed spread - sampling noise). Ind
 era, which is the era adjustment: an index of 1.2 means "20% above his contemporaries" in any year.
 
 Phase indexes (powerplay / middle / death) are the overall index adjusted by the player's own phase record, shrunk the
-same way. Bowlers also get wide / no-ball indexes; batters a run-out (non-bowler dismissal) index.
+same way. Bowlers also get wide / no-ball indexes; batters a run-out (non-bowler dismissal) index. Tests have one
+phase, "all": what stands in for phases there (ball age, pitch wear) is fitted by the engine for pace and spin as
+groups. Test cricketers from before Cricsheet's coverage are rated from career totals (scripts/build_pre_tests.py).
 
 Reads   data/raw/*.zip (via a cache in data/cache/), data/raw_stats/players_*.json, styles.json (optional)
-Writes  data/ratings_odi.json, data/ratings_t20.json (+ .csv)
+Writes  data/ratings_odi.json, data/ratings_t20.json, data/ratings_test.json (+ .csv, _years.json, _comps.json)
 
     python scripts/build_ratings.py
     python scripts/build_ratings.py --format t20 --until 2023   # only data up to 2023 (used by validation)
@@ -48,7 +51,7 @@ CELL_VERSION = 2
 FULL_MEMBERS = {"Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland", "New Zealand", "Pakistan",
                 "South Africa", "Sri Lanka", "West Indies", "Zimbabwe", "ICC World XI", "Asia XI", "Africa XI"}
 METRICS = ("runs", "wkt", "dot", "four", "six")
-PHASES = ("powerplay", "middle", "death")
+PHASES = ("powerplay", "middle", "death")   # of the format being built: set by use_format()
 
 MODELS = {
     "odi": {"sources": [("odi", "odis_male_json.zip")], "phases": RAW_FORMATS["odi"]["phases"],
@@ -56,11 +59,35 @@ MODELS = {
     "t20": {"sources": [("t20i", "t20s_male_json.zip")] +
                        [(Path(z).name.split("_json")[0], z) for z in RAW_FORMATS["t20_league"]["zips"]],
             "phases": RAW_FORMATS["t20"]["phases"], "quota": 24, "intl": "t20i", "raw": ["t20", "t20_league"]},
+    # quota: a specialist bowls at least half of it per innings he bowls in (Tests: 10 overs).
+    "test": {"sources": [("test", "tests_male_json.zip")], "phases": RAW_FORMATS["test"]["phases"],
+             "quota": 120, "intl": "test", "raw": ["test"]},
 }
+
+
+def use_format(fmt: str) -> None:
+    """Set the phases the rest of this module works with to the format's own."""
+    global PHASES
+    PHASES = tuple(ph[0] for ph in MODELS[fmt]["phases"])
+
+
+def load_styles(fmt: str) -> dict:
+    """Batting hand, bowling type and date of birth per player (scripts/fetch_styles.py). Tests: players it does
+    not have get their bowling type and year of birth from the career rows (scripts/build_pre_tests.py)."""
+    styles = _load_json(STATS / "styles.json", {})
+    if fmt == "test":
+        for pid, q in _load_json(STATS / "test_careers.json", {}).items():
+            st = styles.setdefault(pid, {})
+            if not (st.get("bowl") or {}).get("type") and q.get("bowl_type"):
+                st["bowl"] = {"type": q["bowl_type"], "kind": q["bowl_kind"], "arm": q["bowl_arm"]}
+            if not st.get("dob") and q.get("born"):
+                st["dob"] = str(q["born"])
+    return styles
 
 MIN_BALLS_TAU = 120     # players with at least this many balls estimate the prior spread (tau^2)
 TEAM_PSEUDO_BALLS = 5000  # team level shrinks toward its tier level (full/associate/league); tuned by validate_ratings.py
 YEAR_PSEUDO_BALLS = 3000  # thin years borrow from neighbouring years with this weight
+THIN_GROUP_EVENTS = 40  # a role group with fewer expected events than this borrows its mean (group_prior)
 REF_YEARS = 5           # "reference era" for readable stats = last N complete-ish years of internationals
 
 
@@ -428,6 +455,13 @@ def group_prior(A, E, groups, teams, teff):
         ga[g] += a
         ge[g] += e
     gmean = {g: (ga[g] / ge[g] if ge[g] > 0 else 1.0) for g in ga}
+    # A group with almost no data (Tests: the few bowlers of unknown type) takes the mean of the groups that
+    # share its first part ("part_", "spec_") instead of a rate from a handful of events.
+    for g in ga:
+        if ge[g] < THIN_GROUP_EVENTS:
+            like = [h for h in ga if h.split("_")[0] == g.split("_")[0]]
+            e = sum(ge[h] for h in like)
+            gmean[g] = sum(ga[h] for h in like) / e if e > 0 else 1.0
     return [gmean[g] * teff.get(t, 1.0) for g, t in zip(groups, teams)], gmean, teff
 
 
@@ -436,6 +470,7 @@ def group_prior(A, E, groups, teams, teff):
 def fit(fmt: str, until: int | None = None, iters: int = 25, opponent: bool = True, shrink: bool = True,
         verbose: bool = True, exclude: tuple = ()) -> dict:
     """exclude: calendar years left out of the fit (held-out validation)."""
+    use_format(fmt)
     data = merge_tiers(load_cells(fmt))
     cells = {k: v for k, v in data["cells"].items() if (until is None or k[3] <= until) and k[3] not in exclude}
     extras = {k: v for k, v in data["extras"].items() if (until is None or k[2] <= until) and k[2] not in exclude}
@@ -446,7 +481,7 @@ def fit(fmt: str, until: int | None = None, iters: int = 25, opponent: bool = Tr
     bowl_ids = sorted({k[1] for k in cells})
     bi = {p: i for i, p in enumerate(bat_ids)}
     wi = {p: i for i, p in enumerate(bowl_ids)}
-    styles = _load_json(STATS / "styles.json", {})
+    styles = load_styles(fmt)
     afghans = {p["cricsheet_id"] for p in _load_json(STATS / "afghanistan_players.json", []) if p.get("cricsheet_id")}
     bat_role, _, bat_team, bat_info = player_groups(fmt, bat_ids, styles, afghans)
     _, bowl_role, bowl_team, bowl_info = player_groups(fmt, bowl_ids, styles, afghans)
@@ -851,6 +886,7 @@ def _style_fields(st: dict) -> dict:
 
 
 def assemble(fmt: str, r: dict) -> dict:
+    use_format(fmt)
     ref, ref_years = ref_baseline(r["base"], MODELS[fmt]["intl"] + "_full")
     calib = domestic_prior(fmt, r, ref)
     shift = r["prior_shift"]
@@ -913,11 +949,16 @@ def assemble(fmt: str, r: dict) -> dict:
                            "phase_balls": balls_ph, "ref": readable_bowl(ph_idx, wd, nb, shares, ref)}
         players[pid] = rec
 
-    added = add_afghanistan(fmt, r, players, ref)
+    added = add_afghanistan(fmt, r, players, ref) if fmt != "test" else 0
     pre_new = pre_part = 0
     if fmt == "odi" and r["until"] is None:
         r["pre2002_years"] = pre2002_baselines(r)
         pre_new, pre_part = add_pre2002(r, players, ref)
+    careers = {}
+    if fmt == "test":
+        if r["until"] is None:
+            r["pre_test_years"] = pre_test_baselines(r)
+        careers = add_test_careers(r, players, ref)
     meta = {
         "format": fmt, "data_until": r["until"], "players": len(players),
         "reference_era": {"competition": MODELS[fmt]["intl"] + "_full", "years": ref_years},
@@ -936,6 +977,8 @@ def assemble(fmt: str, r: dict) -> dict:
                   "Engine: expected rate = baselines[comp][year][phase][metric] x batter phase index x bowler "
                   "phase index. 'ref' = expected numbers in the reference era (modern internationals)."),
     }
+    if fmt == "test":
+        meta["career_totals"] = {**careers, "baseline_years": r.get("pre_test_years", [])}
     baselines_out: dict = {}
     for (comp, yr, ph), b in sorted(r["base"].items()):
         baselines_out.setdefault(comp, {}).setdefault(str(yr), {})[ph] = \
@@ -1140,6 +1183,169 @@ def add_pre2002(r: dict, players: dict, ref: dict) -> tuple[int, int]:
                         "bowl": block["bowl"], "career": career}
         n_new += 1
     return n_new, n_part
+
+
+def pre_test_baselines(r: dict) -> list[int]:
+    """Test baselines for the years before Cricsheet (1877-2000): the pooled 2007-11 baseline (the first five
+    fully covered years) scaled by the era table (scripts/build_pre_tests.py: smoothed runs per over and runs per
+    wicket by year) relative to the table's own 2007-11 values. Runs, fours and sixes go by the run-rate ratio,
+    wickets (bowler's and run-outs) by the ratio of wickets per ball. Dots are an assumption: the share of balls
+    scored off moves with the run rate. Wides and no-balls are left as in 2007-11."""
+    yt = _load_json(STATS / "years_test_pre.json", {})
+    ref_years = [y for y in range(2007, 2012) if str(y) in yt]
+    if not ref_years:
+        return []
+    t_rpo = sum(yt[str(y)]["rpo"] for y in ref_years) / len(ref_years)
+    t_wpb = sum(yt[str(y)]["rpo"] / 6 / yt[str(y)]["runs_per_wkt"] for y in ref_years) / len(ref_years)
+    added = []
+    for comp in ("test_full", "test"):
+        rows = [r["base"][(comp, y, "all")] for y in ref_years if (comp, y, "all") in r["base"]]
+        covered = {y for (c, y, ph) in r["base"] if c == comp}
+        if not rows or not covered:
+            continue
+        tot = sum(x["balls"] for x in rows)
+        pooled = {k: sum(x[k] * x["balls"] for x in rows) / tot for k in rows[0] if k != "balls"}
+        for ys, row in yt.items():
+            y = int(ys)
+            if y >= min(covered):
+                continue
+            fr = row["rpo"] / t_rpo
+            fw = (row["rpo"] / 6 / row["runs_per_wkt"]) / t_wpb
+            b = dict(pooled)
+            for k in ("runs", "four", "six"):
+                b[k] *= fr
+            b["runs_sq"] *= fr * fr
+            b["wkt"] *= fw
+            b["other_out"] *= fw
+            b["dot"] = 1 - (1 - b["dot"]) * fr
+            b["balls"] = 60000          # enough that the engine does not pool it with neighbouring years
+            r["base"][(comp, y, "all")] = b
+            added.append(y)
+    return sorted(set(added))
+
+
+def add_test_careers(r: dict, players: dict, ref: dict) -> dict:
+    """Test career rows (scripts/build_pre_tests.py). For every player they add the keeper flag, full name and
+    career totals. For the part of a career Cricsheet does not have they add a rating from totals, against the
+    player's own era (totals_rating; where balls faced are recorded the strike rate is his own, otherwise the
+    role's):
+    - no ball-by-ball record: a new player, source "career_totals";
+    - some: a "pre" block, used by the engine for year ranges that end before his covered Tests, and his
+      career rating becomes the precision-weighted blend of the two parts (source "ball_by_ball+career_totals"),
+      because a career rating of Warne or Tendulkar from their last few seasons alone would not be theirs."""
+    shares = {ph: ref[ph]["share"] for ph in PHASES}
+    eras = _load_json(STATS / "years_test_pre.json", {})
+    comp = MODELS["test"]["intl"] + "_full"
+    n_new = n_part = 0
+    for pid, q in _load_json(STATS / "test_careers.json", {}).items():
+        have = players.get(pid)
+        car = {"m": q["tests"], "runs": q["runs"], "bat_avg": round(q["runs"] / q["outs"], 2) if q.get("outs") and q.get("runs") is not None else None,
+               "wkts": q["wkts"], "bowl_avg": round(q["runs_conceded"] / q["wkts"], 2) if q.get("wkts") and q.get("runs_conceded") else None,
+               "balls": q["balls"], "first": str(q["first"]), "last": str(q["last"]), "team": q["nation"]}
+        keeper = q["keeper_tests"] >= max(1, q["tests"] / 2)
+        if have:
+            have["totals"] = car      # beside "career": the engine adds up the matches of every entry in it
+            have["keeper"] = keeper
+            have["full_name"] = q.get("full_name")
+            have["born"] = q.get("born")
+        pre = q.get("pre")
+        if not pre or not (pre.get("runs") or pre.get("balls")):
+            continue
+        runs, outs, balls, wkts = pre.get("runs"), pre.get("outs"), pre.get("balls"), pre.get("wkts")
+        tot = {"runs": runs, "bat_avg": (runs / outs) if runs and outs else None, "balls": balls, "wkts": wkts,
+               "bowl_avg": (pre["runs_conceded"] / wkts) if wkts and pre.get("runs_conceded") else None}
+        # Batting group from the whole career: opener, or average against the era's runs per wicket.
+        ys = [eras[str(y)]["runs_per_wkt"] for y in range(q["first"], q["last"] + 1) if str(y) in eras]
+        era_avg = sum(ys) / len(ys) if ys else 30.0
+        rel = (q["runs"] / q["outs"] if q.get("outs") else (q["runs"] or 0)) / era_avg
+        bat_g = ("top" if q["opened"] >= 0.8 * q["tests"] else "middle" if rel >= 1.05 else
+                 "lower" if rel >= 0.6 or keeper else "tail")
+        bowl_g = f"{'spec' if (q['balls'] or 0) / q['tests'] >= 90 else 'part'}_{q.get('bowl_type') or 'unk'}"
+        eb = era_baseline(r["base"], comp, pre["first"], pre["last"])
+        runs_idx, raw_runs = None, None
+        if runs and (pre.get("balls_faced") or 0) >= 30:      # his own strike rate, shrunk toward the role's
+            g = r["fits"]["runs"][0]["group_mean"].get(bat_g, 1.0)
+            n = pre["balls_faced"]
+            raw = (runs / n) / eb["runs"]
+            noise = max(eb["runs_sq"] - eb["runs"] ** 2, 0.1) / (n * eb["runs"] ** 2)
+            tau2 = r["fits"]["runs"][0]["tau2"]
+            runs_idx = g + tau2 / (tau2 + noise) * (raw - g)
+            raw_runs = (raw, noise)
+        tr = totals_rating("test", tot, pre["first"], pre["last"], r, bat_g, bowl_g, runs_idx=runs_idx,
+                           set_runs=True)
+        if tr["bat"] and raw_runs:
+            tr["bat"]["raw"]["runs"] = raw_runs
+        block = {"bat": None, "bowl": None, "first": pre["first"], "last": pre["last"], "tests": pre["tests"]}
+        if tr["bat"]:
+            ix = tr["bat"]["idx"]
+            block["bat"] = {"balls": int(pre.get("balls_faced") or tr["bat"]["balls_est"]),
+                            "balls_estimated": not pre.get("balls_faced"), "confidence": _r(tr["bat"]["w"], 2),
+                            "idx": {m: _r(v) for m, v in ix.items()}, "other_out_idx": 1.0,
+                            "phase": {ph: {m: _r(v) for m, v in ix.items()} for ph in PHASES},
+                            "ref": readable_bat({ph: dict(ix) for ph in PHASES}, 1.0, shares, ref)}
+        if tr["bowl"]:
+            ix = tr["bowl"]["idx"]
+            block["bowl"] = {"balls": tr["bowl"]["balls"], "confidence": _r(tr["bowl"]["w"], 2),
+                             "idx": {m: _r(v) for m, v in ix.items()}, "wide_idx": 1.0, "noball_idx": 1.0,
+                             "phase": {ph: {m: _r(v) for m, v in ix.items()} for ph in PHASES},
+                             "ref": readable_bowl({ph: dict(ix) for ph in PHASES}, 1.0, 1.0, shares, ref)}
+        if have:
+            have["pre"] = block
+            changed = False
+            for side, src in (("bat", tr["bat"]), ("bowl", tr["bowl"])):
+                if not src:
+                    continue
+                if have.get(side):
+                    changed |= _blend_block(r, side, have[side], src.get("raw", {}), "Test career totals")
+                else:                         # e.g. never bowled in a covered Test, but did before
+                    have[side] = dict(block[side])
+                    if side == "bowl":
+                        have["bowl_role"] = bowl_g
+                    changed = True
+            if changed:
+                have["source"] = "ball_by_ball+career_totals"
+                _refresh_ref(have, shares, ref)
+            n_part += 1
+            continue
+        players[pid] = {"id": pid, "name": q["name"], "full_name": q.get("full_name"),
+                        "cricinfo_id": q.get("cricinfo_id"), "source": "career_totals", "team": q["nation"],
+                        "dob": str(q["born"]) if q.get("born") else None, "born": q.get("born"), "bat_hand": None,
+                        "bowl_type": q.get("bowl_type"), "bowl_kind": q.get("bowl_kind"), "bowl_arm": q.get("bowl_arm"),
+                        "keeper": keeper, "position": None, "bat_role": bat_g, "bowl_role": bowl_g,
+                        "opener_share": round(min(q["opened"] / (1.7 * q["tests"]), 1.0), 2),
+                        "bat": block["bat"], "bowl": block["bowl"], "career": {"test_totals": car}}
+        n_new += 1
+    return {"new_players": n_new, "with_pre_block": n_part}
+
+
+def _blend_block(r: dict, side: str, block: dict, raw: dict, label: str) -> bool:
+    """Precision-weight a ball-by-ball block's indexes (variance tau2 x (1 - confidence)) with raw indexes from
+    career totals ({metric: (raw index, sampling variance)}). Phase indexes move by the same ratio."""
+    changed = False
+    for m, (x, noise) in raw.items():
+        old = block["idx"][m]
+        tau2 = r["fits"][m][0 if side == "bat" else 1]["tau2"]
+        conf = block.get("confidence") or 0.0
+        v_bb = max(tau2 * (1 - conf), 1e-6)
+        new = (old / v_bb + x / noise) / (1 / v_bb + 1 / noise)
+        block["idx"][m] = _r(new)
+        for ph in PHASES:
+            block["phase"][ph][m] = _r(block["phase"][ph][m] * new / old)
+        changed = True
+    if changed:
+        block["blended_with"] = label
+    return changed
+
+
+def _refresh_ref(rec: dict, shares: dict, ref: dict) -> None:
+    """Recompute the readable reference numbers of a record after its indexes changed."""
+    b, o = rec.get("bat"), rec.get("bowl")
+    if b:
+        sh = _phase_shares(b.get("phase_balls") or {ph: 0 for ph in PHASES}, shares)
+        b["ref"] = readable_bat(b["phase"], b.get("other_out_idx") or 1.0, sh, ref)
+    if o:
+        sh = _phase_shares(o.get("phase_balls") or {ph: 0 for ph in PHASES}, shares)
+        o["ref"] = readable_bowl(o["phase"], o.get("wide_idx") or 1.0, o.get("noball_idx") or 1.0, sh, ref)
 
 
 def blend_totals(fmt: str, r: dict, rec: dict, tot: dict, lst: dict, ref: dict) -> bool:

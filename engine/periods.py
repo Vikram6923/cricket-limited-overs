@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 
-from .data import DATA, METRICS
+from .data import DATA, METRICS, phase_names
 
 MIN_BALLS_TAU = 120   # same rule as the career fit: players with this many balls estimate tau^2
 # The moment estimate of tau^2 overstates how much a player's level really moves between periods (the ball-level
@@ -28,7 +28,8 @@ MIN_BALLS_TAU = 120   # same rule as the career fit: players with this many ball
 # years worse than career ratings. These multiples were chosen by held-out-year cross-validation
 # (scripts/validate_periods.py --holdout 2012 2016 2019 2022; best of 0.05 / 0.1 / 0.2 for runs, window +-2 years;
 # results in docs/engine_progress.md).
-TAU_SCALE = {"odi": {"bat": 0.1, "bowl": 0.1}, "t20": {"bat": 0.2, "bowl": 0.05}}
+# Tests (--format test, same held-out years, players with 300+ balls): batting 0.2, bowling 0.05.
+TAU_SCALE = {"odi": {"bat": 0.1, "bowl": 0.1}, "t20": {"bat": 0.2, "bowl": 0.05}, "test": {"bat": 0.2, "bowl": 0.05}}
 
 
 def _noise(m: str, row: list, k: int, prior: float) -> float:
@@ -162,7 +163,8 @@ def period_ratios(fmt: str, y1: int, y2: int, mode: str = "blend") -> dict:
         if mode == "only":
             role = "bat_role" if side == "bat" else "bowl_role"
             default = "middle" if side == "bat" else "part_unk"
-            prior = {pid: _prior(fmt, side, players[pid].get(role) or default, players[pid].get("team") or "")["middle"]
+            ph0 = phase_names(fmt)[0]      # the prior is the same in every phase
+            prior = {pid: _prior(fmt, side, players[pid].get(role) or default, players[pid].get("team") or "")[ph0]
                      for pid in career}
             tau2 = {m: r["meta"]["tau2"][m][side] for m in METRICS}
             idx, balls = only_indexes(years.get(side, {}), prior, tau2, y1, y2)

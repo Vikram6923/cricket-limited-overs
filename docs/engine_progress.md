@@ -1053,3 +1053,27 @@ Read in this part (no bug found beyond the draft order above): `selection.py`, `
 `history.py`, `periods.py`, `ipl_link.py`, `domestic.py`, `leagues.py`, the rest of `auction.py`,
 `fit_basics.py`, `fit_depth.py`, `fit_impact.py`, `fit_toss.py`, `fit_dls.py`. Only scanned for hazards (unseeded
 random draws, set order reaching output, swallowed errors): the other fit scripts and `scripts/`.
+
+## Test match mode (plan: docs/test_match_plan.md)
+
+### Phase 0 (2026-11-15): golden regression, scorebook
+
+`tests/test_golden.py` fixes 63 limited-overs matches in 15 cases; `engine/scorebook.py` holds the scorecard
+bookkeeping any format shares; `engine/data.py` reads a format's own phases. No behaviour change.
+
+### Phase 1 (2026-11-15): Test data and ratings
+
+Details, validation tables and the data probes are in `docs/test_design.md`. In short:
+
+- 899 Cricsheet Tests (complete from 2007). `scripts/build_raw_stats.py --format test`.
+- Career totals for 3,266 Test cricketers since 1877 and the era table from the old Test simulator's folder
+  (`scripts/build_pre_tests.py`, read only), instead of Wikipedia as first planned. 3,167 linked to a known ID;
+  385 of 430 careers of 2008-2023 agree exactly with Cricsheet on Tests, runs and wickets.
+- `data/ratings_test.json`: 3,268 players (828 ball-by-ball, 242 ball-by-ball blended with their earlier career
+  totals, 2,198 from totals alone), one phase "all", baselines for every year 1877-2026.
+- Out of sample: wicket rates predict well on every split (batters 51-56%, bowlers 34-39% better than "average").
+  Bowlers' economy and six rates predict a held-out year well (36%, 46%) but forecast 2022 onward worse than
+  "average" (-42%, -57%): scoring changed after 2021. Recorded, not tuned.
+- Year ranges: `TAU_SCALE["test"] = {"bat": 0.2, "bowl": 0.05}` from four held-out years.
+- `FORMATS["test"]`, `data/engine/basics_test.json` (682 Tests since 2010), `tests/test_test_data.py`.
+- ODI and T20 ratings rebuild as before; the golden test passes.

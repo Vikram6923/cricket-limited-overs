@@ -23,7 +23,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from build_ratings import METRICS, PHASES, baselines, fit, load_cells, merge_tiers  # noqa: E402
+import build_ratings  # noqa: E402
+from build_ratings import METRICS, baselines, fit, load_cells, merge_tiers  # noqa: E402
 from engine.periods import period_indexes  # noqa: E402
 from validate_ratings import CHECK, predict, score  # noqa: E402
 
@@ -45,7 +46,7 @@ def with_period(r: dict, y1: int, y2: int, tau_scale: float = 1.0) -> tuple[dict
         taus[side] = tau
         for m in METRICS:
             out["phase"][side][m] = {}
-            for ph in PHASES:
+            for ph in build_ratings.PHASES:     # the phases of the format just fitted
                 base = r["phase"][side][m][ph]
                 new = list(base["idx"])
                 for i, d in idx.items():
@@ -116,7 +117,7 @@ def holdout(fmt: str, years: list[int], min_balls: int) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--format", choices=["odi", "t20"], action="append")
+    ap.add_argument("--format", choices=["odi", "t20", "test"], action="append")
     ap.add_argument("--until", type=int, default=2023)
     ap.add_argument("--min-balls", type=int, default=120)
     ap.add_argument("--holdout", type=int, nargs="+", help="held-out-year mode: these years")

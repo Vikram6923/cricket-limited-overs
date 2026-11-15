@@ -1,6 +1,6 @@
 """Fit the small outcome tables the ball model needs (design T0-3), from Cricsheet ball-by-ball data.
 
-Per format (T20 = T20Is + leagues, ODI), matches since 2010:
+Per format (T20 = T20Is + leagues, ODI, Test), matches since 2010:
   run_split[phase]          share of 1 / 2 / 3 / 5 runs among balls where the batter scored 1-3 (or 5)
   wide_runs                 distribution of runs on a wide (1 = plain wide, 5 = wide to the boundary ...)
   byes[phase]               P(byes) and P(leg byes) per legal non-wicket dot ball, and their run distributions
@@ -11,7 +11,8 @@ Per format (T20 = T20Is + leagues, ODI), matches since 2010:
   no_ball                   the same multipliers for the no-ball delivery itself (the batter does not know it is
                             one until it is called), and P(byes) / P(leg byes) when he does not score off it
 
-Writes data/engine/basics_{odi,t20}.json.   Run:  python -m engine.fit.fit_basics
+Writes data/engine/basics_{odi,t20,test}.json.   Run:  python -m engine.fit.fit_basics [format ...]
+(no format: t20 and odi. Tests have one phase, "all", and no free hit: the table is fitted but not used.)
 """
 from __future__ import annotations
 
@@ -28,9 +29,11 @@ RAW = ROOT / "data" / "raw"
 OUT = ROOT / "data" / "engine"
 
 PHASES = {"odi": ((0, 9, "powerplay"), (10, 39, "middle"), (40, 49, "death")),
-          "t20": ((0, 5, "powerplay"), (6, 14, "middle"), (15, 19, "death"))}
+          "t20": ((0, 5, "powerplay"), (6, 14, "middle"), (15, 19, "death")),
+          "test": ((0, 10 ** 6, "all"),)}
 SOURCES = {"odi": ["odis_male_json.zip"],
-           "t20": ["t20s_male_json.zip"] + ZIPS}
+           "t20": ["t20s_male_json.zip"] + ZIPS,
+           "test": ["tests_male_json.zip"]}
 FIRST_YEAR = 2010
 
 
@@ -41,8 +44,9 @@ def phase(over: int, fmt: str) -> str:
     return PHASES[fmt][-1][2]
 
 
-def keepers() -> set[str]:
-    """Cricsheet IDs of wicket-keepers: Wikipedia role says keeper, or they have stumpings in the data."""
+def keepers(fmt: str | None = None) -> set[str]:
+    """Cricsheet IDs of wicket-keepers: Wikipedia role says keeper, or they have stumpings in the data. For Tests
+    also: stumpings in Tests, or kept wicket in at least half his Tests (the career rows)."""
     out = set()
     styles = json.loads((ROOT / "data" / "raw_stats" / "styles.json").read_text(encoding="utf-8"))
     for pid, s in styles.items():
@@ -54,12 +58,27 @@ def keepers() -> set[str]:
             for pid, r in json.loads(p.read_text(encoding="utf-8")).items():
                 if r["field"]["stumpings"] >= 2:
                     out.add(pid)
+    if fmt == "test":
+        p = ROOT / "data" / "raw_stats" / "players_test.json"
+        for pid, r in json.loads(p.read_text(encoding="utf-8")).items():
+            if r["field"]["stumpings"] >= 2:
+                out.add(pid)
+        p = ROOT / "data" / "raw_stats" / "test_careers.json"
+        for pid, q in (json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}).items():
+            if q["keeper_tests"] >= max(1, q["tests"] / 2):
+                out.add(pid)
     return out
 
 
-def bowl_types() -> dict[str, str]:
+def bowl_types(fmt: str | None = None) -> dict[str, str]:
     styles = json.loads((ROOT / "data" / "raw_stats" / "styles.json").read_text(encoding="utf-8"))
-    return {pid: (s.get("bowl") or {}).get("type") or "unknown" for pid, s in styles.items()}
+    out = {pid: (s.get("bowl") or {}).get("type") or "unknown" for pid, s in styles.items()}
+    p = ROOT / "data" / "raw_stats" / "test_careers.json"
+    if fmt == "test" and p.exists():   # Test-only players: bowling type from the career rows
+        for pid, q in json.loads(p.read_text(encoding="utf-8")).items():
+            if out.get(pid, "unknown") == "unknown" and q.get("bowl_type"):
+                out[pid] = q["bowl_type"]
+    return out
 
 
 def norm(c: Counter) -> dict:
@@ -193,17 +212,18 @@ def fit(fmt: str, kp: set, btype: dict) -> dict:
 
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
-    kp, bt = keepers(), bowl_types()
-    for fmt in ("t20", "odi"):
+    for fmt in sys.argv[1:] or ("t20", "odi"):
+        kp, bt = keepers(fmt), bowl_types(fmt)
         b = fit(fmt, kp, bt)
         b["keepers"] = sorted(kp)
         (OUT / f"basics_{fmt}.json").write_text(json.dumps(b, indent=1), encoding="utf-8")
+        last, mid = PHASES[fmt][-1][2], PHASES[fmt][len(PHASES[fmt]) // 2][2]
         print(f"{fmt}: {b['matches']} matches; free hit {b['free_hit']}")
         print(f"   no-ball itself {b['no_ball']}")
-        print(f"   death dismissals pace: {b['dismissal']['death'].get('pace')}")
-        print(f"   middle dismissals spin: {b['dismissal']['middle'].get('spin')}")
-        print(f"   run split middle {b['run_split']['middle']}  wides {b['wide_runs']}")
-        print(f"   byes middle {b['byes']['middle']['p_bye']} legbyes {b['byes']['middle']['p_legbye']}; "
+        print(f"   {last} dismissals pace: {b['dismissal'][last].get('pace')}")
+        print(f"   {mid} dismissals spin: {b['dismissal'][mid].get('spin')}")
+        print(f"   run split {mid} {b['run_split'][mid]}  wides {b['wide_runs']}")
+        print(f"   byes {mid} {b['byes'][mid]['p_bye']} legbyes {b['byes'][mid]['p_legbye']}; "
               f"run outs non-striker {b['run_out']['non_striker_share']}")
     return 0
 

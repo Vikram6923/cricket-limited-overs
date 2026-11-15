@@ -1,6 +1,6 @@
-"""Build per-player raw career stats for ODI, T20I and franchise T20 leagues from the cached Cricsheet zips.
+"""Build per-player raw career stats for ODI, T20I, franchise T20 leagues and Tests from the cached Cricsheet zips.
 
-Reads   data/raw/odis_male_json.zip, data/raw/t20s_male_json.zip, data/raw/leagues/*.zip, data/raw/people.csv
+Reads   data/raw/odis_male_json.zip, t20s_male_json.zip, tests_male_json.zip, leagues/*.zip, people.csv
 Writes  data/raw_stats/players_<fmt>.json   full records (overall, by phase, by year, positions;
                                             t20_league also has by_league)
         data/raw_stats/players_<fmt>.csv    headline numbers, one row per player
@@ -9,7 +9,7 @@ Writes  data/raw_stats/players_<fmt>.json   full records (overall, by phase, by 
 
 Pure function of the raw files, so it is safe to re-run any time:
 
-    python scripts/build_raw_stats.py            # all formats (odi, t20, t20_league)
+    python scripts/build_raw_stats.py            # all formats (odi, t20, t20_league, test)
     python scripts/build_raw_stats.py --format t20
 """
 from __future__ import annotations
@@ -43,6 +43,10 @@ FORMATS = {
     "t20_league": {"zips": ZIPS,
                    "overs": 20, "missing_section": None,
                    "phases": (("powerplay", 0, 5), ("middle", 6, 14), ("death", 15, 19))},
+    # Tests: no over limit and one phase. What stands in for phases there (the age of the ball, the wear of the
+    # pitch) acts on pace or spin as a group and is fitted by the engine, not split per player.
+    "test": {"zip": "tests_male_json.zip", "overs": None, "missing_section": "Test Matches",
+             "phases": (("all", 0, 10 ** 6),)},
 }
 
 # Dismissals credited to the bowler. Everything else (run out, retired out, obstructing...) is not.
@@ -272,8 +276,9 @@ def process_match(m: dict, fmt: dict, players: dict, years: dict, comp: str) -> 
         if idx == 0:
             y["first_inns_n"] += 1
             y["first_inns_runs"] += total
-            # "complete" = all out or batted the full allocation; excludes rain-shortened innings
-            if wkts >= 10 or legal >= fmt["overs"] * 6:
+            # "complete" = all out or batted the full allocation (a Test innings: all out or declared);
+            # excludes rain-shortened innings
+            if wkts >= 10 or (legal >= fmt["overs"] * 6 if fmt["overs"] else inn.get("declared")):
                 y["first_inns_complete"] += 1
                 y.setdefault("first_inns_complete_runs", 0)
                 y["first_inns_complete_runs"] += total

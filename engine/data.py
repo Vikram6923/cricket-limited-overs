@@ -19,7 +19,14 @@ FORMATS = {
             "intl": "t20i_full"},
     "odi": {"overs": 50, "quota": 10, "phases": ((0, 9, "powerplay"), (10, 39, "middle"), (40, 49, "death")),
             "intl": "odi_full"},
+    # Tests: no over limit, no bowler's quota and one phase (ball age and pitch wear stand in for phases and are
+    # the Test controller's business). A match is `days` days of `day_overs` overs.
+    "test": {"overs": None, "quota": None, "phases": ((0, 10 ** 6, "all"),), "intl": "test_full",
+             "days": 5, "day_overs": 90},
 }
+# Raw per-player career files of each format (data/raw_stats): batting positions and matches by year.
+RAW_STATS = {"odi": ("players_odi.json",), "t20": ("players_t20.json", "players_t20_league.json"),
+             "test": ("players_test.json",)}
 YEAR_POOL_BALLS = 6000  # a baseline year with fewer balls than this borrows from neighbouring years
 
 
@@ -35,7 +42,7 @@ def phases_for(fmt: str, max_overs: int) -> tuple:
     last overs death overs (4 of a T20, 10 of an ODI) as far as the innings allows, the rest middle overs. Death
     batting is about the overs left, so a rain-shortened 8-over innings has 4 death overs, not 1.6."""
     full = FORMATS[fmt]["overs"]
-    if max_overs >= full:
+    if full is None or max_overs >= full:
         return FORMATS[fmt]["phases"]
     (_, p_hi, _), _, (d_lo, d_hi, _) = FORMATS[fmt]["phases"]
     pp = max(1, int((p_hi + 1) * max_overs / full + 0.5))
@@ -151,9 +158,9 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
                bowl_type=rec.get("bowl_type"), bowl_kind=rec.get("bowl_kind"),
                keeper=pid in _keepers(fmt) or bool(rec.get("keeper")))
     b, w = rec.get("bat"), rec.get("bowl")
-    pre = rec.get("pre2002")
+    pre = rec.get("pre2002") or rec.get("pre")
     early = bool(pre and years and int(years[1]) <= pre["last"])
-    if early:   # a year range before his Cricsheet record: his pre-2002 (Wikipedia totals) rating
+    if early:   # a year range before his Cricsheet record: his rating from career totals of that time
         b, w = pre.get("bat"), pre.get("bowl")
     if b:
         p.bat = {ph: {m: float(b["phase"][ph][m]) for m in METRICS} for ph in phases}
@@ -194,7 +201,7 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
     car = rec.get("career") or {}
     p.caps = sum((c.get("m") or 0) for c in car.values() if isinstance(c, dict))
     hist = _positions(fmt).get(pid)
-    if years and not early and rec.get("source") != "wikipedia_pre2002":
+    if years and not early and rec.get("source") not in ("wikipedia_pre2002", "career_totals"):
         _apply_period(p, fmt, int(years[0]), int(years[1]), years_mode)
     if years:
         hist = period_positions(fmt, pid, int(years[0]), int(years[1])) or hist
@@ -205,15 +212,16 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         tot = sum(hist.values())
         p.opener_share = (hist.get(1, 0) + hist.get(2, 0)) / tot
         p.usual_slot = max(hist, key=hist.get)
+    elif rec.get("opener_share") is not None:   # rated from career totals: innings as opener are recorded
+        p.opener_share = float(rec["opener_share"])
     return p
 
 
 @lru_cache(maxsize=None)
 def _positions(fmt: str) -> dict:
     """Batting-position histograms from the raw stats (T20: internationals + leagues combined)."""
-    files = ["players_odi.json"] if fmt == "odi" else ["players_t20.json", "players_t20_league.json"]
     out: dict = {}
-    for f in files:
+    for f in RAW_STATS[fmt]:
         path = DATA / "raw_stats" / f
         if not path.exists():
             continue
@@ -257,9 +265,8 @@ def scale_indexes(p: Player, ratios: dict, tag: dict | None = None) -> None:
 @lru_cache(maxsize=None)
 def year_records(fmt: str) -> dict:
     """pid -> list of raw per-year records (T20: internationals and leagues), from data/raw_stats."""
-    files = ["players_odi.json"] if fmt == "odi" else ["players_t20.json", "players_t20_league.json"]
     out: dict = {}
-    for f in files:
+    for f in RAW_STATS[fmt]:
         path = DATA / "raw_stats" / f
         if path.exists():
             for pid, r in json.loads(path.read_text(encoding="utf-8")).items():
