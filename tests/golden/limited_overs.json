@@ -1,0 +1,140 @@
+{
+ "t20i_xi": {
+  "results": [
+   "Match tied; India T20 2024 won the super over (Australia T20 2024 6/0, India T20 2024 7/0) | 197/7, 197/9",
+   "India T20 2024 won by 7 wickets (24 balls left) | 186/7, 187/3",
+   "India T20 2024 won by 9 wickets (37 balls left) | 118/10, 119/1",
+   "India T20 2024 won by 4 wickets (1 ball left) | 180/5, 183/6",
+   "India T20 2024 won by 6 wickets (48 balls left) | 108/10, 112/4",
+   "India T20 2024 won by 5 wickets (10 balls left) | 174/7, 176/5",
+   "Australia T20 2024 won by 6 wickets (7 balls left) | 145/9, 147/4",
+   "Australia T20 2024 won by 7 wickets (1 ball left) | 219/7, 222/3"
+  ],
+  "sha256": "4cd3df1db6a502998e2847e379cf24c03ba888b47016f410231fca4393e104e8"
+ },
+ "t20i_squads_venue": {
+  "results": [
+   "Australia T20 2024 won by 16 runs | 175/7, 159/10",
+   "Pakistan T20 2024 won by 18 runs | 169/6, 151/6",
+   "South Africa T20 2024 won by 40 runs | 199/8, 159/10",
+   "West Indies T20 2024 won by 7 wickets (32 balls left) | 165/6, 166/3"
+  ],
+  "sha256": "a6cc7bcbbbbd529883f2159edc246f0933441bf101b18eac2b3601d4d7b63875"
+ },
+ "odi_xi": {
+  "results": [
+   "India ODI 2023 won by 76 runs | 363/4, 287/10",
+   "Australia ODI 2023 won by 8 wickets (131 balls left) | 177/10, 178/2",
+   "India ODI 2023 won by 7 wickets (50 balls left) | 250/10, 254/3",
+   "Australia ODI 2023 won by 53 runs | 286/10, 233/10",
+   "Australia ODI 2023 won by 3 wickets (8 balls left) | 278/10, 284/7",
+   "India ODI 2023 won by 7 wickets (169 balls left) | 90/10, 91/3"
+  ],
+  "sha256": "342942b65302a5b29240a06a99b8525ae0104db542ab1a8ea92ae7f3c97f60fe"
+ },
+ "odi_squads_venue": {
+  "results": [
+   "Australia ODI 2023 won by 9 wickets (108 balls left) | 181/10, 182/1",
+   "India ODI 2023 won by 63 runs | 284/7, 221/10",
+   "India ODI 2023 won by 65 runs | 315/10, 250/10"
+  ],
+  "sha256": "0434706e4812ec3b5a2b68f62b0f7f57797370cabd314f12624747f32bf5f776"
+ },
+ "t20i_rain": {
+  "results": [
+   "England T20 2024 won by 4 wickets (11 balls left) | 127/9, 129/6",
+   "No result | 164/8, 13/0",
+   "India T20 2024 won by 9 wickets (20 balls left) | 171/5, 175/1",
+   "India T20 2024 won by 113 runs | 237/5, 124/10",
+   "India T20 2024 won by 88 runs | 169/4, 81/10",
+   "India T20 2024 won by 106 runs | 196/4, 90/10",
+   "India T20 2024 won by 8 wickets (61 balls left) | 94/10, 95/2",
+   "England T20 2024 won by 8 wickets (66 balls left) | 80/10, 85/2"
+  ],
+  "sha256": "173d429dd3da7accd76e741d16336829f5d6ddfe3fb522f77395489081387951"
+ },
+ "odi_rain": {
+  "results": [
+   "Match tied; Australia ODI 2023 won the 2 super overs (Australia ODI 2023 10/1, India ODI 2023 8/0) | 291/9, 291/6",
+   "India ODI 2023 won by 25 runs | 267/10, 242/10",
+   "No result | 129/2",
+   "India ODI 2023 won by 64 runs | 379/8, 315/10",
+   "Australia ODI 2023 won by 58 runs | 389/6, 331/8",
+   "Australia ODI 2023 won by 8 wickets (26 balls left) (DLS method) | 302/10, 299/2",
+   "India ODI 2023 won by 7 runs | 282/9, 275/10",
+   "Australia ODI 2023 won by 94 runs | 305/8, 211/10"
+  ],
+  "sha256": "7a9cdf04415d5be4b416b82598d2cbbab66e472c177739125d0c75b057bac917"
+ },
+ "ipl_impact": {
+  "results": [
+   "Chennai Super Kings 2024 won by 7 wickets (0 balls left) | 200/4, 203/3",
+   "Gujarat Titans 2024 won by 15 runs | 201/8, 186/6",
+   "Mumbai Indians 2024 won by 21 runs | 205/5, 184/5",
+   "Rajasthan Royals 2024 won by 75 runs | 201/3, 126/10"
+  ],
+  "sha256": "64086f4e9aec8c3bb2fd70a9852a0e9da7802510a134f1ad02787a1d849635bc"
+ },
+ "ipl_2019_no_impact": {
+  "results": [
+   "Chennai Super Kings 2019 won by 46 runs | 187/4, 141/10",
+   "Delhi Capitals 2019 won by 56 runs | 175/7, 119/10"
+  ],
+  "sha256": "571ec38922ec3f4c1e6b325963522cd76b1928d8b765a325727d8567f525109e"
+ },
+ "classic_odi": {
+  "results": [
+   "India 2011 won by 7 wickets (15 balls left) | 283/5, 286/3",
+   "India 2011 won by 2 wickets (2 balls left) | 293/7, 294/8"
+  ],
+  "sha256": "585013aee035a199927cf1cb55fdcf5dd652f63406eaffea592c9d70985df0c8"
+ },
+ "classic_pre2002": {
+  "results": [
+   "India 2011 won by 9 wickets (73 balls left) | 206/6, 207/1"
+  ],
+  "sha256": "9fd755f451c1b09548c1ff8cd441efd7602e214934b86683bd839e761b383f48"
+ },
+ "classic_t20": {
+  "results": [
+   "Pakistan 2007-10 won by 7 wickets (5 balls left) | 155/3, 156/3",
+   "Pakistan 2007-10 won by 7 wickets (19 balls left) | 183/6, 184/3"
+  ],
+  "sha256": "12678fc70d54b3ca69daef6020bdba5aacd15a77a8d39025e10a39f0be674050"
+ },
+ "weaker_captains": {
+  "results": [
+   "India T20 2024 won by 9 wickets (45 balls left) | 167/7, 168/1",
+   "Australia T20 2024 won by 8 wickets (14 balls left) | 193/7, 196/2",
+   "Australia T20 2024 won by 5 wickets (8 balls left) | 164/5, 170/5"
+  ],
+  "sha256": "2123d737cb7284937513aca4f6caf27a1fb0b93d26f04519d9657ff8bf7832e0"
+ },
+ "flags_off": {
+  "results": [
+   "India T20 2024 won by 5 wickets (20 balls left) | 170/7, 174/5",
+   "Australia ODI 2023 won by 5 wickets (12 balls left) (DLS method) | 202/6, 202/5"
+  ],
+  "sha256": "a344c87788b4a0defeeb3bc7b7594946904eb1b0fc1d3b5c743fae64bfe91b03"
+ },
+ "series": {
+  "results": [
+   "India ODI 2023 won by 81 runs | 408/5, 327/10",
+   "India ODI 2023 won by 3 wickets (8 balls left) | 264/8, 265/7",
+   "India ODI 2023 won by 94 runs | 361/7, 267/10"
+  ],
+  "sha256": "6bc895147e49c85b1467de2e4292960b7c316f590caee16f25d7e012b067295b"
+ },
+ "tournament": {
+  "results": [
+   "Australia T20 2024 won by 6 wickets (5 balls left) | 154/8, 155/4",
+   "England T20 2024 won by 7 wickets (0 balls left) | 165/8, 166/3",
+   "India T20 2024 won by 10 wickets (6 balls left) | 88/5, 90/0",
+   "Australia T20 2024 won by 18 runs | 231/5, 213/5",
+   "South Africa T20 2024 won by 12 runs | 136/6, 124/10",
+   "England T20 2024 won by 57 runs | 196/6, 139/9",
+   "England T20 2024 won by 7 wickets (47 balls left) | 93/10, 95/3"
+  ],
+  "sha256": "19b049397b49d31aeefef37244e201aecd1f788f43c624db6439e3e11f73e91c"
+ }
+}

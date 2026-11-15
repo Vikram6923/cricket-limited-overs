@@ -488,6 +488,7 @@ python -m engine.fit.fit_career        # career mode: age curves, season form, r
 python -m engine.fit.fit_depth         # T20 batting depth still to come, a trend that extrapolates (after fit_situation)
 python -m engine.calibrate             # compare simulated v real
 python tests/run_all.py                # every test script, several at a time (about a minute); -j 1: one by one
+python tests/test_golden.py            # 63 fixed matches still play exactly as recorded (--write: record them again)
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -503,6 +504,7 @@ Optional checks: `python scripts/validate_ratings.py` (out-of-sample test of the
 ```
 engine/            match engine (library)
   match.py         match / innings state machine, scorecard, super overs, win probability
+  scorebook.py     one innings' scorecard (batting cards, bowling figures, wickets, partnerships), any format
   ballmodel.py     per-delivery outcome model
   captain.py       XI selection, batting order, bowling plan, toss
   situation.py     settling in, intent, par, matchups, win probability

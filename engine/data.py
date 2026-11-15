@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
-PHASES = ("powerplay", "middle", "death")
+PHASES = ("powerplay", "middle", "death")   # of a limited-overs innings; a format's own: phase_names(fmt)
 METRICS = ("runs", "wkt", "dot", "four", "six")
 FORMATS = {
     "t20": {"overs": 20, "quota": 4, "phases": ((0, 5, "powerplay"), (6, 14, "middle"), (15, 19, "death")),
@@ -21,6 +21,12 @@ FORMATS = {
             "intl": "odi_full"},
 }
 YEAR_POOL_BALLS = 6000  # a baseline year with fewer balls than this borrows from neighbouring years
+
+
+@lru_cache(maxsize=None)
+def phase_names(fmt: str) -> tuple:
+    """The phases a format's ratings and baselines are split by, in order."""
+    return tuple(name for _, _, name in FORMATS[fmt]["phases"])
 
 
 @lru_cache(maxsize=None)
@@ -123,7 +129,7 @@ def _prior(fmt: str, side: str, group: str, team: str) -> dict:
             g = sum(vals) / len(vals) if vals else 1.0
         t = meta["team_levels"][m][side].get(team, 1.0)
         out[m] = g * t
-    return {ph: dict(out) for ph in PHASES}
+    return {ph: dict(out) for ph in phase_names(fmt)}
 
 
 def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
@@ -138,6 +144,7 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         p.bowl = _prior(fmt, "bowl", "part_unk", p.team)
         p.keeper = pid in _keepers(fmt)
         return p
+    phases = phase_names(fmt)
     p = Player(id=pid, name=name or rec["name"], team=team or rec.get("team") or "unknown",
                position=rec.get("position"), bat_role=rec.get("bat_role") or "middle",
                bowl_role=rec.get("bowl_role") or "part_unk", bat_hand=rec.get("bat_hand"),
@@ -149,15 +156,15 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
     if early:   # a year range before his Cricsheet record: his pre-2002 (Wikipedia totals) rating
         b, w = pre.get("bat"), pre.get("bowl")
     if b:
-        p.bat = {ph: {m: float(b["phase"][ph][m]) for m in METRICS} for ph in PHASES}
+        p.bat = {ph: {m: float(b["phase"][ph][m]) for m in METRICS} for ph in phases}
         p.other_out = float(b.get("other_out_idx") or 1.0)
         p.bat_balls = int(b.get("balls") or 0)
         p.bat_conf = float(b.get("confidence") or 0.0)
         pb = b.get("phase_balls") or {}
         tot = sum(pb.values())
         ref = ratings(fmt).get("reference") or {}
-        typ = {ph: (ref.get(ph) or {}).get("share", 1 / 3) for ph in PHASES}
-        p.bat_phase_share = {ph: (pb.get(ph, 0) + 60 * typ[ph]) / (tot + 60) for ph in PHASES}
+        typ = {ph: (ref.get(ph) or {}).get("share", 1 / len(phases)) for ph in phases}
+        p.bat_phase_share = {ph: (pb.get(ph, 0) + 60 * typ[ph]) / (tot + 60) for ph in phases}
         p.ref["bat"] = b.get("ref")
     else:
         p.rated_bat = False
@@ -165,7 +172,7 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
             p.bat_role = "tail"     # a specialist bowler with no batting record bats at the end, not at No. 5
         p.bat = _prior(fmt, "bat", p.bat_role, p.team)
     if w:
-        p.bowl = {ph: {m: float(w["phase"][ph][m]) for m in METRICS} for ph in PHASES}
+        p.bowl = {ph: {m: float(w["phase"][ph][m]) for m in METRICS} for ph in phases}
         p.wide = float(w.get("wide_idx") or 1.0)
         p.noball = float(w.get("noball_idx") or 1.0)
         p.bowl_balls = int(w.get("balls") or 0)
@@ -175,7 +182,7 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         tot = sum(pb.values())
         typ = typical_phase_share(fmt, p.bowl_type)
         k = 60.0  # balls of the typical profile mixed in, so a short record doesn't dominate
-        p.bowl_phase_share = {ph: (pb.get(ph, 0) + k * typ[ph]) / (tot + k) for ph in PHASES}
+        p.bowl_phase_share = {ph: (pb.get(ph, 0) + k * typ[ph]) / (tot + k) for ph in phases}
         car = rec.get("career") or {}
         inns = sum((c.get("m") or 0) for c in car.values() if isinstance(c, dict))
         p.bowl_overs_per_match = (p.bowl_balls / 6) / inns if inns else 0.0
@@ -287,25 +294,26 @@ def period_positions(fmt: str, pid: str, y1: int, y2: int) -> dict:
 @lru_cache(maxsize=None)
 def _typical_shares(fmt: str) -> dict:
     acc: dict = {}
+    phases = phase_names(fmt)
     for r in ratings(fmt)["players"].values():
         w = r.get("bowl")
         if not w or not w.get("phase_balls"):
             continue
         t = r.get("bowl_type") or "unknown"
-        a = acc.setdefault(t, {ph: 0 for ph in PHASES})
-        for ph in PHASES:
+        a = acc.setdefault(t, {ph: 0 for ph in phases})
+        for ph in phases:
             a[ph] += w["phase_balls"].get(ph, 0)
     out = {}
     for t, a in acc.items():
         tot = sum(a.values()) or 1
-        out[t] = {ph: a[ph] / tot for ph in PHASES}
+        out[t] = {ph: a[ph] / tot for ph in phases}
     return out
 
 
 def typical_phase_share(fmt: str, bowl_type: str | None) -> dict:
     """Typical share of a bowler's balls in each phase, by bowling type (pace / spin / unknown)."""
     t = _typical_shares(fmt)
-    return t.get(bowl_type or "unknown") or t.get("unknown") or {ph: 1 / 3 for ph in PHASES}
+    return t.get(bowl_type or "unknown") or t.get("unknown") or {ph: 1 / len(phase_names(fmt)) for ph in phase_names(fmt)}
 
 
 @lru_cache(maxsize=None)
@@ -318,7 +326,7 @@ def baseline(fmt: str, comp: str, year: int) -> dict:
     years = sorted(int(y) for y in base[comp])
     y0 = min(years, key=lambda y: abs(y - year))
     out = {}
-    for ph in PHASES:
+    for ph in phase_names(fmt):
         acc, n = {}, 0.0
         for width in range(0, 6):
             rows = [base[comp][str(y)][ph] for y in years if abs(y - y0) <= width and ph in base[comp][str(y)]]
