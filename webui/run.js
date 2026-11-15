@@ -69,7 +69,7 @@ function capSides() {
 }
 function capOptions() {
   const sides = capSides();
-  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE) && sides.length > 0 && $('c-fmt').value !== 'test';   // a draft: once it is done
+  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE) && sides.length > 0;   // a draft: once it is done
   $('g-cap-box').style.display = show ? '' : 'none';
   if (!show) { $('g-manual-box').style.display = 'none'; return; }
   const sel = $('g-captain'), keep = sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : '';
@@ -87,7 +87,8 @@ function capBoxes() {
 function capPayload() {
   const i = $('g-captain').value;
   return i === '' ? {} : {captain_i: MODE === 'draft' ? DRAFT.teams.indexOf(DRAFT.user) : +i, opponents: $('g-opp').value,
-    manual: [...$('g-manual').querySelectorAll('input:checked')].map(x => x.value).filter(k => k !== 'impact' || CAP.impact)};
+    manual: [...$('g-manual').querySelectorAll('input:checked')].map(x => x.value).filter(k => k !== 'impact' || CAP.impact)
+      .filter(k => $('c-fmt').value === 'test' || !TEST_ONLY_KINDS.includes(k))};
 }
 async function start() {
   $('go-err').textContent = ''; $('go-btn').disabled = true; LIVE_AWAY = false;

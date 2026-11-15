@@ -22,7 +22,8 @@ and its historical, draft and league modes inspired the modes here. See [Credits
 > e.g. West Indies 1980-85 v Australia 1999-2003), in the browser or from Python: declarations, the follow-on,
 > rain, home advantage, about 3,270 rated Test cricketers. They are calibrated against the 473 real Tests of
 > 2015-26 (29 of 32 targets met; it draws too often). Results come with Test records and a win / draw / loss
-> chart. The computer plays both sides for now; captaining a Test is still to come
+> chart. You can captain a side: the toss, the XI, declarations, the follow-on, the new ball, the bowling, the
+> nightwatchman and the batting and bowling bars, with the win / draw / loss chances beside the big calls
 > ([`docs/test_design.md`](docs/test_design.md), plan: [`docs/test_match_plan.md`](docs/test_match_plan.md)).
 
 ## Quick start
@@ -138,6 +139,19 @@ on a phone too. Modes:
   computer, play can be skipped to the end of the innings, the match or the season, and obvious calls (one
   possible bowler, the last batter) are not asked. League Season and Auction pick the team in their own form; Series, Tournament, Classic and Draft (your drafted
   team) in the "Captain a team" box under the conditions. Built on a generic controller (`engine/control.py`).
+  - **Captaining a Test** (Match / Series and Classic Series, format Test). The same screen, with the day, the
+    session, the overs left and three chances (win, draw, loss) in the score bar. You set the bars before an
+    over, not a ball, and choose how far to play on: the next over, the next key moment (the first over of an
+    innings or a session, the over after a wicket, the new ball, the last hour), the next wicket, or the end of
+    the session, the day or the innings. Your calls: the toss and the XI; **declare** (asked at the start of a
+    session once real captains would, whenever the computer's captain would, and from a Declare button beside
+    the bars); **the follow-on**; **the new ball**; the bowler at each change (with a Change bowler button in
+    between); the next batter and **the nightwatchman**. Declarations and the follow-on show the chances either
+    way from the win / draw / loss table. In a Test the batting bars trade time, not runs: over 60 Tests each,
+    India scored 2.98 an over at bar 1 and 4.21 at bar 9 with 29 to 31 runs a wicket throughout. Your bowlers
+    have a workload limit (a spell no longer than 98% of real spells of that kind: 10 overs for a quick, 26
+    for a spinner), because the data shows no tiredness in the rates and nothing else would stop two men
+    bowling all day. The other side is always the fitted captain; there are no Easy or Average Test captains.
   - **Ball by ball with aggression bars (League Season and Career, Cricket Captain style):** set each batter's
     aggression and each bowler's plan on 9 bars and play a ball, an over, to the next wicket or to the end of the
     innings (only the striker's bars show; a chip opens the non-striker's, and a toast says when the strike
@@ -535,6 +549,7 @@ python -m engine.fit.fit_basics        # dismissal mix, run splits, extras, free
 python -m engine.fit.probe_test        # Test data probes (cell sizes and raw rates; docs/test_design.md)
 python -m engine.fit.fit_test_situation # Tests: settling in, pitch wear, ball age, innings x wickets x lead
 python -m engine.fit.fit_test_captain  # Tests: declarations, follow-on, bowling spells, toss (after the line above)
+python -m engine.fit.fit_test_aggression  # Tests: the runs-v-risk curve a person's bars move along (after fit_test_situation)
 python -m engine.fit.fit_test_conditions # Tests: hosts, overs lost in a day, home edge, spin edge by ground
 python -m engine.fit.fit_test_venues   # Tests: venue factors and the pitch of the day (replays; after the line above)
 python scripts/build_home_grounds.py   # home grounds, and each host's Test grounds (after fit_test_conditions)
@@ -560,6 +575,7 @@ python tests/test_test_engine.py       # Test matches: laws and bookkeeping, eve
 python tests/test_test_calibration.py  # Test matches: 200 fixed Tests inside wide bands, weather, home edge
 python tests/test_test_series.py       # Test series: result, host and grounds, stats, report, a run through the server
 python tests/test_test_records.py      # Test records; win / draw / loss chances, impact, turning point, rankings
+python tests/test_test_control.py      # captaining a Test: each decision, the bars, the pace, the report, the server
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -596,6 +612,7 @@ engine/            match engine (library)
   render.py        text scorecard and match report
   test_match.py    Test matches: days and sessions, two innings a side, follow-on, results
   test_captain.py  Test captaincy: declarations, follow-on, bowling spells, nightwatchman
+  test_control.py  a person captains a Test: the questions, the bars, key moments, the captaincy report
   test_situation.py  Test situation tables: settling in, pitch wear, ball age, lead, the last innings
   test_conditions.py  Test conditions: the host of a ground, overs lost in a day, the home edge
   test_calibrate.py  replay real Tests and compare, with the plan's gates
@@ -638,9 +655,9 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
 - [x] Pace v spin pitches; reactive bowling changes
 - [x] Rain interruptions and DLS; partnership charts
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
-- [ ] Test matches: data, ratings, the match engine, its calibration, series, the results pages, records
-      and the win / draw / loss chart done; captaincy to come
-      ([`docs/test_match_plan.md`](docs/test_match_plan.md))
+- [x] Test matches: data, ratings, the match engine, its calibration, series, the results pages, records,
+      the win / draw / loss chart and captaincy ([`docs/test_match_plan.md`](docs/test_match_plan.md)).
+      Still to come: a World Test Championship, two-player Tests, Tests from the home page's Play button
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
 - [x] State career: a Mushtaq Ali Trophy state season after season, Elite and Plate with promotion and relegation

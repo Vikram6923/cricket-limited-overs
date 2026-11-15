@@ -62,7 +62,8 @@ def expected_result(c: dict) -> dict:
     return {"type": "draw", "winner": None}
 
 
-def check_card(c: dict):
+def check_card(c: dict, captained: bool = False):
+    """captained: a person had a side, who may take the new ball late."""
     assert c["format"] == "test"
     days, day_overs = c["scheduled_days"], c["day_overs"]
     inns = c["innings"]
@@ -125,7 +126,10 @@ def check_card(c: dict):
         else:
             assert inn["target"] is None
         new_balls = [e for e in c["events"] if e["innings"] == inn["number"] and e["kind"] == "new_ball"]
-        assert len(new_balls) == max(len(log) - 1, 0) // 80, "a new ball every 80 overs"
+        if captained:
+            assert len(new_balls) <= max(len(log) - 1, 0) // 80, "a new ball before it was due"
+        else:
+            assert len(new_balls) == max(len(log) - 1, 0) // 80, "a new ball every 80 overs"
     # ---- time: never more than the scheduled overs
     bowled = sum(len(i["overs_log"]) for i in inns)
     lost = sum(d["lost"] for d in c["days"])

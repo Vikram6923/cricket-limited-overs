@@ -8,7 +8,9 @@
 'use strict';
 
 const KIND_LABEL = {toss: 'Toss', xi: 'Playing XI', bowler: 'Bowlers', batter: 'Next batter', impact: 'Impact Player',
-  result: 'Stop after each of my matches', ball: 'Ball by ball'};
+  result: 'Stop after each of my matches', ball: 'Ball by ball',
+  declare: 'Declarations', follow_on: 'Follow-on', new_ball: 'New ball', nightwatchman: 'Nightwatchman'};
+const TEST_ONLY_KINDS = ['declare', 'follow_on', 'new_ball', 'nightwatchman'];
 const CAP = {qid: null, q: null, auto: {}, manual: [], impact: true, view: 'st', vals: {}, land: null, striker: null};
 const n1 = v => v === null || v === undefined ? '–' : v;
 const statLine = p => [p.role + (p.kind && p.role !== 'Batter' && p.role !== 'WK' ? ` (${p.kind})` : ''),
@@ -55,7 +57,7 @@ function capRender(st) {
   $('cap-score').innerHTML = scoreHTML(q);
   renderAuto();
   const ask = {toss: qToss, xi: qXI, bowler: q2 => qPick(q2, 'bowler'), batter: q2 => qPick(q2, 'batter'), impact: qImpact,
-    result: qResult, ball: qBall}[q.kind] || qResult;
+    result: qResult, ball: qBall, declare: qDeclare, follow_on: qFollowOn, new_ball: qNewBall, nightwatchman: qNight}[q.kind] || qResult;
   if (s.runs === undefined) {                 // before the first ball: the question fills the screen
     capMode(false); closeSheet(); CAP.keys = null; HL.stop();
     $('cap-bug').innerHTML = bugHTML(q);
@@ -78,11 +80,13 @@ function capMode(live) {
    plays, the main button (and Space) skips it; after a single ball the same press also bowls the next one, so
    quick play never needs two presses. */
 const MAIN_LABEL = {ball: '&#9654;&nbsp; Next ball <kbd class="full-only">Space</kbd>', bowler: 'Choose the bowler',
-  batter: 'Choose the batter', impact: 'Impact Player'};
+  batter: 'Choose the batter', impact: 'Impact Player', declare: 'Declare?', follow_on: 'Follow-on?', new_ball: 'New ball?',
+  nightwatchman: 'Nightwatchman?'};
+const MAIN_OVER = '&#9654;&nbsp; Next over <kbd class="full-only">Space</kbd>';
 function capReplay(q, ask, prev) {
   const gap = gapLine(prev, q);
   $('cap-gap').innerHTML = gap; $('cap-gap').hidden = !gap;
-  const evs = gap && capLen() === 'key' ? (q.since || []).slice(-1) : q.since || [];   // the summary says the rest
+  const evs = gap && (capLen() === 'key' || capTest(q)) ? (q.since || []).slice(-1) : q.since || [];   // the summary says the rest
   const land = now => {
     if (CAP.land !== land) return;
     CAP.land = null; CAP.keys = null;
@@ -96,7 +100,7 @@ function capReplay(q, ask, prev) {
     HL.stop(); land(true);
     if (q.kind === 'ball' && evs.length <= 2) $('cap-main').click();
   };
-  actMain(MAIN_LABEL[q.kind] || mpResultNext(), skip, false);
+  actMain(q.kind === 'ball' && q.unit === 'over' ? MAIN_OVER : MAIN_LABEL[q.kind] || mpResultNext(), skip, false);
   $('cap-over-btn').style.display = q.kind === 'ball' ? '' : 'none';
   CAP.keys = e => {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || sheetOpen()) return;
@@ -139,7 +143,7 @@ function liveState(q) {
   $('cap-cards').innerHTML = cardsHTML(q);
   if (q.kind === 'wait') return;              // two players, the other side choosing: this over stays as it was
   let balls = q.this_over;
-  if (!balls) {                               // between balls: the over so far, from the balls just shown
+  if (!balls || q.unit === 'over') {          // a Test's bars come before an over: show the one just bowled                               // between balls: the over so far, from the balls just shown
     const evs = (q.since || []).filter(e => e.innings === s.innings), last = evs[evs.length - 1];
     balls = last ? evs.filter(e => e.over === last.over).map(e => e.sym) : [];
   }
@@ -204,12 +208,14 @@ function capShowState(state, team) {
 
 function renderAuto() {
   if (CAP.manual.includes('ball')) CAP.ballOn = true;
-  const kinds = Object.keys(KIND_LABEL).filter(k => (k !== 'impact' || CAP.impact || CAP.manual.includes('impact'))
+  const test = capTest(CAP.q);
+  const kinds = Object.keys(KIND_LABEL).filter(k => (k !== 'impact' || (!test && (CAP.impact || CAP.manual.includes('impact'))))
+    && (test || !TEST_ONLY_KINDS.includes(k))
     && (k !== 'result' || (!mpOn() && CAP.total > 1))
     && (k !== 'ball' || CAP.ballOn));
   const computer = k => CAP.auto[k] !== undefined ? CAP.auto[k] : !CAP.manual.includes(k);
   $('cap-auto').innerHTML = kinds.map(k => `<button class="tog ${computer(k) ? '' : 'on'}" data-k="${k}"
-    title="${computer(k) ? 'The computer decides - click to decide yourself' : 'You decide - click to leave it to the computer'}">${KIND_LABEL[k]}</button>`).join('');
+    title="${computer(k) ? 'The computer decides - click to decide yourself' : 'You decide - click to leave it to the computer'}">${test && k === 'ball' ? 'Bars, over by over' : KIND_LABEL[k]}</button>`).join('');
   $('cap-auto').querySelectorAll('.tog').forEach(b => b.onclick = () => { CAP.auto[b.dataset.k] = !computer(b.dataset.k); renderAuto(); });
 }
 
@@ -230,7 +236,8 @@ async function capSend(choice, extra = {}) {
 function capShow(kind, html, label) {
   if ($('v-captain').classList.contains('live')) {
     CAP.sheetKind = kind; openSheet(html);
-    actMain(label, () => { const q = CAP.q; ({bowler: q2 => qPick(q2, 'bowler'), batter: q2 => qPick(q2, 'batter'), impact: qImpact, result: qResult}[kind] || (() => {}))(q); }, false);
+    actMain(label, () => { const q = CAP.q; ({bowler: q2 => qPick(q2, 'bowler'), batter: q2 => qPick(q2, 'batter'), impact: qImpact, result: qResult,
+      declare: qDeclare, follow_on: qFollowOn, new_ball: qNewBall, nightwatchman: qNight}[kind] || (() => {}))(q); }, false);
     btns(false); $('cap-over-btn').style.display = 'none';
   } else $('cap-q').innerHTML = html;
 }
@@ -246,6 +253,7 @@ function capTeams(q) {
 }
 /* the score bug: before the match, the two teams; then one line (score, overs, the chase) and the win bar */
 function bugHTML(q) {
+  if (capTest(q)) return testBugHTML(q);
   const s = q.state || {}, [a, b] = capTeams(q);
   if (s.runs === undefined) {
     return `<div class="bug pre" style="--bat:${tcol(a).c};--bowl:${tcol(b).c}">
@@ -275,7 +283,7 @@ function scoreHTML(q) {
   const s = q.state || {};
   if (s.runs === undefined) {           // before the match: toss and XI
     return `<h3>${esc(dnText(s.match, capTeams(q)))}</h3>
-      <div class="sb-line">${s.format === 'odi' ? 'ODI' : 'T20'}, ${s.overs} overs a side · v ${esc(dn(s.opponent))}</div>
+      <div class="sb-line">${s.format === 'test' ? `Test, ${s.days} days` : `${s.format === 'odi' ? 'ODI' : 'T20'}, ${s.overs} overs a side`} · v ${esc(dn(s.opponent))}</div>
       <div class="sb-line">Venue: <b>${esc(s.venue || 'neutral')}</b></div>
       <div class="sb-line">Pitch: <b>${esc(s.pitch || '–')}</b></div>
       ${q.toss ? `<div class="sb-line" style="margin-top:6px">${esc(q.toss)}</div>` : ''}
@@ -344,6 +352,7 @@ function qPick(q, kind) {
   const fig = p => q.state.bowlers.find(b => b.name === p.name) || {overs: '0.0', maidens: 0, runs: 0, wkts: 0};
   const card = p => {
     const sug = p.id === q.default, tag = sug ? '<span class="tag-s">SUGGESTED</span>' : '';
+    if (kind === 'bowler' && capTest(q)) return testBowlerCard(p, sug, fig(p));
     if (kind === 'bowler') {
       const f = fig(p);
       return `<button class="bopt ${sug ? 'sug' : ''}" data-id="${esc(p.id)}">${kindIcon(p.kind)}<div class="bo-m"><b>${esc(p.name)}${osTag(p)}${tag}</b>
@@ -351,7 +360,7 @@ function qPick(q, kind) {
         <span class="full-only small">${esc(p.kind || p.role)} · expected econ${ph ? ' (' + ph + ')' : ''} ${n1(p.phase_econ)} · career ${n1(p.bowl_econ)}</span></div>
         <span class="left"><b>${esc(p.quota_left)}</b> left</span></button>`;
     }
-    return `<button class="bopt ${sug ? 'sug' : ''}" data-id="${esc(p.id)}"><div class="bo-m"><b>${esc(p.name)}${osTag(p)}${tag}</b>
+    return `<button class="bopt ${sug ? 'sug' : ''}" data-id="${esc(p.id)}"><div class="bo-m"><b>${esc(p.name)}${osTag(p)}${tag}${q.nightwatchman && p.id === q.nightwatchman ? '<span class="tag-s">NIGHTWATCHMAN</span>' : ''}</b>
       <span class="fig">${esc(p.role)}</span>
       <span class="full-only small">avg ${n1(p.bat_avg)} · SR ${n1(p.bat_sr)} · expected SR${ph ? ' (' + ph + ')' : ''} ${n1(p.phase_sr)}</span></div>
       ${p.slot ? `<span class="left full-only">#${p.slot}</span>` : ''}</button>`;
@@ -361,7 +370,7 @@ function qPick(q, kind) {
     const use = $('ib-use') && $('ib-use').checked, ic = use ? impactChoice(imp) : null;
     let opts = q.options;
     const rank = kind === 'bowler'                // the computer's pick, then real bowlers by expected economy
-      ? p => (p.id === q.default ? -1e6 : 0) + (p.overs_per_match >= 1 ? 0 : 1000) + (p.phase_econ || 99)
+      ? p => (p.id === q.default ? -1e6 : 0) + (p.overs_per_match >= 1 ? 0 : 1000) + (capTest(q) ? p.exp_avg || 99 : p.phase_econ || 99)
       : p => (p.id === q.default ? -1e6 : 0) + opts.indexOf(p);
     opts = [...opts].sort((a, b) => rank(a) - rank(b));
     if (ic && ic !== 'bad') {                     // the substitute can bowl / bat at once
@@ -377,6 +386,7 @@ function qPick(q, kind) {
     });
   };
   capShow(kind, `<h3>${kind === 'bowler' ? `Over ${q.over}: who bowls?` : 'Wicket! Who’s in?'}</h3>
+    ${kind === 'batter' && q.nightwatchman ? `<div class="sb-line">${q.left_today} overs left today: a nightwatchman is suggested.</div>` : ''}
     <div id="cap-opts"></div><button class="lnk" id="cap-all">See all ${kind === 'bowler' ? 'bowlers' : 'batters'}</button>
     ${imp ? `<details class="ib-fold"><summary>Impact Player${imp.suggestion ? '<span class="tag-s">SUGGESTED</span>' : ''}</summary>${impactBoxHTML(imp, false)}</details>` : ''}`,
     kind === 'bowler' ? 'Choose the bowler' : 'Choose the batter');
@@ -443,11 +453,16 @@ function qBall(q) {
   if (bat) { CAP.vals[q.striker.id] = q.striker.bars; CAP.vals[q.non_striker.id] = q.non_striker.bars; }
   else CAP.vals[q.bowler.id] = q.bowler.bars;
   drawBars();
-  const send = until => { CAP.keys = null; HL.stop(); capSend(bat ? {bat: CAP.vals, until} : {bowl: CAP.vals, until}); };
-  const next = () => send(capLen() === 'key' ? 'key' : 'ball');     // Key moments: the engine plays on between them
-  actMain(MAIN_LABEL.ball, next, true);
+  const test = q.unit === 'over';              // a Test: the bars are set before an over
+  const send = (until, more) => { CAP.keys = null; HL.stop(); capSend({...(bat ? {bat: CAP.vals} : {bowl: CAP.vals}), until, ...(more || {})}); };
+  const next = () => send(capLen() === 'key' ? 'key' : test ? 'over' : 'ball');     // Key moments: the engine plays on between them
+  CAP.send = send;
+  actMain(test ? MAIN_OVER : MAIN_LABEL.ball, next, true);
   btns(false);
-  $('cap-over-btn').onclick = () => send('over');
+  $('cap-over-btn').textContent = test ? 'Sim session' : 'Sim over';
+  $('cap-over-btn').onclick = () => send(test ? 'session' : 'over');
+  $('cap-sim-day').onclick = () => { closeSheet(); send('day'); };
+  if (test) drawBars();                        // with the Declare / Change bowler chip wired to this question
   $('cap-sim-wkt').onclick = () => { closeSheet(); send('wicket'); };
   CAP.keys = e => {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || sheetOpen()) return;
@@ -462,12 +477,14 @@ function drawBars() {
   const words = bat ? BAT_WORD : BOWL_WORD, v = CAP.vals[who.id];
   $('cap-bars').innerHTML = `<div class="bars-h"><span class="who"><b>${esc(sur(who.name))}</b>’s ${bat ? 'approach' : 'plan'}</span>
       <button class="info" id="cap-info" title="How the bars work">i</button>
-      ${bat ? `<button class="ns-chip" id="cap-ns">${CAP.view === 'ns' ? 'Back to striker' : `${esc(sur(other.name))}: ${BAT_WORD[CAP.vals[other.id]]} &#9662;`}</button>` : ''}
+      ${bat ? `<button class="ns-chip" id="cap-ns">${CAP.view === 'ns' ? 'Back to striker' : `${esc(sur(other.name))}: ${BAT_WORD[CAP.vals[other.id]]} &#9662;`}</button>` : ''}${q.unit === 'over' ? testBarChips(q) : ''}
       <span class="word"><small class="full-only">${v} · </small>${words[v]}</span></div>${barsHTML(who.id, v, words)}`;
   $('cap-bars').querySelectorAll('.cbars button').forEach(b => b.onclick = () => setBars(+b.dataset.v));
   if ($('cap-ns')) $('cap-ns').onclick = () => { CAP.view = CAP.view === 'ns' ? 'st' : 'ns'; drawBars(); };
+  if (q.unit === 'over' && CAP.send) testBarWire(q, CAP.send);
   $('cap-info').onclick = () => { CAP.sheetKind = 'info'; openSheet(bat
-    ? `<h3>Approach</h3><p>Higher = more runs, more risk. 5 is how real teams bat here.</p><p class="muted" style="margin-top:8px">Keys 1–9, Space = next ball.</p>
+    ? `<h3>Approach</h3><p>Higher = more runs, more risk. 5 is how real teams bat here.</p><p class="muted" style="margin-top:8px">Keys 1–9, Space = next ${q.unit === 'over' ? 'over' : 'ball'}.</p>
+       ${q.unit === 'over' ? '<p class="muted small" style="margin-top:8px">In a Test the bars trade time, not runs: batting faster costs wickets at about the same rate, so an innings is shorter, not smaller. Lower bars last longer.</p>' : ''}
        <p class="muted small full-only" style="margin-top:8px">Lower: fewer of both. Far from 5 costs, more so when a wicket is dear. Each batter keeps his own bars, so they swap with the strike.</p>`
     : `<h3>Plan</h3><p>Higher = more wickets, more runs. 5 is a normal plan.</p><p class="muted" style="margin-top:8px">Keys 1–9, Space = next ball.</p>
        <p class="muted small full-only" style="margin-top:8px">Attack takes more wickets but leaks runs; contain saves runs but takes fewer wickets.</p>`); };
@@ -547,6 +564,12 @@ function moreSheet() {
   $('bsheet-in').appendChild($('cap-more'));
   const ball = CAP.q && CAP.q.kind === 'ball' && CAP.qid === CAP.q.id;
   $('cap-sim-wkt').style.display = ball ? '' : 'none';
+  const test = capTest(CAP.q);
+  $('cap-sim-day').style.display = ball && test ? '' : 'none';
+  $('cap-more').querySelector('.cap-len [data-l=all]').textContent = test ? 'Every over' : 'Every ball';
+  $('cap-more').querySelector('.cap-len [data-l=key]').title = test
+    ? 'You play the first over of an innings and a session, the over after a wicket, the new ball and the last hour'
+    : 'You play the first over, the over after a wicket and the last 3 overs';
   $('cap-hl').innerHTML = HL.segHTML();
   $('cap-hl').querySelectorAll('button').forEach(b => b.onclick = () => {
     HL.setLevel(b.dataset.h); $('cap-hl').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); });

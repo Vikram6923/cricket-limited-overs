@@ -341,7 +341,7 @@
       <div class="hint full-only" style="margin:4px 0 0">You make that side's decisions in its matches; every screen shows what the computer would do.</div></div>
     <details class="more" id="more-cond"><summary>More options</summary>
     <div class="fg" id="c-fmt-box"><label>Format</label><select id="c-fmt"><option value="t20">T20</option><option value="odi">ODI</option><option value="test">Test</option></select>
-      <div class="hint test-only" style="margin:4px 0 0">Five days, two innings a side. The computer plays both sides for now.</div></div>
+      <div class="hint test-only" style="margin:4px 0 0">Five days, two innings a side. You can captain a side (You captain, above): declarations, the follow-on, the bowling and the bars.</div></div>
     <div class="fg" id="mp-clock-box"><label>Time per ball</label><select id="mp-clock"><option value="off">Off</option>
         <option value="10">10 s</option><option value="20">20 s</option></select>
         <div class="hint full-only" style="margin:4px 0 0">Out of time: the bars stay as they were. Other decisions get 60 seconds, then the computer's choice.</div></div>
@@ -353,10 +353,15 @@
         <label><input type="checkbox" value="batter" checked> Next batter</label>
         <label id="g-impact-opt"><input type="checkbox" value="impact" checked> Impact Player</label>
         <label><input type="checkbox" value="result" checked> Stop after each of my matches</label>
-        <label title="Set each batter's aggression and each bowler's plan (1-9 bars) and play ball by ball"><input type="checkbox" value="ball" checked> Ball by ball</label>
+        <label title="Set each batter's aggression and each bowler's plan (1-9 bars) and play ball by ball"><input type="checkbox" value="ball" checked> <span class="lo-only">Ball by ball</span><span class="test-only">Bars, over by over</span></label>
+        <label class="test-only"><input type="checkbox" value="declare" checked> Declarations</label>
+        <label class="test-only"><input type="checkbox" value="follow_on" checked> Follow-on</label>
+        <label class="test-only"><input type="checkbox" value="new_ball" checked> New ball</label>
+        <label class="test-only" title="Only asked when Next batter is left to the computer"><input type="checkbox" value="nightwatchman" checked> Nightwatchman</label>
       </div>
       <div class="hint" style="margin:4px 0 0">Unticked: the computer decides.</div>
-      <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="g-opp">
+      <div class="hint test-only" style="margin:4px 0 0">The other side's captain declares, enforces the follow-on and changes the bowling as real captains do.</div>
+      <div class="fg lo-only" style="margin-top:8px"><label>Opponent captains</label><select id="g-opp">
         <option value="expert">Expert - the engine's best calls (as before)</option>
         <option value="average">Average - a loose call now and then</option>
         <option value="easy">Easy - loose calls often, sometimes bad ones</option></select>
@@ -474,6 +479,7 @@
         <h3>More</h3>
         <div class="sh-btns cap-skip">
           <button class="btn sec" id="cap-sim-wkt">Sim to next wicket</button>
+          <button class="btn sec" id="cap-sim-day" style="display:none">Sim to end of day</button>
           <button class="btn sec" data-skip="innings">Sim to end of innings</button>
           <button class="btn sec" data-skip="match">Sim to end of match</button>
           <button class="btn sec" data-skip="all" id="cap-skip-all">Sim the rest of the season</button>
@@ -664,6 +670,7 @@
 <script src="/ui/teams.js"></script>
 <script src="/ui/highlight.js"></script>
 <script src="/ui/captain.js"></script>
+<script src="/ui/testcaptain.js"></script>
 <script src="/ui/multiplayer.js"></script>
 <script src="/ui/auction.js"></script>
 <script src="/ui/auction_room.js"></script>

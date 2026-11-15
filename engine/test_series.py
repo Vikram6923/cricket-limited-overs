@@ -178,11 +178,12 @@ test_stats.__test__ = False            # not a test (the name starts with test_)
 
 def play_test_series(team_a: dict, team_b: dict, n: int = 3, comp: str | None = None, year: int = 2025,
                      venues: list | None = None, seed: int | None = None, on_match=None,
-                     host: str | None = None, **kw) -> dict:
+                     host: str | None = None, control: dict | None = None, **kw) -> dict:
     """A series of n Tests; all are played. host: the country it is played in: None = team_a's (the first
     side is at home), "neutral" = nobody's, or a country's name. Its grounds are used in rotation (venues: use
     these instead; a ground's own country then decides the weather and the home side), it sets the weather, and
-    the side whose nation it is gets the home edge. kw goes to every match (engine/test_match.py)."""
+    the side whose nation it is gets the home edge. control: {team name: engine.control.Controller} for a
+    side a person captains (engine/test_control.py). kw goes to every match (engine/test_match.py)."""
     if n not in SIZES:
         raise ValueError(f"A Test series has {SIZES[0]} to {SIZES[-1]} matches.")
     a, b = team_spec(FMT, team_a), team_spec(FMT, team_b)
@@ -198,9 +199,14 @@ def play_test_series(team_a: dict, team_b: dict, n: int = 3, comp: str | None = 
         args = dict(kw)
         if host and not venues:
             args["host"] = host
+        stage = "Only Test" if n == 1 else f"{ORDINALS[i]} Test"
+        if control:
+            args["control"] = control
+            for ctl in control.values():
+                ctl.context = {"stage": stage, "match_no": i + 1, "knockout": False, "venue": grounds[i]}
         card = simulate_match(a, b, fmt=FMT, comp=comp, year=year, venue=grounds[i], seed=_seed(seed, i + 1), **args)
         card["match_no"], card["knockout"] = i + 1, False
-        card["stage"] = "Only Test" if n == 1 else f"{ORDINALS[i]} Test"
+        card["stage"] = stage
         cards.append(card)
         if on_match:
             on_match(card)

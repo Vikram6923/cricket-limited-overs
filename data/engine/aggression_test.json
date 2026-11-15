@@ -1,0 +1,27 @@
+{
+ "format": "test",
+ "source": "test_situation.json",
+ "cells": 68,
+ "balls": 1712095,
+ "min_balls": 2000,
+ "bars": 9,
+ "metrics": [
+  "runs",
+  "wkt",
+  "dot",
+  "four",
+  "six"
+ ],
+ "slope": {
+  "wkt": 0.9054,
+  "dot": -0.4119,
+  "four": 0.7378,
+  "six": 3.5815
+ },
+ "p5": -0.0898,
+ "p95": 0.1832,
+ "step": 0.0455,
+ "bowl_share": 0.5,
+ "bowl_edge": 0.4,
+ "contain_edge": 0.8
+}

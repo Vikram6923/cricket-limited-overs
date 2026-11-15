@@ -451,12 +451,12 @@ def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: 
                 best_of: bool = False) -> dict:
     """Bilateral series of n matches. All n are played, unless best_of: then it stops as soon as one side can no
     longer be caught (2-0 in a best of 3). control, skill: as in play_tournament. A Test series is played by
-    engine/test_series.py (its host, grounds and weather; nobody captains a Test yet)."""
+    engine/test_series.py (its host, grounds and weather; a person can captain a side, engine/test_control.py)."""
     if fmt == "test":
         from .test_series import play_test_series
-        if control or best_of:
-            raise ValueError("A Test series cannot be captained or played as a best-of yet.")
-        return play_test_series(team_a, team_b, n, comp, year, venues, seed, on_match)
+        if best_of:
+            raise ValueError("A Test series cannot be played as a best-of.")
+        return play_test_series(team_a, team_b, n, comp, year, venues, seed, on_match, control=control)
     a, b = team_spec(fmt, team_a), team_spec(fmt, team_b)
     run = _Runner(fmt, comp, year, seed, venues, None, None, rain, control, skill)
     run.on_match = on_match

@@ -186,7 +186,8 @@ function winProbHTML(c, small) {
 }
 
 /* captaincy report (engine/judge.py): the person's calls against the computer's, in runs */
-const CALL_LABEL = {toss: 'Toss', xi: 'Playing XI and order', bowler: 'Bowler each over', batter: 'Next batter', impact: 'Impact Player'};
+const CALL_LABEL = {toss: 'Toss', xi: 'Playing XI and order', bowler: 'Bowler each over', batter: 'Next batter', impact: 'Impact Player',
+  declare: 'Declarations', follow_on: 'Follow-on', new_ball: 'New ball', nightwatchman: 'Nightwatchman'};
 const sgn = v => v === null || v === undefined ? '–' : (v > 0 ? '+' : '') + v.toFixed(1);
 function captaincyHTML(r) {
   if (!r) return '';
@@ -197,7 +198,7 @@ function captaincyHTML(r) {
     <p>Over ${r.matches} matches your calls were worth <b class="${r.runs > 0 ? 'w' : r.runs < 0 ? 'l' : ''}">${sgn(r.runs)} runs</b> against the computer's
     (about ${sgn(r.wins)} wins at ${r.runs_per_win} runs a win): ${verdict} the computer captain. Opponent captains: ${esc(r.opponents || 'expert')}.</p>
     <table class="mini"><tr><th>Decision</th><th>Calls</th><th>Different from the computer</th><th>Runs v the computer</th></tr>${rows}</table>
-    <p class="muted small">Estimates from the engine's own ratings (expected runs, wickets valued in runs), not the scorecard: a call can be right and still go wrong on the day. Bowlers: this over plus the best way to bowl the rest with the overs left. Batters: the order still to come and the balls each can expect. XI: batting by slot plus the best 20 overs the side can bowl. Toss and Impact Player calls are listed without a value. Each match's calls are on the Matches tab.</p></div>`;
+    <p class="muted small">Estimates from the engine's own ratings (expected runs, wickets valued in runs), not the scorecard: a call can be right and still go wrong on the day. Bowlers: this over plus the best way to bowl the rest with the overs left. Batters: the order still to come and the balls each can expect. XI: batting by slot plus the best 20 overs the side can bowl. Toss and Impact Player calls are listed without a value. Tests: declarations and the follow-on by the win / draw / loss chances either way, a bowler by what his over is expected to cost today; the XI, the new ball and batting-order calls are listed without a value. Each match's calls are on the Matches tab.</p></div>`;
 }
 function callsHTML(c) {
   const logs = c.captaincy ? Object.entries(c.captaincy) : [];

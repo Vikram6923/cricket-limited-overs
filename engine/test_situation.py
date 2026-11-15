@@ -3,11 +3,16 @@
 Tables learned by engine/fit/fit_test_situation.py as observed / ratings-predicted over real balls, fitted jointly:
 settling in (with a dismissal part), pitch wear and ball age by pace and spin, the innings by wickets down by
 lead, and the last innings by wickets down by runs needed per over left (chase, steady, save).
+
+A person's bars (batting approach, bowling plan; 1-9, 5 = as real sides play) move a ball along the runs-v-risk
+curve of engine/fit/fit_test_aggression.py (`with_bars`). At bar 5, which is all a computer side ever uses,
+nothing changes.
 """
 from __future__ import annotations
 
 import bisect
 import json
+import math
 from functools import lru_cache
 
 from .data import DATA
@@ -16,6 +21,15 @@ from .data import DATA
 @lru_cache(maxsize=None)
 def tables() -> dict:
     return json.loads((DATA / "engine" / "test_situation.json").read_text(encoding="utf-8"))
+
+
+@lru_cache(maxsize=None)
+def bars_table() -> dict | None:
+    p = DATA / "engine" / "aggression_test.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+NORMAL_BARS = 5              # the middle of the 9 bars: the engine as calibrated
 
 
 class TestSituation:
@@ -64,3 +78,36 @@ class TestSituation:
             m = {name: se[j] * st[j] * (we[j] * ag[j] if ty else 1.0) for j, name in enumerate(self.metrics)}
             self._cache[key] = m
         return m
+
+    def with_bars(self, mult: dict, bat_bars: int, bowl_bars: int) -> dict:
+        """mult x the person's bars. Batting: d = step x (bars - 5) moves the runs rate by e^d and every other
+        rate by e^(slope x d). Bowling plan: d = step x bowl_share x (bars - 5) moves the runs rate by e^d (fours,
+        sixes and dots with it) and the wicket rate by e^(c d), c = the wicket slope x (1 - bowl_edge) when
+        attacking, x (1 + contain_edge) when containing (as engine/situation.py does for limited overs)."""
+        if bat_bars == NORMAL_BARS and bowl_bars == NORMAL_BARS:
+            return mult
+        a = bars_table()
+        if not a:
+            return mult
+        key = (id(mult), "bars", bat_bars, bowl_bars)
+        hit = self._cache.get(key)
+        if hit is None or hit[0] is not mult:
+            sl, step = a["slope"], a["step"]
+            db = step * (bat_bars - NORMAL_BARS)
+            dw = step * a["bowl_share"] * (bowl_bars - NORMAL_BARS)
+            c = sl["wkt"] * (1.0 - a["bowl_edge"] if dw > 0 else 1.0 + a["contain_edge"])
+            lr = db + dw
+            f = {"runs": math.exp(lr)}
+            for name, b in sl.items():
+                f[name] = math.exp(b * db + c * dw) if name == "wkt" else math.exp(b * lr)
+            hit = (mult, {name: mult.get(name, 1.0) * f.get(name, 1.0) for name in set(mult) | set(f)})
+            self._cache[key] = hit
+        return hit[1]
+
+    def settled(self, balls: int) -> float:
+        """How settled a batter is, 0-1: where his scoring rate stands between his first ball and fully set."""
+        t = self.t
+        r = [row[self.metrics.index("runs")] for row in t["settle"]]
+        x = max(r[:bisect.bisect_right(t["settle_edges"], balls) + 1])
+        lo, hi = r[0], max(r)
+        return 1.0 if hi <= lo else min(1.0, max(0.0, (x - lo) / (hi - lo)))

@@ -1162,3 +1162,25 @@ Details and the differences from the plan are in `docs/test_design.md` ("Phase 5
 - `tests/test_test_records.py` (6 tests). All 19 test scripts and the golden test pass. Pages checked in the
   browser on port 5071, desktop and phone width.
 - Not done: captaining a Test, and the advice to a person from this table (Phase 6).
+
+### Phase 6 (2026-11-15): captain a Test
+
+Details and the differences from the plan are in `docs/test_design.md` ("Phase 6"). In short:
+
+- `engine/test_control.py`: the desk between a Test and a person's controller. Kinds `declare`, `follow_on`,
+  `new_ball`, `nightwatchman` (new in `engine/control.py`), and `toss`, `xi`, `bowler`, `batter`, `ball`,
+  `result` with Test meanings. The bars are set before an over; the pace is "over", "key", "wicket",
+  "session", "day" or "innings".
+- `engine/fit/fit_test_aggression.py` -> `data/engine/aggression_test.json`: the runs-v-risk curve across the
+  68 Test situation cells (1.71 million balls). Slopes on log runs: wickets 0.91, dots -0.41, fours 0.74,
+  sixes 3.58; one bar = 4.55% of runs. One measurement, 60 Tests a setting, India v Australia: batting bars
+  1 / 5 / 9 score 2.98 / 3.55 / 4.21 an over at 29.2 / 29.9 / 30.3 a wicket; bowling plans 1 / 5 / 9 concede
+  3.10 / 3.38 / 3.64 an over at 32.4 / 29.5 / 31.1 a wicket. Not tuned.
+- A Test with no controller, or with one that leaves every call to the computer, plays ball for ball as
+  before (tested on four seeds each side, and on 16 Tests hashed before and after the change).
+- Declarations and the follow-on carry the chances either way from the win / draw / loss table, and the
+  captaincy report values them with it; a bowler by the expected cost of his over.
+- Server: a Test run takes `captain_i`. Pages: `webui/testcaptain.js`, hooks in `webui/captain.js`.
+- `tests/test_test_control.py` (12 tests, with a captained Test through the server). All 20 test scripts and
+  the golden test pass. Played in the browser on port 5071.
+- Not done: two-player Tests; Tests from the home page's Play button; weaker computer captains for Tests.

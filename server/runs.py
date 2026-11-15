@@ -160,8 +160,10 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             t1, t2 = (team_spec(params[k], fmt, size, ym, v) for k in ("team1", "team2"))
             where = params.get("host") or "home"
             host = "neutral" if where == "neutral" else (nation_of(t2) or "neutral") if where == "away" else None
+            # a person may captain one side (engine/test_control.py); the other is always the fitted captain:
+            # there are no weaker computer captains for Tests, so `opponents` is not used
             res = play_test_series(t1, t2, n=int(params["matches"]), comp=comp, year=year, venues=venues_, seed=seed,
-                                   on_match=on_match, host=host)
+                                   on_match=on_match, host=host, control=control)
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym, v), team_spec(params["team2"], fmt, size, ym, v),
                               n=int(params["matches"]),
@@ -180,7 +182,7 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
         if job.controller:                     # how the person's calls compared with the computer's
             res["captaincy"] = season_report(res["matches"], job.controller.team)
             if res["captaincy"]:
-                res["captaincy"]["opponents"] = params.get("opponents") or "expert"
+                res["captaincy"]["opponents"] = "expert" if fmt == "test" else params.get("opponents") or "expert"
         if job.controllers:                    # each player's calls against the computer's
             res["captaincy_by"] = {t: season_report(res["matches"], t) for t in job.controllers}
             for r in res["captaincy_by"].values():
@@ -353,8 +355,6 @@ def api_run():
         test = fmt == "test"
         if test and p.get("mode") != "series":
             return jsonify(error=NOT_FOR_TESTS), 400
-        if test and str(p.get("captain_i", "")).strip() != "":
-            return jsonify(error="You cannot captain a Test yet: the computer plays both sides."), 400
         label = lambda e: history.team_name(e["nation"], int(e["y1"]), int(e["y2"])) if isinstance(e, dict) else e
         if p.get("mode") == "series":
             a, b = p.get("team1"), p.get("team2")

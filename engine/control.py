@@ -15,6 +15,12 @@ Decisions ("kind"):
 - ball    ball by ball (opt-in, not in the default set): before a delivery, the aggression dials of the side's
           batters or bowler (1-9 bars, 5 = as real sides play) and how far to play before the next pause
 
+Test matches only (engine/test_control.py; there "ball" is asked before an over, not before a ball):
+- declare        batting in the first three innings: declare now?
+- follow_on      a first-innings lead big enough: make the other side bat again?
+- new_ball       the new ball is available: take it?
+- nightwatchman  a wicket late in the day with a batter due: send in a tail-ender instead?
+
 Skipping: each kind can be left to the computer (`auto`), and play can be skipped ahead to the end of the innings,
 the match, or everything (`skip`). Obvious decisions (one possible bowler, the last batter) are never asked.
 Generic: the tournament runner attaches controllers by team name, so any mode can use them.
@@ -30,7 +36,8 @@ from __future__ import annotations
 import threading
 import time
 
-KINDS = ("toss", "xi", "bowler", "batter", "impact", "result", "ball")
+TEST_KINDS = ("declare", "follow_on", "new_ball", "nightwatchman")
+KINDS = ("toss", "xi", "bowler", "batter", "impact", "result", "ball") + TEST_KINDS
 DEFAULT_KINDS = tuple(k for k in KINDS if k != "ball")   # ball by ball only when asked for
 
 

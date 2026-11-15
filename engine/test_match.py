@@ -18,7 +18,7 @@ import math
 import random
 import zlib
 
-from . import conditions, test_captain, test_conditions, test_wdl
+from . import conditions, test_captain, test_conditions, test_control, test_wdl
 from .ballmodel import NO_SITUATION, BallModel
 from .captain import choose_keeper
 from .data import FORMATS, Player, baseline, basics, player
@@ -120,6 +120,7 @@ class TestInnings(Scorebook):
         self.bowling = test_captain.Bowling(bowl.players, bowl.keeper, m.crng)
         self.mode: str | None = None                   # last innings: "chase" | "steady" | "save"
         self.nightwatchmen: list[str] = []
+        self.ball_log: list[dict] = []                 # deliveries, for a person's field replay (engine/test_control.py)
         nth = sum(1 for i in m.innings if i.bat is bat)
         self.label = f"{bat.name} {ORDINAL[min(nth, 1)]} innings" + (" (following on)" if follow_on else "")
 
@@ -159,6 +160,10 @@ class TestInnings(Scorebook):
             if clock.left <= 0:
                 self.ended = "time"
                 break
+            if m.desk and m.desk.over_start(self, CHANGE_OVERS):      # a person declares before the over
+                self.declare_event()
+                self.declared, self.ended, self.done = True, "declared", True
+                break
             self.play_over()
             if not self.done:
                 if self.legal % 6 == 0:
@@ -177,7 +182,8 @@ class TestInnings(Scorebook):
         n = len(self.overs)
         day, session = m.clock.day, m.clock.session
         due = False
-        if n - self.ball_start >= test_captain.NEW_BALL_OVERS:
+        desk = m.desk
+        if n - self.ball_start >= test_captain.NEW_BALL_OVERS and (not desk or desk.new_ball(self, n)):
             self.ball_start = n
             self.event("New ball taken", "new_ball")
         if n >= test_captain.NEW_BALL_OVERS and n - self.ball_start < 2:
@@ -185,6 +191,8 @@ class TestInnings(Scorebook):
         age = n - self.ball_start
         sit = m.sit
         bowler = self.bowling.pick(n, age, m.overs_bowled, due, sit.t)
+        if desk:
+            bowler = desk.bowler(self, n, bowler, due)
         f = self.fig(bowler)
         base = m.base_of(bowler, self.bat)[PHASE]
         btype = bowler.bowl_type or "unknown"
@@ -211,7 +219,11 @@ class TestInnings(Scorebook):
                 mult = sit.multipliers(cell, self.striker.balls, btype, m.overs_bowled, age)
             else:
                 mult = NO_SITUATION
+            if desk:                                  # a person's bars (5 and 5: nothing changes)
+                mult = sit.with_bars(mult, *desk.bars_for(self, bowler))
             o = m.model.delivery(m.rng, base, self.striker.p, bowler, PHASE, btype, mult, False)
+            if desk:
+                desk.ball(self, bowler, o, seq)
             if o.legal:
                 balls += 1
                 self.legal += 1
@@ -219,6 +231,8 @@ class TestInnings(Scorebook):
                 f.exp_runs += base["runs"] * ib["runs"] * iw["runs"] + base["wide"] + base["noball"]
                 f.exp_wkts += base["wkt"] * ib["wkt"] * iw["wkt"]
             self.apply(o, bowler, f, seq)
+            if desk:
+                desk.flush()
             if self.target is not None and self.runs >= self.target:
                 self.done, self.ended = True, "target"
             elif self.done:                           # next_batter found nobody left
@@ -247,12 +261,18 @@ class TestInnings(Scorebook):
 
     def declaration(self) -> bool:
         nineties = any(c.runs % 100 >= 90 for c in (self.striker, self.non_striker))
-        p = test_captain.declare_prob(self.number, self.runs, self.lead(), self.wkts, self.m.clock.left - 1, nineties)
-        if p > 0 and self.m.crng.random() < p:
-            self.event(f"{self.bat.captain.name} declares at {self.score_str()}"
-                       + (f", {self.margin_text()}" if self.margin_text() else ""), "declaration")
-            return True
-        return False
+        m = self.m
+        p = test_captain.declare_prob(self.number, self.runs, self.lead(), self.wkts, m.clock.left - 1, nineties)
+        call = p > 0 and m.crng.random() < p
+        if m.desk and m.desk.has(self.bat):           # a person's side: their call
+            call = m.desk.declare(self, call, m.clock.left - 1, CHANGE_OVERS)
+        if call:
+            self.declare_event()
+        return call
+
+    def declare_event(self) -> None:
+        self.event(f"{self.bat.captain.name} declares at {self.score_str()}"
+                   + (f", {self.margin_text()}" if self.margin_text() else ""), "declaration")
 
     def next_batter(self, out: BatInns) -> BatInns | None:
         if self.wkts >= 10 or self.next_in >= len(self.cards):
@@ -261,15 +281,19 @@ class TestInnings(Scorebook):
             self.new_partnership()
             return None
         m = self.m
-        if m.nightwatchman and not self.bat.fixed_order and m.clock.day < m.clock.days:
+        mine = bool(m.desk and m.desk.has(self.bat))  # a person captains the batting side
+        nw = None
+        if m.nightwatchman and (mine or not self.bat.fixed_order) and m.clock.day < m.clock.days:
             # the over in progress is not yet off the clock: it does not count as time left today
-            k = test_captain.nightwatchman(self.cards, self.next_in, m.clock.left_today - 1)
-            if k is not None:
-                new = self.bring_in(k, out)
-                self.nightwatchmen.append(new.p.name)
-                self.event(f"{new.p.name} comes in as nightwatchman", "nightwatchman", player_id=new.p.id)
-                return new
-        return self.bring_in(self.next_in, out)
+            nw = test_captain.nightwatchman(self.cards, self.next_in, m.clock.left_today - 1)
+        k = nw if nw is not None else self.next_in
+        if mine:
+            k = m.desk.batter(self, self.next_in, nw, m.clock.left_today - 1)
+        new = self.bring_in(k, out)
+        if nw is not None and k == nw:
+            self.nightwatchmen.append(new.p.name)
+            self.event(f"{new.p.name} comes in as nightwatchman", "nightwatchman", player_id=new.p.id)
+        return new
 
     # ------------------------------------------------------------------ output
     def state_dict(self) -> dict:
@@ -287,13 +311,15 @@ class TestMatch:
                  pitch: dict | None = None, use_situation: bool = True, use_venue: bool = True,
                  use_pitch: bool = True, use_spin: bool = True, declare: bool = True,
                  follow_on: bool | None = None, nightwatchman: bool = True, host: str | None = None,
-                 use_weather: bool = True, use_home: bool = True, use_wdl: bool = True):
+                 use_weather: bool = True, use_home: bool = True, use_wdl: bool = True,
+                 control: dict | None = None):
         """toss: "a" | "b" (who wins it); decision: "bat" | "bowl"; days, day_overs: the match's length
         (default 5 x 90); declare: False = nobody declares; follow_on: True / False = always / never enforced when
         it is on offer, None = the captain's (fitted) choice; nightwatchman: False = never used; host: the
         country whose ground it is (default: looked up from the venue; None with no venue = neutral): it sets
         the overs lost to weather and, when one of the sides is the host, the home edge. use_wdl: False = no
-        win / draw / loss chances on the card (they never change how the match is played)."""
+        win / draw / loss chances on the card (they never change how the match is played). control: team name
+        -> engine.control.Controller for a side a person captains (engine/test_control.py)."""
         self.year, self.venue = year, venue
         self.comp = comp or FORMATS[FMT]["intl"]
         self.seed = seed if seed is not None else random.randrange(1 << 30)
@@ -349,6 +375,9 @@ class TestMatch:
         self.wdl = test_wdl.table() if use_wdl else None     # None also when the table has not been built
         self.wpa: dict[str, float] = {}        # each player's impact: chances added (win + half a draw)
         self.pending: tuple | None = None      # the ball that ended the last innings, until it is settled
+        self.key = f"{self.seed}|{self.teams[0].name}|{self.teams[1].name}"
+        self.desk = (test_control.Desk(self, control)
+                     if control and any(t.name in control for t in self.teams) else None)
 
     # ------------------------------------------------------------------ helpers
     def credit(self, striker_id: str, bowler_id: str, d: float) -> None:
@@ -446,8 +475,14 @@ class TestMatch:
         a, b = self.teams
         toss_winner = {"a": a, "b": b}.get(self.toss_spec) or (a if self.rng.random() < 0.5 else b)
         decision = self.decision_spec or test_captain.toss_decision(self.rng)
+        desk = self.desk
+        if desk:
+            decision = desk.toss(toss_winner, decision)
         first = toss_winner if decision == "bat" else (b if toss_winner is a else a)
         second = b if first is a else a
+        if desk:
+            for t in (first, second):
+                desk.xi(t, t is first, f"{toss_winner.name} won the toss and chose to {decision}.")
         result = self.play_innings(first, second)
         if self.innings and not any(d["day"] == self.clock.day for d in self.day_log) and self._today["overs"]:
             self.close_day(self.innings[-1], self.clock.day)          # the match ended during a day
@@ -477,6 +512,9 @@ class TestMatch:
                                        "kind": "turning_point", "text": tp["text"], "day": tp["day"],
                                        "session": tp["session"]})
         card["player_of_match"] = player_of_match(card, self.base[PHASE])
+        if desk:
+            card["captaincy"] = desk.log
+            desk.result(card)
         return card
 
     def play_innings(self, first: Team, second: Team) -> dict:
@@ -493,6 +531,8 @@ class TestMatch:
             if self.follow_on_spec is None:
                 p = test_captain.follow_on_prob(lead, self.clock.left, len(i2.overs), self.days)
                 enforce = self.crng.random() < p
+                if self.desk:
+                    enforce = self.desk.follow_on(first, lead, enforce, p, i2, CHANGE_OVERS)
             else:
                 enforce = bool(self.follow_on_spec)
             i2.event(f"{first.captain.name} {'enforces' if enforce else 'does not enforce'} the follow-on "

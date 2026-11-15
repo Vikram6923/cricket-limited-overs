@@ -218,8 +218,7 @@ def test_classic_test_sides():
 def test_tournaments_and_best_of_refuse_tests():
     ind, aus = _sides()
     for call in (lambda: play_tournament([ind, aus], fmt="test"),
-                 lambda: play_series(ind, aus, n=3, fmt="test", best_of=True),
-                 lambda: play_series(ind, aus, n=3, fmt="test", control={"India": object()})):
+                 lambda: play_series(ind, aus, n=3, fmt="test", best_of=True)):       # captaining: test_test_control.py
         try:
             call()
             raise AssertionError("accepted")
@@ -259,7 +258,7 @@ def test_server_plays_a_test_series():
                          ({"mode": "draft"}, "Match / Series"), ({"mode": "auction"}, "Match / Series"),
                          ({"mode": "series", **two, "matches": 7}, "1 to 6"),
                          ({"mode": "series", **two, "matches": 3, "host": "moon"}, "home, away or"),
-                         ({"mode": "series", **two, "matches": 1, "captain_i": "0"}, "cannot captain a Test")):
+                         ({"mode": "series", **two, "matches": 1, "captain_i": "5"}, "Choose a team from this run")):
         r = cl.post("/api/run", json={**base, **extra})
         assert r.status_code == 400 and words in r.get_json()["error"], (extra, r.get_json())
     assert (tmp / "teams.json").exists(), "the test's own copy of the saved teams"

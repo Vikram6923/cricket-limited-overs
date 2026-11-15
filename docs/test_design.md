@@ -618,3 +618,146 @@ strength or of the home edge: a strong home side starts near 50%, as a limited-o
   innings of a match is not found.
 - Shared code touched: none. `engine/tournament.py`'s `records` is called, not changed. The golden test passes,
   and a Test plays the same with or without the table for the same seed (tested).
+
+# Phase 6: captain a Test
+
+Built 2026-11-15.
+
+## What was built
+
+| Part | Where | What it does |
+|---|---|---|
+| The desk | `engine/test_control.py` | Sits between the Test and a side's controller (`engine/control.py`). The match calls it wherever a captain decides; it asks the person when the call is theirs and otherwise returns the computer's call unchanged. It draws no random numbers |
+| New decision kinds | `engine/control.py` | `declare`, `follow_on`, `new_ball`, `nightwatchman` |
+| Hooks | `engine/test_match.py` | The toss and the XI; before an over (the batting side's bars, a declaration); the new ball; the bowler; the bars on each ball; the fall of a wicket; the end of an over (the computer's declaration call put to the person); the follow-on; the result |
+| The bars | `engine/fit/fit_test_aggression.py`, `data/engine/aggression_test.json`, `TestSituation.with_bars` | A person's batting approach and bowling plan, 1-9, 5 = the engine as calibrated |
+| Series and server | `engine/test_series.py`, `engine/tournament.py`, `server/runs.py` | `control` goes through to each Test; a Test run accepts `captain_i` |
+| The screen | `webui/testcaptain.js`, hooks in `webui/captain.js` | The limited-overs captain screen with a Test score bar (day, session, overs left, three chances), the four new questions, Declare and Change bowler beside the bars |
+
+## The decisions
+
+- **Toss, XI**: as in limited overs. The XI question gives the squad, the computer's XI in batting order and its
+  keeper.
+- **Follow-on**: asked when the lead reaches the mark. Shows the computer's call (a draw from the fitted
+  chance), that chance ("real captains enforce it about 62% of the time from here") and the person's chances
+  either way from the win / draw / loss table.
+- **Declare**: asked (a) whenever the computer's captain would declare at the end of an over, (b) at the start
+  of a session once the fitted chance of a declaration is at least 0.5% an over, and (c) the bars question has
+  a Declare button, so a person can declare before any over they stop at. A declaration by a person before an
+  over costs no over; the computer's is still at the end of one. Shows the chances after declaring and as
+  things stand.
+- **New ball**: asked when it is available. "Not yet" is asked again ten overs later. The computer still takes
+  it at once.
+- **Bowler**: asked when an end has no bowler (the start of an innings or a day), when the computer would make
+  a change, when the new ball is taken and at key moments. In between, the man at that end bowls on. The
+  options carry what each bowler is expected to cost today (runs a wicket and an over, with the pitch wear and
+  ball age for his type), his overs today and his rest.
+- **Next batter / nightwatchman**: the batter question marks the nightwatchman the rule suggests. With the
+  batter left to the computer, a yes / no nightwatchman question is asked when the rule applies.
+- **Bars** (kind `ball`): before an over. Each batter and each bowler keeps his own bars.
+- **Pace**: the answer to the bars question says how far to play: the next over, the next key moment, the next
+  wicket, the end of the session, the day or the innings. While playing on to the end of a session, day or
+  innings the computer makes the bowling changes, sends in the batters and takes the new ball; declaration and
+  follow-on questions are still asked.
+- **Key moments**: the first over of an innings and of a session, the over after a wicket, the new ball (due
+  or just taken), the last 15 overs of the match, the last 30 runs of a chase.
+
+## The bars: fitted, and one measurement
+
+`fit_test_aggression.py` reads the fitted situation table. Each of its 68 cells with 2,000 balls or more (1.71
+million balls) holds how much faster and how much riskier real sides batted there than the ratings predict.
+The regression of each metric's log ratio on the log runs ratio across the cells, weighted by balls:
+
+| Metric | Slope on log runs |
+|---|---|
+| wickets | 0.91 |
+| dots | -0.41 |
+| fours | 0.74 |
+| sixes | 3.58 |
+
+The 5th and 95th percentiles of the cells' log runs ratio are -0.090 and +0.183; one bar is a sixth of that
+range, 4.55% of runs, so bar 1 scores 0.83 times and bar 9 1.20 times the usual rate.
+
+In limited overs the cross-cell wicket slope (about 0.3) made hitting nearly free and was replaced by one
+derived from the value of a wicket. In Tests it is 0.91. A slope of 1 is where tempo changes the time an
+innings takes and not its runs per wicket, which is what an innings without an over limit should show, so the
+measured slope is used as it is.
+
+One run, 60 Tests at each setting, India v Australia (2023 sides), the person's side at the same bars all
+match:
+
+| India's bars | Runs an over | Runs a wicket | Balls a wicket | Won | Drawn |
+|---|---|---|---|---|---|
+| batting 1 | 2.98 | 29.2 | 59 | 23 | 14 |
+| batting 3 | 3.31 | 30.7 | 56 | 19 | 16 |
+| batting 5 (the computer) | 3.55 | 29.9 | 51 | 27 | 9 |
+| batting 7 | 3.86 | 31.1 | 48 | 29 | 9 |
+| batting 9 | 4.21 | 30.3 | 43 | 30 | 5 |
+| bowling plan 1 | 3.10 conceded | 32.4 | 63 | 19 | 14 |
+| bowling plan 3 | 3.19 | 30.4 | 57 | 20 | 13 |
+| bowling plan 5 (the computer) | 3.38 | 29.5 | 52 | 27 | 9 |
+| bowling plan 7 | 3.48 | 31.0 | 53 | 24 | 9 |
+| bowling plan 9 | 3.64 | 31.1 | 51 | 29 | 6 |
+
+Batting bars move the tempo and leave runs per wicket where it was. Batting fast all match drew fewer and won
+slightly more; with 60 Tests a setting the difference in wins between bars 5 and 9 (27 and 30) is inside the
+noise, and the engine is known to draw too often (Phase 3), which favours anyone who hurries. A containing plan
+costs about three runs a wicket; an attacking plan costs about one and a half and gains nothing in balls per
+wicket on average, so it pays only where a wicket is worth more than usual. Recorded, not tuned.
+
+## Constants that are not fitted
+
+| Constant | Value | Where | Why not fitted |
+|---|---|---|---|
+| Size of a bowling plan against a batting approach | 0.5 | `fit_test_aggression.py` | Cricsheet has no field, line or length; taken from the ODI fit |
+| Attack and contain edges | 0.4, 0.8 | `fit_test_aggression.py` | The same; taken from the ODI fit, where they were set by simulation |
+| A person's longest spell | all but 2% of real spells of that kind of bowler: 10 overs pace, 26 spin, 11 part-time; no more than that in any stretch three times as long, in a day | `engine/test_control.py` | The tail (2%) is a choice; the spell lengths are from the fitted spell table. Needed because tiredness does not show in the rates (Phase 2), so nothing else stops a person bowling two men all day |
+| Declaration point at the start of a session | fitted chance of 0.5% an over or more | `engine/test_control.py` | When to ask, not how to play |
+| Re-asking | declare 5 overs, new ball 10 overs | `engine/test_control.py` | The same |
+| Key moments | last 15 overs of the match, last 30 runs of a chase | `engine/test_control.py` | Pace of the screen only |
+
+## The captaincy report
+
+`card["captaincy"]` lists the person's calls; `engine.judge.season_report` adds them up as it does for limited
+overs. Declarations and the follow-on are valued by the win / draw / loss table: (win + half the draw chance
+after the person's call) minus the same after the computer's, times the table's runs per win (511). A bowler is
+valued by the expected cost of his over against the computer's choice: runs conceded less the era's runs per
+wicket for each wicket expected, in today's conditions. The toss, the XI, the new ball and batting-order calls
+are listed without a value.
+
+Limits to read it with: the table knows nothing of the two sides' strength, so "declare: win 44%" is for two
+average sides from that position; and a bowling choice is valued for one over, not for what it does to the
+rest of the day.
+
+## Checks
+
+- A Test with no controller plays as before: 16 Tests (8 series of two) hashed before and after the change are
+  identical. `tests/test_golden.py` passes (limited overs untouched: no Test logic entered `match.py`,
+  `impact.py`, `rain.py` or `captain.py`).
+- A controller that leaves every call to the computer, and one with every kind handed to the computer, play
+  the computer's match ball for ball (4 seeds, either side).
+- Random answers to every question (invalid ones included) keep every law of `check_card` over 12 Tests. One
+  law is relaxed for a captained side: the new ball may be taken late, never early.
+- `tests/test_test_control.py`: 12 tests. All 20 scripts pass.
+- In the browser (port 5071): the setup page offers "You captain" for a Test with the Test decisions; a Classic
+  Test was played through (toss, XI, bars, bowler, declare, result) and its captaincy report shown.
+
+## Differences from the plan
+
+- **The bars are per over, not per ball**, under the existing kind `ball`: a Test is about 2,700 balls.
+- **`nightwatchman` is asked only when `batter` is left to the computer**; otherwise the batter question
+  carries it.
+- **No "last hour" rules**: the last 15 overs are a key moment for the screen; play is unchanged.
+- **The follow-on's "computer's call" is a draw from the fitted chance**, as the computer's own is; the screen
+  shows the chance as well.
+- **One person only.** Two-player Tests stay deferred, as planned. Tests are not on the home page's Play
+  button: that flow is built around a T20 / ODI pre-match card.
+- **No weaker computer captains for Tests** (deferred in the plan): "Opponent captains" is hidden for a Test.
+- Shared code touched: `engine/control.py` (four kinds added), `engine/tournament.py` (`play_series` passes
+  `control` to a Test series), `tests/test_test_engine.py` (`check_card(captained=...)`).
+
+## Not verified
+
+- Phone width was not checked for the Test captain screen.
+- The follow-on, new-ball and nightwatchman sheets were exercised by the tests through the engine and server,
+  not clicked in the browser.
