@@ -224,6 +224,7 @@ select.picked{display:none}
 .spin{width:44px;height:44px;border:4px solid var(--panel3);border-top-color:var(--brand);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto}
 @keyframes sp{to{transform:rotate(360deg)}}
 .err-wrap h2{font-family:var(--disp);font-size:1.5rem;margin-bottom:8px}
+.errmsg{font-size:1.02rem;line-height:1.5;background:var(--panel);border:1px solid var(--red);border-radius:var(--r);padding:14px;margin:12px 0}
 .errbox{white-space:pre-wrap;font:12px/1.5 Consolas,monospace;background:var(--panel);border:1px solid var(--red);border-radius:var(--r);padding:12px;max-height:55vh;overflow:auto;margin:12px 0}
 .toast{position:fixed;bottom:22px;right:22px;background:var(--panel3);border:1px solid var(--border2);padding:11px 16px;border-radius:12px;display:none;z-index:70;max-width:420px;box-shadow:var(--shadow)}
 .toast.bad{border-color:var(--red)}

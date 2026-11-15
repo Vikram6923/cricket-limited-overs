@@ -14,6 +14,8 @@ MP_GONE = 60          # seconds without a poll before the other player may hand 
 MP_CLOCKS = {"off": None, "10": 10, "20": 20}
 MP_CAPTAIN_CLOCK = 60  # with a shot clock: toss, XI, bowler, batter, Impact Player decisions
 MP_SERIES = (1, 3, 5)  # a single match or best of 3 / 5 (stops once decided)
+MP_TESTS = (1, 2, 3, 5)  # a Test room: one Test or a series of 2, 3 or 5 (every Test is played)
+MP_HOSTS = ("neutral", "home", "away")   # a Test room: neutral grounds, the host player's country, the guest's
 MP_CPU = (0, 2, 4, 6)  # draft / auction: computer teams that pick or bid too, then play a league with the two players
 MP_BID_CLOCK = 15     # auction with a shot clock: seconds per bid (then a pass); other auction questions 60 s
 
@@ -73,7 +75,8 @@ def _mp_record(job, res: dict) -> None:
         w = c["result"].get("winner")
         if set(c["teams"]) == set(names) and w in names:
             rec["matches"][names.index(w)] += 1
-    if res.get("kind") == "series" and (res.get("best_of") or 1) > 1:
+    if res.get("kind") == "series" and ((res.get("best_of") or 1) > 1
+                                        or res.get("format") == "test" and len(res.get("matches") or []) > 1):
         rec["played"] += 1
         if res.get("winner") in names:
             rec["series"][names.index(res["winner"])] += 1
@@ -97,7 +100,7 @@ def _mp_series(job, open_: list) -> dict:
     if res_q and res_q.get("context", {}).get("match_no") == len(winners) + 1:
         winners.append(res_q.get("winner"))
     return {"of": job.total, "wins": [winners.count(n) for n in names], "match": len(job.winners) + 1,
-            "finished": len(winners)}
+            "finished": len(winners), "test": job.room["settings"].get("fmt") == "test"}
 
 
 def _mp_urls(r: dict) -> list[str]:
@@ -135,14 +138,15 @@ def _mp_start(r: dict) -> str | None:
                   match_count(len(d.teams), 1, None, ko))
     else:
         job = Job(f"{names[0]} v {names[1]} - two players" + (", drafted squads" if d else "")
-                  + (f", best of {n}" if n > 1 else ""), n)
+                  + ((f", {n}-Test series" if st["fmt"] == "test" else f", best of {n}") if n > 1 else ""), n)
     job.controllers = ctl
     job.mp_league = league
     job.room = r
     r["job"], r["names"] = job, names
     for s in r["seats"]:
         s["ready"] = False
-    params = {"mode": "mp", **{k: st[k] for k in ("fmt", "comp", "year", "venues", "seed", "rain", "series")}}
+    params = {"mode": "mp", **{k: st[k] for k in ("fmt", "comp", "year", "venues", "seed", "rain", "series",
+                                                    "host")}}
     if d:
         params.update(specs=d.team_specs(), knockout=_mp_ko(len(d.teams)),
                       draft_info={"teams": d.teams, "user": None, "board": d.state()["board"],
@@ -207,8 +211,11 @@ def _mp_auction_play(r: dict) -> str | None:
 
 def _mp_settings(p: dict) -> dict | str:
     fmt = p.get("fmt")
-    if fmt not in LIMITED:
-        return NOT_FOR_TESTS if fmt == "test" else "Choose T20 or ODI."
+    if fmt not in FMTS:
+        return "Choose T20, ODI or Test."
+    test = fmt == "test"
+    if test and p.get("teams") in ("draft", "auction"):
+        return "A two-player Test is played with a team each: drafts and auctions are for T20 and ODI."
     try:
         year = int(p.get("year"))
     except (TypeError, ValueError):
@@ -234,7 +241,9 @@ def _mp_settings(p: dict) -> dict | str:
     return {"fmt": fmt, "comp": p.get("comp"), "year": year, "venues": list(p.get("venues") or []),
             "seed": p.get("seed") or "", "rain": bool(p.get("rain")),
             "clock": p.get("clock") if p.get("clock") in MP_CLOCKS else "off",
-            "series": int(p.get("series")) if str(p.get("series")) in map(str, MP_SERIES) else 1,
+            "series": int(p.get("series")) if str(p.get("series")) in map(str, MP_TESTS if test else MP_SERIES)
+            else 1,
+            "host": p.get("host") if test and p.get("host") in MP_HOSTS else "neutral",
             "teams": teams, "y1": y1, "y2": y2, "source": source,
             "years_mode": "only" if p.get("years_mode") == "only" else "blend",
             "cpu": int(p.get("cpu")) if str(p.get("cpu")) in map(str, MP_CPU) else 0,

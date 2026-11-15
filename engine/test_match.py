@@ -481,8 +481,7 @@ class TestMatch:
         first = toss_winner if decision == "bat" else (b if toss_winner is a else a)
         second = b if first is a else a
         if desk:
-            for t in (first, second):
-                desk.xi(t, t is first, f"{toss_winner.name} won the toss and chose to {decision}.")
+            desk.xis(first, second, f"{toss_winner.name} won the toss and chose to {decision}.")
         result = self.play_innings(first, second)
         if self.innings and not any(d["day"] == self.clock.day for d in self.day_log) and self._today["overs"]:
             self.close_day(self.innings[-1], self.clock.day)          # the match ended during a day

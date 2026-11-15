@@ -128,16 +128,32 @@ function checkYear() {
 }
 
 /* teams (series + tournament) */
+/* the saved teams that can play a format: its nations' presets, franchises for T20, and your own teams (which
+   have no format in their name: the server says so if one cannot play it) */
+function teamsFor(fmt) {
+  const names = META.teams.map(t => t.name).filter(n => { const f = teamFmt(n); return !f || f === fmt; });
+  return names.length ? names : META.teams.map(t => t.name);
+}
+/* the two teams of a match: the lists hold the format's sides; a side that is not one of them is replaced by the
+   same nation's ("India T20 2024" -> "India Test 2025"), else by India / Australia, else by the first two */
+const TEAM_FIRST = ['India', 'Australia'];
 function fillTeams() {
-  const names = META.teams.map(t => t.name);
-  const opts = names.map(n => ({v: n, t: pickName(n, names)}));
+  const fmt = $('c-fmt').value, names = teamsFor(fmt), all = META.teams.map(t => t.name);
+  const was = [$('s-t1').value, $('s-t2').value];
+  const opts = names.map(n => ({v: n, t: pickName(n, all)}));
   fillSelect($('s-t1'), opts, true); fillSelect($('s-t2'), opts, true);
   if (!$('s-t1')._init) {
-    $('s-t1').value = names.includes('India T20 2024') ? 'India T20 2024' : names[0];
-    $('s-t2').value = names.includes('Australia T20 2024') ? 'Australia T20 2024' : names[Math.min(1, names.length - 1)];
     $('s-t1')._init = true;
     ['s-t1', 's-t2'].forEach((id, i) => $(id).onchange = () => showRoster(id, 's-r' + (i + 1)));
   }
+  const pre = n => isNationPreset(n) && teamFmt(n) === fmt, taken = [];
+  was.forEach((n, i) => {
+    let pick = names.includes(n) ? n : null;
+    if (!pick && n) pick = names.find(x => pre(x) && teamKey(x) === teamKey(n) && !taken.includes(x));
+    if (!pick) pick = names.find(x => pre(x) && teamKey(x) === TEAM_FIRST[i] && !taken.includes(x))
+      || names.find(x => !taken.includes(x)) || names[0];
+    taken.push(pick); $('s-t' + (i + 1)).value = pick;
+  });
   showRoster('s-t1', 's-r1'); showRoster('s-t2', 's-r2');
   const checked = new Set([...document.querySelectorAll('#t-list input:checked')].map(i => i.value));
   const first = !$('t-list').children.length;

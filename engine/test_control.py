@@ -329,15 +329,24 @@ class Desk:
             self.note(winner, "toss", "toss", ans if ans in ("bat", "bowl") else default, default)
         return ans if ans in ("bat", "bowl") else default
 
-    def xi(self, team, batting_first: bool, toss_text: str) -> None:
-        """The person's XI, batting order and keeper (None or an invalid answer: the computer's)."""
-        if not self.manual(team, "xi"):
-            return
-        squad = team.squad or team.players + team.bench
-        default = {"xi": [p.id for p in team.order], "keeper": team.keeper.id, "subs": []}
-        ans = self.ask(team, "xi", {"options": [self.pinfo(p) for p in squad], "default": default,
-                                    "max_overseas": None, "n_subs": 0, "batting_first": batting_first,
-                                    "toss": toss_text})
+    def xis(self, first, second, toss_text: str) -> None:
+        """Each person's XI, batting order and keeper (None or an invalid answer: the computer's). Two people:
+        both are asked at the same moment (post, then wait), so neither waits for the other to finish."""
+        asked = []
+        for team in (first, second):
+            if not self.manual(team, "xi"):
+                continue
+            squad = team.squad or team.players + team.bench
+            default = {"xi": [p.id for p in team.order], "keeper": team.keeper.id, "subs": []}
+            self.control[team.name].post({
+                "kind": "xi", "team": team.name, "match_key": self.m.key, "innings": None,
+                "state": self.pre_state(team), "options": [self.pinfo(p) for p in squad], "default": default,
+                "max_overseas": None, "n_subs": 0, "batting_first": team is first, "toss": toss_text})
+            asked.append((team, squad, default))
+        for team, squad, default in asked:
+            self._xi(team, squad, default, self.control[team.name].wait())
+
+    def _xi(self, team, squad: list, default: dict, ans) -> None:
         by = {p.id: p for p in squad}
         xi = [by[i] for i in (ans or {}).get("xi") or [] if i in by] if isinstance(ans, dict) else []
         keeper = by.get(ans.get("keeper")) if isinstance(ans, dict) else None
@@ -561,7 +570,13 @@ class Desk:
         last = self.m.innings[-1] if self.m.innings else None
         pause = {"result": card["result"]["text"], "winner": card["result"].get("winner"),
                  "pom": card.get("player_of_match"), "scores": innings_scores(card)}
-        for t in self.m.teams:
-            if self.has(t) and last is not None:
-                self.ask(t, "result", pause, last)
+        asked = []
+        for t in self.m.teams:                  # two people: both see the result at once (post, then wait)
+            if last is not None and self.manual(t, "result"):
+                q = {"kind": "result", "team": t.name, "match_key": self.m.key, "innings": last.number,
+                     "state": self.live(last), "since": self.since(t, last), **pause}
+                self.control[t.name].post(q)
+                asked.append(t)
+        for t in asked:
+            self.control[t.name].wait()
 

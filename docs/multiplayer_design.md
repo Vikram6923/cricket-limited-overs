@@ -338,3 +338,11 @@ polls, because nothing happens while the user thinks.
   with the record; the room at phone width (375 px, no sideways scroll).
 - **Fixed during the check:** an unchanged poll left out who was ready (the screen stopped updating); the auction
   poll now keeps going if drawing fails.
+
+## Two-player Tests (2026-11-15)
+
+A room whose format is Test: a team each (no draft or auction), one Test or a series of 2, 3 or 5 with every
+Test played, and a host setting (neutral grounds, the host player's country, the guest's). Each person makes
+their own side's Test calls (engine/test_control.py); the XI and the result are asked of both at once, the
+bars in turn (the batting side, then the fielding side). Details and checks: docs/test_design.md
+("After Phase 6"); tests: tests/test_test_two_players.py.

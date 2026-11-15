@@ -761,3 +761,57 @@ rest of the day.
 - Phone width was not checked for the Test captain screen.
 - The follow-on, new-ball and nightwatchman sheets were exercised by the tests through the engine and server,
   not clicked in the browser.
+
+# After Phase 6: default teams, messages, the home screen, two players (2026-11-15)
+
+## What was wrong
+
+A person whose saved-teams file was made before the Test presets existed had no Test sides in it. Choosing
+format Test left the two T20 squads in place, and the run stopped inside the engine with "no test player named
+'a4cc73aa'" and a traceback.
+
+## What was built
+
+- **Default teams reach old files.** `server/core.py` `load_teams`: default teams missing from a person's file
+  are added once. `teams_seen.json` beside the file lists the defaults already offered, so a default the person
+  deleted is not added again. New ones go after the last nation's preset, before franchises and own teams.
+- **A side must be able to play the format.** `wrong_format` (called by `check_entries`, so for a series, a
+  tournament and a two-player room): a saved team with players who have no record in the format is refused
+  before the run starts, naming up to three of them and the same nation's side for that format.
+  `engine/data.py` `resolve` names the player, not his ID, when he is known in another format.
+- **Errors in words.** A run that stops reports `error` (a sentence: the engine's own message for a
+  `ValueError`, else a plain line) and `detail` (the traceback). The page shows the sentence and folds the
+  traceback under Technical details.
+- **Format chips.** The Format select moved out of More options to the top of the conditions, as three chips.
+  Modes with no Tests (tournament, classic tournament, draft, auction) do not show the Test chip. The two team
+  lists of Match / Series hold only the sides that can play the format (`teamsFor`), and a side that is not one
+  of them is replaced by the same nation's.
+- **Home screen.** The hero has T20 / ODI / Test. Play with Test starts a captained Test (your side at home):
+  the toss, the bowling, the bars, declarations, the follow-on, the new ball and the nightwatchman are yours;
+  the XI too if you press Change XI.
+- **Two players.** A room may be a Test room: a team each (no draft, no auction), 1, 2, 3 or 5 Tests, all
+  played, and a host setting (neutral, the host player's country, the guest's; default neutral). `Desk` already
+  kept each side's calls apart; two changes make it fair for two people: both are asked for their XI at the
+  same moment and both get the result pause at the same moment (`post`, then `wait`, as in limited overs). The
+  bars are asked in turn: the batting side before the over, then the fielding side (its bowler and plan).
+
+## Differences from limited-overs two-player games
+
+- A Test series is not a best-of: every Test is played, and the room's line reads "3-Test series · Test 2".
+- With a shot clock, the "time per ball" is the time for an over's bars.
+- The two people do not set their bars at the same moment; one waits while the other chooses.
+
+## Checks
+
+- `tests/test_test_two_players.py` (6 tests): two random captains keep the laws; both asked at once for the XI
+  and the result; a Test room through the server (draft refused, a T20 side refused in words, a 2-Test series
+  played, the head to head); new default teams added once; the refusal message; the error format.
+- All 21 test scripts and the golden test pass. Computer-only play is untouched (no engine change outside the
+  two `Desk` methods).
+- Browser, port 5071, desktop width: the home Play button with Test; Format chips and the team swap; the
+  refusal message; the error screen; a Test room in two tabs up to the first bowling choice.
+
+## Not verified
+
+- Phone width for the new Format chips and the Test room.
+- A two-player Test played to its end in the browser (the server test plays one to the end).

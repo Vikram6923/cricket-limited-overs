@@ -10,9 +10,13 @@ const MP = {token: null, code: null, active: false, you: null, team: null, built
 const MP_KEY = 'mp_seat';
 const MP_DOING = {toss: 'calling the toss', xi: 'picking their XI', bowler: 'choosing a bowler',
   batter: 'choosing the next batter', impact: 'thinking about the Impact Player', ball: 'setting their bars',
-  result: 'looking at the result'};
+  result: 'looking at the result', declare: 'thinking about a declaration', follow_on: 'deciding on the follow-on',
+  new_ball: 'deciding on the new ball', nightwatchman: 'thinking about a nightwatchman'};
 const MP_KINDS = [['toss', 'Toss'], ['xi', 'Playing XI'], ['bowler', 'Bowler each over'], ['batter', 'Next batter'],
   ['impact', 'Impact Player'], ['ball', 'Ball by ball (bars)']];
+const MP_TEST_KINDS = [['toss', 'Toss'], ['xi', 'Playing XI'], ['bowler', 'Bowling changes'], ['batter', 'Next batter'],
+  ['ball', 'Bars, over by over'], ['declare', 'Declarations'], ['follow_on', 'Follow-on'], ['new_ball', 'New ball'],
+  ['nightwatchman', 'Nightwatchman']];
 
 function mpStore(code, token) {
   MP.code = code; MP.token = token;
@@ -88,7 +92,8 @@ async function mpCreate() {
   const p = payload();
   const [lo, hi] = META.years[p.fmt];
   const r = await api('/api/mp/create', {fmt: p.fmt, comp: p.comp, year: p.year, venues: p.venues, seed: p.seed,
-    rain: p.rain, clock: $('mp-clock').value, series: $('mp-series').value, teams: $('mp-teams').value,
+    rain: p.rain, clock: $('mp-clock').value, series: $('mp-series').value,
+    teams: p.fmt === 'test' ? 'pick' : $('mp-teams').value, host: 'neutral',
     y1: Math.max(lo, hi - 9), y2: hi, source: 'full', cpu: 0, name: lsGet(MP_NAME_KEY) || ''});
   mpStore(r.code, r.token); MP.active = true; MP.built = false; mpPoll();
 }
@@ -157,18 +162,26 @@ async function mpPoll() {
   const j = st.job;                      // the match is over
   MP.built = false;
   if (j.status === 'done') { MP.team = st.you === 'spectator' ? null : st.names[st.you]; showResults(); }
-  else if (j.status === 'error') { $('e-text').textContent = j.error || '(no details)'; showView('v-error'); }
+  else if (j.status === 'error') showError(j);
   else { toast('The match was stopped.'); mpRematch(); }
 }
 
 /* ───────── the series between the two players ───────── */
 const MP_SERIES_OPTS = [[1, 'A single match'], [3, 'Best of 3'], [5, 'Best of 5']];
+const MP_TEST_OPTS = [[1, 'A single Test'], [2, 'A 2-Test series'], [3, 'A 3-Test series'], [5, 'A 5-Test series']];
+const MP_HOST_OPTS = [['neutral', 'Neutral grounds'], ['home', "The host player's country"], ['away', "The guest player's country"]];
+const mpSeriesOpts = s => s.fmt === 'test' ? MP_TEST_OPTS : MP_SERIES_OPTS;
 /* {of, wins: [seat 0, seat 1], match, finished} -> "Best of 3 · Match 2 · India lead 1-0" (names: by seat) */
 function mpSeriesLine(sr, names, withMatch = true) {
   if (sr && sr.league) return `League · match ${sr.match} of ${sr.of}`;
   if (!sr || sr.of < 2) return '';
   const [a, b] = sr.wins, left = sr.of - sr.finished;
   const nm = i => esc(dn(names[i]));
+  if (sr.test) {                              // a Test series: every Test is played, and Tests can be drawn
+    const sc = left === 0 ? (a === b ? `series drawn ${a}-${b}` : `<b>${nm(a > b ? 0 : 1)}</b> win the series ${Math.max(a, b)}-${Math.min(a, b)}`)
+      : a === b ? (a ? `level at ${a}-${b}` : 'series level') : `<b>${nm(a > b ? 0 : 1)}</b> lead ${Math.max(a, b)}-${Math.min(a, b)}`;
+    return [`${sr.of}-Test series`, withMatch && left ? `Test ${sr.match}` : '', sc].filter(Boolean).join(' · ');
+  }
   const done = Math.abs(a - b) > left || left === 0;
   const score = done ? (a === b ? `series drawn ${a}-${b}` : `<b>${nm(a > b ? 0 : 1)}</b> win the series ${Math.max(a, b)}-${Math.min(a, b)}`)
     : a === b ? (a ? `level at ${a}-${b}` : 'series level') : `<b>${nm(a > b ? 0 : 1)}</b> lead ${Math.max(a, b)}-${Math.min(a, b)}`;
@@ -185,8 +198,10 @@ function mpLobby(st) {
   $('mp-room-code').textContent = st.code;
   const realSeason = s.teams === 'auction' && s.a_pool === 'season' && mpSeason(s);
   $('mp-cond').textContent = (realSeason ? `T20 · ${(mpLeague(s) || {}).label} ${realSeason.season} conditions${s.after === 'league' ? ' and home grounds' : ''}`
+    : s.fmt === 'test' ? `Test · ${mpCompLabel(s)} conditions ${s.year} · ${s.venues.length ? s.venues.join(', ') : (MP_HOST_OPTS.find(o => o[0] === s.host) || MP_HOST_OPTS[0])[1].toLowerCase()}`
     : `${s.fmt.toUpperCase()} · ${mpCompLabel(s)} conditions ${s.year} · ${s.venues.length ? s.venues.join(', ') : 'neutral venue'}`)
-    + ` · rain ${s.rain ? 'on' : 'off'} · time per ball ${s.clock === 'off' ? 'off' : s.clock + ' s'}`
+    + (s.fmt === 'test' ? ` · time per over ${s.clock === 'off' ? 'off' : s.clock + ' s'}`
+      : ` · rain ${s.rain ? 'on' : 'off'} · time per ball ${s.clock === 'off' ? 'off' : s.clock + ' s'}`)
     + ` · ${mpPlayText(s)}`;
   const joined = st.seats[1].joined;
   // the host's invite (6.7): the code big, Copy link, Share; without --lan only this computer can join (another tab)
@@ -229,13 +244,13 @@ function mpLobby(st) {
 }
 /* each player names a team (draft, auction from player-pool years) rather than picking one */
 const mpNamed = s => s.teams === 'draft' || (s.teams === 'auction' && s.a_pool !== 'season');
-const mpBuildKey = s => [s.teams || 'pick', s.a_pool, s.league, s.season].join('|');
+const mpBuildKey = s => [s.fmt, s.teams || 'pick', s.a_pool, s.league, s.season].join('|');
 const mpLeague = s => (META.leagues || []).find(l => l.id === s.league);
 function mpSeason(s) { const l = mpLeague(s); return l ? (l.seasons.find(x => x.season === s.season) || l.seasons[0]) : null; }
 
 /* what the room plays, in words */
 function mpPlayText(s) {
-  const play = (MP_SERIES_OPTS.find(o => o[0] === (s.series || 1)) || MP_SERIES_OPTS[0])[1].toLowerCase();
+  const play = (mpSeriesOpts(s).find(o => o[0] === (s.series || 1)) || mpSeriesOpts(s)[0])[1].replace(/^A /, 'a ').replace(/^Best/, 'best');
   if (s.teams === 'auction') {
     const se = s.a_pool === 'season' ? mpSeason(s) : null, l = mpLeague(s);
     const k = se ? se.teams.length : 2 + (s.cpu || 0);
@@ -252,12 +267,14 @@ function mpPlayText(s) {
 
 /* the host's room settings: teams picked or drafted, draft pool, computer teams, single match or series */
 function mpHostHTML(s) {
-  const [lo, hi] = META.years[s.fmt] || [2005, 2026];
+  const [lo, hi] = META.years[s.fmt] || [2005, 2026], test = s.fmt === 'test';
   return `<div class="lbl" style="margin-top:14px">Room settings (host)</div>
     <div class="seg2">
-      <div class="fg"><label>Teams</label><select id="mh-teams"><option value="pick">Each player picks a team</option><option value="draft">Draft squads</option><option value="auction">Auction</option></select></div>
-      <div class="fg" id="mh-play-box"><label>Play</label><select id="mh-series">${MP_SERIES_OPTS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
+      <div class="fg" ${test ? 'style="display:none"' : ''}><label>Teams</label><select id="mh-teams"><option value="pick">Each player picks a team</option>${test ? '' : '<option value="draft">Draft squads</option><option value="auction">Auction</option>'}</select></div>
+      <div class="fg" id="mh-play-box"><label>Play</label><select id="mh-series">${mpSeriesOpts(s).map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
+      ${test ? `<div class="fg"><label>Played in</label><select id="mh-host">${MP_HOST_OPTS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>` : ''}
     </div>
+    ${test ? '<div class="hint" style="margin:0">The home side bats a little better than its ratings, as real home sides do; the country\'s grounds and weather are used.</div>' : ''}
     <div id="mh-auction" style="display:none">
       <div class="seg2">
         <div class="fg"><label>Players</label><select id="mh-apool"><option value="season">A real league season</option><option value="years">Players from a span of years</option></select></div>
@@ -285,7 +302,7 @@ function mpSyncHost(s) {
   if (!$('mh-teams')) return;
   const set = (id, v) => { const el = $(id); if (el && document.activeElement !== el && el.value !== String(v)) el.value = String(v); };
   set('mh-teams', s.teams || 'pick'); set('mh-series', s.series || 1); set('mh-y1', s.y1); set('mh-y2', s.y2);
-  set('mh-cpu', s.cpu || 0); set('mh-src', s.source || 'full');
+  set('mh-cpu', s.cpu || 0); set('mh-src', s.source || 'full'); set('mh-host', s.host || 'neutral');
   const draft = (s.teams || 'pick') === 'draft', auction = s.teams === 'auction', season = auction && s.a_pool === 'season';
   set('mh-apool', s.a_pool || 'season'); set('mh-after', s.after || 'league'); set('mh-league', s.league || 'ipl');
   const l = mpLeague(s), seasons = l ? l.seasons.map(x => x.season) : [];
@@ -310,7 +327,7 @@ function mpBuildMine(st, seat) {
   MP.built = true;
   const s = st.settings, draft = mpNamed(s), franchise = s.teams === 'auction' && !draft;
   MP.builtTeams = mpBuildKey(s);
-  if ($('c-fmt').value !== s.fmt) { $('c-fmt').value = s.fmt; fillConditions(); }   // classic rows list nations by format
+  mpFormat(s.fmt);                                    // classic rows list nations by format
   const se = franchise ? mpSeason(s) : null;
   const impact = franchise ? s.league === 'ipl' && se && +se.season.slice(0, 4) >= 2023 : s.comp === 'ipl' && s.year >= 2023;
   $('mp-mine').innerHTML = `${franchise ? `<div class="lbl">Your franchise</div>
@@ -324,7 +341,7 @@ function mpBuildMine(st, seat) {
     <div class="fg" id="mp-classic-box" style="display:none"></div>
     <details class="more" id="more-mpdec"><summary>My decisions</summary>
     <div class="hint" style="margin:0 0 6px">Unticked: the computer decides.</div>
-    <div class="checks" id="mp-manual">${MP_KINDS.filter(([k]) => k !== 'impact' || impact).map(([k, t]) =>
+    <div class="checks" id="mp-manual">${(s.fmt === 'test' ? MP_TEST_KINDS : MP_KINDS).filter(([k]) => k !== 'impact' || impact).map(([k, t]) =>
       `<label><input type="checkbox" value="${k}" ${seat.manual.includes(k) ? 'checked' : ''}> ${t}</label>`).join('')}</div></details>
     ${st.you === 0 ? mpHostHTML(s) : ''}
     <div class="cap-actions"><button class="btn go" id="mp-ready">✓ I'm ready</button></div>
@@ -341,6 +358,7 @@ function mpBuildMine(st, seat) {
     $('mh-season').onchange = () => send({season: $('mh-season').value});
     $('mh-retain').onchange = () => send({retain: $('mh-retain').checked});
     $('mh-series').onchange = () => send({series: $('mh-series').value});
+    if ($('mh-host')) $('mh-host').onchange = () => send({host: $('mh-host').value});
     $('mh-cpu').onchange = () => send({cpu: $('mh-cpu').value});
     $('mh-src').onchange = () => send({source: $('mh-src').value});
     $('mh-y1').onchange = $('mh-y2').onchange = () => send({y1: $('mh-y1').value, y2: $('mh-y2').value});
@@ -371,7 +389,7 @@ function mpBuildMine(st, seat) {
     };
     return;
   }
-  const names = META.teams.map(t => t.name);
+  const names = teamsFor(s.fmt);                    // the sides that can play the room's format
   fillSelect($('mp-team'), [{v: '', t: '- choose a team -'}, ...names.map(n => ({v: n, t: n}))]);
   const t = seat.team;
   let row = null;
@@ -528,8 +546,15 @@ function mpAuctionBar(st) {
   $('au-leave').onclick = mpLeave;
 }
 
+/* the page follows the room's format (a guest's page starts as T20): the Test-only parts of the screens show */
+function mpFormat(fmt) {
+  if ($('c-fmt').value === fmt) return;
+  $('c-fmt').value = fmt; fmtChanged(); fillConditions();
+}
+
 /* ───────── the match ───────── */
 function mpPlaying(st) {
+  mpFormat(st.settings.fmt);
   showView('v-captain');
   $('go-btn').disabled = true;
   $('cap-progress').textContent = '';

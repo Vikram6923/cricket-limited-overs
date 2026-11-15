@@ -57,13 +57,14 @@
     </div>
     <div class="mp-pane" id="mp-host-pane">
       <button class="lnk mp-back" data-mp-pane="">&lsaquo; Back</button>
-      <div class="fg"><label>How do you get teams?</label><select id="mp-teams"><option value="pick">Pick a team each</option>
+      <div class="fg lo-only"><label>How do you get teams?</label><select id="mp-teams"><option value="pick">Pick a team each</option>
         <option value="draft">Draft against each other</option><option value="auction">Auction</option></select>
         <div class="hint full-only" style="margin:4px 0 0">Draft: take turns picking 15 players each from one era (computer teams can join and make it a league).
           Auction: bid live against each other and computer teams, from a real league season or one era. Set the details in the room.</div></div>
-      <div class="fg"><label>How many matches?</label><select id="mp-series"><option value="1">1 match</option>
+      <div class="fg"><label>How many <span class="match-word-l">matches</span>?</label><select id="mp-series"><option value="1">1 match</option>
         <option value="3" selected>Best of 3</option><option value="5">Best of 5</option></select>
-        <div class="hint full-only" style="margin:4px 0 0">A series stops as soon as it is decided. You can change it in the room.</div></div>
+        <div class="hint full-only lo-only" style="margin:4px 0 0">A series stops as soon as it is decided. You can change it in the room.</div>
+        <div class="hint test-only" style="margin:4px 0 0">A Test each with your own team. Every Test of a series is played.</div></div>
     </div>
     <div class="mp-pane" id="mp-join-pane">
       <button class="lnk mp-back" data-mp-pane="">&lsaquo; Back</button>
@@ -337,14 +338,15 @@
   </div>
       <!-- conditions -->
   <div class="box" id="cond">
+    <div class="fg" id="c-fmt-box"><label>Format</label><select id="c-fmt"><option value="t20">T20</option><option value="odi">ODI</option><option value="test">Test</option></select>
+      <div class="hint test-only" style="margin:4px 0 0">Five days, two innings a side: declarations, the follow-on, the new ball. You can captain a side.</div>
+      <div class="hint" id="c-fmt-note" style="margin:4px 0 0;display:none">Tests are played as a Match or series, a Classic series or a Two players game.</div></div>
     <div id="cap-anchor"></div><div class="fg" id="g-cap-box"><label>You captain</label><select id="g-captain"></select>
       <div class="hint full-only" style="margin:4px 0 0">You make that side's decisions in its matches; every screen shows what the computer would do.</div></div>
     <details class="more" id="more-cond"><summary>More options</summary>
-    <div class="fg" id="c-fmt-box"><label>Format</label><select id="c-fmt"><option value="t20">T20</option><option value="odi">ODI</option><option value="test">Test</option></select>
-      <div class="hint test-only" style="margin:4px 0 0">Five days, two innings a side. You can captain a side (You captain, above): declarations, the follow-on, the bowling and the bars.</div></div>
     <div class="fg" id="mp-clock-box"><label>Time per ball</label><select id="mp-clock"><option value="off">Off</option>
         <option value="10">10 s</option><option value="20">20 s</option></select>
-        <div class="hint full-only" style="margin:4px 0 0">Out of time: the bars stay as they were. Other decisions get 60 seconds, then the computer's choice.</div></div>
+        <div class="hint full-only" style="margin:4px 0 0">Out of time: the bars stay as they were. Other decisions get 60 seconds, then the computer's choice.<span class="test-only"> In a Test the time is for each over's bars.</span></div></div>
     <div id="cap-more-anchor"></div><div class="fg" id="g-manual-box" style="display:none"><label>My decisions</label>
       <div class="checks" id="g-manual">
         <label><input type="checkbox" value="toss" checked> Toss</label>
@@ -650,8 +652,9 @@
 
   <!-- error -->
   <section class="view" id="v-error"><div class="wrap err-wrap">
-    <h2>The simulation stopped with an error</h2>
-    <div class="errbox" id="e-text"></div>
+    <h2>This could not be played</h2>
+    <div class="errmsg" id="e-text"></div>
+    <details class="more" id="e-more"><summary>Technical details</summary><div class="errbox" id="e-detail"></div></details>
     <button class="btn sec" onclick="showView('v-home')">Back</button>
   </div></section>
 </main>

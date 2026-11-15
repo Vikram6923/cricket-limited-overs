@@ -19,15 +19,15 @@ const ICON = {
   builder: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 8v6M14 11h6"/>',
   saved: '<path d="M6 3h12v18l-6-4-6 4z"/>'};
 const MODES = {
-  series: {t: 'Match or series', s: 'Two saved teams, one to seven matches', g: 'Quick play', c: '#2ee88a'},
-  mp: {t: 'Two players', s: 'You v a friend on another device, ball by ball', g: 'Quick play', c: '#3d8bff'},
+  series: {t: 'Match or series', s: 'T20, ODI or Test: two saved teams, one to seven matches', g: 'Quick play', c: '#2ee88a'},
+  mp: {t: 'Two players', s: 'You v a friend on another device: T20, ODI or Test', g: 'Quick play', c: '#3d8bff'},
   tournament: {t: 'Tournament', s: 'Groups, points table with NRR, knockouts', g: 'Quick play', c: '#f6c453'},
   league: {t: 'League season', s: 'Any IPL, BBL, PSL… season with the real squads', g: 'Seasons and careers', c: '#f6c453', feat: true},
   domestic: {t: 'Mushtaq Ali Trophy', s: "India's 38 states: a real season's groups, format and squads", g: 'Seasons and careers', c: '#ff9f43'},
   career: {t: 'Career', s: 'Run a franchise or a state for years: ageing, auctions, trophies', g: 'Seasons and careers', c: '#b26bff', feat: true},
   auction: {t: 'Auction', s: 'Bid live with retentions and Right to Match', g: 'Seasons and careers', c: '#ff4061'},
   draft: {t: 'Fantasy draft', s: 'Snake draft from any era, then a league', g: 'Seasons and careers', c: '#39c5cf'},
-  classic: {t: 'Classic series', s: 'Any nation, any era: Australia 2003–07 v India 2011', g: 'History', c: '#f6c453'},
+  classic: {t: 'Classic series', s: 'Any nation, any era, T20, ODI or Test: Australia 2003–07 v India 2011', g: 'History', c: '#f6c453'},
   classic_t: {t: 'Classic tournament', s: 'Great sides from different eras', g: 'History', c: '#2ee88a'},
   builder: {t: 'Team builder', s: 'Pick 11–15 from about 6,500 rated players', g: 'Tools', c: '#3d8bff'},
   saved: {t: 'Saved', s: 'Seasons and series you kept', g: 'Tools', c: '#8d9bb5'}};
@@ -42,14 +42,14 @@ function drawModeTiles() {
 /* home: one way in. Play = you captain the left team, ball by ball; the computer picks
    the XI, the next batter and the Impact Player (6.3). The two teams live in the Match or series form (s-t1 / s-t2). */
 const heroTeams = () => { const n = META.teams.map(t => t.name); return [$('s-t1').value || n[0], $('s-t2').value || n[1] || n[0]]; };
+const HERO_FMTS = ['t20', 'odi', 'test'];
 function drawHero() {
-  if ($('c-fmt').value === 'test') { heroFormat('t20'); return; }     // quick play is T20 / ODI: nobody captains a Test yet
-  const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, tt = heroTeams();
+  const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, tt = heroTeams(), test = fmt === 'test';
   const side = i => `<button class="qh-team" data-side="${i}" title="Change team">${badge(tt[i], 'lg')}
     <span class="qh-nm">${esc(pickName(tt[i], names))}</span></button>`;
-  $('hero').innerHTML = `<p class="qh-tag">Captain a real ${fmt === 'odi' ? 'ODI' : 'T20'} side, ball by ball.</p>
+  $('hero').innerHTML = `<p class="qh-tag">Captain a real ${fmtLabel(fmt)} side, ${test ? 'over by over, for five days' : 'ball by ball'}.</p>
     <div class="qh-vs">${side(0)}<span class="qh-v">v</span>${side(1)}</div>
-    <div class="seg qh-fmt" id="h-fmt"><button data-f="t20" class="${fmt === 't20' ? 'on' : ''}">T20</button><button data-f="odi" class="${fmt === 'odi' ? 'on' : ''}">ODI</button></div>
+    <div class="seg qh-fmt" id="h-fmt">${HERO_FMTS.map(f => `<button data-f="${f}" class="${fmt === f ? 'on' : ''}">${fmtLabel(f)}</button>`).join('')}</div>
     <button class="btn go big qh-play" id="h-play">&#9654;&nbsp; Play</button>
     <button class="lnk qh-sim" id="h-sim">Just simulate the result &rsaquo;</button>
     <div class="err" id="h-err"></div>`;
@@ -62,29 +62,24 @@ function setHeroTeam(i, name) {
   const id = 's-t' + (i + 1);
   $(id).value = name; showRoster(id, 's-r' + (i + 1)); drawHero();
 }
-/* T20 <-> ODI: a nation's preset follows the format when the other one exists ("India T20 2024" -> "India ODI 2023") */
+/* T20, ODI or Test: the two teams follow the format (fillTeams: "India T20 2024" -> "India Test 2025") */
 function heroFormat(f) {
+  COND.fmt = true;                              // chosen by hand: the format no longer follows the teams
   $('c-fmt').value = f; $('c-fmt').dispatchEvent(new Event('change'));
-  const names = META.teams.map(t => t.name), want = f === 'odi' ? 'ODI' : 'T20';
-  heroTeams().forEach((n, i) => {
-    if (!isNationPreset(n) || n.includes(' ' + want + ' ')) return;
-    const alt = names.find(x => teamKey(x) === teamKey(n) && x.includes(' ' + want + ' '));
-    if (alt) $('s-t' + (i + 1)).value = alt;
-  });
   drawHero();
 }
 /* the team sheet: nations, franchises and your own teams, big rows */
 const isNationPreset = n => / (T20|ODI|Test) \d{4}$/.test(n);
 const isFranchise = n => !isNationPreset(n) && / (19|20)\d{2}$/.test(n) && !!TEAM_ID[teamKey(n)];
 function teamSheet(side) {
-  const names = META.teams.map(t => t.name), fmt = $('c-fmt').value, cur = heroTeams()[side];
-  const mine = n => (fmt === 'odi') === n.includes(' ODI ');
-  const nat = names.filter(isNationPreset).sort((a, b) => (mine(b) ? 1 : 0) - (mine(a) ? 1 : 0));
-  const fr = names.filter(isFranchise), own = names.filter(n => !nat.includes(n) && !fr.includes(n));
+  const all = META.teams.map(t => t.name), fmt = $('c-fmt').value, cur = heroTeams()[side];
+  const names = teamsFor(fmt);                 // only sides that can play this format
+  const nat = names.filter(isNationPreset);
+  const fr = names.filter(isFranchise), own = all.filter(n => !isNationPreset(n) && !isFranchise(n));
   const yr = fr.length ? (fr[0].match(/\d{4}$/) || [''])[0] : '';
   const grp = (t, list) => list.length ? `<div class="bs-sec">${t}</div><div class="bs-list">${list.map(n => `<button data-n="${esc(n)}" class="${n === cur ? 'on' : ''}">${badge(n, 'md')}
     <span>${esc(pickName(n, names))}</span>${n === cur ? '<b class="ok">&#10003;</b>' : ''}</button>`).join('')}</div>` : '';
-  openSheet(`<h3>${side ? 'Opponent' : 'Your team'}</h3>${grp('Nations', nat)}${grp(`Franchises ${yr}`, fr)}${grp('My teams', own)}`);
+  openSheet(`<h3>${side ? 'Opponent' : 'Your team'}</h3>${grp(`${fmtLabel(fmt)} nations`, nat)}${grp(`Franchises ${yr}`, fr)}${grp('My teams', own)}`);
   $('bsheet-in').querySelectorAll('[data-n]').forEach(b => b.onclick = () => { closeSheet(); setHeroTeam(side, b.dataset.n); });
 }
 /* elements lent to a sheet (data-home = the id of the element they live in) go back before it changes */
@@ -116,7 +111,8 @@ function quickPayload(cap) {
   const p = {mode: 'series', fmt, comp: cond.comp, year: cond.year, venues: [], seed: '', rain: $('c-rain').checked,
     team1: tt[0], team2: tt[1], matches: 1};
   if (cap) Object.assign(p, {captain_i: 0, opponents: $('g-opp').value || 'expert',
-    manual: ['toss', 'bowler', 'ball', ...(PRE.xi ? ['xi'] : [])]});
+    manual: ['toss', 'bowler', 'ball', ...(fmt === 'test' ? TEST_ONLY_KINDS : []), ...(PRE.xi ? ['xi'] : [])]});
+  if (fmt === 'test') p.host = 'home';          // a quick Test: your side at home
   return p;
 }
 async function simulateQuick() {
@@ -133,7 +129,11 @@ function openPre() {
   Object.assign(PRE, {on: false, call: null, xi: false, phase: ''});
   setDisplayTeams(tt);
   $('pre-teams').innerHTML = `${badge(tt[0], 'lg')}<span class="qh-v">v</span>${badge(tt[1], 'lg')}`;
-  $('pre-line').innerHTML = `<b>${esc(dn(tt[0]))}</b> v <b>${esc(dn(tt[1]))}</b> · ${fmt === 'odi' ? 'ODI' : 'T20'} · ${esc(compName(fmt, cond.comp))} ${cond.year}`;
+  $('pre-line').innerHTML = `<b>${esc(dn(tt[0]))}</b> v <b>${esc(dn(tt[1]))}</b> · ${fmtLabel(fmt)}${fmt === 'test' ? ', five days' : ''} · ${esc(compName(fmt, cond.comp))} ${cond.year}`;
+  const kb = document.querySelector('#pre-len [data-l="key"]'), ab = document.querySelector('#pre-len [data-l="all"]');
+  kb.title = fmt === 'test' ? 'You stop at the start of an innings and of a session, after a wicket, for the new ball and in the last hour'
+    : 'You play the first over, the over after a wicket and the last 3 overs';
+  ab.textContent = fmt === 'test' ? 'Every over' : 'Every ball';
   preXI(false); $('pre-xi').style.display = ''; $('pre-xi').disabled = false;
   $('pre-coin').className = 'coin'; $('pre-coin').textContent = 'H';
   $('pre-err').textContent = '';
@@ -207,15 +207,15 @@ async function drawHomeCont() {
 }
 /* four doors instead of eleven tiles; each opens a chooser with 2-5 big cards */
 const DOORS = [
-  {t: 'Play a friend', s: 'on two phones', ic: 'mp', modes: ['mp']},
+  {t: 'Play a friend', s: 'on two phones, Tests too', ic: 'mp', modes: ['mp']},
   {t: 'Seasons & careers', ic: 'league', modes: ['league', 'domestic', 'career']},
   {t: 'Auction & draft', ic: 'auction', modes: ['auction', 'draft']},
   {t: 'What-if sandbox', ic: 'classic', modes: ['series', 'tournament', 'classic', 'classic_t', 'builder']}];
 const DOOR_LINE = {league: 'Any season of 11 leagues, real squads.', career: 'Run a franchise or a state, year after year.',
   domestic: "India's domestic T20: captain a state.",
   auction: 'Bid for a squad, then play.', draft: 'Pick players in turns, then a league.',
-  series: 'Two teams, one to seven matches.', tournament: 'Your own World Cup or league.',
-  classic: 'Great sides from any era.', classic_t: 'Eras meet in one tournament.', builder: 'Make and save your own XI.'};
+  series: 'Two teams, T20, ODI or Test.', tournament: 'Your own World Cup or league.',
+  classic: 'Great sides from any era, Tests too.', classic_t: 'Eras meet in one tournament.', builder: 'Make and save your own XI.'};
 function drawDoors() {
   $('home-doors').innerHTML = DOORS.map((d, i) => `<button class="card door" data-door="${i}">${modeIcon(d.ic)}
     <b>${esc(d.t)}${d.s ? `<span> ${esc(d.s)}</span>` : ''}</b></button>`).join('');
@@ -251,13 +251,13 @@ function picker(sel, render, cls) {
   box.className = 'picker ' + cls;
   sel.after(box); sel.classList.add('picked');
   const draw = () => {
-    box.innerHTML = [...sel.options].map(o => `<button type="button" class="${o.value === sel.value ? 'on' : ''}" data-v="${esc(o.value)}">${render(o)}</button>`).join('');
+    box.innerHTML = [...sel.options].filter(o => !o.disabled).map(o => `<button type="button" class="${o.value === sel.value ? 'on' : ''}" data-v="${esc(o.value)}">${render(o)}</button>`).join('');
     box.querySelectorAll('button').forEach(b => b.onclick = () => {
       sel.value = b.dataset.v === sel.value && sel.dataset.toggle !== undefined ? sel.options[0].value : b.dataset.v;
       sel.dispatchEvent(new Event('change')); draw();
     });
   };
-  new MutationObserver(draw).observe(sel, {childList: true});
+  new MutationObserver(draw).observe(sel, {childList: true, subtree: true, attributes: true, attributeFilter: ['disabled']});
   sel.addEventListener('change', draw);
   draw();
   return draw;
@@ -273,6 +273,9 @@ function initPickers() {
    ['dm-season', o => esc(o.text), 'chips'], ['dm-captain', teamCard, 'cards teams']]
     .forEach(([id, r, c]) => { if ($(id)) picker($(id), r, c); });
   $('l-captain').dataset.toggle = ''; $('dm-captain').dataset.toggle = '';
+  // the format: three chips (Test is left out in the modes that have no Tests). A chip pressed is the person's choice.
+  picker($('c-fmt'), o => esc(o.text), 'chips');
+  $('c-fmt').nextElementSibling.addEventListener('click', () => { COND.fmt = true; }, true);
 }
 
 /* the start bar repeats the form's own summary line (".total") */

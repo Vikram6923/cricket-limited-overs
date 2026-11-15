@@ -359,6 +359,16 @@ def resolve(fmt: str, name_or_id: str) -> str:
     exact = [h for h in search(fmt, name_or_id, 50) if h[1].lower() == name_or_id.lower()]
     if exact:
         return exact[0][0]
+    label = {"t20": "T20", "odi": "ODI", "test": "Test"}
+    for other in label:                          # known in another format: say who, not the ID
+        if other != fmt:
+            try:
+                row = ratings(other)["players"].get(name_or_id)
+            except (OSError, KeyError, ValueError):
+                row = None
+            if row:
+                raise ValueError(f"{row['name']} has no {label.get(fmt, fmt)} record, so he cannot be picked for "
+                                 f"{'an' if fmt == 'odi' else 'a'} {label.get(fmt, fmt)} side.")
     close = [h[1] for h in search(fmt, name_or_id.split()[-1], 5)]
     raise ValueError(f"no {fmt} player named {name_or_id!r}" + (f"; did you mean {close}?" if close else ""))
 

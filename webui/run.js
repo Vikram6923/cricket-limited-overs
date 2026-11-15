@@ -101,6 +101,13 @@ async function start() {
   }
   catch (e) { $('go-err').textContent = e.message; $('go-btn').disabled = false; }
 }
+/* a run that stopped: what went wrong in a sentence; the traceback is folded away under Technical details */
+function showError(st) {
+  $('e-text').textContent = st.error || 'The run stopped, and the simulator did not say why.';
+  $('e-detail').textContent = st.detail || '';
+  $('e-more').style.display = st.detail ? '' : 'none'; $('e-more').open = false;
+  showView('v-error');
+}
 let POLL_T = null;
 async function poll() {
   if (mpOn()) return mpPoll();
@@ -122,7 +129,7 @@ async function poll() {
     $('run-count').textContent = `${st.done} of ${st.total} matches · ${fmtTime(st.elapsed)} elapsed`;
     POLL_T = setTimeout(poll, 500);
   } else if (st.status === 'done') { $('last-btn').style.display = ''; showResults(); }
-  else if (st.status === 'error') { $('e-text').textContent = st.error || '(no details)'; showView('v-error'); }
+  else if (st.status === 'error') showError(st);
   else if (st.status === 'stopped') { toast('Simulation stopped.'); goHome(); }
 }
 async function stopJob() { await api('/api/stop', {}); setTimeout(poll, 300); }

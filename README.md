@@ -18,8 +18,9 @@ and its historical, draft and league modes inspired the modes here. See [Credits
 > browser UI with historical teams, league seasons, a fantasy draft, rain/DLS and the Impact Player rule are built.
 > See [Roadmap](#roadmap).
 >
-> **Test matches** can be played as a Match / Series or a Classic Series (any nation and years since 1877,
-> e.g. West Indies 1980-85 v Australia 1999-2003), in the browser or from Python: declarations, the follow-on,
+> **Test matches** can be played from the home screen's Play button, as a Match / Series, a Classic Series (any
+> nation and years since 1877, e.g. West Indies 1980-85 v Australia 1999-2003) or a Two players game, in the
+> browser or from Python: declarations, the follow-on,
 > rain, home advantage, about 3,270 rated Test cricketers. They are calibrated against the 473 real Tests of
 > 2015-26 (29 of 32 targets met; it draws too often). Results come with Test records and a win / draw / loss
 > chart. You can captain a side: the toss, the XI, declarations, the follow-on, the new ball, the bowling, the
@@ -139,7 +140,8 @@ on a phone too. Modes:
   computer, play can be skipped to the end of the innings, the match or the season, and obvious calls (one
   possible bowler, the last batter) are not asked. League Season and Auction pick the team in their own form; Series, Tournament, Classic and Draft (your drafted
   team) in the "Captain a team" box under the conditions. Built on a generic controller (`engine/control.py`).
-  - **Captaining a Test** (Match / Series and Classic Series, format Test). The same screen, with the day, the
+  - **Captaining a Test** (the home screen's Play button with Test chosen, Match / Series and Classic Series
+    with format Test, and Two players, where each person captains a side). The same screen, with the day, the
     session, the overs left and three chances (win, draw, loss) in the score bar. You set the bars before an
     over, not a ball, and choose how far to play on: the next over, the next key moment (the first over of an
     innings or a session, the over after a wicket, the new ball, the last hour), the next wicket, or the end of
@@ -387,12 +389,26 @@ the 2023 Indians under 2023 conditions, or under 2007 conditions.
 
 ## Test matches
 
-In the browser: choose **Match / Series** or **Classic Series**, open More options and set Format to **Test**
-(picking two "… Test 2025" squads does it for you). Choose 1, 2, 3 or 5 Tests and where the series is played:
+In the browser: on the home screen choose **Test** under the two teams and press Play to captain a Test at
+once (your side at home). Or choose **Match / Series** or **Classic Series** and press **Test** in the Format
+chips at the top of the options: the two teams change to the same nations' Test sides, and the team lists show
+only sides that can play the format. Choose 1, 2, 3 or 5 Tests and where the series is played:
 the first side's country, the second's, or neutral grounds. The host's grounds are used in turn, with its weather,
 and the home side gets the edge real home sides have. The results show the series score with draws, each match's
 four innings, a day-by-day strip (lunch, tea, stumps), the lead over the match, and Test batting and bowling
-tables. Other modes (tournament, league, draft, auction, two players, careers) are T20 and ODI only.
+tables. Other modes (tournament, league, draft, auction, careers) are T20 and ODI only: there the Format
+chips do not offer Test.
+
+**Two players:** host a room with Format set to Test. Each person picks a Test side (a saved team or a nation
+from any era), the host chooses one Test or a series of 2, 3 or 5 (every Test is played) and where it is played
+(neutral grounds, the host player's country or the guest's). Each person makes their own side's calls; both
+choose their XI at the same time, and both see the result at the same time. There is no draft or auction for
+Tests.
+
+**Default Test teams:** nine "… Test 2025" squads come with the program. If your saved-teams file was made
+before they existed, they are added to it the next time the teams are loaded (once: one you delete stays
+deleted). A team that cannot play a format (a T20 squad in a Test) is refused before the run starts, with the
+players that have no record in that format and the side to choose instead.
 
 Every Test also shows **Win, draw or loss**: the chance of each result after every over, in three bands. It
 comes from a table made by playing 20,000 Tests between equal sides, so it knows the score, the wickets and the
@@ -576,6 +592,7 @@ python tests/test_test_calibration.py  # Test matches: 200 fixed Tests inside wi
 python tests/test_test_series.py       # Test series: result, host and grounds, stats, report, a run through the server
 python tests/test_test_records.py      # Test records; win / draw / loss chances, impact, turning point, rankings
 python tests/test_test_control.py      # captaining a Test: each decision, the bars, the pace, the report, the server
+python tests/test_test_two_players.py  # two people captain a Test, a Test room on the server, default Test teams, error messages
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -657,7 +674,8 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
 - [x] Test matches: data, ratings, the match engine, its calibration, series, the results pages, records,
       the win / draw / loss chart and captaincy ([`docs/test_match_plan.md`](docs/test_match_plan.md)).
-      Still to come: a World Test Championship, two-player Tests, Tests from the home page's Play button
+      Two-player Tests and Tests from the home page's Play button are in.
+      Still to come: a World Test Championship
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
 - [x] State career: a Mushtaq Ali Trophy state season after season, Elite and Plate with promotion and relegation

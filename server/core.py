@@ -74,7 +74,8 @@ def league_season(league: str | None, season: str | None) -> dict | None:
 LIMITED = ("t20", "odi")
 FMTS = LIMITED + ("test",)
 FMT_NAME = history.FMT_NAME
-NOT_FOR_TESTS = "Tests can be played as a Match / Series or a Classic Series; this mode is for T20 and ODI."
+NOT_FOR_TESTS = ("Tests can be played as a Match / Series, a Classic Series or a Two players game; "
+                 "this mode is for T20 and ODI.")
 
 COMP_LABELS = {
     "t20i_full": "T20 internationals (full members)", "t20i": "T20 internationals (all teams)",
@@ -239,12 +240,51 @@ def _reaper() -> None:
 
 # ------------------------------------------------------------------------------------------------ teams
 
+PRESET = re.compile(r" (T20|ODI|Test) \d{4}$")     # a nation's preset side: "India Test 2025"
+
+
+@lru_cache(maxsize=None)
+def _default_teams(stamp: float) -> list[dict]:
+    return json.loads(TEAMS_DEFAULT.read_text(encoding="utf-8"))
+
+
+def default_teams() -> list[dict]:
+    return _default_teams(TEAMS_DEFAULT.stat().st_mtime)
+
+
+def team_format(name: str) -> str | None:
+    """The format a preset side is for ("India Test 2025" -> "test"); None for a side with no format in its
+    name (your own teams, franchises)."""
+    m = PRESET.search(name)
+    return m.group(1).lower() if m else None
+
+
 def load_teams(v: Visitor | None = None) -> list[dict]:
+    """A person's saved teams. The file starts as a copy of the default teams; default teams added to the
+    program later (the Test sides) are added to it once. teams_seen.json beside it lists the defaults already
+    offered, so a default the person deleted stays deleted."""
     p = (v or V()).teams_file
     if not p.exists():
         p.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(TEAMS_DEFAULT, p)
-    return json.loads(p.read_text(encoding="utf-8"))
+    teams = json.loads(p.read_text(encoding="utf-8"))
+    defaults = default_teams()
+    seen_p = p.with_name("teams_seen.json")
+    try:
+        seen = set(json.loads(seen_p.read_text(encoding="utf-8")))
+        first = False
+    except (OSError, ValueError):
+        seen, first = {t["name"] for t in teams}, True
+    have = {t["name"] for t in teams}
+    new = [t for t in defaults if t["name"] not in seen and t["name"] not in have]
+    if new:                                     # after the last nation's side, before franchises and own teams
+        at = max((i for i, t in enumerate(teams) if PRESET.search(t["name"])), default=len(teams) - 1) + 1
+        teams[at:at] = new
+        p.write_text(json.dumps(teams, indent=1, ensure_ascii=False), encoding="utf-8")
+    if new or first or any(t["name"] not in seen for t in defaults):
+        seen_p.write_text(json.dumps(sorted(seen | {t["name"] for t in defaults}), indent=1, ensure_ascii=False),
+                          encoding="utf-8")
+    return teams
 
 
 def save_teams(teams: list[dict]) -> None:
@@ -295,6 +335,33 @@ def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SI
     return spec
 
 
+def wrong_format(team: dict, fmt: str, teams: list[dict]) -> str | None:
+    """Why a saved team cannot play this format (some of its players have no record in it), or None. Names
+    the same nation's side for the format when there is one."""
+    rows = ratings(fmt)["players"]
+    out = [p["name"] for p in team["players"] if p["id"] not in rows]
+    if not out:
+        return None
+    f = FMT_NAME[fmt]
+    who = ", ".join(out[:3]) + (f" and {len(out) - 3} more" if len(out) > 3 else "")
+    nation = PRESET.sub("", team["name"])
+    alt = next((t["name"] for t in teams if team_format(t["name"]) == fmt and PRESET.sub("", t["name"]) == nation),
+               None) if PRESET.search(team["name"]) else None
+    fix = f"Choose {alt} instead" if alt else f"Choose {'an' if fmt == 'odi' else 'a'} {f} side"
+    return (f"{team['name']} cannot play {'an' if fmt == 'odi' else 'a'} {f} match: {len(out)} of its "
+            f"{len(team['players'])} players have no {f} record ({who}). {fix}, or build one in Team builder.")
+
+
+def friendly_error(e: Exception) -> str:
+    """What to tell the person when a run stops: the engine's own message for a problem with what was asked
+    (a ValueError), else a plain line; the traceback goes under Technical details."""
+    text = " ".join(str(e).split())
+    if isinstance(e, (ValueError, FileNotFoundError)) and text:
+        return text[0].upper() + text[1:] + ("" if text.endswith((".", "?", "!")) else ".")
+    return ("Something went wrong inside the simulator, so this could not be finished. Nothing you saved is "
+            "affected. Try again; if it happens again, the technical details below say where.")
+
+
 def check_entries(entries: list, fmt: str, owners: list | None = None) -> str | None:
     """Error message for a list of team entries, or None. Historical entries need a nation that played then.
     owners: whose saved teams each entry is (two players: each seat's own; default: this visitor's)."""
@@ -315,8 +382,12 @@ def check_entries(entries: list, fmt: str, owners: list | None = None) -> str | 
                 return f"{e.get('nation')} has too few {FMT_NAME[fmt]} players in {y1}-{y2}."
             key = history.team_name(e["nation"], y1, y2)
         else:
-            if e not in {t["name"] for t in load_teams(owners[len(seen)])}:
+            mine = load_teams(owners[len(seen)])
+            t = next((t for t in mine if t["name"] == e), None)
+            if not t:
                 return f"No saved team called {e!r}."
+            if err := wrong_format(t, fmt, mine):
+                return err
             key = e
         if key in seen:
             return f"{key} is picked twice."

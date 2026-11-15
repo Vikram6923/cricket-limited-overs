@@ -15,6 +15,7 @@ class Job:
     def __init__(self, title: str, total: int):
         self.title, self.total, self.done = title, total, 0
         self.status, self.error = "running", None
+        self.detail: str | None = None          # the traceback of an error (shown under Technical details)
         self.started, self.finished = time.time(), None
         self.cancel = False
         self.controller: WaitingController | None = None   # manual captaincy: the side the person captains
@@ -25,6 +26,7 @@ class Job:
     def to_dict(self) -> dict:
         d = {"status": self.status, "title": self.title, "done": self.done, "total": self.total,
              "elapsed": round((self.finished or time.time()) - self.started, 1), "error": self.error,
+             "detail": self.detail,
              "mp": bool(self.controllers)}
         c = self.controller
         if c:
@@ -147,6 +149,12 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
                                   knockout=params["knockout"], venues=venues_, home_venues=params.get("homes") or None,
                                   seed=seed, rain=rain_, on_match=on_match, control=control)
             res["draft"] = params["draft_info"]
+        elif params["mode"] == "mp" and fmt == "test":   # two players: a Test or a Test series, every Test played
+            a, b = params["specs"]
+            where = params.get("host") or "neutral"
+            host = "neutral" if where == "neutral" else (nation_of(b) or "neutral") if where == "away" else None
+            res = play_test_series(a, b, n=int(params.get("series") or 1), comp=comp, year=year, venues=venues_,
+                                   seed=seed, on_match=on_match, host=host, control=control)
         elif params["mode"] == "mp":           # a single match or a best-of series between the two players
             a, b = params["specs"]
             res = play_series(a, b, n=int(params.get("series") or 1), best_of=True,
@@ -228,7 +236,7 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
     except (Stopped, Cancelled):
         job.status = "stopped"
     except Exception as e:  # noqa: BLE001 - shown to the user
-        job.status, job.error = "error", f"{e}\n\n{traceback.format_exc()}"
+        job.status, job.error, job.detail = "error", friendly_error(e), traceback.format_exc()
     finally:
         job.finished = time.time()
 

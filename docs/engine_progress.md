@@ -1184,3 +1184,12 @@ Details and the differences from the plan are in `docs/test_design.md` ("Phase 6
 - `tests/test_test_control.py` (12 tests, with a captained Test through the server). All 20 test scripts and
   the golden test pass. Played in the browser on port 5071.
 - Not done: two-player Tests; Tests from the home page's Play button; weaker computer captains for Tests.
+
+- 2026-11-15: **After Phase 6: default Test teams, readable errors, Tests on the home screen and for two
+  players.** Old saved-teams files get the default teams they lack, once (`teams_seen.json`). A team that
+  cannot play the format is refused before the run with the players and the side to choose instead; a run
+  that stops reports a sentence, with the traceback under Technical details. Format is three chips at the top
+  of the conditions; the Match / Series team lists follow it. The home Play button plays a captained Test.
+  Two-player rooms can be Test rooms (a team each, 1 / 2 / 3 / 5 Tests, all played; XI and result asked of
+  both at once). `tests/test_test_two_players.py` (6 tests); 21 of 21 scripts and the golden test pass.
+  Details: `docs/test_design.md` ("After Phase 6").
