@@ -90,6 +90,22 @@ def test_points_table_bowled_out_counts_full_quota():
     assert abs(t["X"]["nrr"] - 2.5) < 1e-9 and abs(t["Y"]["nrr"] + 2.5) < 1e-9
 
 
+def test_points_table_puts_wins_before_net_run_rate():
+    """Level on points: the side with more wins is placed above the side with the better net run rate."""
+    def card(x, y, winner, rx, ry):
+        res = {"winner": winner, "loser": y if winner == x else x} if winner else {"winner": None, "type": "tie"}
+        return {"teams": [x, y], "result": res,
+                "innings": [{"team": x, "bowling_team": y, "runs": rx, "wickets": 5, "balls": 120, "max_overs": 20},
+                            {"team": y, "bowling_team": x, "runs": ry, "wickets": 5, "balls": 120, "max_overs": 20}]}
+    # X: one narrow win, one heavy defeat (2 points, poor rate).  Y: two ties (2 points, level rate).
+    cards = [card("X", "Z", "X", 150, 149), card("X", "W", "W", 80, 200), card("Y", "Z", None, 150, 150),
+             card("Y", "W", None, 150, 150)]
+    t = points_table(cards, ["W", "X", "Y", "Z"])
+    by = {r["team"]: r for r in t}
+    assert by["X"]["points"] == by["Y"]["points"] and by["X"]["nrr"] < by["Y"]["nrr"] and by["X"]["won"] > by["Y"]["won"]
+    assert by["X"]["pos"] < by["Y"]["pos"]
+
+
 # ---------------------------------------------------------------- domestic formats (quarter-finals, Super League, Plate)
 
 def _sides(n: int, tag: str = "") -> list[dict]:
@@ -227,6 +243,57 @@ def test_records_skip_a_chase_rain_stopped_ahead_of_par():
     rec = records([card(1, finished), card(2, stopped)])
     assert [x["match_no"] for x in rec["biggest_wins_by_wickets"]] == [1]
     assert [x["match_no"] for x in rec["narrowest_chases"]] == [1]
+
+
+def test_knockout_tie_without_a_super_over_has_a_winner():
+    """A knockout can end tied with no super over (a DLS tie when rain stops the chase on the par score): the
+    higher-placed side, named first, goes through, and the tournament finishes."""
+    from engine import tournament as T
+    real, n = T.simulate_match, [0]
+
+    def tied(*args, **kw):
+        card = real(*args, **kw)
+        n[0] += 1
+        if n[0] > 6:                                   # after the 6 league games: every knockout is a DLS tie
+            card["result"] = {"type": "tie", "winner": None, "no_super_over": True, "dls": True, "par": 100,
+                              "text": "Match tied (DLS method, par 100)"}
+        return card
+    T.simulate_match = tied
+    try:
+        res = play_tournament(TEAMS[:4], fmt="t20", comp="t20i_full", year=2024, knockout="semis", seed=2)
+    finally:
+        T.simulate_match = real
+    top = [r["team"] for r in res["tables"]["League"]]
+    assert [k["winner"] for k in res["knockouts"]] == [top[0], top[1], top[0]]
+    assert res["winner"] == top[0] and res["runner_up"] == top[1]
+    assert all("go through as the higher-placed side" in k["result"] for k in res["knockouts"])
+
+
+def test_league_on_worker_processes_gives_the_same_tournament():
+    """set_jobs(2): the league matches are played on two processes; the result is the same, match for match,
+    progress is reported in order, and a run stopped half way stops."""
+    from engine import tournament as T
+    args = dict(fmt="t20", comp="t20i_full", year=2024, knockout="semis", seed=11, rain=True,
+                venues=["Eden Gardens, Kolkata", "Lord's, London", "Melbourne Cricket Ground"])
+    one = play_tournament(_sides(6), **args)
+    T.set_jobs(2)
+    try:
+        seen = []
+        two = play_tournament(_sides(6), **args, on_match=lambda c: seen.append(c["match_no"]))
+        assert json.dumps(one, sort_keys=True) == json.dumps(two, sort_keys=True)
+        assert seen == list(range(1, len(two["matches"]) + 1)) and len(seen) == 15 + 3
+
+        def stop(card):
+            if card["match_no"] == 5:
+                raise KeyboardInterrupt("stopped")
+        try:
+            play_tournament(_sides(6), **args, on_match=stop)
+            raise AssertionError("the run was not stopped")
+        except KeyboardInterrupt:
+            pass
+        assert json.dumps(play_tournament(_sides(6), **args), sort_keys=True) == json.dumps(one, sort_keys=True)
+    finally:
+        T.set_jobs(1)
 
 
 if __name__ == "__main__":

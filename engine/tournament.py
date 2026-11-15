@@ -9,15 +9,23 @@ Teams are the same dicts `simulate_match` takes; players may be given by Cricshe
 
 Command line, driven by a JSON config (see examples/):
     python -m engine.tournament examples/t20_world_cup_style.json --out results/wc
+    python -m engine.tournament examples/t20_world_cup_style.json --jobs 4     # league matches on 4 processes
+
+League stages that nobody captains can be played on several processes (set_jobs): every match has its own
+seed, so the results are the same for any number of processes. Each process loads the ratings itself (about
+2 seconds and 150 MB each, once), so it pays for seasons and careers, not for a handful of matches.
 """
 from __future__ import annotations
 
 import argparse
+import atexit
 import itertools
 import json
 import random
 import sys
+import threading
 import zlib
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from .data import FORMATS, Player, resolve
@@ -25,6 +33,48 @@ from .match import simulate_match
 from .render import full_text
 
 KNOCKOUTS = ("semis", "ipl", "final", "qf", "pre_qf", "super_league", "super_league_semis", "none")
+
+# ------------------------------------------------------------------------------------------------ worker processes
+JOBS = 1                 # processes for league stages nobody captains (1: everything in this process)
+MIN_PARALLEL = 12        # fewer league matches than this are not worth handing out
+_pool: ProcessPoolExecutor | None = None
+_pool_lock = threading.Lock()
+
+
+def set_jobs(n: int | None) -> int:
+    """How many processes league stages may use (None: most of this computer's cores, at most 6). Returns it."""
+    global JOBS, _pool
+    if n is None:
+        import os
+        n = min(6, (os.cpu_count() or 2) - 1)
+    n = max(1, int(n))
+    with _pool_lock:
+        if n != JOBS and _pool is not None:
+            _pool.shutdown(wait=False, cancel_futures=True)
+            _pool = None
+        JOBS = n
+    return n
+
+
+def _workers() -> ProcessPoolExecutor:
+    global _pool
+    with _pool_lock:
+        if _pool is None:
+            _pool = ProcessPoolExecutor(max_workers=JOBS)
+        return _pool
+
+
+@atexit.register
+def _close_pool() -> None:
+    global _pool
+    if _pool is not None:
+        _pool.shutdown(wait=False, cancel_futures=True)
+        _pool = None
+
+
+def _play_task(task: tuple) -> dict:
+    a, b, kw = task
+    return simulate_match(a, b, **kw)
 
 
 # ------------------------------------------------------------------------------------------------ helpers
@@ -77,6 +127,31 @@ class _Runner:
             return self.venues[n % len(self.venues)]
         return None
 
+    def play_league(self, fixtures: list[tuple]) -> None:
+        """League matches [(home, away, stage)], in order. With nobody captaining and set_jobs(n > 1) they are
+        played on worker processes: the same matches (each has its own seed and its venue by its number), the
+        cards collected in order."""
+        if JOBS <= 1 or self.control or len(fixtures) < MIN_PARALLEL:
+            for a, b, stage in fixtures:
+                self.play(a, b, stage)
+            return
+        n0, tasks = len(self.cards), []
+        for i, (a, b, stage) in enumerate(fixtures):
+            venue = self.home[a["name"]] if a["name"] in self.home else                 self.venues[(n0 + i) % len(self.venues)] if self.venues else None
+            tasks.append((a, b, {"fmt": self.fmt, "comp": self.comp, "year": self.year, "venue": venue,
+                                 "seed": _seed(self.seed, n0 + i + 1), "rain_on": self.rain, "skill": self.skill}))
+        futures = [_workers().submit(_play_task, t) for t in tasks]
+        try:
+            for (a, b, stage), f in zip(fixtures, futures):
+                card = f.result()
+                card["match_no"], card["stage"], card["knockout"] = len(self.cards) + 1, stage, False
+                self.cards.append(card)
+                if self.on_match:
+                    self.on_match(card)
+        finally:
+            for f in futures:               # a cancelled run (on_match raised): drop the matches not started
+                f.cancel()
+
     def play(self, a: dict, b: dict, stage: str, knockout: bool = False) -> dict:
         no = len(self.cards) + 1
         venue = self.venue_for(a["name"], knockout)
@@ -95,6 +170,12 @@ class _Runner:
                 card["result"] = {"type": "no_result", "winner": a["name"], "loser": b["name"], "by": "no_result",
                                   "text": f"No result (reserve day washed out too) - {a['name']} go through "
                                           "as the higher-placed side"}
+        if knockout and not card["result"].get("winner"):
+            # a knockout needs a winner: a tie that no super over settled (a DLS tie when rain ended the chase)
+            # sends the higher-placed side (named first) through, as a washed-out reserve day does
+            r = card["result"]
+            card["result"] = {**r, "winner": a["name"], "loser": b["name"], "by": "tie",
+                              "text": f"{r['text']} - {a['name']} go through as the higher-placed side"}
         card["match_no"], card["stage"], card["knockout"] = no, stage, knockout
         self.cards.append(card)
         if self.on_match:
@@ -107,7 +188,7 @@ class _Runner:
 def points_table(cards: list[dict], teams: list[str], win_points: int = 2) -> list[dict]:
     """Points and net run rate (ICC method): NRR = runs scored per over faced - runs conceded per over bowled; a
     side bowled out is charged its full quota of overs; super overs are not counted. Ties settled by a super
-    over count as a win for the super-over winner. Order: points, NRR, wins, name."""
+    over count as a win for the super-over winner. Order: points, wins, NRR, name."""
     rows = {t: {"team": t, "played": 0, "won": 0, "lost": 0, "tied": 0, "no_result": 0, "points": 0,
                 "runs_for": 0, "balls_for": 0, "runs_against": 0, "balls_against": 0} for t in teams}
     for c in cards:
@@ -151,7 +232,8 @@ def points_table(cards: list[dict], teams: list[str], win_points: int = 2) -> li
         r["for"] = f"{r['runs_for']}/{_overs(r['balls_for'])}"
         r["against"] = f"{r['runs_against']}/{_overs(r['balls_against'])}"
         out.append(r)
-    out.sort(key=lambda r: (-r["points"], -r["nrr"], -r["won"], r["team"]))
+    # points, then most wins, then net run rate (the order ICC events and the IPL use)
+    out.sort(key=lambda r: (-r["points"], -r["won"], -r["nrr"], r["team"]))
     for i, r in enumerate(out, 1):
         r["pos"] = i
     return out
@@ -467,11 +549,13 @@ def _round_robin(run: "_Runner", by_name: dict, labels: list[str], group_lists: 
                  stage_of) -> None:
     """Rounds of single round robins. Within a round each side is at home in about half its games (pair i, j: the
     first at home when i + j is odd); the next round swaps every pairing."""
+    fixtures = []
     for rnd in range(rounds):
         for label, names in zip(labels, group_lists):
             for (i, x), (j, y) in itertools.combinations(enumerate(names), 2):
                 home, away = (x, y) if ((i + j) % 2 == 1) == (rnd % 2 == 0) else (y, x)
-                run.play(by_name[home], by_name[away], stage_of(label))
+                fixtures.append((by_name[home], by_name[away], stage_of(label)))
+    run.play_league(fixtures)
 
 
 def _tables(cards: list[dict], labels: list[str], group_lists: list[list[str]], win_points: int) -> dict:
@@ -770,7 +854,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("config", help="JSON config (see examples/)")
     ap.add_argument("--out", help="folder for summary.json and match scorecards")
     ap.add_argument("--seed", type=int, help="override the config's seed")
+    ap.add_argument("--jobs", type=int, default=1, help="processes for the league stage (same results for any number)")
     args = ap.parse_args(argv)
+    set_jobs(args.jobs)
     cfg = json.loads(Path(args.config).read_text(encoding="utf-8"))
     if args.seed is not None:
         cfg["seed"] = args.seed

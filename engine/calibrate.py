@@ -6,12 +6,15 @@ individual scores, chase success. Rain-reduced and no-result matches are skipped
 
     python -m engine.calibrate                       # all suites, 4 replays per fixture
     python -m engine.calibrate --suite t20i --reps 10
+    python -m engine.calibrate --jobs 1              # one process (default: most of this computer's cores)
+Every replay has its own seed, so the worker processes give exactly the numbers one process gives.
 Writes data/engine/calibration_<suite>.json (history of results, newest last).
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics as st
 import sys
 import time
@@ -192,20 +195,38 @@ def seed_for(match_id: str, rep: int) -> int:
     return zlib.crc32(f"{match_id}|{rep}".encode()) & 0x7FFFFFFF
 
 
-def run_suite(name: str, reps: int, limit: int | None, flags: dict, label: str) -> dict:
+def _replay(task: tuple) -> dict:
+    """One replay of one fixture (a worker process runs these; everything it needs is in the task)."""
+    f, r, fmt, comp, flags = task
+    card = simulate_match(f["a"], f["b"], fmt=fmt, comp=comp, year=f["year"], seed=seed_for(f["id"], r),
+                          toss=f["toss"], decision=f["decision"], venue=f["venue"], **flags)
+    return summarize_sim(card, fmt)
+
+
+def default_jobs() -> int:
+    """Worker processes for the replays: the cores but one, at most 8 (each loads the ratings: ~300 MB)."""
+    return max(1, min(8, (os.cpu_count() or 2) - 1))
+
+
+def simulate_all(fx: list[dict], reps: int, fmt: str, comp: str, flags: dict, jobs: int = 1) -> list[dict]:
+    """Summaries of every replay, in fixture order whatever the number of processes (so the result is the same)."""
+    tasks = [({k: f[k] for k in ("id", "year", "a", "b", "toss", "decision", "venue")}, r, fmt, comp, flags)
+             for f in fx for r in range(reps)]
+    if jobs <= 1 or len(tasks) < 2 * jobs:
+        return [_replay(t) for t in tasks]
+    from concurrent.futures import ProcessPoolExecutor
+    with ProcessPoolExecutor(max_workers=jobs) as ex:
+        return list(ex.map(_replay, tasks, chunksize=max(1, min(32, len(tasks) // (jobs * 4)))))
+
+
+def run_suite(name: str, reps: int, limit: int | None, flags: dict, label: str, jobs: int = 1) -> dict:
     suite = SUITES[name]
     fmt = suite["fmt"]
     fx = fixtures(suite)
     if limit:
         fx = fx[-limit:]
     t = time.time()
-    sims = []
-    for f in fx:
-        for r in range(reps):
-            card = simulate_match(f["a"], f["b"], fmt=fmt, comp=suite["comp"], year=f["year"],
-                                  seed=seed_for(f["id"], r), toss=f["toss"], decision=f["decision"],
-                                  venue=f["venue"], **flags)
-            sims.append(summarize_sim(card, fmt))
+    sims = simulate_all(fx, reps, fmt, suite["comp"], flags, jobs)
     real = aggregate([f["real"] for f in fx], fmt)
     sim = aggregate(sims, fmt)
     print(f"\n=== {name} [{label}]: {len(fx)} real matches ({suite['years'][0]}-{suite['years'][1]}), "
@@ -237,11 +258,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-matchups", action="store_true", help="switch off batting-hand x bowling-kind (T2-1)")
     ap.add_argument("--no-spin", action="store_true", help="switch off the pace v spin pitch edge")
     ap.add_argument("--no-depth", action="store_true", help="switch off batting depth still to come")
+    ap.add_argument("--jobs", type=int, default=default_jobs(),
+                    help="worker processes (default: the cores but one, at most 8; 1 = no workers). "
+                         "The numbers are the same for any value")
     args = ap.parse_args(argv)
     flags = {"use_venue": not args.no_venue, "use_pitch": not args.no_pitch, "use_matchups": not args.no_matchups,
              "use_spin": not args.no_spin, "use_depth": not args.no_depth}
     for name in args.suite or ["t20i", "ipl", "odi"]:
-        run_suite(name, args.reps, args.limit, flags, args.label)
+        run_suite(name, args.reps, args.limit, flags, args.label, args.jobs)
     return 0
 
 

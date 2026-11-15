@@ -25,6 +25,8 @@ class Outcome:
     wicket: str = ""            # "" | one of DISMISSALS | "run_out"
     non_striker_out: bool = False
     ran: int = 0                # runs physically run (decides the change of strike)
+    byes: int = 0               # on a no-ball only: byes / leg byes run as well (included in extra_runs)
+    bye_kind: str = ""          # "b" | "lb" for those
 
 
 def _pick(rng: random.Random, dist: dict) -> str:
@@ -43,14 +45,17 @@ class BallModel:
     def __init__(self, basics: dict):
         self.b = basics
         self.free_hit = basics.get("free_hit", {})
+        self.no_ball = basics.get("no_ball", {})
         self.wide_runs = {int(k): v for k, v in basics["wide_runs"].items()}
         self.ro_ns = basics["run_out"]["non_striker_share"]
         self.ro_runs = {int(k): v for k, v in basics["run_out"]["runs_completed"].items()}
 
     # ------------------------------------------------------------------ probabilities
     def legal_probs(self, base: dict, bat: dict, bowl: dict, other_out: float, sit: dict,
-                    free_hit: bool, phase: str) -> dict:
-        """Probabilities of a legal ball's outcomes: W, RO, 6, 4, 0, 1, 2, 3."""
+                    free_hit, phase: str) -> dict:
+        """Probabilities of a legal ball's outcomes: W, RO, 6, 4, 0, 1, 2, 3.
+        free_hit: False, True (the ball after a no-ball) or "nb" (the no-ball itself): no bowler's wicket, and
+        the scoring rates that go with each."""
         g = sit.get
         rw = base["wkt"] * bat["wkt"] * bowl["wkt"] * g("wkt", 1.0)
         rro = base["other_out"] * other_out * g("run_out", 1.0)
@@ -59,7 +64,10 @@ class BallModel:
         rdot = base["dot"] * bat["dot"] * bowl["dot"] * g("dot", 1.0)
         rruns = base["runs"] * bat["runs"] * bowl["runs"] * g("runs", 1.0)
         if free_hit:
-            fh = self.free_hit.get(phase) or {"runs": 1.5, "four": 1.4, "six": 2.5, "dot": 0.7}
+            if free_hit == "nb":
+                fh = self.no_ball.get(phase) or {"runs": 1.0, "four": 1.0, "six": 1.0, "dot": 1.0}
+            else:
+                fh = self.free_hit.get(phase) or {"runs": 1.5, "four": 1.4, "six": 2.5, "dot": 0.7}
             rw = 0.0
             r4 *= fh["four"]
             r6 *= fh["six"]
@@ -102,17 +110,20 @@ class BallModel:
             return Outcome(legal=False, faced=False, extra="w", extra_runs=runs, ran=max(runs - 1, 0) % 4)
         bat, bwl = striker.bat[phase], bowler.bowl[phase]
         if u < (w + nb) / tot:
-            # no-ball: the batter plays it, can't be out except run out; one extra run; next ball is a free hit
-            probs = self.legal_probs(base, bat, bwl, striker.other_out, sit, True, phase)
-            o = self._legal(rng, probs, phase, bowl_type)
+            # no-ball: the batter plays it, can't be out except run out; one extra run; next ball is a free hit.
+            # Byes and leg byes run off it count as well as the penalty run.
+            probs = self.legal_probs(base, bat, bwl, striker.other_out, sit, "nb", phase)
+            o = self._legal(rng, probs, phase, bowl_type, self.no_ball.get(phase))
             o.legal = False
+            if o.extra:
+                o.byes, o.bye_kind = o.extra_runs, o.extra
             o.extra = "nb"
-            o.extra_runs = 1
+            o.extra_runs = 1 + o.byes
             return o
         probs = self.legal_probs(base, bat, bwl, striker.other_out, sit, free_hit, phase)
         return self._legal(rng, probs, phase, bowl_type)
 
-    def _legal(self, rng: random.Random, probs: dict, phase: str, bowl_type: str) -> Outcome:
+    def _legal(self, rng: random.Random, probs: dict, phase: str, bowl_type: str, nb: dict | None = None) -> Outcome:
         k = _pick(rng, probs)
         if k == "W":
             mix = self.b["dismissal"][phase].get(bowl_type) or self.b["dismissal"][phase]["unknown"]
@@ -124,11 +135,12 @@ class BallModel:
         r = int(k)
         if r == 0:
             bys = self.b["byes"][phase]
+            p_lb, p_b = (nb["p_legbye"], nb["p_bye"]) if nb and "p_bye" in nb else (bys["p_legbye"], bys["p_bye"])
             v = rng.random()
-            if v < bys["p_legbye"]:
+            if v < p_lb:
                 runs = int(_pick(rng, bys["legbye_runs"]))
                 return Outcome(legal=True, faced=True, extra="lb", extra_runs=runs, ran=runs if runs != 4 else 0)
-            if v < bys["p_legbye"] + bys["p_bye"]:
+            if v < p_lb + p_b:
                 runs = int(_pick(rng, bys["bye_runs"]))
                 return Outcome(legal=True, faced=True, extra="b", extra_runs=runs, ran=runs if runs != 4 else 0)
             return Outcome(legal=True, faced=True)
