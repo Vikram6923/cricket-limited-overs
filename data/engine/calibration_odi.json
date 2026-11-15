@@ -987,5 +987,67 @@
    "ducks per inns": 0.725922131147541,
    "chase won %": 51.70765027322405
   }
+ },
+ {
+  "when": "2026-11-15T01:27:21",
+  "suite": "odi",
+  "label": "no-ball delivery fitted on its own; byes off a no-ball kept",
+  "flags": {
+   "use_venue": true,
+   "use_pitch": true,
+   "use_matchups": true,
+   "use_spin": true,
+   "use_depth": true
+  },
+  "fixtures": 732,
+  "reps": 4,
+  "real": {
+   "1st inns runs mean": 267.5396174863388,
+   "1st inns runs sd": 69.65757239671369,
+   "1st inns wkts": 8.076502732240437,
+   "1st inns runs p10": 171,
+   "1st inns runs p90": 352,
+   "1st inns all out %": 36.0655737704918,
+   "2nd inns runs mean": 230.85928961748633,
+   "2nd inns runs sd": 63.84033305117949,
+   "2nd inns wkts": 6.7363387978142075,
+   "1st inns powerplay RPO": 4.868852459016393,
+   "1st inns powerplay wkts": 1.3538251366120218,
+   "1st inns middle RPO": 5.190564191759974,
+   "1st inns middle wkts": 3.7950819672131146,
+   "1st inns death RPO": 7.948354512870642,
+   "1st inns death wkts": 2.9275956284153004,
+   "fours per inns": 21.957650273224044,
+   "sixes per inns": 4.872950819672131,
+   "extras per inns": 12.248633879781421,
+   "50+ scores per inns": 1.625,
+   "100+ scores per inns": 0.4064207650273224,
+   "ducks per inns": 0.6967213114754098,
+   "chase won %": 52.55172413793103
+  },
+  "sim": {
+   "1st inns runs mean": 264.31830601092895,
+   "1st inns runs sd": 70.93490468832202,
+   "1st inns wkts": 8.021857923497267,
+   "1st inns runs p10": 166,
+   "1st inns runs p90": 351,
+   "1st inns all out %": 40.40300546448088,
+   "2nd inns runs mean": 231.02629781420765,
+   "2nd inns runs sd": 67.73835414765122,
+   "2nd inns wkts": 6.8275273224043715,
+   "1st inns powerplay RPO": 4.735109289617486,
+   "1st inns powerplay wkts": 1.3630464480874316,
+   "1st inns middle RPO": 5.272480944404439,
+   "1st inns middle wkts": 3.94672131147541,
+   "1st inns death RPO": 7.747791210112686,
+   "1st inns death wkts": 2.7120901639344264,
+   "fours per inns": 21.743852459016395,
+   "sixes per inns": 4.911885245901639,
+   "extras per inns": 12.87141393442623,
+   "50+ scores per inns": 1.5558401639344261,
+   "100+ scores per inns": 0.34716530054644806,
+   "ducks per inns": 0.7271174863387978,
+   "chase won %": 51.70765027322405
+  }
  }
 ]

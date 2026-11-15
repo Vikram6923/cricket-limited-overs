@@ -222,19 +222,22 @@ def _first_innings_option(xi: list[Player], team, fmt: str, base: dict, vals: Va
     (rule 2, for a dismissed player) if that beats the bowler at the break, else the bowler at the break."""
     att = attack_value(xi, team.keeper, fmt, base, vals=vals)
     lineup = sorted(xi, key=lambda p: -vals.bat(p))
-    delta = {}
-    for d in xi:
-        if d is team.keeper:
-            continue
-        rest = [p for p in xi if p is not d]
-        for inn in team.bench:
-            if _allowed(xi, team.max_overseas, d, inn):
-                delta[d, inn] = attack_value(rest + [inn], team.keeper, fmt, base, vals=vals) - att
-    by_inn: dict = {}
-    for (d, inn), v in delta.items():
-        by_inn.setdefault(inn, []).append((d, v))
-    for rows in by_inn.values():
-        rows.sort(key=lambda r: -r[1])          # the dismissed player whose loss costs least, first
+    # Plain lists of numbers from here on (this runs for 80 timelines x every wicket x every substitute): each
+    # batter's value in batting order, and per substitute the players he could replace as (place in the order,
+    # bowling change), the one whose loss costs least first. A player is out once `w` wickets are down when his
+    # place in the order is below w.
+    lv = [vals.bat(p) for p in lineup]
+    pos = {id(p): k for k, p in enumerate(lineup)}
+    by_inn = []
+    for inn in team.bench:
+        rows = []
+        for d in xi:
+            if d is not team.keeper and _allowed(xi, team.max_overseas, d, inn):
+                rest = [p for p in xi if p is not d]
+                rows.append((pos[id(d)], attack_value(rest + [inn], team.keeper, fmt, base, vals=vals) - att))
+        if rows:
+            rows.sort(key=lambda r: -r[1])
+            by_inn.append((vals.bat(inn), rows))
     balls_total = FORMATS[fmt]["overs"] * 6
     total = 0.0
     for wk in scen:
@@ -243,17 +246,16 @@ def _first_innings_option(xi: list[Player], team, fmt: str, base: dict, vals: Va
             left = balls_total - at
             if w >= 10 or left <= 0:
                 break
-            rem, gone = lineup[w + 1:], set(lineup[:w])
+            rem = lv[w + 1:]
             balls = balls_next(w, left, len(rem))
-            now = _rem_value(rem, balls, vals)
+            now = sum(v * b for v, b in zip(rem, balls))
             best = None
-            for inn, rows in by_inn.items():
-                da = next((v for d, v in rows if d in gone), None)
+            for vi, rows in by_inn:
+                da = next((v for k, v in rows if k < w), None)
                 if da is None:
                     continue
-                r = list(rem)
-                r.insert(_insert(r, inn, vals), inn)
-                gain = _rem_value(r, balls, vals) - now + da
+                i = next((k for k, v in enumerate(rem) if v < vi), len(rem))   # ahead of the first weaker batter
+                gain = sum(v * b for v, b in zip(rem[:i] + [vi] + rem[i:], balls)) - now + da
                 best = gain if best is None or gain > best else best
             if best is not None and best > brk:
                 g = best
@@ -311,27 +313,37 @@ def _best_now(team, gone: list, rem: list, w: int, balls_left: int, fmt: str, ba
               att_now: float, outs=None):
     """Best substitution at the fall of the w-th wicket: (gain, out, in, index, "bat"|"bowl") or None."""
     balls = balls_next(w, balls_left, len(rem))
-    now_bat = _rem_value(rem, balls, vals)
-    key = tuple(id(p) for p in team.players + team.bench)
+    rv = [vals.bat(p) for p in rem]              # the order still to come, as numbers (this is the hot loop)
+    now_bat = sum(v * b for v, b in zip(rv, balls))
+    players, keeper, max_os = team.players, team.keeper, team.max_overseas
+    key = tuple(id(p) for p in players + team.bench)
     if getattr(team, "_att_delta_key", None) != key:     # bowling change from each swap, while the XI is unchanged
         team._att_delta, team._att_delta_key = {}, key
     cache = team._att_delta
+    n_os = sum(1 for p in players if p.overseas) if max_os is not None else 0
+    ins = [(inn, vals.bat(inn)) for inn in team.bench]
+    same: dict = {}      # substitute -> (index, batting gain) when the player going out is not still to come
     best = None
     for out in (outs if outs is not None else gone + rem):
-        if out is team.keeper:
+        if out is keeper:
             continue
-        r0 = [p for p in rem if p is not out]
-        for inn in team.bench:
-            if not _allowed(team.players, team.max_overseas, out, inn):
+        j = next((k for k, p in enumerate(rem) if p is out), None)
+        r0 = rv if j is None else rv[:j] + rv[j + 1:]
+        for n, (inn, vi) in enumerate(ins):
+            if max_os is not None and inn.overseas and n_os - out.overseas >= max_os:
                 continue
-            r = list(r0)
-            i = _insert(r, inn, vals)
-            r.insert(i, inn)
-            bat = _rem_value(r, balls, vals) - now_bat
+            hit = same.get(n) if j is None else None
+            if hit is None:
+                i = next((k for k, v in enumerate(r0) if v < vi), len(r0))     # ahead of the first weaker batter
+                bat = sum(v * b for v, b in zip(r0[:i] + [vi] + r0[i:], balls)) - now_bat
+                if j is None:
+                    same[n] = (i, bat)
+            else:
+                i, bat = hit
             att = cache.get((id(out), id(inn)))
             if att is None:
-                att = cache[id(out), id(inn)] = attack_value([p for p in team.players if p is not out] + [inn],
-                                                             team.keeper, fmt, base, vals=vals) - att_now
+                att = cache[id(out), id(inn)] = attack_value([p for p in players if p is not out] + [inn],
+                                                             keeper, fmt, base, vals=vals) - att_now
             gain = bat + att
             if best is None or gain > best[0]:
                 best = (gain, out, inn, i, "bat" if bat >= att else "bowl")

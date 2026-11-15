@@ -933,3 +933,123 @@ says what the person is shown: "realistic" (default for new careers and League S
   explains it.
 - Careers saved before the setting load as hindsight (what they showed). The two-player auction uses the default.
 
+
+## Audit: bookkeeping fixes and speed (2026-11-15)
+
+A whole-project audit (engine, fits, server, page, scripts, tests). No change to how a ball is played: no table,
+rate or random draw was touched, so the calibration above stands. Every speed-up was checked against the engine
+before it on 520 seeded matches (T20I, ODI, IPL with the Impact Player, rain, weaker captains, random captains,
+shortened matches, every `use_*` switch), a tournament and a career season with its auction: identical scorecards.
+
+Fixed (each with a test that fails on the old code):
+- **A wicket off the last ball of an innings** brought the next batter in: he was listed "not out 0 (0)" instead
+  of "did not bat" and counted as an innings in the batting tables (about 1 innings in 20). In IPL matches the
+  side batting first could also spend its Impact Player on a batter at that moment, after its innings was over
+  (2 of 150 matches). `Innings.wicket`.
+- **Every all-out innings had its last partnership twice** (the 10th-wicket stand again as an "unbroken 11th"),
+  so the partnership chart showed an extra row and partnerships did not add up to the total.
+- **A chase stopped by rain with the chasing side ahead of par** was recorded as a win "by N wickets" with no
+  balls left; the records table then failed (`KeyError: balls_left`) and the whole tournament or season was lost
+  at the summary. Now a win by the lead over par, in runs, as scorers record a DLS result. Rare: about 1 match in
+  1,500 with rain on in India, so roughly 1 IPL season in 20.
+- **A knockout tied with no super over** (a DLS tie on the par score) had no winner and stopped the tournament
+  (`KeyError: loser`). The higher-placed side now goes through, as after a washed-out reserve day.
+  `tests/test_engine.py` (`test_last_ball_wicket_and_partnerships`,
+  `test_chase_stopped_by_rain_is_decided_by_runs`), `tests/test_tournament.py`
+  (`test_knockout_tie_without_a_super_over_has_a_winner`).
+
+Speed (interleaved old v new in one process, pinned to one core; the ratios are steadier than the times):
+
+| | before | after | |
+|---|---|---|---|
+| T20I, squads of 15 | 36.1 ms | 27.5 ms | x1.31 |
+| T20I, fixed XIs | 33.8 ms | 25.7 ms | x1.31 |
+| ODI, squads | 45.9 ms | 37.3 ms | x1.23 |
+| IPL with the Impact Player | 77.8 ms | 44.4 ms | x1.75 |
+
+Where the time was (cProfile): in IPL matches about two thirds was the Impact Player valuation
+(`impact._best_now`, `_first_innings_option`: 1.2 million `Values.bat` calls in 19 matches); elsewhere the
+bowling plan's constructor (23%, mostly hashing players as dictionary keys: 13,000 `Player.__hash__` calls a
+match), the win probability worked out twice a ball (15%) and the batting depth recomputed every ball (7%).
+- `engine/impact.py`: the two loops work on lists of numbers; a substitute's batting gain is worked out once
+  when the player going out is not among those still to come.
+- `engine/captain.py` `BowlingPlan`: lists indexed by bowler and phase in place of dictionaries keyed by Player
+  (same arithmetic in the same order, same random draws).
+- `engine/match.py`: the win probability is kept with the innings state it was worked out for (the state after
+  a ball is the state before the next); `Innings.depth` is kept until a batter goes in or a substitution
+  changes the order (`cards_changed`). This closes item 6 of the depth review above.
+- `python -m engine.calibrate --jobs N`: replays in worker processes (default: the cores but one, at most 8).
+  Each replay has its own seed, so the numbers are the same for any N; 240 replays took 9.3 s with one process
+  and 3.8 s with six, start-up included.
+
+Found and left for a decision (they change seeded results or a rule, so they are the owner's call):
+- A no-ball that also has byes or leg byes loses those runs, but the batters still change ends (`ballmodel.py`:
+  the no-ball overwrites the extra). About 1 match in 130.
+- The points table orders by points, then net run rate, then wins; ICC events and the IPL use wins before net
+  run rate. It only matters when sides level on points have different numbers of no-results or ties.
+- In a career with knowledge "realistic" the person sees what the teams believe, but the computer captains pick
+  XIs, bowlers and batting orders on the true ratings, this season's form included.
+- A career player counts as capped from the year he was really first capped, whatever happened in the career.
+- The same batters and bowler can play every super over (the laws bar the bowler and any dismissed batter from
+  the next one).
+
+
+## Audit, second part: rule fixes, the no-ball, tests, worker processes, the server by mode (2026-11-15)
+
+Decided by the owner from the list above: fix the no-ball (both items), the points order and the super overs;
+leave the belief gap and the capped status as they are.
+
+Rules and the ball model (these change seeded results; calibration re-run below):
+- **The no-ball delivery has its own rates.** It was scored at the free hit's rates, which were fitted on the
+  ball *after* a no-ball. On the no-ball itself the batter does not know yet, and the data says so
+  (`fit_basics.py`, new `no_ball` block in `basics_*.json`; multipliers on a normal ball):
+
+  | | runs: powerplay / middle / death | sixes | the free hit's runs (for comparison) |
+  |---|---|---|---|
+  | T20 (8,900 no-balls) | 0.96 / 1.03 / 1.04 | 1.10 / 1.34 / 1.43 | 1.77 / 1.73 / 1.29 |
+  | ODI (2,200 no-balls) | 1.14 / 1.20 / 1.25 | 1.82 / 2.09 / 1.96 | 2.75 / 2.47 / 1.58 |
+
+  Only the `no_ball` block was added to the two files; every other table is as committed (the raw T20 zips on
+  this computer hold 8,862 matches against the 9,557 of the committed fit, so a full refit would have moved
+  them all).
+- **Byes and leg byes off a no-ball count.** They were dropped (the no-ball overwrote the extra) while the
+  batters still changed ends. Now the penalty run goes to no-balls and the bowler, the byes to byes / leg byes
+  and nobody's figures (`Outcome.byes`, `bye_kind`; over log `nb+2lb`). Their chance on a no-ball not scored
+  off is fitted too: byes 4-7% in T20s against 1% on a legal ball (no-balls are often high or wide of the keeper).
+- **Points table:** points, then wins, then net run rate (was net run rate before wins).
+- **Super overs:** in a second or later super over a batter dismissed in an earlier one does not bat again and
+  a side's bowler does not bowl two super overs running (`captain.super_over_picks`).
+- **Fantasy Draft pool:** built in sorted player order. It was built in a set's order, which differs from run to
+  run, so equal-valued players could in principle come out in another order (never seen to change a draft).
+
+Calibration after the no-ball change (4 replays a fixture, sim before -> after, real):
+T20I first innings 167.8 -> 167.7 (168.7), extras 8.07 -> 8.09 (8.41); IPL 188.2 -> 187.7 (186.3), sixes
+8.87 -> 8.81 (8.51); ODI 264.5 -> 264.3 (267.5), extras 12.81 -> 12.87 (12.25). Nothing moved by more than
+0.3%, as expected of one ball in 250. (The Mushtaq Ali suite was not re-run: its zip is not on this computer.)
+
+Tests:
+- `python tests/run_all.py`: every script in its own process, several at a time: 64-71 s on this laptop against
+  about 5 minutes one after the other. `.github/workflows/tests.yml` runs it on every push and pull request.
+- `test_super_over_happens` played 1,500 matches (23 s) to meet a tie; it now forces one and checks more (0.3 s).
+- `test_aggression.py` had no `test_` function, so pytest ran nothing from it; it has one now.
+- New: the second super over's bars, the no-ball's rates and byes, wins before net run rate, worker processes.
+
+Worker processes for league stages (`engine/tournament.py` `set_jobs`, `--jobs` on `web_ui.py` and
+`python -m engine.tournament`): league matches nobody captains are played on a pool of processes, kept between
+runs. Every match already had its own seed and its venue by its number, so the result is the same for any
+number of processes (checked on an IPL season, a Mushtaq Ali season and a career season with weaker captains:
+identical JSON). On this laptop (2 fast cores) with 4 processes: IPL season 6.0 s -> 2.4 s once the pool is up
+(4.4 s the first time), Mushtaq Ali season 2.5 s -> 1.0 s. Knockouts, series, and any stage with a person
+captaining stay in the main process. Default: up to 4 on your own computer, 1 with `--public` (a process holds
+the ratings, and a hosted site has many visitors).
+
+The server by mode: `web_ui.py` (2,176 lines) is now `server/` - `core.py`, `runs.py`, `draft.py`,
+`auction.py`, `rooms.py`, `careers.py`, `saved.py` - with the same 43 routes and the same names (checked against
+the old file by import); `web_ui.py` starts it and still offers every name, and `web_ui.LAST = folder` still
+moves where it keeps things. `webui/app.js` (1,655 lines) is split by screen into ten files loaded in the old
+order, so the statements run exactly as before.
+
+Read in this part (no bug found beyond the draft order above): `selection.py`, `judge.py`, `draft.py`,
+`history.py`, `periods.py`, `ipl_link.py`, `domestic.py`, `leagues.py`, the rest of `auction.py`,
+`fit_basics.py`, `fit_depth.py`, `fit_impact.py`, `fit_toss.py`, `fit_dls.py`. Only scanned for hazards (unseeded
+random draws, set order reaching output, swallowed errors): the other fit scripts and `scripts/`.

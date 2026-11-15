@@ -318,7 +318,7 @@ const HL = (() => {
 
   function footText(e) {
     if (e.wicket) return `${esc(e.out || '')} ${esc(e.how || e.wicket)} · ${esc(e.score)}`;
-    const extra = e.extra === 'w' ? `wide${e.extra_runs > 1 ? ` (${e.extra_runs})` : ''}` : e.extra === 'nb' ? 'no-ball, free hit next'
+    const extra = e.extra === 'w' ? `wide${e.extra_runs > 1 ? ` (${e.extra_runs})` : ''}` : e.extra === 'nb' ? `no-ball${e.byes ? ` and ${e.byes} ${e.bye_kind === 'lb' ? 'leg bye' : 'bye'}${e.byes > 1 ? 's' : ''}` : ''}, free hit next`
       : e.extra === 'b' || e.extra === 'lb' ? `${e.extra_runs} ${e.extra === 'lb' ? 'leg bye' : 'bye'}${e.extra_runs > 1 ? 's' : ''}` : '';
     const runs = e.runs ? `${e.runs} run${e.runs > 1 ? 's' : ''}` : extra ? '' : 'no run';
     return [runs, extra].filter(Boolean).join(', ') + ` · ${esc(e.score)}${e.free_hit ? ' · free hit' : ''}`;
