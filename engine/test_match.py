@@ -24,7 +24,7 @@ from .captain import choose_keeper
 from .data import FORMATS, Player, baseline, basics, player
 from .match import Team
 from .scorebook import BatInns, Scorebook
-from .test_situation import TestSituation
+from .test_situation import TestSituation, tail_role, tail_table
 
 FMT = "test"
 PHASE = "all"
@@ -244,6 +244,9 @@ class TestInnings(Scorebook):
                 mult = sit.multipliers(cell, self.striker.balls, btype, m.overs_bowled, age)
                 if m.use_matchups:
                     mult = sit.with_matchup(mult, striker.p.bat_hand, bowler.id)
+                if m.use_tail and self.wkts >= m.tail_wkts and (not desk or desk.farms(self)):
+                    mult = sit.with_tail(mult, tail_role(striker.pos, self.non_striker.pos, self.wkts),
+                                         self.wkts, balls)
             else:
                 mult = NO_SITUATION
             if desk:                                  # a person's bars (5 and 5: nothing changes)
@@ -368,7 +371,7 @@ class TestMatch:
                  follow_on: bool | None = None, nightwatchman: bool = True, host: str | None = None,
                  use_weather: bool = True, use_home: bool = True, use_wdl: bool = True,
                  control: dict | None = None, skill: dict | None = None, era: dict | bool = True,
-                 use_matchups: bool = True, day_night: bool = False, timeless: bool = False,
+                 use_matchups: bool = True, use_tail: bool = True, day_night: bool = False, timeless: bool = False,
                  last_hour: bool = True, injuries: bool = True):
         """toss: "a" | "b" (who wins it); decision: "bat" | "bowl"; days, day_overs: the match's length
         (default 5 x 90); declare: False = nobody declares; follow_on: True / False = always / never enforced when
@@ -432,6 +435,8 @@ class TestMatch:
         self.sit = TestSituation()
         self.use_situation = use_situation
         self.use_matchups = use_matchups
+        self.use_tail = use_tail and tail_table() is not None      # batting with the tail, as real sides do
+        self.tail_wkts = tail_table()["wickets"][0] if self.use_tail else 99
         self.declare_on, self.follow_on_spec, self.nightwatchman = declare and not timeless, follow_on, nightwatchman
         # each side's XI from its squad: its own stream, so the balls of the match are drawn as before
         self.teams = [make_team(sp, self.base, random.Random(zlib.crc32(f"test-xi|{self.seed}|{k}".encode())),

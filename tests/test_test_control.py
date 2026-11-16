@@ -74,7 +74,8 @@ class RandomCaptain(Captain):
             side = q["side"]
             who = [q["striker"]["id"], q["non_striker"]["id"]] if side == "bat" else [q["bowler"]["id"]]
             return {side: {i: r.randint(0, 11) for i in who}, "until": r.choice(test_control.UNTIL + ("junk",)),
-                    "declare": r.random() < 0.02, "change": r.random() < 0.2}
+                    "declare": r.random() < 0.02, "change": r.random() < 0.2,
+                    "farm": r.choice((True, False, "junk"))}
         return None
 
 

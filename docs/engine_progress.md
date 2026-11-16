@@ -1214,3 +1214,11 @@ Details and the differences from the plan are in `docs/test_design.md` ("Phase 6
   Average, 58 to 64% against Easy). 25 of 25 test scripts and the golden test pass. Not built: 8-ball overs,
   uncovered pitches, making up lost time, fielding quality (no data for the last three).
   Details: `docs/test_design.md` ("Eras, selection, careers and playing conditions").
+
+- 2026-11-16: **Batting with the tail in Tests.** With seven or more down a batter left with a tailender now
+  farms the strike as real sides do, from a table fitted by who is on strike, wickets down and ball of the
+  over (`engine/fit/fit_test_tail.py`, `data/engine/test_tail.json`, `TestSituation.with_tail`). With the
+  last man in the batter takes 55.1% of the strike (real 57.4%, 46.6% before). A person captaining has a
+  Farm chip beside the bars to turn it off for their side; over 500 Tests each way it made no measurable
+  difference to runs or results. Modern calibration: 29 of 32 gates. 26 of 26 test scripts and the golden
+  test pass. Details: `docs/test_design.md` ("Batting with the tail").

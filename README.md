@@ -421,6 +421,12 @@ going after ten days), and can make it a day-night Test: with the pink ball wick
 and the scoring rate is unchanged, as in the 25 day-night Tests played to 2025. On the last day the captains
 shake hands in the last hour (15 overs) when no result is possible.
 
+**Batting with the tail.** With seven or more wickets down a batter left with a tailender farms the strike as
+real sides do: he turns down singles early in the over, takes one off the fourth or fifth ball and hits out,
+scoring about a quarter faster and getting out about half again as often, while the tailender faces less and
+lasts longer. With the last man in the batter takes 55% of the strike (57% in real Tests; 46% before this). When
+you captain, a **Farm** chip beside the bars turns it off for your side ("Just bat").
+
 **Injuries.** A batter retires hurt about once in 20 Tests and a fielder goes off for good about once in 25, the
 rates in the real scorecards. Most take no further part: the side bats a man short, or, from 2019 and when it has
 a squad to choose from, a like-for-like replacement comes in (three times in four, as in real Tests).
@@ -603,6 +609,7 @@ python -m engine.fit.probe_test        # Test data probes (cell sizes and raw ra
 python -m engine.fit.fit_test_situation # Tests: settling in, pitch wear, ball age, innings x wickets x lead
 python -m engine.fit.fit_test_captain  # Tests: declarations, follow-on, bowling spells, toss (after the line above)
 python -m engine.fit.fit_test_aggression  # Tests: the runs-v-risk curve a person's bars move along (after fit_test_situation)
+python -m engine.fit.fit_test_tail     # Tests: batting with the tail, by ball of the over (after fit_test_situation)
 python -m engine.fit.fit_test_conditions # Tests: hosts, overs lost in a day, home edge, spin edge by ground
 python -m engine.fit.fit_test_venues   # Tests: venue factors and the pitch of the day (replays; after the line above)
 python scripts/build_home_grounds.py   # home grounds, and each host's Test grounds (after fit_test_conditions)
@@ -634,6 +641,7 @@ python tests/test_test_tournament.py   # Test tournaments, the World Test Champi
 python tests/test_test_eras.py         # era factors, Test matchups, the computer's new ball, the learned Test XI
 python tests/test_test_career.py       # the Test career and its server routes
 python tests/test_test_conditions.py   # length of a Test, timeless and day-night Tests, the last hour, injuries
+python tests/test_test_tail.py         # batting with the tail: farming the strike, a person's switch
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -671,7 +679,7 @@ engine/            match engine (library)
   test_match.py    Test matches: days and sessions, two innings a side, follow-on, results
   test_captain.py  Test captaincy: declarations, follow-on, bowling spells, nightwatchman
   test_control.py  a person captains a Test: the questions, the bars, key moments, the captaincy report
-  test_situation.py  Test situation tables: settling in, pitch wear, ball age, lead, the last innings
+  test_situation.py  Test situation tables: settling in, pitch wear, ball age, lead, the last innings, batting with the tail
   test_conditions.py  Test conditions: the host of a ground, overs lost in a day, the home edge
   test_calibrate.py  replay real Tests and compare, with the plan's gates
   test_series.py   Test series: host, grounds in turn, the result with draws, Test statistics

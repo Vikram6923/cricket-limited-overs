@@ -1038,3 +1038,94 @@ and the plan's deferred playing conditions (length of a Test, day-night, the las
   game in the browser; the server tests cover both.
 - A two-player Test draft or auction was not played in the browser.
 - Day-night, timeless and injuries were not checked against anything but their own fits.
+
+# Batting with the tail: farming the strike (2026-11-16)
+
+## What was missing
+
+The engine knew only "6 to 9 wickets down". A batter left with a tailender batted like anyone else and the
+strike went wherever the runs took it, so with the last man in the batter faced 46% of the balls; in real Tests
+he faces 57%. A person had no say in it either.
+
+## What real sides do (899 Tests, ball by ball)
+
+A tailender is a man who came in at No. 9, 10 or 11; a batter is one who came in at No. 1 to 8.
+
+- The batter's share of the strike with a tailender: 47% with seven down, 50% with eight, 57% with nine. So
+  farming is mostly a last-wicket matter.
+- With a tailender the batter takes a single off 20% of balls 1 to 3 of an over and 25 to 26% of balls 4 and 5.
+  With another batter it is 15 to 16% on every ball.
+- Against his own figures with batters for partners he scores 27% faster and is out 52% more often.
+- A tailender is out every 30 balls with a batter and every 22 with another tailender; a last pair of two
+  tailenders scores at 55 a hundred balls against 45.
+
+## What was built
+
+- **The table** (`engine/fit/fit_test_tail.py`, `data/engine/test_tail.json`): observed against ratings x the
+  situation tables, by who is on strike (the batter, the tailender he shields, a tailender with a tailender),
+  wickets down (7, 8, 9) and ball of the over (1-3, 4-5, 6). 27 cells on 233,000 balls, each shrunk toward 1
+  with the situation fit's 400 pseudo-balls. With nine down the batter's cells are: balls 1-3 runs x0.99,
+  dots x1.09, sixes x2.8, wickets x1.55; balls 4-5 runs x1.43, dots x0.85, wickets x1.68.
+- **The engine** (`TestSituation.with_tail`, `tail_role`; `TestMatch(use_tail=True)`): the cell multiplies the
+  ball's rates after the situation and the matchup. Nothing moves the strike by hand: fewer runs early in the
+  over and more singles late do it. Position is the order of coming in, so a nightwatchman counts as a batter.
+- **A person's switch** (`Desk.farms`, the bars question's `tail`, the answer's `farm`): when a tailender is in
+  with seven or more down the bars show a Farm chip. On (the default) is what the computer does, so a match
+  played as the computer would is still the same match. Off: the table is not used for that side and both
+  simply bat, each with his own bars. The switch stays where it was put for the rest of the match.
+
+## Measurements
+
+One run, 672 Tests each way (eight sides of 2016-19, every pair home and away, 12 times), the same seeds:
+
+| | Real | Table off | Table on |
+|---|---|---|---|
+| Batter's share of the strike, 7 down | 47.3% | 48.2% | 47.3% |
+| 8 down | 50.3% | 47.3% | 48.3% |
+| 9 down | 57.4% | 46.6% | 55.1% |
+| Batter on strike for the first ball of an over | 65.5% | 60.7% | 63.5% |
+| Batter with a tailender: strike rate, balls a wicket | 63.5, 45.5 | 56.3, 57.5 | 62.5, 48.4 |
+| Tailender with a batter | 44.9, 30.4 | 47.3, 29.0 | 44.7, 31.0 |
+| Two tailenders | 54.9, 22.8 | 46.7, 28.3 | 52.4, 23.8 |
+| Runs a wicket with 7, 8, 9 down | 21.9, 17.6, 13.8 | 22.7, 17.3, 13.7 | 22.8, 17.4, 13.2 |
+
+The share with eight and nine down is still about two points short. Not tuned: the cells are as fitted. A
+first run of 224 Tests showed the last wicket worth 11.9 runs with the table on against 14.2 off; over 672 it
+is 13.2 against 13.7, so that was noise.
+
+Modern calibration (473 Tests, 4 replays), one run: 29 of 32 gates. Runs per wicket 31.19 (real 30.80, 31.12
+before), run rate 3.37 (3.31; 3.34 before), draws 17.1% (13.1%; 18.7% before). The misses are draws, wins by
+runs and five-fors, as before; follow-ons enforced came back inside its gate (0.088 against 0.091), which at
+4 replays is noise. The win / draw / loss table was not rebuilt.
+
+A person's switch, 500 Tests each, India (2023 side) captained with only the switch changed, Australia the
+computer: with farming on India added 45.4 runs after the seventh wicket, with it off 46.0 (about 770 innings
+each, standard error near 2); 31.90 and 31.98 runs a wicket; 215 and 224 wins. No difference that this run
+can see: the switch changes who scores the late runs and how fast, not how many. Recorded, not tuned.
+
+## Constants that are not fitted
+
+- The line between a batter and a tailender: No. 9 (`TAIL_FROM`). Cricsheet has no roles. With seven down
+  the real share of the strike is still even, and at seven down No. 9 is the first man the table can see.
+- The ball-of-the-over groups 1-3, 4-5, 6: where the real singles rate changes.
+
+## Not built
+
+- Farming is not a choice the computer makes case by case (a strong No. 9, a batter on 95): it is the average
+  of what real sides did. A real captain farms less with a capable No. 9; here that shows only through the
+  No. 9's own ratings.
+- The switch is for the side, not for one pair or one batter.
+
+## Checks
+
+- `tests/test_test_tail.py` (3): the table; the computer's batters take more of the strike with the last man
+  in than with the table off; a person's switch (on is the computer's match, off changes it, the question
+  carries the stand only when a tailender is in). The random captain in `tests/test_test_control.py` now also
+  sends the switch. 26 test scripts and the golden test pass.
+- Browser (port 5071): a captained Test at 365/7; the Farm chip, its sheet, "Just bat", and the next question
+  showing it off.
+
+## Not verified
+
+- The switch in a two-player game in the browser (the same question and answer go through the room; the
+  server tests cover the room, not this field).

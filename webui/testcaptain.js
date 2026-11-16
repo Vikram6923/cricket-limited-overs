@@ -82,13 +82,27 @@ function testBowlerCard(p, sug, fig) {
     <span class="left"><b>${p.overs_today}</b> today</span></button>`;
 }
 
-/* the chips beside the bars: Declare (batting) or Change bowler (in the field) */
+/* the chips beside the bars: Farm the strike (batting with the tail) and Declare, or Change bowler (in the field) */
 function testBarChips(q) {
-  if (q.side === 'bat' && q.can_declare) return '<button class="ns-chip" id="cap-declare">Declare</button>';
+  const farm = q.side === 'bat' && q.tail ? `<button class="ns-chip" id="cap-farm" title="Batting with the tail: farm the strike">Farm: ${q.tail.on ? 'on' : 'off'} &#9662;</button>` : '';
+  if (q.side === 'bat' && q.can_declare) return farm + '<button class="ns-chip" id="cap-declare">Declare</button>';
+  if (farm) return farm;
   if (q.side === 'bowl' && q.can_change) return '<button class="ns-chip" id="cap-change">Change bowler</button>';
   return '';
 }
 function testBarWire(q, send) {
+  if ($('cap-farm')) $('cap-farm').onclick = () => {
+    const t = q.tail;
+    CAP.sheetKind = 'farm';
+    openSheet(`<h3>Batting with the tail</h3>
+      ${t.senior ? `<p><b>Farm the strike</b>: ${esc(sur(t.senior))} turns down singles early in the over, takes one off the fourth or fifth ball and hits out. He scores faster and is out more often; the tailender faces less and lasts longer.</p>`
+        : '<p>Two tailenders are in. <b>Farm the strike</b> here means they swing as real last pairs do: quicker runs, out sooner.</p>'}
+      <p class="muted small" style="margin-top:8px">${t.real_share ? `Real sides give the batter about ${Math.round(100 * t.real_share)}% of the strike from here. ` : ''}Off: both simply bat, each with his own bars.</p>
+      <div class="sh-row" style="margin-top:12px"><button class="btn ${t.on ? 'go' : 'sec'}" id="fm-on">Farm the strike</button><button class="btn ${t.on ? 'sec' : 'go'}" id="fm-off">Just bat</button></div>`);
+    const set = v => { t.on = v; closeSheet(); drawBars(); };
+    $('fm-on').onclick = () => set(true);
+    $('fm-off').onclick = () => set(false);
+  };
   if ($('cap-change')) $('cap-change').onclick = () => send('over', {change: true});
   if ($('cap-declare')) $('cap-declare').onclick = () => {
     const s = q.state, a = q.advice || {};

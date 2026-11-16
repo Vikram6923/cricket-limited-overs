@@ -456,7 +456,7 @@ function qBall(q) {
   else CAP.vals[q.bowler.id] = q.bowler.bars;
   drawBars();
   const test = q.unit === 'over';              // a Test: the bars are set before an over
-  const send = (until, more) => { CAP.keys = null; HL.stop(); capSend({...(bat ? {bat: CAP.vals} : {bowl: CAP.vals}), until, ...(more || {})}); };
+  const send = (until, more) => { CAP.keys = null; HL.stop(); capSend({...(bat ? {bat: CAP.vals} : {bowl: CAP.vals}), until, ...(bat && q.tail ? {farm: !!q.tail.on} : {}), ...(more || {})}); };
   const next = () => send(capLen() === 'key' ? 'key' : test ? 'over' : 'ball');     // Key moments: the engine plays on between them
   CAP.send = send;
   actMain(test ? MAIN_OVER : MAIN_LABEL.ball, next, true);

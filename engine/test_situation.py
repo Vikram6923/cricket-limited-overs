@@ -7,6 +7,10 @@ lead, and the last innings by wickets down by runs needed per over left (chase, 
 Matchups (engine/fit/fit_test_matchups.py): batting hand x bowling kind, a table of its own that moves runs and
 wickets between matchups and leaves each player's level alone.
 
+Batting with the tail (engine/fit/fit_test_tail.py): with seven or more down, how a batter left with a
+tailender, the tailender he shields and a last pair of tailenders really bat, by ball of the over (`with_tail`).
+That is what farms the strike. A person may turn it off for their own side.
+
 A person's bars (batting approach, bowling plan; 1-9, 5 = as real sides play) move a ball along the runs-v-risk
 curve of engine/fit/fit_test_aggression.py (`with_bars`). At bar 5, which is all a computer side ever uses,
 nothing changes.
@@ -36,6 +40,24 @@ def bars_table() -> dict | None:
 def matchup_table() -> dict:
     p = DATA / "engine" / "test_matchups.json"
     return json.loads(p.read_text(encoding="utf-8"))["matchup"] if p.exists() else {}
+
+
+@lru_cache(maxsize=None)
+def tail_table() -> dict | None:
+    p = DATA / "engine" / "test_tail.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+def tail_role(striker_pos: int, partner_pos: int, wkts: int) -> str | None:
+    """The striker's part in a stand with the tail ('senior', 'shielded', 'last'); None when the table has
+    nothing to say: fewer wickets down than it covers, or no tailender in."""
+    t = tail_table()
+    if not t or wkts < t["wickets"][0]:
+        return None
+    tf = t["tail_from"]
+    if striker_pos >= tf:
+        return "last" if partner_pos >= tf else "shielded"
+    return "senior" if partner_pos >= tf else None
 
 
 PACE_KINDS = {"fast", "fast_medium", "medium_fast", "medium"}
@@ -114,6 +136,22 @@ class TestSituation:
         if hit is None or hit[0] is not mult:
             mu = (matchup_table().get(hand) or {}).get(kind)
             hit = (mult, {name: v * mu.get(name, 1.0) for name, v in mult.items()} if mu else mult)
+            self._cache[key] = hit
+        return hit[1]
+
+    def with_tail(self, mult: dict, role: str | None, wkts: int, legal_in_over: int) -> dict:
+        """mult x how real sides bat with the tail. role: from tail_role(); legal_in_over: legal balls already
+        bowled in the over (0 to 5)."""
+        if not role:
+            return mult
+        t = tail_table()
+        g = bisect.bisect_right(t["ball_edges"], legal_in_over)
+        key = (id(mult), "tail", role, wkts, g)
+        hit = self._cache.get(key)
+        if hit is None or hit[0] is not mult:
+            rows = (t["cells"].get(role) or {}).get(str(wkts))
+            hit = (mult, {name: v * rows[g][j] for j, (name, v) in
+                          enumerate((n, mult[n]) for n in self.metrics)} if rows else mult)
             self._cache[key] = hit
         return hit[1]
 

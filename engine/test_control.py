@@ -38,7 +38,7 @@ import bisect
 
 from . import test_captain
 from .data import Player
-from .test_situation import NORMAL_BARS
+from .test_situation import NORMAL_BARS, tail_role, tail_table
 
 PHASE = "all"
 # Presentation pace and re-asking: none of these change how a ball is played.
@@ -76,6 +76,7 @@ class Desk:
         self.control = {t.name: control[t.name] for t in m.teams if t.name in control}
         self.log = {name: [] for name in self.control}          # the person's calls, for the report
         self.bars = {name: {} for name in self.control}         # team -> player id -> bars
+        self.farm = {name: True for name in self.control}       # team -> bat with the tail as real sides do
         self.pace: dict = {}                                    # team -> how far to play before the next pause
         self.seen: dict = {}                                    # team -> (innings, balls already shown)
         self.declare_after: dict = {}                           # innings number -> no "declare?" before this over
@@ -244,6 +245,25 @@ class Desk:
         wb = self.bars_of(inn.bowl, bowler) if self.manual(inn.bowl, "ball", inn) else NORMAL_BARS
         return bb, wb
 
+    def farms(self, inn) -> bool:
+        """Does the batting side bat with the tail as real sides do (farm the strike, shield the tailender)?
+        Always for a computer side and for a person who leaves the bars to it; a person may turn it off."""
+        return self.farm.get(inn.bat.name, True) or not self.manual(inn.bat, "ball", inn)
+
+    def tail_stand(self, inn) -> dict | None:
+        """For the bars question: the stand with the tail now at the crease, or None."""
+        m = self.m
+        if not m.use_tail or inn.wkts < m.tail_wkts:
+            return None
+        t = tail_table()
+        a, b = inn.striker, inn.non_striker
+        roles = {tail_role(a.pos, b.pos, inn.wkts), tail_role(b.pos, a.pos, inn.wkts)}
+        if not roles - {None}:
+            return None
+        senior = a if a.pos < t["tail_from"] else b if b.pos < t["tail_from"] else None
+        return {"on": self.farm.get(inn.bat.name, True), "senior": senior.p.name if senior else None,
+                "real_share": t["real_strike_share"].get(str(inn.wkts)) if senior else None}
+
     def key_moment(self, inn) -> bool:
         c = self.m.clock
         n = len(inn.overs)
@@ -292,6 +312,8 @@ class Desk:
                     mine[str(pid)] = min(9, max(1, int(v)))
                 except (TypeError, ValueError):
                     pass
+        if isinstance(ans.get("farm"), bool):
+            self.farm[team.name] = ans["farm"]
 
     def _batter(self, inn, c) -> dict:
         m = self.m
@@ -306,6 +328,7 @@ class Desk:
              "this_over": [], "free_hit": False, "projected": None, "default": None, "unit": "over",
              "key": self.key_moment(inn),
              "striker": self._batter(inn, inn.striker), "non_striker": self._batter(inn, inn.non_striker),
+             "tail": self.tail_stand(inn) if batting else None,
              "can_declare": batting and inn.number < 4 and self.m.declare_on,
              "advice": self.declare_advice(inn, self.m.clock.left, change_overs) if batting and inn.number < 4 else None,
              "can_change": not batting and self.manual(team, "bowler", inn)}
