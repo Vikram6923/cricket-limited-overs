@@ -1,0 +1,19 @@
+{
+ "balls": 1715672,
+ "retired": 47,
+ "back_innings": 0,
+ "back_match": 7,
+ "absent": 38,
+ "lost_since": 33,
+ "replaced_since": 25,
+ "subs_from": 2019,
+ "retire": {
+  "per_ball": 2.739451363663917e-05,
+  "returns": 0.0,
+  "plays_on": 0.14893617021276595
+ },
+ "field": {
+  "per_ball": 2.2148755706218904e-05
+ },
+ "replaced": 0.7575757575757576
+}

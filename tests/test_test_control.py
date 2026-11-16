@@ -211,7 +211,12 @@ def test_new_ball():
         waited += len(ages)
         taken += sum(e["kind"] == "new_ball" for e in plain["events"])
         yes = Captain("India", manual={"new_ball"}, new_ball=lambda q: True)
-        assert strip(play(seed, {"India": yes})) == plain
+        card = play(seed, {"India": yes})
+        check_card(card, captained=True)
+        for inn in card["innings"]:               # "take it" every time: a new ball every 80 overs
+            if inn["bowling_team"] == "India":
+                n = sum(e["kind"] == "new_ball" and e["innings"] == inn["number"] for e in card["events"])
+                assert n == (len(inn["overs_log"]) - 1) // test_captain.NEW_BALL_OVERS
     assert taken > 0 and waited > 0 and long_innings > 0, (taken, waited, long_innings)
 
 

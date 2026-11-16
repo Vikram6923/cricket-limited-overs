@@ -15,7 +15,7 @@ function testBugHTML(q) {
   if (s.runs === undefined) {
     return `<div class="bug pre" style="--bat:${tcol(a).c};--bowl:${tcol(b).c}">
       <div class="tm">${badge(a, 'md')}<div><div class="lbl">${a === q.team ? 'You' : 'Opponent'}</div><div class="nm">${esc(dn(a))}</div></div></div>
-      <div class="mid"><div class="need">Test · ${s.days} days</div><div class="muted small">${esc(s.venue || 'Neutral venue')} · pitch: ${esc(s.pitch || '–')}</div></div>
+      <div class="mid"><div class="need">${s.timeless ? 'Timeless Test' : `Test · ${s.days} days`}${s.day_night ? ' · day-night' : ''}</div><div class="muted small">${esc(s.venue || 'Neutral venue')} · pitch: ${esc(s.pitch || '–')}</div></div>
       <div class="tm r">${badge(b, 'md')}<div><div class="lbl">${b === q.team ? 'You' : 'Opponent'}</div><div class="nm">${esc(dn(b))}</div></div></div></div>`;
   }
   const bat = s.batting, bowl = bat === a ? b : a, w = s.wdl;

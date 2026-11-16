@@ -283,7 +283,7 @@ function scoreHTML(q) {
   const s = q.state || {};
   if (s.runs === undefined) {           // before the match: toss and XI
     return `<h3>${esc(dnText(s.match, capTeams(q)))}</h3>
-      <div class="sb-line">${s.format === 'test' ? `Test, ${s.days} days` : `${s.format === 'odi' ? 'ODI' : 'T20'}, ${s.overs} overs a side`} · v ${esc(dn(s.opponent))}</div>
+      <div class="sb-line">${s.format === 'test' ? (s.timeless ? 'Timeless Test' : `Test, ${s.days} days`) + (s.day_night ? ', day-night' : '') : `${s.format === 'odi' ? 'ODI' : 'T20'}, ${s.overs} overs a side`} · v ${esc(dn(s.opponent))}</div>
       <div class="sb-line">Venue: <b>${esc(s.venue || 'neutral')}</b></div>
       <div class="sb-line">Pitch: <b>${esc(s.pitch || '–')}</b></div>
       ${q.toss ? `<div class="sb-line" style="margin-top:6px">${esc(q.toss)}</div>` : ''}

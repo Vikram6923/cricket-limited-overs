@@ -155,7 +155,9 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             host = "neutral" if where == "neutral" else (nation_of(b) or "neutral") if where == "away" else None
             res = play_test_series(a, b, n=int(params.get("series") or 1), comp=comp, year=year, venues=venues_,
                                    seed=seed, on_match=on_match, host=host, control=control,
-                                   best_of=bool(params.get("best_of")))
+                                   best_of=bool(params.get("best_of")), **test_options(params))
+            if params.get("draft_info"):       # drafted or bought squads
+                res["draft"] = params["draft_info"]
         elif params["mode"] == "mp":           # a single match or a best-of series between the two players
             a, b = params["specs"]
             res = play_series(a, b, n=int(params.get("series") or 1), best_of=True,
@@ -172,7 +174,8 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             # a person may captain one side (engine/test_control.py); the other is the fitted captain, or a
             # weaker one (engine/test_captain.py Loose)
             res = play_test_series(t1, t2, n=int(params["matches"]), comp=comp, year=year, venues=venues_, seed=seed,
-                                   on_match=on_match, host=host, control=control, skill=skill)
+                                   on_match=on_match, host=host, control=control, skill=skill,
+                                   **test_options(params))
         elif params["mode"] == "wtc":          # the World Test Championship: home and away series, then a final
             specs = [team_spec(t, fmt, size, ym, v) for t in params["teams"]]
             res = play_wtc(specs, comp=comp, year=year, tests=int(params.get("tests") or 2), seed=seed,
@@ -291,6 +294,8 @@ def api_meta():
         "test_hosts": sorted(test_grounds()),          # nations with Test grounds (a series' host)
         "teams": load_teams(), "has_results": (V().last / "summary.json").exists(), "saved": saved_runs(),
         "careers": careers_list(),
+        "test_career": {"years": test_career.start_years(),
+                        "nations": {str(y): test_career.nations_in(y) for y in test_career.start_years()}},
         "job": V().job.to_dict() if V().job else None,
         "public": bool(app.config.get("MULTI")),
     })
@@ -364,13 +369,21 @@ def api_run():
             return jsonify(error=err), 503
         if p.get("mode") in ("league", "domestic", "career"):
             p["fmt"] = "t20"
+        test_career_run = False
+        if p.get("mode") == "career":           # a Test career's seasons are Tests
+            try:
+                test_career_run = getattr(load_career(p.get("career"), v), "fmt", "t20") == "test"
+            except FileNotFoundError:
+                return jsonify(error="Unknown career."), 400
+            if test_career_run:
+                p["fmt"] = "test"
         if p.get("mode") == "wtc":
             p["fmt"] = "test"
         fmt = p.get("fmt")
         if fmt not in FMTS:
             return jsonify(error="Choose T20, ODI or Test."), 400
         test = fmt == "test"
-        if test and p.get("mode") not in TEST_MODES:
+        if test and p.get("mode") not in TEST_MODES and not test_career_run:
             return jsonify(error=NOT_FOR_TESTS), 400
         label = lambda e: history.team_name(e["nation"], int(e["y1"]), int(e["y2"])) if isinstance(e, dict) else e
         if p.get("mode") == "series":
@@ -386,6 +399,8 @@ def api_run():
                 return jsonify(error=f"A Test series has {TEST_SIZES[0]} to {TEST_SIZES[-1]} matches."), 400
             if test and p.get("host") not in (None, "", "home", "away", "neutral"):
                 return jsonify(error="The series is played at home, away or on neutral grounds."), 400
+            if test and str(p.get("length") or "5") not in TEST_LENGTHS:
+                return jsonify(error="A Test lasts three, four, five or six days, or is timeless."), 400
             if not 1 <= n <= 7:
                 return jsonify(error="A series has 1 to 7 matches."), 400
             title = f"{a} v {b}" + (f" - {n}-{'Test' if test else 'match'} series" if n > 1 else "")
@@ -460,7 +475,7 @@ def api_run():
                 return jsonify(error="Unknown career."), 400
             if car.phase != "season":
                 return jsonify(error="Hold the auction before the season."), 400
-            p["fmt"], p["comp"], p["year"] = "t20", car.league, car.cond_year()
+            p["fmt"], p["comp"], p["year"] = getattr(car, "fmt", "t20"), car.league, car.cond_year()
             total = car.match_total() + car.background_matches()
             title = f"{car.name} - season {car.season_label}" + (" and the IPL" if car.background_matches() else "")
             if p.get("captain") and car.user:

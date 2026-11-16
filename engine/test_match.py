@@ -18,7 +18,7 @@ import math
 import random
 import zlib
 
-from . import conditions, test_captain, test_conditions, test_control, test_wdl
+from . import conditions, test_captain, test_conditions, test_control, test_selection, test_wdl
 from .ballmodel import NO_SITUATION, BallModel
 from .captain import choose_keeper
 from .data import FORMATS, Player, baseline, basics, player
@@ -33,9 +33,13 @@ BREAKS = ("Lunch", "Tea", "Stumps")
 ORDINAL = ("1st", "2nd")
 
 
-def make_team(spec: dict) -> Team:
+def make_team(spec: dict, base: dict | None = None, rng: random.Random | None = None,
+              host: str | None = None) -> Team:
     """spec as for limited overs: {"name", "players": [id | Player | {"id", "name"}], "keeper"?, "captain"?,
-    "order"? (explicit batting order), "squad"? (pick the XI by rule), "years"?, "years_mode"?}."""
+    "order"? (explicit batting order), "squad"? (the XI is picked from it), "years"?, "years_mode"?}.
+    base, rng, host: for the learned pick from a squad (engine/test_selection.py: the era's baseline, the
+    stream that redraws the ratings from their uncertainty, the host country); without a base, or with no
+    fitted model, the XI is picked by the rule of test_captain.select_xi."""
     yrs, ym = spec.get("years"), spec.get("years_mode") or "blend"
 
     def mk(x):
@@ -45,7 +49,10 @@ def make_team(spec: dict) -> Team:
             return player(FMT, x["id"], x.get("name"), spec.get("team_level_as") or None, years=yrs, years_mode=ym)
         return player(FMT, x, years=yrs, years_mode=ym)
     squad = [mk(x) for x in spec.get("squad") or []]
-    ps = test_captain.select_xi(squad) if squad else [mk(x) for x in spec.get("players", [])]
+    if squad:
+        ps = (test_selection.choose(squad, base, rng, host) if base else None) or test_captain.select_xi(squad)
+    else:
+        ps = [mk(x) for x in spec.get("players", [])]
     if len(ps) < 2:
         raise ValueError(f"{spec.get('name')}: a side needs at least two players")
     by_id = {p.id: p for p in ps}
@@ -110,14 +117,21 @@ class TestInnings(Scorebook):
 
     def __init__(self, m: "TestMatch", bat: Team, bowl: Team, number: int, target: int | None = None,
                  follow_on: bool = False):
-        super().__init__(bat, bowl, number, m.rng)
+        fit = [p for p in bat.order if p not in m.absent]
+        super().__init__(bat, bowl, number, m.rng, fit if len(fit) < len(bat.order) else None)
         self.m = m
+        self.retired: list = []                        # (place in the order, card) of batters retired hurt
+        self.absent_hurt = [p.name for p in bat.order if p in m.absent]
         self.target, self.follow_on = target, follow_on
         self.lead0 = m.total(bat) - m.total(bowl)      # the batting side's lead before this innings
         self.declared = False
         self.ended: str | None = None                  # "all out" | "declared" | "target" | "time"
         self.ball_start = 0                            # the over at which the ball in use was new
+        self.bowl_types = {p.name: p.bowl_type for p in bowl.players}
         self.bowling = test_captain.Bowling(bowl.players, bowl.keeper, m.crng, m.loose.get(bowl.name))
+        for p in bowl.players:
+            if p in m.absent:
+                self.bowling.swap(p, None)
         self.mode: str | None = None                   # last innings: "chase" | "steady" | "save"
         self.nightwatchmen: list[str] = []
         self.ball_log: list[dict] = []                 # deliveries, for a person's field replay (engine/test_control.py)
@@ -157,7 +171,7 @@ class TestInnings(Scorebook):
         m, clock = self.m, self.m.clock
         while not self.done:
             m.lose_time(self)
-            if clock.left <= 0:
+            if clock.left <= 0 or m.agreed_draw(self):
                 self.ended = "time"
                 break
             if m.desk and m.desk.over_start(self, CHANGE_OVERS):      # a person declares before the over
@@ -172,10 +186,21 @@ class TestInnings(Scorebook):
                     self.declared, self.ended, self.done = True, "declared", True
             m.over_done(self, clock.spend(1))
         self.done = True
+        for i, c in reversed(self.retired):            # the retired hurt go back to their places on the card
+            self.cards.insert(i, c)
+        for i, c in enumerate(self.cards):
+            c.pos = i + 1
         how = {"declared": "declared at ", "time": "", "target": "", "all out": "all out for "}[self.ended]
         score = str(self.runs) if self.ended == "all out" else self.score_str()
         self.event(f"End of innings: {self.bat.name} {how}{score} ({self.over_str()} ov)"
                    + (f" - {self.not_out()}" if self.not_out() else ""), "end_of_innings")
+
+    def take_new_ball(self, n: int) -> bool:
+        """The new ball is available before over n: is it taken? A person is asked; the computer captain does as
+        real captains do, who often wait while spin is on."""
+        spin = sum(1 for o in self.overs[-2:] if self.bowl_types.get(o["bowler"]) == "spin")
+        call = test_captain.take_new_ball(self.m.crng, spin, n - self.ball_start - test_captain.NEW_BALL_OVERS)
+        return self.m.desk.new_ball(self, n, call) if self.m.desk else call
 
     def play_over(self) -> None:
         m = self.m
@@ -183,7 +208,7 @@ class TestInnings(Scorebook):
         day, session = m.clock.day, m.clock.session
         due = False
         desk = m.desk
-        if n - self.ball_start >= test_captain.NEW_BALL_OVERS and (not desk or desk.new_ball(self, n)):
+        if n - self.ball_start >= test_captain.NEW_BALL_OVERS and self.take_new_ball(n):
             self.ball_start = n
             self.event("New ball taken", "new_ball")
         if n >= test_captain.NEW_BALL_OVERS and n - self.ball_start < 2:
@@ -217,6 +242,8 @@ class TestInnings(Scorebook):
                 else:
                     cell = sit.cell(4, self.wkts, 0, self.target - self.runs, left)
                 mult = sit.multipliers(cell, self.striker.balls, btype, m.overs_bowled, age)
+                if m.use_matchups:
+                    mult = sit.with_matchup(mult, striker.p.bat_hand, bowler.id)
             else:
                 mult = NO_SITUATION
             if desk:                                  # a person's bars (5 and 5: nothing changes)
@@ -237,6 +264,11 @@ class TestInnings(Scorebook):
                 self.done, self.ended = True, "target"
             elif self.done:                           # next_batter found nobody left
                 self.ended = "all out"
+            elif o.legal and m.inj:
+                m.to_retire -= 1
+                if m.to_retire <= 0 and not o.wicket and striker in (self.striker, self.non_striker):
+                    m.to_retire = m.gap(m.inj["retire"]["per_ball"])
+                    self.retire_hurt(striker)
             if wdl:
                 # each ball moves the chances; the move goes to the striker and against the bowler. The ball
                 # that ends the innings is worth what it leads to: settled when that is known (TestMatch.settle)
@@ -258,6 +290,25 @@ class TestInnings(Scorebook):
         if wdl and not self.done:
             over["wdl"] = m.chances(self, left - 1)
         self.overs.append(over)
+
+    def retire_hurt(self, c: BatInns) -> None:
+        """This batter is hurt and goes off; he does not bat again in the innings (the retirements Cricsheet
+        records are those). The next man comes in, or the innings is over."""
+        m = self.m
+        c.how = {"kind": "retired_hurt", "bowler": None, "bowler_id": None, "fielder": None, "fielder_id": None,
+                 "text": "retired hurt"}
+        self.event(f"{c.p.name} retires hurt on {c.runs} ({c.balls}b)", "retired_hurt", player_id=c.p.id)
+        self.close_partnership()
+        i = self.cards.index(c)
+        self.retired.append((i, self.cards.pop(i)))
+        self.next_in -= 1
+        m.hurt(self, self.bat, c.p, m.irng.random() < m.inj["retire"]["plays_on"])
+        if self.next_in >= len(self.cards):
+            self.new_partnership()
+            self.done, self.ended = True, "all out"
+            return
+        new = self.bring_in(self.next_in, c)
+        self.event(f"{new.p.name} comes in", "new_batter", player_id=new.p.id)
 
     def declaration(self) -> bool:
         nineties = any(c.runs % 100 >= 90 for c in (self.striker, self.non_striker))
@@ -302,7 +353,8 @@ class TestInnings(Scorebook):
     def state_dict(self) -> dict:
         return {"label": self.label, "target": self.target, "declared": self.declared,
                 "follow_on": self.follow_on, "lead": self.lead(), "ended": self.ended,
-                "nightwatchmen": list(self.nightwatchmen)}
+                "nightwatchmen": list(self.nightwatchmen),
+                **({"absent_hurt": self.absent_hurt} if self.absent_hurt else {})}
 
 
 class TestMatch:
@@ -315,7 +367,9 @@ class TestMatch:
                  use_pitch: bool = True, use_spin: bool = True, declare: bool = True,
                  follow_on: bool | None = None, nightwatchman: bool = True, host: str | None = None,
                  use_weather: bool = True, use_home: bool = True, use_wdl: bool = True,
-                 control: dict | None = None, skill: dict | None = None):
+                 control: dict | None = None, skill: dict | None = None, era: dict | bool = True,
+                 use_matchups: bool = True, day_night: bool = False, timeless: bool = False,
+                 last_hour: bool = True, injuries: bool = True):
         """toss: "a" | "b" (who wins it); decision: "bat" | "bowl"; days, day_overs: the match's length
         (default 5 x 90); declare: False = nobody declares; follow_on: True / False = always / never enforced when
         it is on offer, None = the captain's (fitted) choice; nightwatchman: False = never used; host: the
@@ -323,16 +377,28 @@ class TestMatch:
         the overs lost to weather and, when one of the sides is the host, the home edge. use_wdl: False = no
         win / draw / loss chances on the card (they never change how the match is played). control: team name
         -> engine.control.Controller for a side a person captains (engine/test_control.py). skill: team name ->
-        "expert" | "average" | "easy" for computer captains (engine/test_captain.py Loose; default expert)."""
+        "expert" | "average" | "easy" for computer captains (engine/test_captain.py Loose; default expert).
+        era: the factors on an early year's baseline and its overs in a day when day_overs is not given
+        (test_conditions.era_factors); False = none; a dict = these. day_night: a pink-ball Test (wickets fall
+        faster: test_conditions.day_night). timeless: played to a finish, with no declarations (`days` is
+        ignored; left drawn after test_conditions.TIMELESS_DAYS days). last_hour: False = the last hour is
+        always played out (otherwise the captains agree a draw in it when no result is possible). injuries:
+        False = nobody is hurt (otherwise at the fitted rates, from their own random stream: test_conditions
+        .injuries; a side with a bench may bring in a like-for-like replacement, from 2019)."""
         self.year, self.venue = year, venue
         self.comp = comp or FORMATS[FMT]["intl"]
         self.seed = seed if seed is not None else random.randrange(1 << 30)
         self.rng = random.Random(self.seed)
         # captains' calls (declarations, the follow-on, bowling changes): their own stream
         self.crng = random.Random(zlib.crc32(f"test-captain|{self.seed}".encode()))
-        self.days = days or FORMATS[FMT]["days"]
-        self.clock = Clock(self.days, day_overs or FORMATS[FMT]["day_overs"])
+        ef = era if isinstance(era, dict) else test_conditions.era_factors(year) if era else None
+        self.timeless, self.day_night, self.last_hour = bool(timeless), bool(day_night), last_hour
+        self.last_hour_called = False
+        self.days = test_conditions.TIMELESS_DAYS if timeless else days or FORMATS[FMT]["days"]
+        self.clock = Clock(self.days, day_overs or (ef or {}).get("day_overs") or FORMATS[FMT]["day_overs"])
         self.base = baseline(FMT, self.comp, year)
+        if ef and (ef["runs"] != 1.0 or ef["wkt"] != 1.0):
+            self.base = conditions.apply(self.base, ef["runs"], ef["wkt"])
         # conditions, as in limited overs: venue factor x the day's pitch, then spin's edge over pace. The Test
         # tables for these are fitted in Phase 3; until then every factor is 1.
         self.venue_info = conditions.venue_factor(FMT, venue) if use_venue else {"runs": 1.0, "wkt": 1.0,
@@ -343,6 +409,11 @@ class TestMatch:
         self.base = conditions.apply(self.base, cr, cw)
         self.spin = conditions.spin_edge(FMT, venue, self.seed) if use_spin else {"runs": 0.0, "wkt": 0.0}
         self.base_type = conditions.by_type(self.base, self.spin, FMT)
+        dn = test_conditions.day_night() if day_night else None
+        if dn:                                 # the pink ball: by bowling kind; an unknown kind is read as pace
+            self.base_type = {k: conditions.apply(b, dn[k]["runs"], dn[k]["wkt"]) if k in dn else b
+                              for k, b in self.base_type.items()}
+            self.base = conditions.apply(self.base, dn["pace"]["runs"], dn["pace"]["wkt"])
         self.host = host or test_conditions.host_of(venue)
         self.weather = (test_conditions.draw_weather(self.host, self.seed, self.days, self.clock.day_overs)
                         if use_weather else {})
@@ -354,11 +425,17 @@ class TestMatch:
                            + (f"; {sr}" if (sr := conditions.spin_report(self.spin)) else ""),
                            "spin_edge": {k: round(v, 3) for k, v in self.spin.items()},
                            "host": self.host}
+        if self.day_night:
+            self.conditions["day_night"] = True
+            self.conditions["report"] += "; day-night, pink ball"
         self.model = BallModel(basics(FMT))
         self.sit = TestSituation()
         self.use_situation = use_situation
-        self.declare_on, self.follow_on_spec, self.nightwatchman = declare, follow_on, nightwatchman
-        self.teams = [make_team(team_a), make_team(team_b)]
+        self.use_matchups = use_matchups
+        self.declare_on, self.follow_on_spec, self.nightwatchman = declare and not timeless, follow_on, nightwatchman
+        # each side's XI from its squad: its own stream, so the balls of the match are drawn as before
+        self.teams = [make_team(sp, self.base, random.Random(zlib.crc32(f"test-xi|{self.seed}|{k}".encode())),
+                                self.host) for k, sp in enumerate((team_a, team_b))]
         # the home edge: the host's batters do better than their ratings, the visitors' worse
         # (a side is the host's by its name, or by the "nation" of its spec: "India 2021-24" is India)
         nations = [sp.get("nation") or sp["name"] for sp in (team_a, team_b)]
@@ -384,6 +461,14 @@ class TestMatch:
                      if control and any(t.name in control for t in self.teams) else None)
         self.loose = {t.name: lc for t in self.teams if t.name not in (control or {})
                       and (lc := test_captain.loose_captain(skill, t.name, self.seed))}
+        # injuries: their own stream, drawn as "balls until the next one", so the balls of a match in which
+        # nobody is hurt are the same with injuries on or off
+        self.inj = test_conditions.injuries() if injuries else {}
+        self.irng = random.Random(zlib.crc32(f"test-injury|{self.seed}".encode()))
+        self.absent: set = set()               # players who take no further part
+        self.replacements: list[dict] = []
+        self.to_retire = self.gap(self.inj["retire"]["per_ball"]) if self.inj else math.inf
+        self.to_field = self.gap(self.inj["field"]["per_ball"]) if self.inj else math.inf
 
     # ------------------------------------------------------------------ helpers
     def credit(self, striker_id: str, bowler_id: str, d: float) -> None:
@@ -427,6 +512,62 @@ class TestMatch:
             inn.event(f"Day {day}: {w['why']}, {n} over{'' if n == 1 else 's'} lost", "weather", overs=n, day=day)
             self.intervals(inn, clock.spend(n))
 
+    def gap(self, rate: float) -> float:
+        """Balls until the next event of this rate a ball."""
+        return math.inf if rate <= 0 else int(math.log(1.0 - self.irng.random()) / math.log(1.0 - rate)) + 1
+
+    def hurt(self, inn: TestInnings, team: Team, p: Player, plays_on: bool = False) -> None:
+        """p is hurt. Unless he plays on later in the match he takes no further part: a like-for-like man from
+        the bench comes in for him (from 2019, at the fitted share of such cases), or his side is a man short."""
+        u = self.irng.random()                 # drawn every time, so the next injury does not depend on this one
+        if plays_on:
+            return
+        like = [b for b in team.bench if test_captain.group(b) == test_captain.group(p)
+                and (p is not team.keeper or b.keeper)]
+        if like and self.year >= self.inj["subs_from"] and u < self.inj["replaced"]:
+            new = max(like, key=lambda b: test_captain.batting_value(b) + test_captain.bowling_value(b))
+            team.bench.remove(new)
+            team.players[team.players.index(p)] = new
+            team.order[team.order.index(p)] = new
+            if team.keeper is p:
+                team.keeper = new
+            self.replacements.append({"team": team.name, "out": p.name, "out_id": p.id, "in": new.name,
+                                      "in_id": new.id, "innings": inn.number, "day": self.clock.day})
+            inn.event(f"{new.name} comes into the {team.name} side for {p.name}, who is hurt", "replacement",
+                      player_id=new.id)
+            if team is inn.bat:
+                inn.cards.append(BatInns(new, len(inn.cards) + 1))
+            else:
+                inn.bowling.swap(p, new)
+                inn.bowl_types[new.name] = new.bowl_type
+            return
+        self.absent.add(p)
+        inn.event(f"{p.name} ({team.name}) is hurt and will take no further part in the match", "injury",
+                  player_id=p.id)
+        if team.keeper is p:                   # someone else takes the gloves
+            team.keeper = choose_keeper([q for q in team.players if q not in self.absent])
+        if team is inn.bowl:
+            inn.bowling.swap(p, None)
+
+    def agreed_draw(self, inn: TestInnings) -> bool:
+        """The last hour of the last day (15 overs). The captains shake hands at once when no result is
+        possible: a first innings is still going, or the side batting third leads by more than the other could
+        score in the overs left (test_captain.RR_CAP an over) and has not declared. The same when a person
+        captains a side (a match they play as the computer would is the same match). Not in a timeless Test."""
+        clock = self.clock
+        if (not self.last_hour or self.timeless or clock.day != self.days
+                or clock.left > test_conditions.LAST_HOUR_OVERS):
+            return False
+        if not self.last_hour_called:
+            self.last_hour_called = True
+            inn.event(f"The last hour: {clock.left} overs left", "last_hour", overs=clock.left)
+        if inn.number > 3:
+            return False
+        if inn.number == 3 and inn.lead() <= test_captain.RR_CAP * clock.left:
+            return False
+        inn.event("The captains shake hands on a draw: no result is possible", "agreed_draw", overs=clock.left)
+        return True
+
     def total(self, team: Team) -> int:
         return sum(i.runs for i in self.innings if i.bat is team)
 
@@ -437,6 +578,13 @@ class TestMatch:
         t["overs"] += 1
         t["runs"] += o["runs"]
         t["wickets"] += o["wkts"]
+        if self.inj and not inn.done:
+            self.to_field -= 6
+            if self.to_field <= 0:             # a fielder (not the keeper) is hurt and goes off for good
+                self.to_field = self.gap(self.inj["field"]["per_ball"])
+                pool = [p for p in inn.bowling.cands if p is not inn.bowl.keeper and p not in self.absent]
+                if len(pool) > 2:
+                    self.hurt(inn, inn.bowl, self.irng.choice(pool))
         self.intervals(inn, breaks)
 
     def intervals(self, inn: TestInnings, breaks: list) -> None:
@@ -498,9 +646,11 @@ class TestMatch:
         card = {
             "format": FMT, "competition": self.comp, "year": self.year, "venue": self.venue, "seed": self.seed,
             "overs": None, "scheduled_days": self.days, "day_overs": self.clock.day_overs,
+            **({"timeless": True} if self.timeless else {}), **({"day_night": True} if self.day_night else {}),
             "teams": [a.name, b.name],
             "xi": {t.name: [{"id": p.id, "name": p.name, "rated": p.rated_bat or p.rated_bowl} for p in t.order]
                    for t in self.teams},
+            **({"replacements": self.replacements} if self.replacements else {}),
             "toss": {"winner": toss_winner.name, "decision": decision}, "conditions": self.conditions,
             "innings": [i.to_dict() for i in self.innings],
             "days": self.day_log,
@@ -556,7 +706,7 @@ class TestMatch:
         if i4 is None:
             return draw
         if i4.ended == "target":
-            return self.win(fourth, third, "wickets", len(i4.cards) - 1 - i4.wkts)
+            return self.win(fourth, third, "wickets", len(fourth.order) - 1 - i4.wkts)
         if i4.ended == "all out":
             if i4.runs == ahead:
                 return {"type": "tie", "winner": None, "text": "Match tied"}

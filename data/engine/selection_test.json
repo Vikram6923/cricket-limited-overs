@@ -1,0 +1,108 @@
+{
+ "format": "test",
+ "features": [
+  "value",
+  "top_keeper",
+  "other_keeper",
+  "spinner",
+  "spin_x_host",
+  "experience"
+ ],
+ "beta": [
+  0.012,
+  0.3271,
+  0.0267,
+  0.2234,
+  1.8515,
+  0.3362
+ ],
+ "composition": {
+  "3": -0.6471,
+  "4": 1.8565,
+  "5": 1.2425,
+  "6": -0.0986,
+  "7": -1.3232
+ },
+ "experience_weight_used": 0.5,
+ "window_days": 30,
+ "pools": 1227,
+ "host_spin": {
+  "Australia": -0.1029,
+  "New Zealand": -0.1497,
+  "West Indies": -0.0322,
+  "Zimbabwe": 0.0329,
+  "Bangladesh": 0.2217,
+  "India": 0.2052,
+  "England": -0.1607,
+  "Pakistan": 0.1124,
+  "South Africa": -0.1504,
+  "Sri Lanka": 0.2177
+ },
+ "mixes": [
+  [
+   1,
+   3
+  ],
+  [
+   2,
+   2
+  ],
+  [
+   2,
+   3
+  ],
+  [
+   3,
+   1
+  ],
+  [
+   3,
+   2
+  ],
+  [
+   3,
+   3
+  ],
+  [
+   4,
+   0
+  ],
+  [
+   4,
+   1
+  ],
+  [
+   4,
+   2
+  ],
+  [
+   5,
+   0
+  ],
+  [
+   5,
+   1
+  ]
+ ],
+ "validation": {
+  "train_until": 2018,
+  "test": {
+   "learned (fitted weights)": 8.74,
+   "learned (experience x0.5)": 8.77,
+   "the rule (select_xi)": 8.67,
+   "caps only": 8.64,
+   "specialist bowlers per XI: real": 4.59,
+   "specialist bowlers per XI: learned": 4.13,
+   "pools": 395,
+   "mean pool size": 14.9
+  },
+  "beta_train": [
+   0.0118,
+   0.4668,
+   0.0299,
+   0.2388,
+   1.2699,
+   0.3804
+  ]
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "since": 2015,
+ "matches": 25,
+ "missing": [],
+ "hosts": [
+  "Australia",
+  "England",
+  "India",
+  "New Zealand",
+  "Pakistan",
+  "South Africa",
+  "West Indies"
+ ],
+ "pace": {
+  "runs": 0.9957,
+  "wkt": 1.2038,
+  "balls": 28658,
+  "wickets": 619,
+  "runs_se": 0.0292,
+  "wkt_se": 0.0581
+ },
+ "spin": {
+  "runs": 1.0031,
+  "wkt": 1.1823,
+  "balls": 11109,
+  "wickets": 199,
+  "runs_se": 0.0281,
+  "wkt_se": 0.068
+ }
+}

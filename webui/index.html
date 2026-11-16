@@ -47,6 +47,9 @@
     <div class="fg test-only"><label>Played in</label><select id="s-host"><option value="home">Team 1's country (Team 1 at home)</option>
       <option value="away">Team 2's country (Team 2 at home)</option><option value="neutral">Neutral grounds (no home side)</option></select>
       <div class="hint full-only" style="margin:4px 0 0">The host's grounds are used in turn, with its weather; the home side bats a little better than its ratings, as real home sides do.</div></div>
+    <div class="fg test-only"><label>Length of a Test</label><select id="s-length"><option value="5">Five days</option><option value="4">Four days</option><option value="3">Three days</option><option value="6">Six days</option><option value="timeless">Timeless (played to a finish)</option></select></div>
+    <div class="fg test-only"><div class="checks"><label><input type="checkbox" id="s-dn"> Day-night Tests (pink ball)</label></div>
+      <div class="hint full-only" style="margin:4px 0 0">Wickets fall about a fifth faster, as they have in the 25 day-night Tests played so far.</div></div>
   </div>
 
   <!-- Two players (docs/multiplayer_design.md): Host or Join, then one pane -->
@@ -57,7 +60,7 @@
     </div>
     <div class="mp-pane" id="mp-host-pane">
       <button class="lnk mp-back" data-mp-pane="">&lsaquo; Back</button>
-      <div class="fg lo-only"><label>How do you get teams?</label><select id="mp-teams"><option value="pick">Pick a team each</option>
+      <div class="fg"><label>How do you get teams?</label><select id="mp-teams"><option value="pick">Pick a team each</option>
         <option value="draft">Draft against each other</option><option value="auction">Auction</option></select>
         <div class="hint full-only" style="margin:4px 0 0">Draft: take turns picking 15 players each from one era (computer teams can join and make it a league).
           Auction: bid live against each other and computer teams, from a real league season or one era. Set the details in the room.</div></div>
@@ -116,6 +119,9 @@
     <div class="fg test-only"><label>Played in</label><select id="cs-host"><option value="home">Team 1's country (Team 1 at home)</option>
       <option value="away">Team 2's country (Team 2 at home)</option><option value="neutral">Neutral grounds (no home side)</option></select>
       <div class="hint full-only" style="margin:4px 0 0">The host's grounds are used in turn, with its weather; the home side bats a little better than its ratings, as real home sides do.</div></div>
+    <div class="fg test-only"><label>Length of a Test</label><select id="cs-length"><option value="5">Five days</option><option value="4">Four days</option><option value="3">Three days</option><option value="6">Six days</option><option value="timeless">Timeless (played to a finish)</option></select></div>
+    <div class="fg test-only"><div class="checks"><label><input type="checkbox" id="cs-dn"> Day-night Tests (pink ball)</label></div>
+      <div class="hint full-only" style="margin:4px 0 0">Wickets fall about a fifth faster, as they have in the 25 day-night Tests played so far.</div></div>
     <details class="more" id="more-classic"><summary>More options</summary>
     <div class="fg"><label>Squad</label><select class="c-squad"></select></div>
     <div class="fg full-only"><label>Ratings for those years</label><select class="c-ymode">
@@ -173,7 +179,7 @@
         <option value="average">Average - a loose call now and then</option>
         <option value="easy">Easy - loose calls often, sometimes bad ones</option></select>
         <div class="hint full-only lo-only" style="margin:4px 0 0">Applies to every computer-captained side. Measured over 900 IPL games: an expert side wins 51% against Expert, 56% against Average, 66% against Easy.</div>
-        <div class="hint full-only test-only" style="margin:4px 0 0">Expert declares, enforces the follow-on and changes the bowling as real captains do. A weaker captain sometimes gives the over to the wrong bowler and misjudges a declaration or the follow-on. Measured over 1,500 Tests between two identical sides: the expert captain's share (wins plus half the draws) is 53% against Average and 58% against Easy.</div></div></div>
+        <div class="hint full-only test-only" style="margin:4px 0 0">Expert declares, enforces the follow-on and changes the bowling as real captains do. A weaker captain sometimes gives the over to the wrong bowler and misjudges a declaration or the follow-on. Measured over 1,000 to 1,500 Tests between two identical sides, for three sides: the expert captain's share (wins plus half the draws) is 50 to 54% against Average and 58 to 64% against Easy.</div></div></div>
     <div class="fg"><label>Teams</label><div class="roster" id="l-teams"></div></div>
     <div class="fg"><label>Replay code (optional)</label><input type="text" id="l-seed" placeholder="random"></div>
     <div class="fg"><label><input type="checkbox" id="l-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint full-only" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (the league's home country).</div></div>
@@ -320,6 +326,10 @@
     </div>
     <div class="fg"><label id="k-user-l">Your franchise</label><select id="k-user"></select>
       <div class="hint full-only" id="k-user-hint" style="margin:4px 0 0">You make its auction calls and can captain it each season.</div></div>
+    <div class="fg" id="k-rounds-box" style="display:none"><label>A season</label><select id="k-rounds">
+      <option value="2">Every nation plays every other at home and away</option>
+      <option value="1">Every nation plays every other once</option></select>
+      <div class="hint full-only" style="margin:4px 0 0">Then the top two of the table play a final. Twelve nations home and away is 133 Tests a season.</div></div>
     <div class="fg" id="k-ipl-box" style="display:none"><div class="checks"><label><input type="checkbox" id="k-ipl" checked> Play the IPL alongside</label></div>
       <div class="hint full-only" style="margin:4px 0 0">After each Trophy season the computer holds the IPL auction and plays the IPL with the same players (a few seconds more a season). The best uncapped Trophy performers reach the auction.</div></div>
     <details class="more" id="more-career"><summary>More options</summary>

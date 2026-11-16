@@ -117,7 +117,7 @@ class Desk:
         m = self.m
         a, b = m.teams
         return {"match": f"{a.name} v {b.name}", "venue": m.venue, "pitch": m.conditions["report"],
-                "format": "test", "overs": None, "days": m.days, "day_overs": m.clock.day_overs, "rain": [],
+                "format": "test", "overs": None, "days": m.days, "timeless": m.timeless, "day_night": m.day_night, "day_overs": m.clock.day_overs, "rain": [],
                 "host": m.host, "opponent": (b if team is a else a).name}
 
     def chances(self, inn, left: float) -> list | None:
@@ -454,19 +454,21 @@ class Desk:
         return False
 
     # ------------------------------------------------------------------ before an over: the fielding side
-    def new_ball(self, inn, n: int) -> bool:
-        """The new ball is available: take it? (the computer takes it at once)"""
+    def new_ball(self, inn, n: int, default: bool = True) -> bool:
+        """The new ball is available: take it? default: what the computer captain would do now (real captains
+        often wait while spin is on); it is the answer when the person leaves the call to the computer."""
         team = inn.bowl
         if not self.manual(team, "new_ball", inn) or self.fast(team, inn):
-            return True
+            return default
         if n < self.new_ball_after.get(inn.number, 0):
             return False
-        ans = self.ask(team, "new_ball", {"default": True, "age": n - inn.ball_start,
+        ans = self.ask(team, "new_ball", {"default": default, "age": n - inn.ball_start,
                                           "bowlers": [self.pinfo(p, inn) for p in inn.bowling.cands]}, inn)
-        take = True if ans is None else bool(ans)
-        if not take:
+        take = default if ans is None else bool(ans)
+        if ans is not None and not take:          # a person's "not yet" holds for a while
             self.new_ball_after[inn.number] = n + NEW_BALL_REASK
-        self.note(team, "new_ball", self.when(inn), "take it" if take else "not yet", "take it")
+        say = {True: "take it", False: "not yet"}
+        self.note(team, "new_ball", self.when(inn), say[take], say[default])
         return take
 
     def can_bowl(self, inn, n: int) -> list:

@@ -220,6 +220,20 @@ def test_server_runs():
     res = cl.get("/api/results").get_json()
     assert res["format"] == "test" and len(res["fixtures"]) == 7 and res["tables"]["League"][0]["pos"] == 1
     assert cl.get("/api/match/7").get_json()["card"]["stage"] == "Final"
+    # a Classic Tournament of Tests: nations over a range of years, played in that era
+    classic = [{"nation": n, "y1": 1950, "y2": 1959} for n in ("Australia", "England", "West Indies")]
+    r = cl.post("/api/run", json={**base, "mode": "tournament", "fmt": "test", "year": 1955, "teams": classic,
+                                  "rounds": 1, "groups": 1, "knockout": "final"})
+    assert r.status_code == 200, r.get_json()
+    assert _wait(cl)["status"] == "done"
+    res = cl.get("/api/results").get_json()
+    assert res["format"] == "test" and len(res["fixtures"]) == 4
+    assert {x["team"] for x in res["tables"]["League"]} == {"Australia 1950-59", "England 1950-59", "West Indies 1950-59"}
+    card = cl.get("/api/match/1").get_json()["card"]
+    assert card["conditions"]["home"] == card["teams"][0], "a classic side plays its league Tests at home"
+    bad = cl.post("/api/run", json={**base, "mode": "tournament", "fmt": "test", "rounds": 1, "groups": 1,
+                                    "teams": classic[:2] + [{"nation": "Bangladesh", "y1": 1950, "y2": 1959}]})
+    assert bad.status_code == 400 and "too few Test players" in bad.get_json()["error"]
 
 
 def main() -> None:

@@ -1,0 +1,3148 @@
+{
+ "source": "the old Test simulator's testmatchlist.txt",
+ "tests": 2421,
+ "years": {
+  "1877": {
+   "tests": 2,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1879": {
+   "tests": 1,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     1,
+     0
+    ]
+   }
+  },
+  "1880": {
+   "tests": 1,
+   "draws": 0,
+   "by_host": {
+    "England": [
+     1,
+     0
+    ]
+   }
+  },
+  "1881": {
+   "tests": 1,
+   "draws": 1,
+   "by_host": {
+    "Australia": [
+     1,
+     1
+    ]
+   }
+  },
+  "1882": {
+   "tests": 5,
+   "draws": 1,
+   "by_host": {
+    "Australia": [
+     4,
+     1
+    ],
+    "England": [
+     1,
+     0
+    ]
+   }
+  },
+  "1883": {
+   "tests": 3,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     3,
+     0
+    ]
+   }
+  },
+  "1884": {
+   "tests": 4,
+   "draws": 2,
+   "by_host": {
+    "England": [
+     3,
+     2
+    ],
+    "Australia": [
+     1,
+     0
+    ]
+   }
+  },
+  "1885": {
+   "tests": 4,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ]
+   }
+  },
+  "1886": {
+   "tests": 3,
+   "draws": 0,
+   "by_host": {
+    "England": [
+     3,
+     0
+    ]
+   }
+  },
+  "1887": {
+   "tests": 2,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1888": {
+   "tests": 4,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     1,
+     0
+    ],
+    "England": [
+     3,
+     0
+    ]
+   }
+  },
+  "1889": {
+   "tests": 2,
+   "draws": 0,
+   "by_host": {
+    "South Africa": [
+     2,
+     0
+    ]
+   }
+  },
+  "1890": {
+   "tests": 2,
+   "draws": 0,
+   "by_host": {
+    "England": [
+     2,
+     0
+    ]
+   }
+  },
+  "1892": {
+   "tests": 4,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     3,
+     0
+    ],
+    "South Africa": [
+     1,
+     0
+    ]
+   }
+  },
+  "1893": {
+   "tests": 3,
+   "draws": 2,
+   "by_host": {
+    "England": [
+     3,
+     2
+    ]
+   }
+  },
+  "1894": {
+   "tests": 2,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1895": {
+   "tests": 3,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     3,
+     0
+    ]
+   }
+  },
+  "1896": {
+   "tests": 6,
+   "draws": 0,
+   "by_host": {
+    "South Africa": [
+     3,
+     0
+    ],
+    "England": [
+     3,
+     0
+    ]
+   }
+  },
+  "1897": {
+   "tests": 1,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     1,
+     0
+    ]
+   }
+  },
+  "1898": {
+   "tests": 4,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ]
+   }
+  },
+  "1899": {
+   "tests": 7,
+   "draws": 4,
+   "by_host": {
+    "South Africa": [
+     2,
+     0
+    ],
+    "England": [
+     5,
+     4
+    ]
+   }
+  },
+  "1901": {
+   "tests": 1,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     1,
+     0
+    ]
+   }
+  },
+  "1902": {
+   "tests": 12,
+   "draws": 3,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "South Africa": [
+     3,
+     1
+    ]
+   }
+  },
+  "1903": {
+   "tests": 1,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     1,
+     0
+    ]
+   }
+  },
+  "1904": {
+   "tests": 4,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ]
+   }
+  },
+  "1905": {
+   "tests": 5,
+   "draws": 3,
+   "by_host": {
+    "England": [
+     5,
+     3
+    ]
+   }
+  },
+  "1906": {
+   "tests": 5,
+   "draws": 0,
+   "by_host": {
+    "South Africa": [
+     5,
+     0
+    ]
+   }
+  },
+  "1907": {
+   "tests": 4,
+   "draws": 2,
+   "by_host": {
+    "England": [
+     3,
+     2
+    ],
+    "Australia": [
+     1,
+     0
+    ]
+   }
+  },
+  "1908": {
+   "tests": 4,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ]
+   }
+  },
+  "1909": {
+   "tests": 5,
+   "draws": 2,
+   "by_host": {
+    "England": [
+     5,
+     2
+    ]
+   }
+  },
+  "1910": {
+   "tests": 7,
+   "draws": 0,
+   "by_host": {
+    "South Africa": [
+     5,
+     0
+    ],
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1911": {
+   "tests": 5,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     5,
+     0
+    ]
+   }
+  },
+  "1912": {
+   "tests": 12,
+   "draws": 3,
+   "by_host": {
+    "Australia": [
+     6,
+     1
+    ],
+    "England": [
+     6,
+     2
+    ]
+   }
+  },
+  "1913": {
+   "tests": 2,
+   "draws": 0,
+   "by_host": {
+    "South Africa": [
+     2,
+     0
+    ]
+   }
+  },
+  "1914": {
+   "tests": 3,
+   "draws": 1,
+   "by_host": {
+    "South Africa": [
+     3,
+     1
+    ]
+   }
+  },
+  "1920": {
+   "tests": 2,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1921": {
+   "tests": 11,
+   "draws": 4,
+   "by_host": {
+    "Australia": [
+     3,
+     0
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "South Africa": [
+     3,
+     2
+    ]
+   }
+  },
+  "1922": {
+   "tests": 1,
+   "draws": 0,
+   "by_host": {
+    "South Africa": [
+     1,
+     0
+    ]
+   }
+  },
+  "1923": {
+   "tests": 4,
+   "draws": 2,
+   "by_host": {
+    "South Africa": [
+     4,
+     2
+    ]
+   }
+  },
+  "1924": {
+   "tests": 6,
+   "draws": 2,
+   "by_host": {
+    "England": [
+     5,
+     2
+    ],
+    "Australia": [
+     1,
+     0
+    ]
+   }
+  },
+  "1925": {
+   "tests": 4,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ]
+   }
+  },
+  "1926": {
+   "tests": 5,
+   "draws": 4,
+   "by_host": {
+    "England": [
+     5,
+     4
+    ]
+   }
+  },
+  "1927": {
+   "tests": 2,
+   "draws": 0,
+   "by_host": {
+    "South Africa": [
+     2,
+     0
+    ]
+   }
+  },
+  "1928": {
+   "tests": 9,
+   "draws": 1,
+   "by_host": {
+    "South Africa": [
+     3,
+     1
+    ],
+    "England": [
+     3,
+     0
+    ],
+    "Australia": [
+     3,
+     0
+    ]
+   }
+  },
+  "1929": {
+   "tests": 7,
+   "draws": 3,
+   "by_host": {
+    "Australia": [
+     2,
+     0
+    ],
+    "England": [
+     5,
+     3
+    ]
+   }
+  },
+  "1930": {
+   "tests": 15,
+   "draws": 7,
+   "by_host": {
+    "New Zealand": [
+     4,
+     3
+    ],
+    "West Indies": [
+     4,
+     2
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "Australia": [
+     1,
+     0
+    ],
+    "South Africa": [
+     1,
+     0
+    ]
+   }
+  },
+  "1931": {
+   "tests": 14,
+   "draws": 6,
+   "by_host": {
+    "Australia": [
+     7,
+     0
+    ],
+    "South Africa": [
+     4,
+     4
+    ],
+    "England": [
+     3,
+     2
+    ]
+   }
+  },
+  "1932": {
+   "tests": 7,
+   "draws": 0,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ],
+    "New Zealand": [
+     2,
+     0
+    ],
+    "England": [
+     1,
+     0
+    ]
+   }
+  },
+  "1933": {
+   "tests": 9,
+   "draws": 3,
+   "by_host": {
+    "Australia": [
+     3,
+     0
+    ],
+    "New Zealand": [
+     2,
+     2
+    ],
+    "England": [
+     3,
+     1
+    ],
+    "India": [
+     1,
+     0
+    ]
+   }
+  },
+  "1934": {
+   "tests": 7,
+   "draws": 3,
+   "by_host": {
+    "India": [
+     2,
+     1
+    ],
+    "England": [
+     5,
+     2
+    ]
+   }
+  },
+  "1935": {
+   "tests": 11,
+   "draws": 6,
+   "by_host": {
+    "West Indies": [
+     4,
+     1
+    ],
+    "England": [
+     5,
+     4
+    ],
+    "South Africa": [
+     2,
+     1
+    ]
+   }
+  },
+  "1936": {
+   "tests": 8,
+   "draws": 1,
+   "by_host": {
+    "South Africa": [
+     3,
+     0
+    ],
+    "England": [
+     3,
+     1
+    ],
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1937": {
+   "tests": 6,
+   "draws": 2,
+   "by_host": {
+    "Australia": [
+     3,
+     0
+    ],
+    "England": [
+     3,
+     2
+    ]
+   }
+  },
+  "1938": {
+   "tests": 6,
+   "draws": 4,
+   "by_host": {
+    "England": [
+     4,
+     2
+    ],
+    "South Africa": [
+     2,
+     2
+    ]
+   }
+  },
+  "1939": {
+   "tests": 6,
+   "draws": 4,
+   "by_host": {
+    "South Africa": [
+     3,
+     2
+    ],
+    "England": [
+     3,
+     2
+    ]
+   }
+  },
+  "1946": {
+   "tests": 6,
+   "draws": 2,
+   "by_host": {
+    "New Zealand": [
+     1,
+     0
+    ],
+    "England": [
+     3,
+     2
+    ],
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1947": {
+   "tests": 11,
+   "draws": 6,
+   "by_host": {
+    "Australia": [
+     5,
+     3
+    ],
+    "New Zealand": [
+     1,
+     1
+    ],
+    "England": [
+     5,
+     2
+    ]
+   }
+  },
+  "1948": {
+   "tests": 17,
+   "draws": 7,
+   "by_host": {
+    "Australia": [
+     3,
+     0
+    ],
+    "West Indies": [
+     4,
+     2
+    ],
+    "England": [
+     5,
+     1
+    ],
+    "India": [
+     3,
+     3
+    ],
+    "South Africa": [
+     2,
+     1
+    ]
+   }
+  },
+  "1949": {
+   "tests": 11,
+   "draws": 7,
+   "by_host": {
+    "South Africa": [
+     5,
+     2
+    ],
+    "India": [
+     2,
+     1
+    ],
+    "England": [
+     4,
+     4
+    ]
+   }
+  },
+  "1950": {
+   "tests": 9,
+   "draws": 1,
+   "by_host": {
+    "South Africa": [
+     3,
+     1
+    ],
+    "England": [
+     4,
+     0
+    ],
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1951": {
+   "tests": 17,
+   "draws": 5,
+   "by_host": {
+    "Australia": [
+     7,
+     0
+    ],
+    "New Zealand": [
+     2,
+     1
+    ],
+    "England": [
+     5,
+     1
+    ],
+    "India": [
+     3,
+     3
+    ]
+   }
+  },
+  "1952": {
+   "tests": 16,
+   "draws": 4,
+   "by_host": {
+    "India": [
+     7,
+     2
+    ],
+    "Australia": [
+     3,
+     0
+    ],
+    "New Zealand": [
+     2,
+     1
+    ],
+    "England": [
+     4,
+     1
+    ]
+   }
+  },
+  "1953": {
+   "tests": 17,
+   "draws": 10,
+   "by_host": {
+    "Australia": [
+     3,
+     1
+    ],
+    "West Indies": [
+     5,
+     4
+    ],
+    "New Zealand": [
+     2,
+     1
+    ],
+    "England": [
+     5,
+     4
+    ],
+    "South Africa": [
+     2,
+     0
+    ]
+   }
+  },
+  "1954": {
+   "tests": 15,
+   "draws": 4,
+   "by_host": {
+    "South Africa": [
+     3,
+     1
+    ],
+    "West Indies": [
+     5,
+     1
+    ],
+    "England": [
+     4,
+     2
+    ],
+    "Australia": [
+     3,
+     0
+    ]
+   }
+  },
+  "1955": {
+   "tests": 26,
+   "draws": 12,
+   "by_host": {
+    "Pakistan": [
+     8,
+     6
+    ],
+    "Australia": [
+     2,
+     1
+    ],
+    "New Zealand": [
+     2,
+     0
+    ],
+    "West Indies": [
+     5,
+     2
+    ],
+    "England": [
+     5,
+     0
+    ],
+    "India": [
+     4,
+     3
+    ]
+   }
+  },
+  "1956": {
+   "tests": 15,
+   "draws": 3,
+   "by_host": {
+    "India": [
+     4,
+     1
+    ],
+    "New Zealand": [
+     4,
+     0
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "Pakistan": [
+     1,
+     0
+    ],
+    "South Africa": [
+     1,
+     0
+    ]
+   }
+  },
+  "1957": {
+   "tests": 10,
+   "draws": 4,
+   "by_host": {
+    "South Africa": [
+     5,
+     2
+    ],
+    "England": [
+     5,
+     2
+    ]
+   }
+  },
+  "1958": {
+   "tests": 19,
+   "draws": 4,
+   "by_host": {
+    "South Africa": [
+     4,
+     1
+    ],
+    "West Indies": [
+     5,
+     1
+    ],
+    "England": [
+     5,
+     1
+    ],
+    "India": [
+     3,
+     1
+    ],
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1959": {
+   "tests": 20,
+   "draws": 4,
+   "by_host": {
+    "Australia": [
+     3,
+     1
+    ],
+    "India": [
+     4,
+     1
+    ],
+    "Pakistan": [
+     6,
+     1
+    ],
+    "New Zealand": [
+     2,
+     1
+    ],
+    "England": [
+     5,
+     0
+    ]
+   }
+  },
+  "1960": {
+   "tests": 18,
+   "draws": 12,
+   "by_host": {
+    "India": [
+     6,
+     5
+    ],
+    "West Indies": [
+     5,
+     4
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "Australia": [
+     2,
+     1
+    ]
+   }
+  },
+  "1961": {
+   "tests": 17,
+   "draws": 9,
+   "by_host": {
+    "Australia": [
+     3,
+     1
+    ],
+    "India": [
+     6,
+     5
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "Pakistan": [
+     1,
+     0
+    ],
+    "South Africa": [
+     2,
+     1
+    ]
+   }
+  },
+  "1962": {
+   "tests": 18,
+   "draws": 4,
+   "by_host": {
+    "South Africa": [
+     3,
+     0
+    ],
+    "India": [
+     1,
+     0
+    ],
+    "Pakistan": [
+     2,
+     2
+    ],
+    "West Indies": [
+     5,
+     0
+    ],
+    "England": [
+     5,
+     1
+    ],
+    "Australia": [
+     2,
+     1
+    ]
+   }
+  },
+  "1963": {
+   "tests": 12,
+   "draws": 4,
+   "by_host": {
+    "Australia": [
+     4,
+     3
+    ],
+    "New Zealand": [
+     3,
+     0
+    ],
+    "England": [
+     5,
+     1
+    ]
+   }
+  },
+  "1964": {
+   "tests": 24,
+   "draws": 18,
+   "by_host": {
+    "Australia": [
+     5,
+     3
+    ],
+    "India": [
+     8,
+     6
+    ],
+    "New Zealand": [
+     3,
+     3
+    ],
+    "England": [
+     5,
+     4
+    ],
+    "Pakistan": [
+     1,
+     1
+    ],
+    "South Africa": [
+     2,
+     1
+    ]
+   }
+  },
+  "1965": {
+   "tests": 26,
+   "draws": 16,
+   "by_host": {
+    "South Africa": [
+     3,
+     3
+    ],
+    "New Zealand": [
+     3,
+     3
+    ],
+    "India": [
+     4,
+     3
+    ],
+    "West Indies": [
+     5,
+     2
+    ],
+    "Pakistan": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     2
+    ],
+    "Australia": [
+     2,
+     2
+    ]
+   }
+  },
+  "1966": {
+   "tests": 15,
+   "draws": 5,
+   "by_host": {
+    "Australia": [
+     3,
+     1
+    ],
+    "New Zealand": [
+     3,
+     3
+    ],
+    "England": [
+     5,
+     1
+    ],
+    "India": [
+     2,
+     0
+    ],
+    "South Africa": [
+     2,
+     0
+    ]
+   }
+  },
+  "1967": {
+   "tests": 12,
+   "draws": 3,
+   "by_host": {
+    "India": [
+     1,
+     1
+    ],
+    "South Africa": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     1
+    ],
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1968": {
+   "tests": 18,
+   "draws": 7,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ],
+    "West Indies": [
+     5,
+     4
+    ],
+    "New Zealand": [
+     4,
+     0
+    ],
+    "England": [
+     5,
+     3
+    ]
+   }
+  },
+  "1969": {
+   "tests": 26,
+   "draws": 11,
+   "by_host": {
+    "Australia": [
+     3,
+     1
+    ],
+    "Pakistan": [
+     6,
+     5
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     2
+    ],
+    "India": [
+     8,
+     2
+    ]
+   }
+  },
+  "1970": {
+   "tests": 6,
+   "draws": 2,
+   "by_host": {
+    "South Africa": [
+     4,
+     0
+    ],
+    "Australia": [
+     2,
+     2
+    ]
+   }
+  },
+  "1971": {
+   "tests": 17,
+   "draws": 11,
+   "by_host": {
+    "Australia": [
+     4,
+     2
+    ],
+    "West Indies": [
+     5,
+     4
+    ],
+    "New Zealand": [
+     2,
+     1
+    ],
+    "England": [
+     6,
+     4
+    ]
+   }
+  },
+  "1972": {
+   "tests": 14,
+   "draws": 6,
+   "by_host": {
+    "West Indies": [
+     5,
+     5
+    ],
+    "England": [
+     5,
+     1
+    ],
+    "India": [
+     2,
+     0
+    ],
+    "Australia": [
+     2,
+     0
+    ]
+   }
+  },
+  "1973": {
+   "tests": 22,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     2,
+     0
+    ],
+    "India": [
+     3,
+     2
+    ],
+    "New Zealand": [
+     3,
+     2
+    ],
+    "West Indies": [
+     5,
+     3
+    ],
+    "Pakistan": [
+     3,
+     3
+    ],
+    "England": [
+     6,
+     2
+    ]
+   }
+  },
+  "1974": {
+   "tests": 22,
+   "draws": 9,
+   "by_host": {
+    "Australia": [
+     5,
+     2
+    ],
+    "West Indies": [
+     5,
+     3
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     3
+    ],
+    "India": [
+     3,
+     0
+    ]
+   }
+  },
+  "1975": {
+   "tests": 16,
+   "draws": 6,
+   "by_host": {
+    "Australia": [
+     6,
+     0
+    ],
+    "India": [
+     2,
+     0
+    ],
+    "Pakistan": [
+     2,
+     2
+    ],
+    "New Zealand": [
+     2,
+     1
+    ],
+    "England": [
+     4,
+     3
+    ]
+   }
+  },
+  "1976": {
+   "tests": 23,
+   "draws": 7,
+   "by_host": {
+    "Australia": [
+     4,
+     1
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "West Indies": [
+     4,
+     1
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "Pakistan": [
+     3,
+     1
+    ],
+    "India": [
+     4,
+     1
+    ]
+   }
+  },
+  "1977": {
+   "tests": 23,
+   "draws": 7,
+   "by_host": {
+    "Australia": [
+     6,
+     0
+    ],
+    "India": [
+     4,
+     1
+    ],
+    "New Zealand": [
+     2,
+     1
+    ],
+    "West Indies": [
+     5,
+     2
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "Pakistan": [
+     1,
+     1
+    ]
+   }
+  },
+  "1978": {
+   "tests": 27,
+   "draws": 9,
+   "by_host": {
+    "Pakistan": [
+     5,
+     3
+    ],
+    "Australia": [
+     5,
+     0
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "West Indies": [
+     5,
+     1
+    ],
+    "England": [
+     6,
+     1
+    ],
+    "India": [
+     3,
+     3
+    ]
+   }
+  },
+  "1979": {
+   "tests": 28,
+   "draws": 15,
+   "by_host": {
+    "Australia": [
+     8,
+     1
+    ],
+    "India": [
+     13,
+     9
+    ],
+    "New Zealand": [
+     3,
+     2
+    ],
+    "England": [
+     4,
+     3
+    ]
+   }
+  },
+  "1980": {
+   "tests": 25,
+   "draws": 14,
+   "by_host": {
+    "Australia": [
+     6,
+     1
+    ],
+    "India": [
+     3,
+     1
+    ],
+    "New Zealand": [
+     3,
+     2
+    ],
+    "Pakistan": [
+     7,
+     5
+    ],
+    "England": [
+     6,
+     5
+    ]
+   }
+  },
+  "1981": {
+   "tests": 23,
+   "draws": 9,
+   "by_host": {
+    "Australia": [
+     7,
+     1
+    ],
+    "West Indies": [
+     4,
+     2
+    ],
+    "New Zealand": [
+     3,
+     2
+    ],
+    "England": [
+     6,
+     2
+    ],
+    "India": [
+     3,
+     2
+    ]
+   }
+  },
+  "1982": {
+   "tests": 28,
+   "draws": 11,
+   "by_host": {
+    "India": [
+     4,
+     4
+    ],
+    "Australia": [
+     6,
+     2
+    ],
+    "Sri Lanka": [
+     1,
+     0
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "Pakistan": [
+     8,
+     2
+    ],
+    "England": [
+     6,
+     2
+    ]
+   }
+  },
+  "1983": {
+   "tests": 30,
+   "draws": 15,
+   "by_host": {
+    "Australia": [
+     5,
+     4
+    ],
+    "Pakistan": [
+     4,
+     2
+    ],
+    "West Indies": [
+     5,
+     3
+    ],
+    "New Zealand": [
+     2,
+     0
+    ],
+    "Sri Lanka": [
+     1,
+     0
+    ],
+    "England": [
+     4,
+     0
+    ],
+    "India": [
+     9,
+     6
+    ]
+   }
+  },
+  "1984": {
+   "tests": 34,
+   "draws": 13,
+   "by_host": {
+    "Australia": [
+     6,
+     1
+    ],
+    "New Zealand": [
+     3,
+     2
+    ],
+    "Pakistan": [
+     8,
+     5
+    ],
+    "West Indies": [
+     5,
+     2
+    ],
+    "Sri Lanka": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     1
+    ],
+    "India": [
+     3,
+     1
+    ]
+   }
+  },
+  "1985": {
+   "tests": 26,
+   "draws": 11,
+   "by_host": {
+    "India": [
+     2,
+     1
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "West Indies": [
+     4,
+     2
+    ],
+    "England": [
+     6,
+     2
+    ],
+    "Sri Lanka": [
+     3,
+     2
+    ],
+    "Pakistan": [
+     3,
+     1
+    ],
+    "Australia": [
+     5,
+     2
+    ]
+   }
+  },
+  "1986": {
+   "tests": 30,
+   "draws": 14,
+   "by_host": {
+    "Australia": [
+     5,
+     3
+    ],
+    "New Zealand": [
+     3,
+     2
+    ],
+    "West Indies": [
+     5,
+     0
+    ],
+    "Sri Lanka": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     3
+    ],
+    "India": [
+     5,
+     4
+    ],
+    "Pakistan": [
+     3,
+     1
+    ]
+   }
+  },
+  "1987": {
+   "tests": 25,
+   "draws": 16,
+   "by_host": {
+    "India": [
+     9,
+     6
+    ],
+    "Australia": [
+     4,
+     2
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "Sri Lanka": [
+     1,
+     1
+    ],
+    "England": [
+     5,
+     4
+    ],
+    "Pakistan": [
+     3,
+     2
+    ]
+   }
+  },
+  "1988": {
+   "tests": 24,
+   "draws": 8,
+   "by_host": {
+    "India": [
+     4,
+     0
+    ],
+    "Australia": [
+     5,
+     1
+    ],
+    "New Zealand": [
+     3,
+     3
+    ],
+    "West Indies": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     1
+    ],
+    "Pakistan": [
+     3,
+     2
+    ]
+   }
+  },
+  "1989": {
+   "tests": 21,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     5,
+     3
+    ],
+    "New Zealand": [
+     2,
+     2
+    ],
+    "West Indies": [
+     4,
+     1
+    ],
+    "England": [
+     6,
+     2
+    ],
+    "Pakistan": [
+     4,
+     4
+    ]
+   }
+  },
+  "1990": {
+   "tests": 26,
+   "draws": 10,
+   "by_host": {
+    "Australia": [
+     5,
+     2
+    ],
+    "New Zealand": [
+     4,
+     2
+    ],
+    "West Indies": [
+     4,
+     1
+    ],
+    "England": [
+     6,
+     4
+    ],
+    "Pakistan": [
+     6,
+     1
+    ],
+    "India": [
+     1,
+     0
+    ]
+   }
+  },
+  "1991": {
+   "tests": 21,
+   "draws": 10,
+   "by_host": {
+    "Australia": [
+     5,
+     2
+    ],
+    "New Zealand": [
+     3,
+     3
+    ],
+    "West Indies": [
+     5,
+     2
+    ],
+    "England": [
+     6,
+     1
+    ],
+    "Pakistan": [
+     2,
+     2
+    ]
+   }
+  },
+  "1992": {
+   "tests": 26,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     5,
+     2
+    ],
+    "Pakistan": [
+     1,
+     0
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "West Indies": [
+     1,
+     0
+    ],
+    "England": [
+     5,
+     2
+    ],
+    "Sri Lanka": [
+     5,
+     3
+    ],
+    "Zimbabwe": [
+     3,
+     2
+    ],
+    "South Africa": [
+     3,
+     2
+    ]
+   }
+  },
+  "1993": {
+   "tests": 36,
+   "draws": 13,
+   "by_host": {
+    "New Zealand": [
+     4,
+     1
+    ],
+    "Australia": [
+     7,
+     3
+    ],
+    "South Africa": [
+     1,
+     1
+    ],
+    "India": [
+     4,
+     0
+    ],
+    "Sri Lanka": [
+     8,
+     5
+    ],
+    "West Indies": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     1
+    ],
+    "Pakistan": [
+     3,
+     1
+    ]
+   }
+  },
+  "1994": {
+   "tests": 38,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ],
+    "India": [
+     6,
+     1
+    ],
+    "New Zealand": [
+     4,
+     1
+    ],
+    "West Indies": [
+     5,
+     1
+    ],
+    "South Africa": [
+     5,
+     1
+    ],
+    "England": [
+     6,
+     3
+    ],
+    "Sri Lanka": [
+     2,
+     0
+    ],
+    "Pakistan": [
+     3,
+     2
+    ],
+    "Zimbabwe": [
+     3,
+     3
+    ]
+   }
+  },
+  "1995": {
+   "tests": 40,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     8,
+     1
+    ],
+    "South Africa": [
+     6,
+     4
+    ],
+    "Zimbabwe": [
+     4,
+     0
+    ],
+    "New Zealand": [
+     6,
+     2
+    ],
+    "West Indies": [
+     4,
+     1
+    ],
+    "England": [
+     6,
+     2
+    ],
+    "Pakistan": [
+     3,
+     0
+    ],
+    "India": [
+     3,
+     2
+    ]
+   }
+  },
+  "1996": {
+   "tests": 28,
+   "draws": 9,
+   "by_host": {
+    "South Africa": [
+     2,
+     0
+    ],
+    "New Zealand": [
+     2,
+     2
+    ],
+    "Australia": [
+     4,
+     0
+    ],
+    "West Indies": [
+     2,
+     1
+    ],
+    "England": [
+     6,
+     3
+    ],
+    "Sri Lanka": [
+     2,
+     0
+    ],
+    "India": [
+     4,
+     0
+    ],
+    "Pakistan": [
+     4,
+     1
+    ],
+    "Zimbabwe": [
+     2,
+     2
+    ]
+   }
+  },
+  "1997": {
+   "tests": 44,
+   "draws": 21,
+   "by_host": {
+    "South Africa": [
+     5,
+     1
+    ],
+    "New Zealand": [
+     5,
+     1
+    ],
+    "Australia": [
+     6,
+     2
+    ],
+    "West Indies": [
+     7,
+     5
+    ],
+    "Sri Lanka": [
+     4,
+     4
+    ],
+    "England": [
+     6,
+     1
+    ],
+    "Zimbabwe": [
+     2,
+     2
+    ],
+    "Pakistan": [
+     6,
+     2
+    ],
+    "India": [
+     3,
+     3
+    ]
+   }
+  },
+  "1998": {
+   "tests": 45,
+   "draws": 11,
+   "by_host": {
+    "Australia": [
+     6,
+     2
+    ],
+    "Sri Lanka": [
+     5,
+     0
+    ],
+    "West Indies": [
+     6,
+     2
+    ],
+    "South Africa": [
+     8,
+     1
+    ],
+    "New Zealand": [
+     3,
+     0
+    ],
+    "India": [
+     3,
+     0
+    ],
+    "Zimbabwe": [
+     3,
+     1
+    ],
+    "England": [
+     6,
+     2
+    ],
+    "Pakistan": [
+     5,
+     3
+    ]
+   }
+  },
+  "1999": {
+   "tests": 43,
+   "draws": 14,
+   "by_host": {
+    "New Zealand": [
+     6,
+     3
+    ],
+    "Australia": [
+     6,
+     0
+    ],
+    "South Africa": [
+     6,
+     2
+    ],
+    "India": [
+     6,
+     2
+    ],
+    "Sri Lanka": [
+     4,
+     3
+    ],
+    "Pakistan": [
+     2,
+     1
+    ],
+    "West Indies": [
+     4,
+     0
+    ],
+    "England": [
+     4,
+     1
+    ],
+    "Zimbabwe": [
+     5,
+     2
+    ]
+   }
+  },
+  "2000": {
+   "tests": 46,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     5,
+     0
+    ],
+    "South Africa": [
+     6,
+     2
+    ],
+    "India": [
+     4,
+     1
+    ],
+    "Pakistan": [
+     6,
+     2
+    ],
+    "New Zealand": [
+     4,
+     1
+    ],
+    "West Indies": [
+     5,
+     2
+    ],
+    "England": [
+     7,
+     2
+    ],
+    "Sri Lanka": [
+     6,
+     2
+    ],
+    "Zimbabwe": [
+     2,
+     0
+    ],
+    "Bangladesh": [
+     1,
+     0
+    ]
+   }
+  },
+  "2001": {
+   "tests": 55,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     6,
+     3
+    ],
+    "South Africa": [
+     4,
+     1
+    ],
+    "Sri Lanka": [
+     11,
+     0
+    ],
+    "India": [
+     6,
+     2
+    ],
+    "New Zealand": [
+     5,
+     1
+    ],
+    "West Indies": [
+     5,
+     2
+    ],
+    "Zimbabwe": [
+     8,
+     2
+    ],
+    "England": [
+     7,
+     0
+    ],
+    "Pakistan": [
+     1,
+     0
+    ],
+    "Bangladesh": [
+     2,
+     1
+    ]
+   }
+  },
+  "2002": {
+   "tests": 54,
+   "draws": 8,
+   "by_host": {
+    "Australia": [
+     8,
+     0
+    ],
+    "Sri Lanka": [
+     4,
+     0
+    ],
+    "Bangladesh": [
+     4,
+     0
+    ],
+    "Pakistan": [
+     4,
+     0
+    ],
+    "India": [
+     5,
+     1
+    ],
+    "South Africa": [
+     8,
+     0
+    ],
+    "New Zealand": [
+     5,
+     1
+    ],
+    "West Indies": [
+     7,
+     3
+    ],
+    "England": [
+     7,
+     3
+    ],
+    "Zimbabwe": [
+     2,
+     0
+    ]
+   }
+  },
+  "2003": {
+   "tests": 44,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     8,
+     1
+    ],
+    "South Africa": [
+     3,
+     0
+    ],
+    "West Indies": [
+     6,
+     1
+    ],
+    "Bangladesh": [
+     4,
+     0
+    ],
+    "Sri Lanka": [
+     5,
+     4
+    ],
+    "England": [
+     7,
+     1
+    ],
+    "Pakistan": [
+     5,
+     1
+    ],
+    "India": [
+     2,
+     2
+    ],
+    "Zimbabwe": [
+     2,
+     1
+    ],
+    "New Zealand": [
+     2,
+     1
+    ]
+   }
+  },
+  "2004": {
+   "tests": 51,
+   "draws": 11,
+   "by_host": {
+    "Australia": [
+     7,
+     2
+    ],
+    "South Africa": [
+     4,
+     2
+    ],
+    "Zimbabwe": [
+     4,
+     1
+    ],
+    "Sri Lanka": [
+     5,
+     1
+    ],
+    "New Zealand": [
+     3,
+     1
+    ],
+    "West Indies": [
+     6,
+     2
+    ],
+    "Pakistan": [
+     5,
+     0
+    ],
+    "England": [
+     7,
+     0
+    ],
+    "India": [
+     6,
+     2
+    ],
+    "Bangladesh": [
+     4,
+     0
+    ]
+   }
+  },
+  "2005": {
+   "tests": 49,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     7,
+     1
+    ],
+    "South Africa": [
+     5,
+     1
+    ],
+    "Bangladesh": [
+     2,
+     1
+    ],
+    "India": [
+     6,
+     2
+    ],
+    "New Zealand": [
+     5,
+     2
+    ],
+    "West Indies": [
+     6,
+     2
+    ],
+    "England": [
+     7,
+     2
+    ],
+    "Sri Lanka": [
+     4,
+     0
+    ],
+    "Zimbabwe": [
+     4,
+     0
+    ],
+    "Pakistan": [
+     3,
+     1
+    ]
+   }
+  },
+  "2006": {
+   "tests": 46,
+   "draws": 12,
+   "by_host": {
+    "Australia": [
+     5,
+     0
+    ],
+    "Pakistan": [
+     6,
+     3
+    ],
+    "Bangladesh": [
+     4,
+     0
+    ],
+    "India": [
+     3,
+     1
+    ],
+    "New Zealand": [
+     5,
+     1
+    ],
+    "South Africa": [
+     8,
+     1
+    ],
+    "Sri Lanka": [
+     4,
+     1
+    ],
+    "England": [
+     7,
+     2
+    ],
+    "West Indies": [
+     4,
+     3
+    ]
+   }
+  },
+  "2007": {
+   "tests": 31,
+   "draws": 9,
+   "by_host": {
+    "Australia": [
+     4,
+     0
+    ],
+    "South Africa": [
+     7,
+     0
+    ],
+    "England": [
+     7,
+     3
+    ],
+    "Bangladesh": [
+     2,
+     1
+    ],
+    "Sri Lanka": [
+     6,
+     2
+    ],
+    "Pakistan": [
+     2,
+     1
+    ],
+    "India": [
+     3,
+     2
+    ]
+   }
+  },
+  "2008": {
+   "tests": 47,
+   "draws": 11,
+   "by_host": {
+    "Australia": [
+     7,
+     1
+    ],
+    "South Africa": [
+     4,
+     0
+    ],
+    "New Zealand": [
+     7,
+     2
+    ],
+    "Bangladesh": [
+     5,
+     1
+    ],
+    "West Indies": [
+     5,
+     1
+    ],
+    "India": [
+     9,
+     4
+    ],
+    "England": [
+     7,
+     2
+    ],
+    "Sri Lanka": [
+     3,
+     0
+    ]
+   }
+  },
+  "2009": {
+   "tests": 41,
+   "draws": 15,
+   "by_host": {
+    "Australia": [
+     5,
+     1
+    ],
+    "Bangladesh": [
+     1,
+     0
+    ],
+    "West Indies": [
+     7,
+     4
+    ],
+    "Pakistan": [
+     2,
+     2
+    ],
+    "South Africa": [
+     5,
+     1
+    ],
+    "New Zealand": [
+     6,
+     3
+    ],
+    "England": [
+     7,
+     2
+    ],
+    "Sri Lanka": [
+     5,
+     1
+    ],
+    "India": [
+     3,
+     1
+    ]
+   }
+  },
+  "2010": {
+   "tests": 43,
+   "draws": 11,
+   "by_host": {
+    "Australia": [
+     8,
+     1
+    ],
+    "South Africa": [
+     4,
+     1
+    ],
+    "Bangladesh": [
+     4,
+     0
+    ],
+    "India": [
+     7,
+     2
+    ],
+    "New Zealand": [
+     3,
+     0
+    ],
+    "England": [
+     6,
+     0
+    ],
+    "West Indies": [
+     3,
+     1
+    ],
+    "Sri Lanka": [
+     6,
+     4
+    ],
+    "Pakistan": [
+     2,
+     2
+    ]
+   }
+  },
+  "2011": {
+   "tests": 39,
+   "draws": 12,
+   "by_host": {
+    "South Africa": [
+     5,
+     1
+    ],
+    "Australia": [
+     4,
+     0
+    ],
+    "New Zealand": [
+     2,
+     1
+    ],
+    "West Indies": [
+     5,
+     2
+    ],
+    "England": [
+     7,
+     2
+    ],
+    "Zimbabwe": [
+     3,
+     0
+    ],
+    "Sri Lanka": [
+     3,
+     2
+    ],
+    "Pakistan": [
+     3,
+     2
+    ],
+    "Bangladesh": [
+     4,
+     1
+    ],
+    "India": [
+     3,
+     1
+    ]
+   }
+  },
+  "2012": {
+   "tests": 42,
+   "draws": 10,
+   "by_host": {
+    "Australia": [
+     8,
+     2
+    ],
+    "South Africa": [
+     1,
+     0
+    ],
+    "England": [
+     9,
+     2
+    ],
+    "New Zealand": [
+     4,
+     2
+    ],
+    "Sri Lanka": [
+     7,
+     2
+    ],
+    "West Indies": [
+     5,
+     1
+    ],
+    "India": [
+     6,
+     1
+    ],
+    "Bangladesh": [
+     2,
+     0
+    ]
+   }
+  },
+  "2013": {
+   "tests": 44,
+   "draws": 11,
+   "by_host": {
+    "South Africa": [
+     7,
+     1
+    ],
+    "Australia": [
+     5,
+     0
+    ],
+    "India": [
+     6,
+     0
+    ],
+    "New Zealand": [
+     6,
+     4
+    ],
+    "Sri Lanka": [
+     2,
+     1
+    ],
+    "West Indies": [
+     2,
+     0
+    ],
+    "Zimbabwe": [
+     4,
+     0
+    ],
+    "England": [
+     7,
+     2
+    ],
+    "Bangladesh": [
+     2,
+     2
+    ],
+    "Pakistan": [
+     3,
+     1
+    ]
+   }
+  },
+  "2014": {
+   "tests": 41,
+   "draws": 8,
+   "by_host": {
+    "Australia": [
+     6,
+     1
+    ],
+    "Pakistan": [
+     2,
+     0
+    ],
+    "Bangladesh": [
+     5,
+     1
+    ],
+    "New Zealand": [
+     6,
+     2
+    ],
+    "South Africa": [
+     5,
+     1
+    ],
+    "West Indies": [
+     5,
+     0
+    ],
+    "England": [
+     7,
+     2
+    ],
+    "Sri Lanka": [
+     4,
+     1
+    ],
+    "Zimbabwe": [
+     1,
+     0
+    ]
+   }
+  },
+  "2015": {
+   "tests": 43,
+   "draws": 9,
+   "by_host": {
+    "South Africa": [
+     2,
+     0
+    ],
+    "New Zealand": [
+     3,
+     0
+    ],
+    "Australia": [
+     6,
+     2
+    ],
+    "West Indies": [
+     5,
+     1
+    ],
+    "Bangladesh": [
+     5,
+     4
+    ],
+    "England": [
+     10,
+     1
+    ],
+    "Sri Lanka": [
+     8,
+     0
+    ],
+    "India": [
+     4,
+     1
+    ]
+   }
+  },
+  "2016": {
+   "tests": 47,
+   "draws": 7,
+   "by_host": {
+    "South Africa": [
+     6,
+     2
+    ],
+    "Australia": [
+     6,
+     1
+    ],
+    "New Zealand": [
+     4,
+     0
+    ],
+    "England": [
+     7,
+     1
+    ],
+    "West Indies": [
+     4,
+     2
+    ],
+    "Sri Lanka": [
+     3,
+     0
+    ],
+    "Zimbabwe": [
+     4,
+     0
+    ],
+    "India": [
+     8,
+     1
+    ],
+    "Pakistan": [
+     3,
+     0
+    ],
+    "Bangladesh": [
+     2,
+     0
+    ]
+   }
+  },
+  "2017": {
+   "tests": 47,
+   "draws": 7,
+   "by_host": {
+    "South Africa": [
+     5,
+     0
+    ],
+    "Australia": [
+     5,
+     1
+    ],
+    "New Zealand": [
+     7,
+     2
+    ],
+    "India": [
+     8,
+     3
+    ],
+    "Sri Lanka": [
+     6,
+     0
+    ],
+    "West Indies": [
+     3,
+     0
+    ],
+    "England": [
+     7,
+     0
+    ],
+    "Bangladesh": [
+     2,
+     0
+    ],
+    "Pakistan": [
+     2,
+     0
+    ],
+    "Zimbabwe": [
+     2,
+     1
+    ]
+   }
+  },
+  "2018": {
+   "tests": 48,
+   "draws": 5,
+   "by_host": {
+    "Australia": [
+     6,
+     1
+    ],
+    "South Africa": [
+     8,
+     0
+    ],
+    "Bangladesh": [
+     6,
+     1
+    ],
+    "New Zealand": [
+     7,
+     2
+    ],
+    "Ireland": [
+     1,
+     0
+    ],
+    "England": [
+     7,
+     0
+    ],
+    "West Indies": [
+     5,
+     1
+    ],
+    "India": [
+     3,
+     0
+    ],
+    "Sri Lanka": [
+     5,
+     0
+    ]
+   }
+  },
+  "2019": {
+   "tests": 39,
+   "draws": 4,
+   "by_host": {
+    "Australia": [
+     7,
+     1
+    ],
+    "South Africa": [
+     5,
+     0
+    ],
+    "West Indies": [
+     5,
+     0
+    ],
+    "New Zealand": [
+     4,
+     1
+    ],
+    "Afghanistan": [
+     2,
+     0
+    ],
+    "England": [
+     6,
+     1
+    ],
+    "Sri Lanka": [
+     2,
+     0
+    ],
+    "Bangladesh": [
+     1,
+     0
+    ],
+    "India": [
+     5,
+     0
+    ],
+    "Pakistan": [
+     2,
+     1
+    ]
+   }
+  },
+  "2020": {
+   "tests": 22,
+   "draws": 3,
+   "by_host": {
+    "Australia": [
+     3,
+     0
+    ],
+    "South Africa": [
+     4,
+     0
+    ],
+    "Zimbabwe": [
+     2,
+     1
+    ],
+    "Pakistan": [
+     1,
+     0
+    ],
+    "New Zealand": [
+     5,
+     0
+    ],
+    "Bangladesh": [
+     1,
+     0
+    ],
+    "England": [
+     6,
+     2
+    ]
+   }
+  },
+  "2021": {
+   "tests": 22,
+   "draws": 4,
+   "by_host": {
+    "New Zealand": [
+     1,
+     0
+    ],
+    "South Africa": [
+     1,
+     0
+    ],
+    "Australia": [
+     2,
+     1
+    ],
+    "Sri Lanka": [
+     4,
+     1
+    ],
+    "Pakistan": [
+     2,
+     0
+    ],
+    "Bangladesh": [
+     2,
+     0
+    ],
+    "India": [
+     4,
+     0
+    ],
+    "Afghanistan": [
+     2,
+     0
+    ],
+    "West Indies": [
+     2,
+     2
+    ],
+    "Zimbabwe": [
+     2,
+     0
+    ]
+   }
+  }
+ }
+}

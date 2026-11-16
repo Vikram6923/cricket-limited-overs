@@ -21,7 +21,7 @@ from .data import DATA, Player
 # Not fitted (Cricsheet has no days, so none of these can be):
 NIGHTWATCH_OVERS = 6        # a wicket this close to stumps brings a nightwatchman (the plan's rule)
 NIGHTWATCH_TOP = 6          # ... if the next man in is one of the top six
-NEW_BALL_OVERS = 80         # the new ball is available, and taken at once (the fits assume over 80 too)
+NEW_BALL_OVERS = 80         # the new ball is available (the Laws; the situation fits assume it is taken then)
 # Law 14.1: the lead needed to enforce the follow-on, by the length of the match in days
 FOLLOW_ON_LEAD = {1: 75, 2: 100, 3: 150, 4: 150}
 RR_CAP = 8.0                # cap on "runs an over the other side would need" as a model feature
@@ -191,6 +191,18 @@ class Bowling:
         self.last: dict = {}                   # bowler -> the over he last bowled
         self.overs: dict = defaultdict(int)    # bowler -> overs this innings
 
+    def swap(self, old: Player, new: Player | None) -> None:
+        """old can bowl no more in this innings (hurt); new, if any, has come in for him."""
+        if old in self.cands and (new is not None or len(self.cands) > 2):
+            self.cands.remove(old)
+            self.ends = [None if e is not None and e[0] is old else e for e in self.ends]
+        if new is not None and new not in self.cands:
+            c = self.t["choice"]
+            self.cands.append(new)
+            self.grp[new] = group(new)
+            self.w0[new] = (max(new.bowl_overs_per_match, c["opm_floor"]) *
+                            c["opm"][bisect.bisect_right(c["opm_edges"], new.bowl_overs_per_match)])
+
     def new_day(self) -> None:
         """Overnight: both spells are over and everyone who has bowled is rested."""
         self.ends = [None, None]
@@ -243,6 +255,23 @@ class Bowling:
         self.prev = p
         self.last[p] = n
         self.overs[p] += 1
+
+
+# ---------------------------------------------------------------------------------------------- the new ball
+@lru_cache(maxsize=None)
+def newball_table() -> dict:
+    p = DATA / "engine" / "test_newball.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def take_new_ball(rng: random.Random, spinners: int, waited: int) -> bool:
+    """The new ball is available and not yet taken: does the captain take it before this over? spinners: how
+    many of the last two overs were spin; waited: overs since it became available. Real captains often keep the
+    old ball while spin is on (engine/fit/fit_test_newball.py). With no table it is taken at once."""
+    t = newball_table()
+    if not t:
+        return True
+    return rng.random() < t["take"][str(spinners)][bisect.bisect_right(t["edges"], waited)]
 
 
 # ---------------------------------------------------------------------------------------------- nightwatchman

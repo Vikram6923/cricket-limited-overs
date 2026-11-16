@@ -1,0 +1,666 @@
+{
+ "until": 2001,
+ "tests": 400,
+ "decades": {
+  "1880": {
+   "runs": 0.9163,
+   "wkt": 1.0596,
+   "day_overs": 95,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.346,
+     "runs per wicket": 22.27,
+     "draw": 0.242
+    },
+    {
+     "runs": 0.9306,
+     "wkt": 1.0838,
+     "day_overs": 105,
+     "run rate": 2.207,
+     "runs per wicket": 18.59,
+     "draw": 0.08
+    },
+    {
+     "runs": 0.9207,
+     "wkt": 1.0425,
+     "day_overs": 96,
+     "run rate": 2.19,
+     "runs per wicket": 19.64,
+     "draw": 0.14
+    },
+    {
+     "runs": 0.9192,
+     "wkt": 1.0548,
+     "day_overs": 96,
+     "run rate": 2.216,
+     "runs per wicket": 19.36,
+     "draw": 0.12
+    },
+    {
+     "runs": 0.9146,
+     "wkt": 1.054,
+     "day_overs": 95,
+     "run rate": 2.167,
+     "runs per wicket": 19.39,
+     "draw": 0.133
+    },
+    {
+     "runs": 0.9163,
+     "wkt": 1.0596,
+     "day_overs": 95,
+     "run rate": 2.186,
+     "runs per wicket": 19.49,
+     "draw": 0.172
+    }
+   ]
+  },
+  "1890": {
+   "runs": 0.8933,
+   "wkt": 0.9049,
+   "day_overs": 93,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.786,
+     "runs per wicket": 22.44,
+     "draw": 0.138
+    },
+    {
+     "runs": 0.8993,
+     "wkt": 0.8939,
+     "day_overs": 83,
+     "run rate": 2.503,
+     "runs per wicket": 22.77,
+     "draw": 0.295
+    },
+    {
+     "runs": 0.9,
+     "wkt": 0.9022,
+     "day_overs": 98,
+     "run rate": 2.533,
+     "runs per wicket": 22.92,
+     "draw": 0.145
+    },
+    {
+     "runs": 0.8951,
+     "wkt": 0.9042,
+     "day_overs": 95,
+     "run rate": 2.524,
+     "runs per wicket": 22.74,
+     "draw": 0.15
+    },
+    {
+     "runs": 0.8928,
+     "wkt": 0.9042,
+     "day_overs": 93,
+     "run rate": 2.499,
+     "runs per wicket": 22.59,
+     "draw": 0.188
+    },
+    {
+     "runs": 0.8933,
+     "wkt": 0.9049,
+     "day_overs": 93,
+     "run rate": 2.527,
+     "runs per wicket": 22.62,
+     "draw": 0.17
+    }
+   ]
+  },
+  "1900": {
+   "runs": 0.8887,
+   "wkt": 0.9865,
+   "day_overs": 86,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 3.003,
+     "runs per wicket": 27.08,
+     "draw": 0.203
+    },
+    {
+     "runs": 0.9065,
+     "wkt": 0.9976,
+     "day_overs": 85,
+     "run rate": 2.768,
+     "runs per wicket": 24.65,
+     "draw": 0.255
+    },
+    {
+     "runs": 0.8913,
+     "wkt": 0.9827,
+     "day_overs": 86,
+     "run rate": 2.731,
+     "runs per wicket": 24.97,
+     "draw": 0.26
+    },
+    {
+     "runs": 0.8899,
+     "wkt": 0.9884,
+     "day_overs": 87,
+     "run rate": 2.727,
+     "runs per wicket": 24.11,
+     "draw": 0.2
+    },
+    {
+     "runs": 0.8893,
+     "wkt": 0.9811,
+     "day_overs": 85,
+     "run rate": 2.73,
+     "runs per wicket": 25.23,
+     "draw": 0.275
+    },
+    {
+     "runs": 0.8887,
+     "wkt": 0.9865,
+     "day_overs": 86,
+     "run rate": 2.71,
+     "runs per wicket": 24.39,
+     "draw": 0.237
+    }
+   ]
+  },
+  "1910": {
+   "runs": 0.9207,
+   "wkt": 1.05,
+   "day_overs": 104,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.966,
+     "runs per wicket": 29.09,
+     "draw": 0.265
+    },
+    {
+     "runs": 0.9338,
+     "wkt": 1.0182,
+     "day_overs": 109,
+     "run rate": 2.806,
+     "runs per wicket": 27.27,
+     "draw": 0.12
+    },
+    {
+     "runs": 0.9218,
+     "wkt": 1.0277,
+     "day_overs": 106,
+     "run rate": 2.78,
+     "runs per wicket": 27.23,
+     "draw": 0.105
+    },
+    {
+     "runs": 0.9202,
+     "wkt": 1.0365,
+     "day_overs": 103,
+     "run rate": 2.768,
+     "runs per wicket": 27.25,
+     "draw": 0.16
+    },
+    {
+     "runs": 0.9204,
+     "wkt": 1.0442,
+     "day_overs": 104,
+     "run rate": 2.766,
+     "runs per wicket": 27.23,
+     "draw": 0.138
+    },
+    {
+     "runs": 0.9207,
+     "wkt": 1.05,
+     "day_overs": 104,
+     "run rate": 2.758,
+     "runs per wicket": 25.73,
+     "draw": 0.133
+    }
+   ]
+  },
+  "1920": {
+   "runs": 0.8798,
+   "wkt": 0.9989,
+   "day_overs": 105,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.88,
+     "runs per wicket": 34.78,
+     "draw": 0.475
+    },
+    {
+     "runs": 0.8897,
+     "wkt": 0.9795,
+     "day_overs": 115,
+     "run rate": 2.578,
+     "runs per wicket": 32.76,
+     "draw": 0.275
+    },
+    {
+     "runs": 0.8841,
+     "wkt": 1.0095,
+     "day_overs": 109,
+     "run rate": 2.579,
+     "runs per wicket": 31.44,
+     "draw": 0.255
+    },
+    {
+     "runs": 0.8811,
+     "wkt": 1.0038,
+     "day_overs": 104,
+     "run rate": 2.569,
+     "runs per wicket": 31.06,
+     "draw": 0.295
+    },
+    {
+     "runs": 0.8803,
+     "wkt": 0.9972,
+     "day_overs": 103,
+     "run rate": 2.567,
+     "runs per wicket": 31.87,
+     "draw": 0.357
+    },
+    {
+     "runs": 0.8798,
+     "wkt": 0.9989,
+     "day_overs": 105,
+     "run rate": 2.562,
+     "runs per wicket": 30.74,
+     "draw": 0.297
+    }
+   ]
+  },
+  "1930": {
+   "runs": 0.8717,
+   "wkt": 0.9957,
+   "day_overs": 93,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.889,
+     "runs per wicket": 34.62,
+     "draw": 0.443
+    },
+    {
+     "runs": 0.8856,
+     "wkt": 0.9873,
+     "day_overs": 95,
+     "run rate": 2.59,
+     "runs per wicket": 32.52,
+     "draw": 0.438
+    },
+    {
+     "runs": 0.8752,
+     "wkt": 1.0217,
+     "day_overs": 100,
+     "run rate": 2.588,
+     "runs per wicket": 30.76,
+     "draw": 0.328
+    },
+    {
+     "runs": 0.8702,
+     "wkt": 1.0112,
+     "day_overs": 94,
+     "run rate": 2.552,
+     "runs per wicket": 29.88,
+     "draw": 0.37
+    },
+    {
+     "runs": 0.871,
+     "wkt": 0.9992,
+     "day_overs": 92,
+     "run rate": 2.551,
+     "runs per wicket": 30.53,
+     "draw": 0.432
+    },
+    {
+     "runs": 0.8717,
+     "wkt": 0.9957,
+     "day_overs": 93,
+     "run rate": 2.543,
+     "runs per wicket": 31.1,
+     "draw": 0.445
+    }
+   ]
+  },
+  "1940": {
+   "runs": 0.9041,
+   "wkt": 1.1237,
+   "day_overs": 95,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.688,
+     "runs per wicket": 40.74,
+     "draw": 0.67
+    },
+    {
+     "runs": 0.9169,
+     "wkt": 1.1491,
+     "day_overs": 118,
+     "run rate": 2.509,
+     "runs per wicket": 32.2,
+     "draw": 0.247
+    },
+    {
+     "runs": 0.9008,
+     "wkt": 1.1181,
+     "day_overs": 82,
+     "run rate": 2.459,
+     "runs per wicket": 33.0,
+     "draw": 0.662
+    },
+    {
+     "runs": 0.902,
+     "wkt": 1.1281,
+     "day_overs": 93,
+     "run rate": 2.444,
+     "runs per wicket": 32.03,
+     "draw": 0.547
+    },
+    {
+     "runs": 0.9046,
+     "wkt": 1.1258,
+     "day_overs": 96,
+     "run rate": 2.471,
+     "runs per wicket": 32.35,
+     "draw": 0.468
+    },
+    {
+     "runs": 0.9041,
+     "wkt": 1.1237,
+     "day_overs": 95,
+     "run rate": 2.453,
+     "runs per wicket": 31.49,
+     "draw": 0.492
+    }
+   ]
+  },
+  "1950": {
+   "runs": 0.9036,
+   "wkt": 0.9998,
+   "day_overs": 113,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.465,
+     "runs per wicket": 31.92,
+     "draw": 0.555
+    },
+    {
+     "runs": 0.9147,
+     "wkt": 1.0158,
+     "day_overs": 130,
+     "run rate": 2.283,
+     "runs per wicket": 28.88,
+     "draw": 0.142
+    },
+    {
+     "runs": 0.9037,
+     "wkt": 1.0082,
+     "day_overs": 101,
+     "run rate": 2.242,
+     "runs per wicket": 27.77,
+     "draw": 0.398
+    },
+    {
+     "runs": 0.9063,
+     "wkt": 0.9938,
+     "day_overs": 108,
+     "run rate": 2.26,
+     "runs per wicket": 29.0,
+     "draw": 0.365
+    },
+    {
+     "runs": 0.9055,
+     "wkt": 0.9959,
+     "day_overs": 111,
+     "run rate": 2.274,
+     "runs per wicket": 29.45,
+     "draw": 0.352
+    },
+    {
+     "runs": 0.9036,
+     "wkt": 0.9998,
+     "day_overs": 113,
+     "run rate": 2.247,
+     "runs per wicket": 28.36,
+     "draw": 0.28
+    }
+   ]
+  },
+  "1960": {
+   "runs": 0.8984,
+   "wkt": 1.0291,
+   "day_overs": 98,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.602,
+     "runs per wicket": 35.39,
+     "draw": 0.593
+    },
+    {
+     "runs": 0.9083,
+     "wkt": 1.0499,
+     "day_overs": 107,
+     "run rate": 2.382,
+     "runs per wicket": 29.95,
+     "draw": 0.35
+    },
+    {
+     "runs": 0.9012,
+     "wkt": 1.0192,
+     "day_overs": 88,
+     "run rate": 2.369,
+     "runs per wicket": 31.21,
+     "draw": 0.585
+    },
+    {
+     "runs": 0.9,
+     "wkt": 1.0278,
+     "day_overs": 95,
+     "run rate": 2.364,
+     "runs per wicket": 31.04,
+     "draw": 0.545
+    },
+    {
+     "runs": 0.8999,
+     "wkt": 1.0324,
+     "day_overs": 98,
+     "run rate": 2.379,
+     "runs per wicket": 30.44,
+     "draw": 0.475
+    },
+    {
+     "runs": 0.8984,
+     "wkt": 1.0291,
+     "day_overs": 98,
+     "run rate": 2.368,
+     "runs per wicket": 30.69,
+     "draw": 0.515
+    }
+   ]
+  },
+  "1970": {
+   "runs": 0.9164,
+   "wkt": 1.032,
+   "day_overs": 94,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.752,
+     "runs per wicket": 34.65,
+     "draw": 0.535
+    },
+    {
+     "runs": 0.9185,
+     "wkt": 1.0478,
+     "day_overs": 106,
+     "run rate": 2.535,
+     "runs per wicket": 29.99,
+     "draw": 0.3
+    },
+    {
+     "runs": 0.9159,
+     "wkt": 1.0314,
+     "day_overs": 88,
+     "run rate": 2.518,
+     "runs per wicket": 30.57,
+     "draw": 0.522
+    },
+    {
+     "runs": 0.9177,
+     "wkt": 1.0368,
+     "day_overs": 95,
+     "run rate": 2.543,
+     "runs per wicket": 30.58,
+     "draw": 0.415
+    },
+    {
+     "runs": 0.9159,
+     "wkt": 1.037,
+     "day_overs": 95,
+     "run rate": 2.522,
+     "runs per wicket": 29.73,
+     "draw": 0.41
+    },
+    {
+     "runs": 0.9164,
+     "wkt": 1.032,
+     "day_overs": 94,
+     "run rate": 2.529,
+     "runs per wicket": 29.92,
+     "draw": 0.412
+    }
+   ]
+  },
+  "1980": {
+   "runs": 0.9409,
+   "wkt": 1.0068,
+   "day_overs": 87,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.853,
+     "runs per wicket": 32.37,
+     "draw": 0.432
+    },
+    {
+     "runs": 0.9479,
+     "wkt": 1.0112,
+     "day_overs": 86,
+     "run rate": 2.725,
+     "runs per wicket": 29.93,
+     "draw": 0.412
+    },
+    {
+     "runs": 0.9406,
+     "wkt": 0.9896,
+     "day_overs": 80,
+     "run rate": 2.683,
+     "runs per wicket": 30.97,
+     "draw": 0.568
+    },
+    {
+     "runs": 0.9443,
+     "wkt": 1.0038,
+     "day_overs": 87,
+     "run rate": 2.724,
+     "runs per wicket": 31.44,
+     "draw": 0.497
+    },
+    {
+     "runs": 0.942,
+     "wkt": 1.0132,
+     "day_overs": 89,
+     "run rate": 2.716,
+     "runs per wicket": 29.71,
+     "draw": 0.415
+    },
+    {
+     "runs": 0.9409,
+     "wkt": 1.0068,
+     "day_overs": 87,
+     "run rate": 2.699,
+     "runs per wicket": 30.07,
+     "draw": 0.43
+    }
+   ]
+  },
+  "1990": {
+   "runs": 0.9645,
+   "wkt": 1.0273,
+   "day_overs": 89,
+   "steps": [
+    {
+     "runs": 1.0,
+     "wkt": 1.0,
+     "day_overs": 90,
+     "run rate": 2.856,
+     "runs per wicket": 32.51,
+     "draw": 0.422
+    },
+    {
+     "runs": 0.97,
+     "wkt": 1.0568,
+     "day_overs": 99,
+     "run rate": 2.786,
+     "runs per wicket": 28.88,
+     "draw": 0.22
+    },
+    {
+     "runs": 0.9645,
+     "wkt": 1.0168,
+     "day_overs": 81,
+     "run rate": 2.781,
+     "runs per wicket": 30.58,
+     "draw": 0.465
+    },
+    {
+     "runs": 0.9626,
+     "wkt": 1.0273,
+     "day_overs": 88,
+     "run rate": 2.757,
+     "runs per wicket": 29.76,
+     "draw": 0.403
+    },
+    {
+     "runs": 0.964,
+     "wkt": 1.0279,
+     "day_overs": 90,
+     "run rate": 2.765,
+     "runs per wicket": 29.72,
+     "draw": 0.34
+    },
+    {
+     "runs": 0.9645,
+     "wkt": 1.0273,
+     "day_overs": 89,
+     "run rate": 2.758,
+     "runs per wicket": 30.17,
+     "draw": 0.367
+    }
+   ]
+  }
+ }
+}

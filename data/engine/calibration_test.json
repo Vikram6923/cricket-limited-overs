@@ -4038,5 +4038,583 @@
     }
    }
   }
+ },
+ {
+  "when": "2026-11-16T13:27:17",
+  "suite": "test",
+  "label": "matchups; new ball as real captains take it",
+  "flags": {
+   "use_venue": true,
+   "use_pitch": true,
+   "use_spin": true,
+   "use_weather": true,
+   "use_home": true
+  },
+  "fixtures": 473,
+  "reps": 4,
+  "real": {
+   "runs per wicket": 30.79817935308929,
+   "run rate": 3.312564305248697,
+   "1st inns runs mean": 331.70362473347546,
+   "1st inns runs sd": 137.4327965550831,
+   "draw %": 13.10782241014799,
+   "won by an innings %": 18.6046511627907,
+   "won by runs %": 42.28329809725159,
+   "won by wickets %": 26.004228329809724,
+   "home win %": 53.37690631808279,
+   "over in 3 days or fewer %": 19.661733615221987,
+   "over on day 4 %": 33.40380549682875,
+   "went to day 5 %": 46.93446088794926,
+   "overs per match": 305.8414376321353,
+   "all out % of innings": 72.57790368271955,
+   "overs per innings": 81.96203966005666,
+   "chase won %, target under 200": 88.57142857142857,
+   "chase won %, target 200-299": 28.169014084507044,
+   "chase won %, target 300+": 5.58659217877095,
+   "declarations per match": 0.5433403805496829,
+   "lead at 3rd-innings declarations": 416.08396946564886,
+   "follow-ons enforced per match": 0.09090909090909091,
+   "hundreds per match": 1.7315010570824525,
+   "five-fors per match": 1.3044397463002113,
+   "double hundreds per match": 0.17124735729386892,
+   "ten-fors per match": 0.17547568710359407,
+   "spin % of overs": 40.47546500837915,
+   "spin % of wickets": 36.96415556880673,
+   "spell length, pace": 4.066083254493851,
+   "spell length, spin": 5.312096700899755,
+   "overs by the most-used bowler": 24.81342701014832,
+   "dismissals: caught %": 61.61792239653948,
+   "dismissals: bowled %": 17.993414681386792,
+   "dismissals: lbw %": 16.050100071018143,
+   "dismissals: run out %": 2.401704435405772,
+   "dismissals: stumped %": 1.8787526631803215
+  },
+  "sim": {
+   "runs per wicket": 31.138623031799938,
+   "run rate": 3.3451635005215086,
+   "1st inns runs mean": 330.9746166049709,
+   "1st inns runs sd": 142.1675685489358,
+   "draw %": 19.027484143763214,
+   "won by an innings %": 17.441860465116278,
+   "won by runs %": 37.36786469344609,
+   "won by wickets %": 26.109936575052853,
+   "home win %": 51.19825708061002,
+   "over in 3 days or fewer %": 22.463002114164905,
+   "over on day 4 %": 32.18816067653277,
+   "went to day 5 %": 45.348837209302324,
+   "overs per match": 303.9873150105708,
+   "all out % of innings": 73.05313466404273,
+   "overs per innings": 80.8467809952207,
+   "chase won %, target under 200": 82.62910798122066,
+   "chase won %, target 200-299": 31.29032258064516,
+   "chase won %, target 300+": 6.293706293706293,
+   "declarations per match": 0.5655391120507399,
+   "lead at 3rd-innings declarations": 402.2239089184061,
+   "follow-ons enforced per match": 0.080338266384778,
+   "hundreds per match": 1.708245243128964,
+   "five-fors per match": 1.0787526427061311,
+   "double hundreds per match": 0.160676532769556,
+   "ten-fors per match": 0.11363636363636363,
+   "spin % of overs": 39.31142628149284,
+   "spin % of wickets": 35.293432890426224,
+   "spell length, pace": 4.149830225769941,
+   "spell length, spin": 5.285048370850999,
+   "overs by the most-used bowler": 24.52511064075428,
+   "dismissals: caught %": 60.02989876667588,
+   "dismissals: bowled %": 17.494028371329684,
+   "dismissals: lbw %": 16.481695130075884,
+   "dismissals: run out %": 2.127037259713037,
+   "dismissals: stumped %": 1.730553614663395
+  },
+  "gates": {
+   "runs per wicket": true,
+   "run rate": true,
+   "1st inns runs mean": true,
+   "1st inns runs sd": true,
+   "draw %": false,
+   "won by an innings %": true,
+   "won by runs %": false,
+   "won by wickets %": true,
+   "home win %": true,
+   "over in 3 days or fewer %": true,
+   "over on day 4 %": true,
+   "went to day 5 %": true,
+   "overs per match": true,
+   "all out % of innings": true,
+   "overs per innings": true,
+   "chase won %, target under 200": true,
+   "chase won %, target 200-299": true,
+   "chase won %, target 300+": null,
+   "declarations per match": true,
+   "lead at 3rd-innings declarations": true,
+   "follow-ons enforced per match": false,
+   "hundreds per match": true,
+   "five-fors per match": false,
+   "double hundreds per match": null,
+   "ten-fors per match": null,
+   "spin % of overs": true,
+   "spin % of wickets": true,
+   "spell length, pace": true,
+   "spell length, spin": true,
+   "overs by the most-used bowler": true,
+   "dismissals: caught %": true,
+   "dismissals: bowled %": true,
+   "dismissals: lbw %": true,
+   "dismissals: run out %": true,
+   "dismissals: stumped %": true
+  },
+  "gates_met": [
+   28,
+   32
+  ],
+  "by_host": {
+   "real": {
+    "Australia": {
+     "matches": 57,
+     "draw %": 15.8,
+     "home win %": 68.4,
+     "spin % of overs": 27.6,
+     "overs per match": 307.0
+    },
+    "Bangladesh": {
+     "matches": 36,
+     "draw %": 13.9,
+     "home win %": 33.3,
+     "spin % of overs": 65.5,
+     "overs per match": 307.8
+    },
+    "England": {
+     "matches": 80,
+     "draw %": 10.0,
+     "home win %": 59.7,
+     "spin % of overs": 22.1,
+     "overs per match": 296.4
+    },
+    "India": {
+     "matches": 51,
+     "draw %": 13.7,
+     "home win %": 70.6,
+     "spin % of overs": 64.6,
+     "overs per match": 297.7
+    },
+    "Ireland": {
+     "matches": 2,
+     "draw %": 0.0,
+     "home win %": 50.0,
+     "spin % of overs": 18.1,
+     "overs per match": 233.5
+    },
+    "New Zealand": {
+     "matches": 46,
+     "draw %": 13.0,
+     "home win %": 65.2,
+     "spin % of overs": 20.7,
+     "overs per match": 317.7
+    },
+    "Pakistan": {
+     "matches": 35,
+     "draw %": 20.0,
+     "home win %": 40.0,
+     "spin % of overs": 53.1,
+     "overs per match": 340.8
+    },
+    "South Africa": {
+     "matches": 45,
+     "draw %": 4.4,
+     "home win %": 68.9,
+     "spin % of overs": 25.0,
+     "overs per match": 285.8
+    },
+    "Sri Lanka": {
+     "matches": 46,
+     "draw %": 6.5,
+     "home win %": 47.8,
+     "spin % of overs": 69.2,
+     "overs per match": 321.8
+    },
+    "West Indies": {
+     "matches": 45,
+     "draw %": 24.4,
+     "home win %": 28.9,
+     "spin % of overs": 33.1,
+     "overs per match": 297.2
+    },
+    "Zimbabwe": {
+     "matches": 19,
+     "draw %": 15.8,
+     "home win %": 5.3,
+     "spin % of overs": 45.4,
+     "overs per match": 321.5
+    }
+   },
+   "sim": {
+    "Australia": {
+     "matches": 228,
+     "draw %": 17.1,
+     "home win %": 64.9,
+     "spin % of overs": 28.8,
+     "overs per match": 308.8
+    },
+    "Bangladesh": {
+     "matches": 144,
+     "draw %": 14.6,
+     "home win %": 38.2,
+     "spin % of overs": 58.9,
+     "overs per match": 304.2
+    },
+    "England": {
+     "matches": 320,
+     "draw %": 19.7,
+     "home win %": 52.6,
+     "spin % of overs": 26.0,
+     "overs per match": 292.4
+    },
+    "India": {
+     "matches": 204,
+     "draw %": 24.0,
+     "home win %": 63.2,
+     "spin % of overs": 56.9,
+     "overs per match": 303.9
+    },
+    "Ireland": {
+     "matches": 8,
+     "draw %": 0.0,
+     "home win %": 37.5,
+     "spin % of overs": 23.1,
+     "overs per match": 288.2
+    },
+    "New Zealand": {
+     "matches": 184,
+     "draw %": 16.3,
+     "home win %": 69.0,
+     "spin % of overs": 24.0,
+     "overs per match": 300.1
+    },
+    "Pakistan": {
+     "matches": 140,
+     "draw %": 26.4,
+     "home win %": 47.1,
+     "spin % of overs": 49.4,
+     "overs per match": 329.5
+    },
+    "South Africa": {
+     "matches": 180,
+     "draw %": 8.9,
+     "home win %": 65.0,
+     "spin % of overs": 26.2,
+     "overs per match": 276.3
+    },
+    "Sri Lanka": {
+     "matches": 184,
+     "draw %": 25.0,
+     "home win %": 36.4,
+     "spin % of overs": 60.7,
+     "overs per match": 324.7
+    },
+    "West Indies": {
+     "matches": 180,
+     "draw %": 18.9,
+     "home win %": 31.7,
+     "spin % of overs": 33.9,
+     "overs per match": 306.3
+    },
+    "Zimbabwe": {
+     "matches": 76,
+     "draw %": 22.4,
+     "home win %": 11.8,
+     "spin % of overs": 42.2,
+     "overs per match": 315.3
+    }
+   }
+  }
+ },
+ {
+  "when": "2026-11-16T14:37:33",
+  "suite": "test",
+  "label": "last-hour agreed draws, injuries",
+  "flags": {
+   "use_venue": true,
+   "use_pitch": true,
+   "use_spin": true,
+   "use_weather": true,
+   "use_home": true
+  },
+  "fixtures": 473,
+  "reps": 4,
+  "real": {
+   "runs per wicket": 30.79817935308929,
+   "run rate": 3.312564305248697,
+   "1st inns runs mean": 331.70362473347546,
+   "1st inns runs sd": 137.4327965550831,
+   "draw %": 13.10782241014799,
+   "won by an innings %": 18.6046511627907,
+   "won by runs %": 42.28329809725159,
+   "won by wickets %": 26.004228329809724,
+   "home win %": 53.37690631808279,
+   "over in 3 days or fewer %": 19.661733615221987,
+   "over on day 4 %": 33.40380549682875,
+   "went to day 5 %": 46.93446088794926,
+   "overs per match": 305.8414376321353,
+   "all out % of innings": 72.57790368271955,
+   "overs per innings": 81.96203966005666,
+   "chase won %, target under 200": 88.57142857142857,
+   "chase won %, target 200-299": 28.169014084507044,
+   "chase won %, target 300+": 5.58659217877095,
+   "declarations per match": 0.5433403805496829,
+   "lead at 3rd-innings declarations": 416.08396946564886,
+   "follow-ons enforced per match": 0.09090909090909091,
+   "hundreds per match": 1.7315010570824525,
+   "five-fors per match": 1.3044397463002113,
+   "double hundreds per match": 0.17124735729386892,
+   "ten-fors per match": 0.17547568710359407,
+   "spin % of overs": 40.47546500837915,
+   "spin % of wickets": 36.96415556880673,
+   "spell length, pace": 4.066083254493851,
+   "spell length, spin": 5.312096700899755,
+   "overs by the most-used bowler": 24.81342701014832,
+   "dismissals: caught %": 61.61792239653948,
+   "dismissals: bowled %": 17.993414681386792,
+   "dismissals: lbw %": 16.050100071018143,
+   "dismissals: run out %": 2.401704435405772,
+   "dismissals: stumped %": 1.8787526631803215
+  },
+  "sim": {
+   "runs per wicket": 31.116963442820403,
+   "run rate": 3.3449474181790824,
+   "1st inns runs mean": 330.29243786356426,
+   "1st inns runs sd": 141.6525144135961,
+   "draw %": 18.657505285412263,
+   "won by an innings %": 17.758985200845665,
+   "won by runs %": 37.89640591966173,
+   "won by wickets %": 25.634249471458773,
+   "home win %": 51.1437908496732,
+   "over in 3 days or fewer %": 22.674418604651162,
+   "over on day 4 %": 32.241014799154335,
+   "went to day 5 %": 45.084566596194506,
+   "overs per match": 303.284355179704,
+   "all out % of innings": 73.3549387064957,
+   "overs per innings": 80.85303649429336,
+   "chase won %, target under 200": 83.00970873786407,
+   "chase won %, target 200-299": 32.467532467532465,
+   "chase won %, target 300+": 6.022408963585434,
+   "declarations per match": 0.5570824524312896,
+   "lead at 3rd-innings declarations": 406.5562015503876,
+   "follow-ons enforced per match": 0.07928118393234672,
+   "hundreds per match": 1.697674418604651,
+   "five-fors per match": 1.0787526427061311,
+   "double hundreds per match": 0.15644820295983086,
+   "ten-fors per match": 0.11152219873150106,
+   "spin % of overs": 39.30065191689413,
+   "spin % of wickets": 35.3070540801706,
+   "spell length, pace": 4.147981955748621,
+   "spell length, spin": 5.283815829635369,
+   "overs by the most-used bowler": 24.490779869381484,
+   "dismissals: caught %": 59.96614473127381,
+   "dismissals: bowled %": 17.492431394251113,
+   "dismissals: lbw %": 16.54513493277776,
+   "dismissals: run out %": 2.1452521240925813,
+   "dismissals: stumped %": 1.7188059507145415
+  },
+  "gates": {
+   "runs per wicket": true,
+   "run rate": true,
+   "1st inns runs mean": true,
+   "1st inns runs sd": true,
+   "draw %": false,
+   "won by an innings %": true,
+   "won by runs %": false,
+   "won by wickets %": true,
+   "home win %": true,
+   "over in 3 days or fewer %": true,
+   "over on day 4 %": true,
+   "went to day 5 %": true,
+   "overs per match": true,
+   "all out % of innings": true,
+   "overs per innings": true,
+   "chase won %, target under 200": true,
+   "chase won %, target 200-299": true,
+   "chase won %, target 300+": null,
+   "declarations per match": true,
+   "lead at 3rd-innings declarations": true,
+   "follow-ons enforced per match": false,
+   "hundreds per match": true,
+   "five-fors per match": false,
+   "double hundreds per match": null,
+   "ten-fors per match": null,
+   "spin % of overs": true,
+   "spin % of wickets": true,
+   "spell length, pace": true,
+   "spell length, spin": true,
+   "overs by the most-used bowler": true,
+   "dismissals: caught %": true,
+   "dismissals: bowled %": true,
+   "dismissals: lbw %": true,
+   "dismissals: run out %": true,
+   "dismissals: stumped %": true
+  },
+  "gates_met": [
+   28,
+   32
+  ],
+  "by_host": {
+   "real": {
+    "Australia": {
+     "matches": 57,
+     "draw %": 15.8,
+     "home win %": 68.4,
+     "spin % of overs": 27.6,
+     "overs per match": 307.0
+    },
+    "Bangladesh": {
+     "matches": 36,
+     "draw %": 13.9,
+     "home win %": 33.3,
+     "spin % of overs": 65.5,
+     "overs per match": 307.8
+    },
+    "England": {
+     "matches": 80,
+     "draw %": 10.0,
+     "home win %": 59.7,
+     "spin % of overs": 22.1,
+     "overs per match": 296.4
+    },
+    "India": {
+     "matches": 51,
+     "draw %": 13.7,
+     "home win %": 70.6,
+     "spin % of overs": 64.6,
+     "overs per match": 297.7
+    },
+    "Ireland": {
+     "matches": 2,
+     "draw %": 0.0,
+     "home win %": 50.0,
+     "spin % of overs": 18.1,
+     "overs per match": 233.5
+    },
+    "New Zealand": {
+     "matches": 46,
+     "draw %": 13.0,
+     "home win %": 65.2,
+     "spin % of overs": 20.7,
+     "overs per match": 317.7
+    },
+    "Pakistan": {
+     "matches": 35,
+     "draw %": 20.0,
+     "home win %": 40.0,
+     "spin % of overs": 53.1,
+     "overs per match": 340.8
+    },
+    "South Africa": {
+     "matches": 45,
+     "draw %": 4.4,
+     "home win %": 68.9,
+     "spin % of overs": 25.0,
+     "overs per match": 285.8
+    },
+    "Sri Lanka": {
+     "matches": 46,
+     "draw %": 6.5,
+     "home win %": 47.8,
+     "spin % of overs": 69.2,
+     "overs per match": 321.8
+    },
+    "West Indies": {
+     "matches": 45,
+     "draw %": 24.4,
+     "home win %": 28.9,
+     "spin % of overs": 33.1,
+     "overs per match": 297.2
+    },
+    "Zimbabwe": {
+     "matches": 19,
+     "draw %": 15.8,
+     "home win %": 5.3,
+     "spin % of overs": 45.4,
+     "overs per match": 321.5
+    }
+   },
+   "sim": {
+    "Australia": {
+     "matches": 228,
+     "draw %": 17.5,
+     "home win %": 64.5,
+     "spin % of overs": 28.9,
+     "overs per match": 308.9
+    },
+    "Bangladesh": {
+     "matches": 144,
+     "draw %": 14.6,
+     "home win %": 36.8,
+     "spin % of overs": 59.0,
+     "overs per match": 303.9
+    },
+    "England": {
+     "matches": 320,
+     "draw %": 18.8,
+     "home win %": 53.6,
+     "spin % of overs": 26.0,
+     "overs per match": 291.4
+    },
+    "India": {
+     "matches": 204,
+     "draw %": 23.5,
+     "home win %": 63.7,
+     "spin % of overs": 56.9,
+     "overs per match": 302.9
+    },
+    "Ireland": {
+     "matches": 8,
+     "draw %": 0.0,
+     "home win %": 37.5,
+     "spin % of overs": 23.1,
+     "overs per match": 288.2
+    },
+    "New Zealand": {
+     "matches": 184,
+     "draw %": 16.3,
+     "home win %": 68.5,
+     "spin % of overs": 24.0,
+     "overs per match": 299.7
+    },
+    "Pakistan": {
+     "matches": 140,
+     "draw %": 25.7,
+     "home win %": 45.7,
+     "spin % of overs": 49.3,
+     "overs per match": 328.2
+    },
+    "South Africa": {
+     "matches": 180,
+     "draw %": 8.9,
+     "home win %": 63.9,
+     "spin % of overs": 26.2,
+     "overs per match": 276.6
+    },
+    "Sri Lanka": {
+     "matches": 184,
+     "draw %": 25.0,
+     "home win %": 36.4,
+     "spin % of overs": 60.8,
+     "overs per match": 324.3
+    },
+    "West Indies": {
+     "matches": 180,
+     "draw %": 17.8,
+     "home win %": 33.3,
+     "spin % of overs": 33.7,
+     "overs per match": 304.0
+    },
+    "Zimbabwe": {
+     "matches": 76,
+     "draw %": 21.1,
+     "home win %": 11.8,
+     "spin % of overs": 42.3,
+     "overs per match": 315.5
+    }
+   }
+  }
  }
 ]

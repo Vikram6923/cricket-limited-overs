@@ -148,7 +148,8 @@ def _mp_start(r: dict) -> str | None:
     for s in r["seats"]:
         s["ready"] = False
     params = {"mode": "mp", **{k: st[k] for k in ("fmt", "comp", "year", "venues", "seed", "rain", "series",
-                                                    "host", "best_of")}}
+                                                    "host", "best_of")},
+              "length": st.get("length"), "day_night": st.get("day_night")}
     if d:
         params.update(specs=d.team_specs(), knockout=_mp_ko(len(d.teams)),
                       draft_info={"teams": d.teams, "user": None, "board": d.state()["board"],
@@ -185,7 +186,8 @@ def _mp_auction_play(r: dict) -> str | None:
     fmt, comp, year = (a.fmt, a.comp, a.year) if a.comp else (st["fmt"], st["comp"], st["year"])
     specs = {sp["name"]: sp for sp in a.team_specs()}
     params = {"mode": "mp", "fmt": fmt, "comp": comp, "year": year, "seed": st["seed"], "rain": st["rain"],
-              "venues": [] if a.comp else st["venues"], "series": n,
+              "venues": [] if a.comp else st["venues"], "series": n, "host": st.get("host"),
+              "best_of": st.get("best_of"), "length": st.get("length"), "day_night": st.get("day_night"),
               "draft_info": {"teams": a.teams, "user": None, "board": a.board(), "auction": True, "purse": a.purse,
                              "players": names, **({"years": list(a.years)} if a.years else {})}}
     if league:
@@ -198,7 +200,8 @@ def _mp_auction_play(r: dict) -> str | None:
         total = match_count(len(a.teams), rounds, None, ko)
     else:
         params["specs"] = [specs[t] for t in names]
-        title = f"{names[0]} v {names[1]} - two players, auction squads" + (f", best of {n}" if n > 1 else "")
+        title = f"{names[0]} v {names[1]} - two players, auction squads" + (
+            "" if n < 2 else f", {n}-Test series" if fmt == "test" else f", best of {n}")
         total = n
     job = Job(title, total)
     job.controllers = _mp_controllers(r, names, league, n)
@@ -216,14 +219,13 @@ def _mp_settings(p: dict) -> dict | str:
     if fmt not in FMTS:
         return "Choose T20, ODI or Test."
     test = fmt == "test"
-    if test and p.get("teams") in ("draft", "auction"):
-        return "A two-player Test is played with a team each: drafts and auctions are for T20 and ODI."
     try:
         year = int(p.get("year"))
     except (TypeError, ValueError):
         return "Choose a year."
     teams = p.get("teams") if p.get("teams") in ("draft", "auction") else "pick"
-    a_pool = "years" if p.get("a_pool") == "years" else "season"     # an auction: a real season unless asked
+    # an auction: a real season unless asked; the real seasons are T20 leagues, so a Test auction is from years
+    a_pool = "years" if p.get("a_pool") == "years" or test else "season"
     league, season = p.get("league") or "ipl", p.get("season") or None
     if teams == "auction" and a_pool == "season":
         s_ = league_season(league, season)
@@ -247,6 +249,8 @@ def _mp_settings(p: dict) -> dict | str:
             else 1,
             "host": p.get("host") if test and p.get("host") in MP_HOSTS else "neutral",
             "best_of": bool(test and p.get("best_of")),      # a Test series that stops once it is decided
+            "length": str(p.get("length")) if test and str(p.get("length")) in TEST_LENGTHS else "5",
+            "day_night": bool(test and p.get("day_night")),
             "teams": teams, "y1": y1, "y2": y2, "source": source,
             "years_mode": "only" if p.get("years_mode") == "only" else "blend",
             "cpu": int(p.get("cpu")) if str(p.get("cpu")) in map(str, MP_CPU) else 0,

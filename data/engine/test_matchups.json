@@ -1,0 +1,131 @@
+{
+ "format": "test",
+ "metrics": [
+  "runs",
+  "wkt",
+  "dot",
+  "four",
+  "six"
+ ],
+ "shrink_balls": 2000,
+ "matchup": {
+  "right": {
+   "left_pace": {
+    "runs": 0.9904,
+    "wkt": 0.9596,
+    "dot": 1.0032,
+    "four": 0.994,
+    "six": 1.0098
+   },
+   "pace": {
+    "runs": 1.0016,
+    "wkt": 1.0262,
+    "dot": 1.0005,
+    "four": 1.0054,
+    "six": 1.0203
+   },
+   "off_spin": {
+    "runs": 1.0554,
+    "wkt": 0.9554,
+    "dot": 0.9711,
+    "four": 1.0103,
+    "six": 1.0882
+   },
+   "left_arm_orthodox": {
+    "runs": 0.9482,
+    "wkt": 0.9907,
+    "dot": 1.022,
+    "four": 0.9753,
+    "six": 0.8997
+   },
+   "leg_spin": {
+    "runs": 0.9788,
+    "wkt": 0.9783,
+    "dot": 1.0119,
+    "four": 0.9894,
+    "six": 0.9687
+   },
+   "left_arm_wrist": {
+    "runs": 0.9844,
+    "wkt": 0.9426,
+    "dot": 0.9999,
+    "four": 0.97,
+    "six": 1.0541
+   },
+   "spin": {
+    "runs": 1.0005,
+    "wkt": 0.9993,
+    "dot": 0.9991,
+    "four": 1.0013,
+    "six": 0.9999
+   }
+  },
+  "left": {
+   "pace": {
+    "runs": 0.997,
+    "wkt": 0.9507,
+    "dot": 0.9991,
+    "four": 0.9904,
+    "six": 0.9596
+   },
+   "left_pace": {
+    "runs": 1.0183,
+    "wkt": 1.0767,
+    "dot": 0.9938,
+    "four": 1.0112,
+    "six": 0.9796
+   },
+   "off_spin": {
+    "runs": 0.9126,
+    "wkt": 1.0711,
+    "dot": 1.0472,
+    "four": 0.9837,
+    "six": 0.8585
+   },
+   "left_arm_orthodox": {
+    "runs": 1.1362,
+    "wkt": 1.025,
+    "dot": 0.9401,
+    "four": 1.0645,
+    "six": 1.2678
+   },
+   "leg_spin": {
+    "runs": 1.0503,
+    "wkt": 1.0529,
+    "dot": 0.9715,
+    "four": 1.0247,
+    "six": 1.0844
+   },
+   "left_arm_wrist": {
+    "runs": 1.0353,
+    "wkt": 1.1172,
+    "dot": 1.0003,
+    "four": 1.0639,
+    "six": 0.8977
+   },
+   "spin": {
+    "runs": 0.9859,
+    "wkt": 1.0196,
+    "dot": 1.0101,
+    "four": 0.9644,
+    "six": 1.0226
+   }
+  }
+ },
+ "balls": {
+  "left|left_arm_orthodox": 61225,
+  "left|left_arm_wrist": 2308,
+  "left|left_pace": 53581,
+  "left|leg_spin": 27582,
+  "left|off_spin": 109617,
+  "left|pace": 279814,
+  "left|spin": 4,
+  "right|left_arm_orthodox": 165129,
+  "right|left_arm_wrist": 5403,
+  "right|left_pace": 103158,
+  "right|leg_spin": 65958,
+  "right|off_spin": 177523,
+  "right|pace": 526748,
+  "right|spin": 63
+ }
+}

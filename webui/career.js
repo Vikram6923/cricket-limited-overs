@@ -17,16 +17,27 @@ function smaLeague() {
         teams: s.teams.slice().sort((a, b) => a.name.localeCompare(b.name))
           .map(t => ({franchise: t.name, label: t.name + (t.plate ? ' (Plate)' : '')}))}))};
 }
-const kLeagues = () => [...META.leagues, ...(smaLeague() ? [smaLeague()] : [])];
+/* Test cricket as a "league" for the form: a start year, the nations playing then (engine/test_career.py) */
+function testLeague() {
+  const t = META.test_career;
+  if (!t || !t.years.length) return null;
+  return {id: 'test', label: 'Test cricket (the Test nations)', test: true,
+    seasons: t.years.slice().reverse().map(y => ({season: String(y), id: String(y),
+      teams: (t.nations[y] || []).slice().sort().map(n => ({franchise: n, label: n}))}))};
+}
+const kLeagues = () => [...META.leagues, ...(smaLeague() ? [smaLeague()] : []), ...(testLeague() ? [testLeague()] : [])];
 function initCareerForm() {
   fillSelect($('k-league'), kLeagues().map(l => ({v: l.id, t: l.label})));
   const seasons = () => {
-    const l = kLeague(), st = l && l.state;
+    const l = kLeague(), st = l && l.state, te = l && l.test;
     fillSelect($('k-season'), l ? l.seasons.map(s => ({v: s.id || s.season, t: s.season})) : []);
-    $('k-mega-box').style.display = st ? 'none' : '';
+    $('k-mega-box').style.display = st || te ? 'none' : '';
     $('k-ipl-box').style.display = st ? '' : 'none';
-    $('k-user-l').textContent = st ? 'Your state' : 'Your franchise';
+    $('k-rounds-box').style.display = te ? '' : 'none';
+    $('k-know').closest('.fg').style.display = te ? 'none' : '';
+    $('k-user-l').textContent = st ? 'Your state' : te ? 'Your nation' : 'Your franchise';
     $('k-user-hint').textContent = st ? 'You can captain it each season; its squad carries over, with no auction.'
+      : te ? 'You can captain its Tests each season. Players age, retire and are replaced; there is no auction.'
       : 'You make its auction calls and can captain it each season.';
     kTeams();
   };
@@ -56,8 +67,9 @@ function drawCareers() {
   });
 }
 async function startCareer() {
+  if ($('k-league').value === 'test') toast('Gathering the Test nations and their players: about 20 seconds.');
   const d = await api('/api/career/new', {league: $('k-league').value, season: $('k-season').value, user: $('k-user').value,
-    mega_every: +$('k-mega').value, ipl: $('k-ipl').checked, name: $('k-name').value.trim(), seed: $('k-seed').value.trim(),
+    mega_every: +$('k-mega').value, rounds: +$('k-rounds').value, ipl: $('k-ipl').checked, name: $('k-name').value.trim(), seed: $('k-seed').value.trim(),
     knowledge: $('k-know').value});
   careerLoaded(d);
 }
@@ -80,6 +92,7 @@ function renderCareer() {
   $('kc-div').style.display = c.kind === 'state' ? '' : 'none';
   $('kc-ipl').style.display = c.ipl ? '' : 'none';
   if (c.kind === 'state') { renderStateCareer(); return; }
+  if (c.kind === 'test') { renderTestCareer(); return; }
   $('kc-sub').textContent = `${c.league_label} from ${c.start} · ${c.history.length} season${c.history.length === 1 ? '' : 's'} played · `
     + `mega auction every ${c.mega_every === 1 ? 'season' : c.mega_every + ' seasons'} · ${c.pool_size} players in the league`
     + (c.real ? '' : ' · past the real seasons: newcomers are made-up players') + knowNote(c);
@@ -169,6 +182,41 @@ function renderStateCareer() {
   drawCareerSquad();
   careerLeaders();
 }
+/* a Test career: the Test nations season after season; no auction, no money */
+function renderTestCareer() {
+  const c = CAR, me = c.user, n = c.history.length;
+  const was = id => $(id) && !$(id).checked ? '' : 'checked';
+  $('kc-sub').textContent = `Test cricket from ${c.start} · ${n} season${n === 1 ? '' : 's'} played · ${c.teams.length} nations, `
+    + `${c.rounds === 2 ? 'home and away' : 'meeting once'} · ${c.pool_size} players`
+    + (c.real ? '' : ' · past the real years: newcomers are made-up players');
+  $('kc-next').innerHTML = `<h3>Season ${esc(c.season)}</h3>
+     <p class="muted small" style="margin:4px 0 8px">Every nation plays every other${c.rounds === 2 ? ' at home and away' : ' once'}; the top two of the table play a final.</p>
+     <div class="checks" style="margin:6px 0">
+       ${me ? `<label><input type="checkbox" id="kc-cap" ${$('kc-cap') && $('kc-cap').checked ? 'checked' : ''}> Captain ${esc(me)}</label>
+         <label title="Set each batter's approach and each bowler's plan and play over by over"><input type="checkbox" id="kc-ball" ${was('kc-ball')}> Over by over (bars)</label>` : ''}</div>
+     ${me ? `<div class="fg" style="margin:4px 0 8px"><label>Opponent captains</label><select id="kc-opp">
+       <option value="expert">Expert</option><option value="average">Average</option><option value="easy">Easy</option></select></div>` : ''}
+     <div class="au-act"><button class="btn go" id="kc-play">▶ Play season ${esc(c.season)}</button>
+       <span class="muted small">${c.matches} Tests</span></div>`;
+  $('kc-play').onclick = playCareerSeason;
+  $('kc-news').innerHTML = c.news.length ? c.news.map(x => `<li>${esc(x)}</li>`).join('') : '<li class="muted">Nothing yet.</li>';
+  $('kc-hist').innerHTML = n ? `<tr><th>Season</th><th>Champions</th><th>Runners-up</th>${me ? '<th>' + esc(me) + '</th>' : ''}
+      <th>Most runs</th><th>Most wickets</th><th>Best player</th><th></th></tr>` + c.history.slice().reverse().map(h => `<tr>
+      <td>${esc(h.season)}</td><td class="${h.champion === me ? 'w' : ''}"><b>${esc(h.champion)}</b></td><td>${esc(h.runner_up || '')}</td>
+      ${me ? `<td>${esc(h.user_pos || '')}${h.captaincy !== null && h.captaincy !== undefined ? ` <span class="muted small">(calls ${sgn(h.captaincy)})</span>` : ''}</td>` : ''}
+      <td>${h.orange ? `${esc(h.orange.name)} <span class="muted small">${esc(h.orange.team)} ${h.orange.runs}</span>` : ''}</td>
+      <td>${h.purple ? `${esc(h.purple.name)} <span class="muted small">${esc(h.purple.team)} ${h.purple.wkts}</span>` : ''}</td>
+      <td>${h.mvp ? `${esc(h.mvp.name)} <span class="muted small">${esc(h.mvp.team)}</span>` : ''}</td>
+      <td>${h.run ? `<button class="btn sec kc-open" data-run="${esc(h.run)}">Results</button>` : ''}</td></tr>`).join('')
+    : '<tr><td class="muted">No seasons played yet.</td></tr>';
+  document.querySelectorAll('.kc-open').forEach(b => b.onclick = () => showResults(b.dataset.run));
+  const titles = Object.entries(c.titles).sort((a, b) => b[1] - a[1]);
+  $('kc-titles').innerHTML = titles.length ? titles.map(([t, k]) => `<li class="${t === me ? 'crease' : ''}">${esc(t)} <span>${'🏆'.repeat(Math.min(k, 10))} ${k}</span></li>`).join('') : '<li class="muted">No titles yet.</li>';
+  fillSelect($('kc-team'), c.teams.map(t => ({v: t, t: t + (t === me ? ' (yours)' : '')})));
+  $('kc-team').value = CAR_TEAM; $('kc-team').onchange = () => { CAR_TEAM = $('kc-team').value; drawCareerSquad(); };
+  drawCareerSquad();
+  careerLeaders();
+}
 /* the IPL alongside a state career: last season, contracts by state, titles, IPL leaders */
 function drawIplPanel() {
   const c = CAR, x = c.ipl, me = c.user;
@@ -201,6 +249,18 @@ function careerLeaders() {
 }
 function drawCareerSquad() {
   const rows = CAR.squads[CAR_TEAM] || [];
+  if (CAR.kind === 'test') {
+    const sq = rows.filter(r => r.in_squad), age = sq.length ? (sq.reduce((a, r) => a + r.age, 0) / sq.length).toFixed(1) : '–';
+    $('kc-squad-sub').textContent = `${sq.length} in this season's squad (average age ${age}), ${rows.length - sq.length} others who could be picked`;
+    table($('kc-squad'), [
+      {k: 'name', label: 'Player', html: r => `${r.in_squad ? `<b>${esc(r.name)}</b>` : esc(r.name)}${r.made_up ? ' <span class="muted small">new</span>' : ''}${r.in_squad ? '' : ' <span class="muted small">not in the squad</span>'}`},
+      {k: 'role', label: 'Role'}, {k: 'age', label: 'Age', num: true}, {k: 'caps', label: 'Tests', num: true},
+      {k: 'bat_avg', label: 'Bat avg', num: true, f: r => fmtNum(r.bat_avg, 1)},
+      {k: 'bowl_avg', label: 'Bowl avg', num: true, f: r => fmtNum(r.bowl_avg, 1)}, {k: 'econ', label: 'Econ', num: true, f: r => fmtNum(r.econ, 2)},
+      {k: 'seasons', label: 'Seasons here', num: true}],
+      rows, {empty: 'No players'});
+    return;
+  }
   if (CAR.kind === 'state') {
     const age = rows.length ? (rows.reduce((a, r) => a + r.age, 0) / rows.length).toFixed(1) : '–';
     $('kc-squad-sub').textContent = `${rows.length} players, average age ${age}`;
@@ -240,6 +300,13 @@ async function careerAuctionDone() {
 }
 async function playCareerSeason() {
   const me = CAR.user, cap = me && $('kc-cap') && $('kc-cap').checked;
+  if (CAR.kind === 'test') {
+    const body = {mode: 'career', career: CAR_ID, fmt: 'test', rain: false};
+    if (cap) { body.captain = me; body.opponents = $('kc-opp').value; body.manual = ['toss', 'xi', 'bowler', 'declare', 'follow_on', 'new_ball', 'nightwatchman', 'result', ...($('kc-ball') && $('kc-ball').checked ? ['ball'] : [])]; }
+    try { await api('/api/run', body); poll(); }
+    catch (e) { toast(e.message, true); }
+    return;
+  }
   const impact = CAR.league === 'ipl' && CAR.year >= 2023;
   const body = {mode: 'career', career: CAR_ID, fmt: 't20', rain: $('kc-rain').checked};
   if (cap) { body.captain = me; body.opponents = $('kc-opp').value; body.manual = ['toss', 'xi', 'bowler', 'batter', 'result', ...(impact ? ['impact'] : []), ...($('kc-ball') && $('kc-ball').checked ? ['ball'] : [])]; CAP.impact = impact; }

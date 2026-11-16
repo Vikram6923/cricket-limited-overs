@@ -85,8 +85,6 @@ def test_server_test_room():
     web_ui.LAST = tmp / "last"
     web_ui.TEAMS = tmp / "teams.json"
     cl = web_ui.app.test_client()
-    post, r = _room(cl, tmp, teams="draft")
-    assert r.status_code == 400 and "team each" in r.get_json()["error"]
     post, r = _room(cl, tmp, series="2", host="home")
     assert r.status_code == 200, r.get_json()
     code, host = r.get_json()["code"], r.get_json()["token"]
@@ -94,9 +92,7 @@ def test_server_test_room():
     state = lambda tok: cl.get("/api/mp/state?token=" + tok).get_json()
     s = state(host)["settings"]
     assert s["fmt"] == "test" and s["series"] == 2 and s["host"] == "home" and s["teams"] == "pick"
-    # a best of 3 is not a Test series; a T20 side cannot play a Test
-    post("/api/mp/lobby", {"token": host, "settings": {**s, "series": "3", "teams": "auction"}})
-    assert state(host)["settings"]["teams"] == "pick"          # refused: the settings stay as they were
+    # a T20 side cannot play a Test
     kinds = ["toss", "ball", "declare", "follow_on"]
     post("/api/mp/lobby", {"token": host, "team": "India T20 2024", "manual": kinds, "ready": True})
     r = post("/api/mp/lobby", {"token": guest, "team": "Australia Test 2025", "manual": kinds, "ready": True})
@@ -136,6 +132,71 @@ def test_server_test_room():
     assert res["host"] == "India"                               # "home": the host player's country
     assert set(res["captaincy_by"]) == {"India Test 2025", "Australia Test 2025"}
     assert st["record"]["played"] == 1                          # the series is in the room's head to head
+    post("/api/mp/lobby", {"token": host, "leave": True})
+
+
+def _play_out(post, state, host, guest, limit=240) -> dict:
+    deadline = time.time() + limit
+    while time.time() < deadline:
+        sts = [state(host), state(guest)]
+        if sts[0]["phase"] == "over":
+            return sts[0]
+        for tok, s in zip((host, guest), sts):
+            q = (s.get("me") or {}).get("pending")
+            if q:
+                post("/api/mp/decide", {"token": tok, "id": q["id"], "choice": None})
+        time.sleep(0.005)
+    raise AssertionError("the run did not finish")
+
+
+def test_server_test_draft_and_auction_rooms():
+    """Two players draft Test squads from a span of years and play a Test; an auction of Test players is from
+    a span of years (the real seasons are T20 leagues)."""
+    tmp = Path(tempfile.mkdtemp())
+    web_ui.LAST = tmp / "last"
+    web_ui.TEAMS = tmp / "teams.json"
+    cl = web_ui.app.test_client()
+    state = lambda tok: cl.get("/api/mp/state?token=" + tok).get_json()
+    post, r = _room(cl, tmp, teams="draft", y1=1990, y2=1999, cpu=0, source="full")
+    assert r.status_code == 200, r.get_json()
+    host = r.get_json()["token"]
+    guest = post("/api/mp/join", {"code": r.get_json()["code"], "name": "Asha"}).get_json()["token"]
+    post("/api/mp/lobby", {"token": host, "name": "Riverside", "manual": [], "ready": True})
+    assert post("/api/mp/lobby", {"token": guest, "name": "Hilltop", "manual": [], "ready": True}).status_code == 200
+    assert state(host)["phase"] == "draft"
+    for tok in (host, guest):
+        assert post("/api/mp/draft", {"token": tok, "auto": "rest"}).status_code == 200
+    d = state(host)["draft"]
+    assert d["done"] and all(len(v) == 15 for v in d["board"].values())
+    for tok in (host, guest):
+        post("/api/mp/draft", {"token": tok, "ready": True})
+    st = _play_out(post, state, host, guest)
+    assert st["job"]["status"] == "done", st["job"]
+    res = json.loads((tmp / "last" / "summary.json").read_text(encoding="utf-8"))
+    assert res["format"] == "test" and len(res["fixtures"]) == 1 and res["draft"]["teams"] == ["Riverside", "Hilltop"]
+    card = json.loads(next((tmp / "last" / "matches").glob("*.json")).read_text(encoding="utf-8"))
+    assert set(card["teams"]) == {"Riverside", "Hilltop"} and len(card["innings"]) >= 2
+    post("/api/mp/lobby", {"token": host, "leave": True})
+    # an auction: asked for a real season, a Test room gets players from a span of years
+    post, r = _room(cl, tmp, teams="auction", a_pool="season", y1=1990, y2=1999, cpu=2, after="league")
+    assert r.status_code == 200, r.get_json()
+    host = r.get_json()["token"]
+    guest = post("/api/mp/join", {"code": r.get_json()["code"], "name": "Asha"}).get_json()["token"]
+    assert state(host)["settings"]["a_pool"] == "years"
+    post("/api/mp/lobby", {"token": host, "name": "Riverside", "manual": [], "ready": True})
+    assert post("/api/mp/lobby", {"token": guest, "name": "Hilltop", "manual": [], "ready": True}).status_code == 200
+    assert state(host)["phase"] == "auction"
+    pool = cl.get("/api/mp/auction/pool?token=" + guest).get_json()["pool"]
+    assert len(pool) >= 60 and {"Pace", "Spin", "Batter", "WK"} <= {p["role"] for p in pool}
+    for tok in (host, guest):
+        post("/api/mp/auction", {"token": tok, "auto": "all"})
+    for tok in (host, guest):
+        post("/api/mp/auction", {"token": tok, "ready": True})
+    st = _play_out(post, state, host, guest, limit=400)
+    assert st["job"]["status"] == "done", st["job"]
+    res = json.loads((tmp / "last" / "summary.json").read_text(encoding="utf-8"))
+    assert res["format"] == "test" and len(res["fixtures"]) == 7 and res["draft"]["auction"]   # 4 teams: 6 + a final
+    assert {"drawn", "pct"} <= set(res["tables"]["League"][0])
     post("/api/mp/lobby", {"token": host, "leave": True})
 
 

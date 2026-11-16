@@ -1,0 +1,1554 @@
+[
+ {
+  "when": "2026-11-16T13:12:28",
+  "suite": "test_era",
+  "label": "first run",
+  "tests": 240,
+  "decades": [
+   {
+    "decade": 1900,
+    "sides": [
+     "England 1900-09",
+     "Australia 1900-09",
+     "South Africa 1900-09"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 24.609,
+     "run rate": 2.7220000000000004,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 29.4533386433028,
+     "run rate": 2.814527279877206
+    },
+    "diff %": {
+     "runs per wicket": 19.685231595362662,
+     "run rate": 3.399238790492487
+    },
+    "ok": false,
+    "draw %": 36.666666666666664
+   },
+   {
+    "decade": 1910,
+    "sides": [
+     "England 1910-19",
+     "South Africa 1910-19",
+     "Australia 1910-19"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 26.676,
+     "run rate": 2.7699999999999996,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 34.03950370792926,
+     "run rate": 2.8559719529997367
+    },
+    "diff %": {
+     "runs per wicket": 27.6034776875441,
+     "run rate": 3.1036806137089146
+    },
+    "ok": false,
+    "draw %": 45.833333333333336
+   },
+   {
+    "decade": 1920,
+    "sides": [
+     "England 1920-29",
+     "Australia 1920-29",
+     "South Africa 1920-29",
+     "West Indies 1920-29"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.590000000000003,
+     "run rate": 2.562,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 37.90261092423514,
+     "run rate": 2.66098642101416
+    },
+    "diff %": {
+     "runs per wicket": 19.98294056421379,
+     "run rate": 3.863638603206865
+    },
+    "ok": false,
+    "draw %": 65.41666666666667
+   },
+   {
+    "decade": 1930,
+    "sides": [
+     "England 1930-39",
+     "Australia 1930-39",
+     "South Africa 1930-39",
+     "West Indies 1930-39",
+     "New Zealand 1930-39",
+     "India 1930-39"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.053999999999995,
+     "run rate": 2.559,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 37.044821783692825,
+     "run rate": 2.6707816736363217
+    },
+    "diff %": {
+     "runs per wicket": 19.29162679105052,
+     "run rate": 4.368177945928942
+    },
+    "ok": false,
+    "draw %": 60.833333333333336
+   },
+   {
+    "decade": 1940,
+    "sides": [
+     "England 1940-49",
+     "Australia 1940-49",
+     "South Africa 1940-49",
+     "India 1940-49",
+     "West Indies 1940-49",
+     "New Zealand 1940-49"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.509,
+     "run rate": 2.465,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 43.96051167964405,
+     "run rate": 2.5584257479333714
+    },
+    "diff %": {
+     "runs per wicket": 35.225665753003945,
+     "run rate": 3.7900911940515813
+    },
+    "ok": false,
+    "draw %": 82.5
+   },
+   {
+    "decade": 1950,
+    "sides": [
+     "England 1950-59",
+     "Australia 1950-59",
+     "West Indies 1950-59",
+     "India 1950-59",
+     "South Africa 1950-59",
+     "New Zealand 1950-59",
+     "Pakistan 1950-59"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 28.744000000000007,
+     "run rate": 2.255,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 35.613580042953906,
+     "run rate": 2.3414657989301135
+    },
+    "diff %": {
+     "runs per wicket": 23.89917910852317,
+     "run rate": 3.8344035002267685
+    },
+    "ok": false,
+    "draw %": 77.5
+   },
+   {
+    "decade": 1960,
+    "sides": [
+     "England 1960-69",
+     "Australia 1960-69",
+     "India 1960-69",
+     "West Indies 1960-69",
+     "New Zealand 1960-69",
+     "Pakistan 1960-69",
+     "South Africa 1960-69"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.612000000000002,
+     "run rate": 2.3629999999999995,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 38.73222109875295,
+     "run rate": 2.476393824737325
+    },
+    "diff %": {
+     "runs per wicket": 26.526267799402035,
+     "run rate": 4.798723010466577
+    },
+    "ok": false,
+    "draw %": 74.16666666666667
+   },
+   {
+    "decade": 1970,
+    "sides": [
+     "England 1970-79",
+     "Australia 1970-79",
+     "West Indies 1970-79",
+     "India 1970-79",
+     "New Zealand 1970-79",
+     "Pakistan 1970-79",
+     "South Africa 1970-79"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.378999999999998,
+     "run rate": 2.5280000000000005,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 36.472117794486216,
+     "run rate": 2.6357178838458446
+    },
+    "diff %": {
+     "runs per wicket": 20.057005808243254,
+     "run rate": 4.2609922407375045
+    },
+    "ok": false,
+    "draw %": 61.666666666666664
+   },
+   {
+    "decade": 1980,
+    "sides": [
+     "England 1980-89",
+     "Australia 1980-89",
+     "India 1980-89",
+     "West Indies 1980-89",
+     "Pakistan 1980-89",
+     "New Zealand 1980-89",
+     "Sri Lanka 1980-89"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.345000000000006,
+     "run rate": 2.7039999999999997,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 37.31631736526946,
+     "run rate": 2.8208993227071346
+    },
+    "diff %": {
+     "runs per wicket": 22.973528967768853,
+     "run rate": 4.323199804257949
+    },
+    "ok": false,
+    "draw %": 61.25
+   },
+   {
+    "decade": 1990,
+    "sides": [
+     "Australia 1990-99",
+     "England 1990-99",
+     "West Indies 1990-99",
+     "India 1990-99",
+     "Pakistan 1990-99",
+     "New Zealand 1990-99",
+     "South Africa 1990-99",
+     "Sri Lanka 1990-99",
+     "Zimbabwe 1990-99"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 29.838,
+     "run rate": 2.769999999999999,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 36.04508379059766,
+     "run rate": 2.8134763307616177
+    },
+    "diff %": {
+     "runs per wicket": 20.802613414430105,
+     "run rate": 1.569542626773246
+    },
+    "ok": false,
+    "draw %": 53.75
+   }
+  ],
+  "met": [
+   0,
+   10
+  ]
+ },
+ {
+  "when": "2026-11-16T13:15:45",
+  "suite": "test_era",
+  "label": "drawn sides",
+  "tests": 240,
+  "classic": false,
+  "decades": [
+   {
+    "decade": 1900,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 24.609,
+     "run rate": 2.7220000000000004,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 27.225471578680846,
+     "run rate": 3.0078464099061506
+    },
+    "diff %": {
+     "runs per wicket": 10.632173508394672,
+     "run rate": 10.50133761594967
+    },
+    "ok": false,
+    "draw %": 22.916666666666668
+   },
+   {
+    "decade": 1910,
+    "sides": [
+     "England",
+     "South Africa",
+     "Australia"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 26.676,
+     "run rate": 2.7699999999999996,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.0150013394053,
+     "run rate": 2.9946002380405505
+    },
+    "diff %": {
+     "runs per wicket": 20.01425003525754,
+     "run rate": 8.108311842619177
+    },
+    "ok": false,
+    "draw %": 35.416666666666664
+   },
+   {
+    "decade": 1920,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "West Indies"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.590000000000003,
+     "run rate": 2.562,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 35.35427807486631,
+     "run rate": 2.8294069861900892
+    },
+    "diff %": {
+     "runs per wicket": 11.916043288592281,
+     "run rate": 10.437431154960564
+    },
+    "ok": false,
+    "draw %": 50.416666666666664
+   },
+   {
+    "decade": 1930,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "West Indies",
+     "New Zealand",
+     "India"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.053999999999995,
+     "run rate": 2.559,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 33.4050894085282,
+     "run rate": 2.881594247609103
+    },
+    "diff %": {
+     "runs per wicket": 7.570971238900626,
+     "run rate": 12.60626211837057
+    },
+    "ok": false,
+    "draw %": 42.083333333333336
+   },
+   {
+    "decade": 1940,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "India",
+     "West Indies",
+     "New Zealand"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.509,
+     "run rate": 2.465,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 39.874446811998034,
+     "run rate": 2.7063120656793016
+    },
+    "diff %": {
+     "runs per wicket": 22.656639121468004,
+     "run rate": 9.789536133034549
+    },
+    "ok": false,
+    "draw %": 63.333333333333336
+   },
+   {
+    "decade": 1950,
+    "sides": [
+     "England",
+     "Australia",
+     "West Indies",
+     "India",
+     "South Africa",
+     "New Zealand",
+     "Pakistan"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 28.744000000000007,
+     "run rate": 2.255,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 31.722775219135343,
+     "run rate": 2.450894343159949
+    },
+    "diff %": {
+     "runs per wicket": 10.36312002204054,
+     "run rate": 8.6871105614168
+    },
+    "ok": false,
+    "draw %": 55.833333333333336
+   },
+   {
+    "decade": 1960,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "West Indies",
+     "New Zealand",
+     "Pakistan",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.612000000000002,
+     "run rate": 2.3629999999999995,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 34.912484885126965,
+     "run rate": 2.6077693834733604
+    },
+    "diff %": {
+     "runs per wicket": 14.048363011652176,
+     "run rate": 10.358416566794793
+    },
+    "ok": false,
+    "draw %": 59.166666666666664
+   },
+   {
+    "decade": 1970,
+    "sides": [
+     "England",
+     "Australia",
+     "West Indies",
+     "India",
+     "New Zealand",
+     "Pakistan",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.378999999999998,
+     "run rate": 2.5280000000000005,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 33.98517322372284,
+     "run rate": 2.732452050752434
+    },
+    "diff %": {
+     "runs per wicket": 11.870612013966353,
+     "run rate": 8.08750200761208
+    },
+    "ok": false,
+    "draw %": 47.083333333333336
+   },
+   {
+    "decade": 1980,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "West Indies",
+     "Pakistan",
+     "New Zealand",
+     "Sri Lanka"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.345000000000006,
+     "run rate": 2.7039999999999997,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.9117606507652,
+     "run rate": 2.886933700989285
+    },
+    "diff %": {
+     "runs per wicket": 8.4585949934592,
+     "run rate": 6.765299592799012
+    },
+    "ok": false,
+    "draw %": 41.666666666666664
+   },
+   {
+    "decade": 1990,
+    "sides": [
+     "Australia",
+     "England",
+     "West Indies",
+     "India",
+     "Pakistan",
+     "New Zealand",
+     "South Africa",
+     "Sri Lanka",
+     "Zimbabwe"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 29.838,
+     "run rate": 2.769999999999999,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.05750977107761,
+     "run rate": 2.8519272799523145
+    },
+    "diff %": {
+     "runs per wicket": 7.438533987122509,
+     "run rate": 2.9576635361846737
+    },
+    "ok": false,
+    "draw %": 38.333333333333336
+   },
+   {
+    "decade": 2010,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "Sri Lanka",
+     "South Africa",
+     "New Zealand",
+     "Pakistan",
+     "West Indies",
+     "Bangladesh",
+     "Zimbabwe",
+     "Afghanistan",
+     "Ireland"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.10000000000001,
+     "run rate": 3.123,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.13490248823134,
+     "run rate": 3.2903687823777705
+    },
+    "diff %": {
+     "runs per wicket": 0.10873049293249615,
+     "run rate": 5.3592309438927455
+    },
+    "ok": false,
+    "draw %": 22.5
+   }
+  ],
+  "met": [
+   0,
+   11
+  ]
+ },
+ {
+  "when": "2026-11-16T13:26:13",
+  "suite": "test_era",
+  "label": "with era factors, matchups, new ball",
+  "tests": 240,
+  "classic": false,
+  "decades": [
+   {
+    "decade": 1900,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 24.609,
+     "run rate": 2.7220000000000004,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 23.871730697034163,
+     "run rate": 2.682873316690693
+    },
+    "diff %": {
+     "runs per wicket": -2.9959336135797376,
+     "run rate": -1.4374240745520739
+    },
+    "ok": true,
+    "draw %": 23.333333333333332
+   },
+   {
+    "decade": 1910,
+    "sides": [
+     "England",
+     "South Africa",
+     "Australia"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 26.676,
+     "run rate": 2.7699999999999996,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 27.30117373919773,
+     "run rate": 2.7967751099444387
+    },
+    "diff %": {
+     "runs per wicket": 2.343581268547501,
+     "run rate": 0.966610467308282
+    },
+    "ok": true,
+    "draw %": 26.666666666666668
+   },
+   {
+    "decade": 1920,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "West Indies"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.590000000000003,
+     "run rate": 2.562,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 31.824571766095687,
+     "run rate": 2.531362684258951
+    },
+    "diff %": {
+     "runs per wicket": 0.7425506998913756,
+     "run rate": -1.19583589933836
+    },
+    "ok": true,
+    "draw %": 53.75
+   },
+   {
+    "decade": 1930,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "West Indies",
+     "New Zealand",
+     "India"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.053999999999995,
+     "run rate": 2.559,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 29.866951018161807,
+     "run rate": 2.5573401610857385
+    },
+    "diff %": {
+     "runs per wicket": -3.822531660456585,
+     "run rate": -0.06486279461749289
+    },
+    "ok": false,
+    "draw %": 46.25
+   },
+   {
+    "decade": 1940,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "India",
+     "West Indies",
+     "New Zealand"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.509,
+     "run rate": 2.465,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.66569598136284,
+     "run rate": 2.4746052136859253
+    },
+    "diff %": {
+     "runs per wicket": -5.6701344816424974,
+     "run rate": 0.3896638412140163
+    },
+    "ok": false,
+    "draw %": 49.166666666666664
+   },
+   {
+    "decade": 1950,
+    "sides": [
+     "England",
+     "Australia",
+     "West Indies",
+     "India",
+     "South Africa",
+     "New Zealand",
+     "Pakistan"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 28.744000000000007,
+     "run rate": 2.255,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 29.727783528020108,
+     "run rate": 2.2833114711276923
+    },
+    "diff %": {
+     "runs per wicket": 3.422570025118632,
+     "run rate": 1.2554976109841354
+    },
+    "ok": false,
+    "draw %": 63.333333333333336
+   },
+   {
+    "decade": 1960,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "West Indies",
+     "New Zealand",
+     "Pakistan",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.612000000000002,
+     "run rate": 2.3629999999999995,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 31.029093068131214,
+     "run rate": 2.3668817934782607
+    },
+    "diff %": {
+     "runs per wicket": 1.362514922681335,
+     "run rate": 0.16427395168265857
+    },
+    "ok": true,
+    "draw %": 58.333333333333336
+   },
+   {
+    "decade": 1970,
+    "sides": [
+     "England",
+     "Australia",
+     "West Indies",
+     "India",
+     "New Zealand",
+     "Pakistan",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.378999999999998,
+     "run rate": 2.5280000000000005,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.69023282226008,
+     "run rate": 2.5360228519141996
+    },
+    "diff %": {
+     "runs per wicket": 1.0244998922284587,
+     "run rate": 0.31735964850472254
+    },
+    "ok": true,
+    "draw %": 47.916666666666664
+   },
+   {
+    "decade": 1980,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "West Indies",
+     "Pakistan",
+     "New Zealand",
+     "Sri Lanka"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.345000000000006,
+     "run rate": 2.7039999999999997,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.899338113623827,
+     "run rate": 2.736149749379809
+    },
+    "diff %": {
+     "runs per wicket": 1.8267856767962387,
+     "run rate": 1.188970021442648
+    },
+    "ok": true,
+    "draw %": 41.25
+   },
+   {
+    "decade": 1990,
+    "sides": [
+     "Australia",
+     "England",
+     "West Indies",
+     "India",
+     "Pakistan",
+     "New Zealand",
+     "South Africa",
+     "Sri Lanka",
+     "Zimbabwe"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 29.838,
+     "run rate": 2.769999999999999,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.901433941250176,
+     "run rate": 2.7386631900175202
+    },
+    "diff %": {
+     "runs per wicket": 3.564025542094562,
+     "run rate": -1.131292779150861
+    },
+    "ok": false,
+    "draw %": 43.75
+   },
+   {
+    "decade": 2010,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "Sri Lanka",
+     "South Africa",
+     "New Zealand",
+     "Pakistan",
+     "West Indies",
+     "Bangladesh",
+     "Zimbabwe",
+     "Afghanistan",
+     "Ireland"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.10000000000001,
+     "run rate": 3.123,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.838863203698665,
+     "run rate": 3.277312977099237
+    },
+    "diff %": {
+     "runs per wicket": 2.3017545286562413,
+     "run rate": 4.94117762085291
+    },
+    "ok": false,
+    "draw %": 22.083333333333332
+   }
+  ],
+  "met": [
+   6,
+   11
+  ]
+ },
+ {
+  "when": "2026-11-16T13:47:03",
+  "suite": "test_era",
+  "label": "era factors, second fit (falling gains)",
+  "tests": 240,
+  "classic": false,
+  "decades": [
+   {
+    "decade": 1900,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 24.609,
+     "run rate": 2.7220000000000004,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 25.252972426005567,
+     "run rate": 2.7092247984874116
+    },
+    "diff %": {
+     "runs per wicket": 2.6168167174837054,
+     "run rate": -0.4693314295587392
+    },
+    "ok": true,
+    "draw %": 24.166666666666668
+   },
+   {
+    "decade": 1910,
+    "sides": [
+     "England",
+     "South Africa",
+     "Australia"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 26.676,
+     "run rate": 2.7699999999999996,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 27.45368201925579,
+     "run rate": 2.793834407273369
+    },
+    "diff %": {
+     "runs per wicket": 2.9152872216816395,
+     "run rate": 0.860447916006124
+    },
+    "ok": true,
+    "draw %": 26.666666666666668
+   },
+   {
+    "decade": 1920,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "West Indies"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.590000000000003,
+     "run rate": 2.562,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.10604706583259,
+     "run rate": 2.5367062986164775
+    },
+    "diff %": {
+     "runs per wicket": 1.6335772897517753,
+     "run rate": -0.987263910363867
+    },
+    "ok": true,
+    "draw %": 54.166666666666664
+   },
+   {
+    "decade": 1930,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "West Indies",
+     "New Zealand",
+     "India"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.053999999999995,
+     "run rate": 2.559,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 29.358019639934533,
+     "run rate": 2.553714252947655
+    },
+    "diff %": {
+     "runs per wicket": -5.461390996539784,
+     "run rate": -0.2065551798493548
+    },
+    "ok": false,
+    "draw %": 44.166666666666664
+   },
+   {
+    "decade": 1940,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "India",
+     "West Indies",
+     "New Zealand"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.509,
+     "run rate": 2.465,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.088471849865954,
+     "run rate": 2.4701882855182773
+    },
+    "diff %": {
+     "runs per wicket": -1.293574548998877,
+     "run rate": 0.2104781143317469
+    },
+    "ok": true,
+    "draw %": 53.333333333333336
+   },
+   {
+    "decade": 1950,
+    "sides": [
+     "England",
+     "Australia",
+     "West Indies",
+     "India",
+     "South Africa",
+     "New Zealand",
+     "Pakistan"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 28.744000000000007,
+     "run rate": 2.255,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 28.80355307590662,
+     "run rate": 2.253348188647171
+    },
+    "diff %": {
+     "runs per wicket": 0.2071843720658606,
+     "run rate": -0.07325105777511443
+    },
+    "ok": true,
+    "draw %": 58.75
+   },
+   {
+    "decade": 1960,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "West Indies",
+     "New Zealand",
+     "Pakistan",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.612000000000002,
+     "run rate": 2.3629999999999995,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.836285161482362,
+     "run rate": 2.3703801161227585
+    },
+    "diff %": {
+     "runs per wicket": 0.7326707222081508,
+     "run rate": 0.312319768208158
+    },
+    "ok": true,
+    "draw %": 58.75
+   },
+   {
+    "decade": 1970,
+    "sides": [
+     "England",
+     "Australia",
+     "West Indies",
+     "India",
+     "New Zealand",
+     "Pakistan",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.378999999999998,
+     "run rate": 2.5280000000000005,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.751101008666005,
+     "run rate": 2.537581843013816
+    },
+    "diff %": {
+     "runs per wicket": 1.224862598064469,
+     "run rate": 0.3790286002300469
+    },
+    "ok": true,
+    "draw %": 46.25
+   },
+   {
+    "decade": 1980,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "West Indies",
+     "Pakistan",
+     "New Zealand",
+     "Sri Lanka"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.345000000000006,
+     "run rate": 2.7039999999999997,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.82507208567898,
+     "run rate": 2.73530755594003
+    },
+    "diff %": {
+     "runs per wicket": 1.5820467479946476,
+     "run rate": 1.157823814350234
+    },
+    "ok": true,
+    "draw %": 40.416666666666664
+   },
+   {
+    "decade": 1990,
+    "sides": [
+     "Australia",
+     "England",
+     "West Indies",
+     "India",
+     "Pakistan",
+     "New Zealand",
+     "South Africa",
+     "Sri Lanka",
+     "Zimbabwe"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 29.838,
+     "run rate": 2.769999999999999,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.686915887850468,
+     "run rate": 2.7619628815648953
+    },
+    "diff %": {
+     "runs per wicket": 2.8450830747719813,
+     "run rate": -0.29014867996765004
+    },
+    "ok": true,
+    "draw %": 40.833333333333336
+   },
+   {
+    "decade": 2010,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "Sri Lanka",
+     "South Africa",
+     "New Zealand",
+     "Pakistan",
+     "West Indies",
+     "Bangladesh",
+     "Zimbabwe",
+     "Afghanistan",
+     "Ireland"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.10000000000001,
+     "run rate": 3.123,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.838863203698665,
+     "run rate": 3.277312977099237
+    },
+    "diff %": {
+     "runs per wicket": 2.3017545286562413,
+     "run rate": 4.94117762085291
+    },
+    "ok": false,
+    "draw %": 22.083333333333332
+   }
+  ],
+  "met": [
+   9,
+   11
+  ]
+ },
+ {
+  "when": "2026-11-16T14:09:33",
+  "suite": "test_era",
+  "label": "era factors and overs in a day fitted to real draws",
+  "tests": 240,
+  "classic": false,
+  "decades": [
+   {
+    "decade": 1900,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 24.609,
+     "run rate": 2.7220000000000004,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 24.384289564882557,
+     "run rate": 2.697376142968025
+    },
+    "diff %": {
+     "runs per wicket": -0.9131229839385746,
+     "run rate": -0.9046236969865951
+    },
+    "ok": true,
+    "draw %": 25.416666666666668,
+    "real draw %": 24.390243902439025
+   },
+   {
+    "decade": 1910,
+    "sides": [
+     "England",
+     "South Africa",
+     "Australia"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 26.676,
+     "run rate": 2.7699999999999996,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 27.184518673733514,
+     "run rate": 2.7805542247661315
+    },
+    "diff %": {
+     "runs per wicket": 1.9062778292604499,
+     "run rate": 0.3810189446256995
+    },
+    "ok": true,
+    "draw %": 17.916666666666668,
+    "real draw %": 13.793103448275861
+   },
+   {
+    "decade": 1920,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "West Indies"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.590000000000003,
+     "run rate": 2.562,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.261827520951606,
+     "run rate": 2.5490673544693827
+    },
+    "diff %": {
+     "runs per wicket": 2.126709468032928,
+     "run rate": -0.504787101116988
+    },
+    "ok": true,
+    "draw %": 34.583333333333336,
+    "real draw %": 31.372549019607842
+   },
+   {
+    "decade": 1930,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "West Indies",
+     "New Zealand",
+     "India"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 31.053999999999995,
+     "run rate": 2.559,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 29.45395088093967,
+     "run rate": 2.557102547612012
+    },
+    "diff %": {
+     "runs per wicket": -5.15247349475213,
+     "run rate": -0.07414819804564265
+    },
+    "ok": false,
+    "draw %": 40.0,
+    "real draw %": 40.44943820224719
+   },
+   {
+    "decade": 1940,
+    "sides": [
+     "England",
+     "Australia",
+     "South Africa",
+     "India",
+     "West Indies",
+     "New Zealand"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.509,
+     "run rate": 2.465,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.21513071418139,
+     "run rate": 2.4682337494731423
+    },
+    "diff %": {
+     "runs per wicket": -0.9039628589578519,
+     "run rate": 0.13118659120252563
+    },
+    "ok": true,
+    "draw %": 49.166666666666664,
+    "real draw %": 48.888888888888886
+   },
+   {
+    "decade": 1950,
+    "sides": [
+     "England",
+     "Australia",
+     "West Indies",
+     "India",
+     "South Africa",
+     "New Zealand",
+     "Pakistan"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 28.744000000000007,
+     "run rate": 2.255,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 29.37527795945062,
+     "run rate": 2.263634026983303
+    },
+    "diff %": {
+     "runs per wicket": 2.1962077631874966,
+     "run rate": 0.38288367996908157
+    },
+    "ok": true,
+    "draw %": 33.333333333333336,
+    "real draw %": 31.097560975609756
+   },
+   {
+    "decade": 1960,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "West Indies",
+     "New Zealand",
+     "Pakistan",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.612000000000002,
+     "run rate": 2.3629999999999995,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.6825924387204,
+     "run rate": 2.3779696581036047
+    },
+    "diff %": {
+     "runs per wicket": 0.2306038113171205,
+     "run rate": 0.6335022472960361
+    },
+    "ok": true,
+    "draw %": 51.25,
+    "real draw %": 47.8494623655914
+   },
+   {
+    "decade": 1970,
+    "sides": [
+     "England",
+     "Australia",
+     "West Indies",
+     "India",
+     "New Zealand",
+     "Pakistan",
+     "South Africa"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.378999999999998,
+     "run rate": 2.5280000000000005,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.70511756569848,
+     "run rate": 2.5139248533530623
+    },
+    "diff %": {
+     "runs per wicket": 1.0734967105516358,
+     "run rate": -0.55677004141369
+    },
+    "ok": true,
+    "draw %": 50.416666666666664,
+    "real draw %": 42.42424242424242
+   },
+   {
+    "decade": 1980,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "West Indies",
+     "Pakistan",
+     "New Zealand",
+     "Sri Lanka"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 30.345000000000006,
+     "run rate": 2.7039999999999997,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.412050534499514,
+     "run rate": 2.720986417302051
+    },
+    "diff %": {
+     "runs per wicket": 0.2209607332328556,
+     "run rate": 0.6281959061409603
+    },
+    "ok": true,
+    "draw %": 47.083333333333336,
+    "real draw %": 46.2406015037594
+   },
+   {
+    "decade": 1990,
+    "sides": [
+     "Australia",
+     "England",
+     "West Indies",
+     "India",
+     "Pakistan",
+     "New Zealand",
+     "South Africa",
+     "Sri Lanka",
+     "Zimbabwe"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 29.838,
+     "run rate": 2.769999999999999,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 30.38498689112736,
+     "run rate": 2.7534981430768655
+    },
+    "diff %": {
+     "runs per wicket": 1.8331888569185661,
+     "run rate": -0.5957349069723339
+    },
+    "ok": true,
+    "draw %": 44.166666666666664,
+    "real draw %": 35.73487031700288
+   },
+   {
+    "decade": 2010,
+    "sides": [
+     "England",
+     "Australia",
+     "India",
+     "Sri Lanka",
+     "South Africa",
+     "New Zealand",
+     "Pakistan",
+     "West Indies",
+     "Bangladesh",
+     "Zimbabwe",
+     "Afghanistan",
+     "Ireland"
+    ],
+    "tests": 240,
+    "real": {
+     "runs per wicket": 32.10000000000001,
+     "run rate": 3.123,
+     "years": 10
+    },
+    "sim": {
+     "runs per wicket": 32.838863203698665,
+     "run rate": 3.277312977099237
+    },
+    "diff %": {
+     "runs per wicket": 2.3017545286562413,
+     "run rate": 4.94117762085291
+    },
+    "ok": false,
+    "draw %": 22.083333333333332,
+    "real draw %": 19.399538106235568
+   }
+  ],
+  "met": [
+   9,
+   11
+  ]
+ }
+]

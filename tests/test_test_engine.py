@@ -103,7 +103,10 @@ def check_card(c: dict, captained: bool = False):
         names = [o["bowler"] for o in log]
         for a, b in zip(names, names[1:]):
             assert a != b, f"{a} bowled two overs running"
-        keeper = next(b["name"] for b in inns[k - 1 if k else 1]["batting"] if b["keeper"]) if len(inns) > 1 else None
+        # (a keeper lost to injury is followed by another man, who may have bowled before he took the gloves)
+        lost = any(e["kind"] in ("injury", "replacement") for e in c["events"])
+        keeper = (next((b["name"] for b in inns[k - 1 if k else 1]["batting"] if b["keeper"]), None)
+                  if len(inns) > 1 and not lost else None)
         assert keeper not in names, "the keeper bowled"
         assert [o["over"] for o in log] == list(range(1, len(log) + 1))
         when = [(o["day"], o["session"]) for o in log]
@@ -112,8 +115,10 @@ def check_card(c: dict, captained: bool = False):
         assert inn["declared"] == (inn["ended"] == "declared")
         if inn["declared"]:
             assert inn["wickets"] < 10 and inn["number"] < 4, "a declaration that cannot be"
-        if inn["ended"] == "all out":
-            assert inn["wickets"] == 10
+        if inn["ended"] == "all out":        # ten wickets, less the men retired hurt
+            hurt = sum(1 for b in inn["batting"] if b["dismissal"] == "retired hurt")
+            assert inn["wickets"] == len(inn["batting"]) - 1 - hurt
+            assert len(inn["batting"]) + len(inn.get("absent_hurt") or []) >= 11
         if inn["ended"] == "time":
             assert inn is inns[-1], "time ran out but another innings followed"
         other = inn["bowling_team"]
@@ -126,10 +131,8 @@ def check_card(c: dict, captained: bool = False):
         else:
             assert inn["target"] is None
         new_balls = [e for e in c["events"] if e["innings"] == inn["number"] and e["kind"] == "new_ball"]
-        if captained:
-            assert len(new_balls) <= max(len(log) - 1, 0) // 80, "a new ball before it was due"
-        else:
-            assert len(new_balls) == max(len(log) - 1, 0) // 80, "a new ball every 80 overs"
+        # a captain may keep the old ball (the computer's does as real captains do), never take one early
+        assert len(new_balls) <= max(len(log) - 1, 0) // 80, "a new ball before it was due"
     # ---- time: never more than the scheduled overs
     bowled = sum(len(i["overs_log"]) for i in inns)
     lost = sum(d["lost"] for d in c["days"])
@@ -266,7 +269,12 @@ def test_forced_results():
     c = scripted({1: 100, 2: 100, 3: 50, 4: 49})
     assert c["result"]["text"] == "Alphas won by 1 run"
 
-    c = scripted({1: None}, days=1)                       # one day of blocking: no result is possible
+    c = scripted({1: None}, days=1)                       # one day of blocking: no result is possible, and the
+    assert c["result"]["type"] == "draw" and len(c["innings"]) == 1      # captains shake hands in the last hour
+    assert c["innings"][0]["overs"] == "75.0" and any(e["kind"] == "agreed_draw" for e in c["events"])
+    assert c["days"] == [{"day": 1, "overs": 75, "runs": 0, "wickets": 0, "innings": 1, "close": "Alphas 0/0",
+                          "lost": 0}]
+    c = scripted({1: None}, days=1, last_hour=False)      # ... or the last hour is played out
     assert c["result"]["type"] == "draw" and len(c["innings"]) == 1 and c["innings"][0]["overs"] == "90.0"
     assert c["days"] == [{"day": 1, "overs": 90, "runs": 0, "wickets": 0, "innings": 1, "close": "Alphas 0/0",
                           "lost": 0}]

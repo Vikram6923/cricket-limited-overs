@@ -37,6 +37,8 @@ from engine import history
 from engine.auction import Auction, season_pool, years_pool
 from engine.career import Career
 from engine.state_career import StateCareer, load as career_from_json, start_seasons
+from engine import test_career
+from engine.test_career import TestCareer
 from engine.draft import DEFAULT_TEAMS, Draft
 from engine import domestic
 from engine.leagues import LEAGUES, ui_info as league_info
@@ -76,8 +78,24 @@ LIMITED = ("t20", "odi")
 FMTS = LIMITED + ("test",)
 FMT_NAME = history.FMT_NAME
 TEST_MODES = ("series", "tournament", "draft", "auction", "wtc")       # the run modes a Test can be played in
+TEST_LENGTHS = ("3", "4", "5", "6", "timeless")       # days in a Test (a series or a two-player room chooses)
+
+
+def test_options(p: dict) -> dict:
+    """The playing conditions a run asks for ("length", "day_night"), as engine.test_match arguments."""
+    kw: dict = {}
+    n = str(p.get("length") or "5")
+    if n == "timeless":
+        kw["timeless"] = True
+    elif n in TEST_LENGTHS and n != "5":
+        kw["days"] = int(n)
+    if p.get("day_night"):
+        kw["day_night"] = True
+    return kw
+
+
 NOT_FOR_TESTS = ("Tests can be played as a Match / Series, a Tournament, the World Test Championship, a draft "
-                 "or auction league, or a Two players game with a team each; this mode is for T20 and ODI.")
+                 "or auction league, a Test career, or a Two players game; this mode is for T20 and ODI.")
 
 COMP_LABELS = {
     "t20i_full": "T20 internationals (full members)", "t20i": "T20 internationals (all teams)",
@@ -481,7 +499,8 @@ def _career_path(cid: str | None, v: Visitor | None = None) -> Path:
 
 
 def load_career(cid: str | None, v: Visitor | None = None) -> Career:
-    return career_from_json(json.loads(_career_path(cid, v).read_text(encoding="utf-8")))
+    d = json.loads(_career_path(cid, v).read_text(encoding="utf-8"))
+    return TestCareer.from_json(d) if d.get("kind") == "test" else career_from_json(d)
 
 
 def save_career(cid: str, c: Career, v: Visitor | None = None) -> None:

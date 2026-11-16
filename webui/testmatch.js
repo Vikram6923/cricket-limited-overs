@@ -152,12 +152,11 @@ function fmtChanged() {
   });
   document.querySelectorAll('.match-word').forEach(e => e.textContent = test ? 'Tests' : 'Matches');
   document.querySelectorAll('.match-word-l').forEach(e => e.textContent = test ? 'Tests' : 'matches');
-  // two players: a Test room has a team each (no draft or auction) and a series of Tests, not a best-of
+  // two players: a Test room plays a series of Tests, not a best-of
   const ser = $('mp-series'), keep = ser.value, list = MP_PLAY_OPTS[test ? 'test' : 'lo'];
   ser.innerHTML = list.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
   ser.value = list.some(([v]) => String(v) === keep) ? keep : test ? '1' : '3';
   ser.dispatchEvent(new Event('change'));
-  if (test && $('mp-teams').value !== 'pick') { $('mp-teams').value = 'pick'; $('mp-teams').dispatchEvent(new Event('change')); }
   updateTournamentTotal(); if ($('ct-rows').children.length) updateClassicTotal();
   $('c-fmt-note').style.display = test && $('c-fmt-note').textContent ? '' : 'none';
 }

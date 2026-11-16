@@ -93,7 +93,7 @@ async function mpCreate() {
   const [lo, hi] = META.years[p.fmt];
   const r = await api('/api/mp/create', {fmt: p.fmt, comp: p.comp, year: p.year, venues: p.venues, seed: p.seed,
     rain: p.rain, clock: $('mp-clock').value, series: $('mp-series').value,
-    teams: p.fmt === 'test' ? 'pick' : $('mp-teams').value, host: 'neutral',
+    teams: $('mp-teams').value, host: 'neutral',
     y1: Math.max(lo, hi - 9), y2: hi, source: 'full', cpu: 0, name: lsGet(MP_NAME_KEY) || ''});
   mpStore(r.code, r.token); MP.active = true; MP.built = false; mpPoll();
 }
@@ -169,6 +169,7 @@ async function mpPoll() {
 /* ───────── the series between the two players ───────── */
 const MP_SERIES_OPTS = [[1, 'A single match'], [3, 'Best of 3'], [5, 'Best of 5']];
 const MP_TEST_OPTS = [[1, 'A single Test'], [2, 'A 2-Test series'], [3, 'A 3-Test series'], [5, 'A 5-Test series']];
+const MP_LENGTH_OPTS = [['5', 'Five days'], ['4', 'Four days'], ['3', 'Three days'], ['6', 'Six days'], ['timeless', 'Timeless']];
 const MP_HOST_OPTS = [['neutral', 'Neutral grounds'], ['home', "The host player's country"], ['away', "The guest player's country"]];
 const mpSeriesOpts = s => s.fmt === 'test' ? MP_TEST_OPTS : MP_SERIES_OPTS;
 /* {of, wins: [seat 0, seat 1], match, finished} -> "Best of 3 · Match 2 · India lead 1-0" (names: by seat) */
@@ -261,7 +262,8 @@ function mpPlayText(s) {
       : 'then ' + play + ' between the two of you';
     return `${what} · ${then}`;
   }
-  if (s.teams !== 'draft') return play + (s.fmt === 'test' && s.best_of && (s.series || 1) > 1 ? ', stops once it is decided' : '');
+  const cond = s.fmt !== 'test' ? '' : (s.length === 'timeless' ? ', timeless' : s.length && s.length !== '5' ? `, ${s.length} days` : '') + (s.day_night ? ', day-night' : '');
+  if (s.teams !== 'draft') return play + cond + (s.fmt === 'test' && s.best_of && (s.series || 1) > 1 ? ', stops once it is decided' : '');
   const k = 2 + (s.cpu || 0);
   return `draft squads from ${s.y1}–${s.y2} players · ` + (s.cpu ? `${s.cpu} computer teams draft too, then a ${k}-team league + ${k <= 4 ? 'final' : 'semi-finals'}` : play);
 }
@@ -271,15 +273,17 @@ function mpHostHTML(s) {
   const [lo, hi] = META.years[s.fmt] || [2005, 2026], test = s.fmt === 'test';
   return `<div class="lbl" style="margin-top:14px">Room settings (host)</div>
     <div class="seg2">
-      <div class="fg" ${test ? 'style="display:none"' : ''}><label>Teams</label><select id="mh-teams"><option value="pick">Each player picks a team</option>${test ? '' : '<option value="draft">Draft squads</option><option value="auction">Auction</option>'}</select></div>
+      <div class="fg"><label>Teams</label><select id="mh-teams"><option value="pick">Each player picks a team</option><option value="draft">Draft squads</option><option value="auction">Auction</option></select></div>
       <div class="fg" id="mh-play-box"><label>Play</label><select id="mh-series">${mpSeriesOpts(s).map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
       ${test ? `<div class="fg"><label>Played in</label><select id="mh-host">${MP_HOST_OPTS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>` : ''}
+      ${test ? `<div class="fg"><label>Length of a Test</label><select id="mh-length">${MP_LENGTH_OPTS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
+      <div class="fg"><label>Ball</label><select id="mh-dn"><option value="">Day Tests (red ball)</option><option value="1">Day-night Tests (pink ball)</option></select></div>` : ''}
       ${test && (s.series || 1) > 1 ? '<div class="fg"><label>The series</label><select id="mh-bestof"><option value="">Every Test is played</option><option value="1">Stops once it is decided</option></select></div>' : ''}
     </div>
     ${test ? '<div class="hint" style="margin:0">The home side bats a little better than its ratings, as real home sides do; the country\'s grounds and weather are used.</div>' : ''}
     <div id="mh-auction" style="display:none">
       <div class="seg2">
-        <div class="fg"><label>Players</label><select id="mh-apool"><option value="season">A real league season</option><option value="years">Players from a span of years</option></select></div>
+        <div class="fg"><label>Players</label><select id="mh-apool">${test ? '' : '<option value="season">A real league season</option>'}<option value="years">Players from a span of years</option></select></div>
         <div class="fg"><label>Then</label><select id="mh-after"><option value="league">A league with the computer teams</option><option value="series">A match / series between the two of us</option></select></div>
       </div>
       <div class="seg2" id="mh-season-box">
@@ -305,6 +309,7 @@ function mpSyncHost(s) {
   const set = (id, v) => { const el = $(id); if (el && document.activeElement !== el && el.value !== String(v)) el.value = String(v); };
   set('mh-teams', s.teams || 'pick'); set('mh-series', s.series || 1); set('mh-y1', s.y1); set('mh-y2', s.y2);
   set('mh-cpu', s.cpu || 0); set('mh-src', s.source || 'full'); set('mh-host', s.host || 'neutral'); set('mh-bestof', s.best_of ? '1' : '');
+  set('mh-length', s.length || '5'); set('mh-dn', s.day_night ? '1' : '');
   const draft = (s.teams || 'pick') === 'draft', auction = s.teams === 'auction', season = auction && s.a_pool === 'season';
   set('mh-apool', s.a_pool || 'season'); set('mh-after', s.after || 'league'); set('mh-league', s.league || 'ipl');
   const l = mpLeague(s), seasons = l ? l.seasons.map(x => x.season) : [];
@@ -362,6 +367,8 @@ function mpBuildMine(st, seat) {
     $('mh-series').onchange = () => send({series: $('mh-series').value});
     if ($('mh-host')) $('mh-host').onchange = () => send({host: $('mh-host').value});
     if ($('mh-bestof')) $('mh-bestof').onchange = () => send({best_of: !!$('mh-bestof').value});
+    if ($('mh-length')) $('mh-length').onchange = () => send({length: $('mh-length').value});
+    if ($('mh-dn')) $('mh-dn').onchange = () => send({day_night: !!$('mh-dn').value});
     $('mh-cpu').onchange = () => send({cpu: $('mh-cpu').value});
     $('mh-src').onchange = () => send({source: $('mh-src').value});
     $('mh-y1').onchange = $('mh-y2').onchange = () => send({y1: $('mh-y1').value, y2: $('mh-y2').value});

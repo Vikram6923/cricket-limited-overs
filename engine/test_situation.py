@@ -4,6 +4,9 @@ Tables learned by engine/fit/fit_test_situation.py as observed / ratings-predict
 settling in (with a dismissal part), pitch wear and ball age by pace and spin, the innings by wickets down by
 lead, and the last innings by wickets down by runs needed per over left (chase, steady, save).
 
+Matchups (engine/fit/fit_test_matchups.py): batting hand x bowling kind, a table of its own that moves runs and
+wickets between matchups and leaves each player's level alone.
+
 A person's bars (batting approach, bowling plan; 1-9, 5 = as real sides play) move a ball along the runs-v-risk
 curve of engine/fit/fit_test_aggression.py (`with_bars`). At bar 5, which is all a computer side ever uses,
 nothing changes.
@@ -15,7 +18,7 @@ import json
 import math
 from functools import lru_cache
 
-from .data import DATA
+from .data import DATA, ratings
 
 
 @lru_cache(maxsize=None)
@@ -27,6 +30,28 @@ def tables() -> dict:
 def bars_table() -> dict | None:
     p = DATA / "engine" / "aggression_test.json"
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+
+@lru_cache(maxsize=None)
+def matchup_table() -> dict:
+    p = DATA / "engine" / "test_matchups.json"
+    return json.loads(p.read_text(encoding="utf-8"))["matchup"] if p.exists() else {}
+
+
+PACE_KINDS = {"fast", "fast_medium", "medium_fast", "medium"}
+
+
+@lru_cache(maxsize=None)
+def matchup_kind(pid: str) -> str | None:
+    """A bowler's name in the matchup table: pace by arm (the arm is in the ratings, not on engine.data.Player),
+    spin by its kind. None: not known."""
+    rec = ratings("test")["players"].get(pid) or {}
+    kind = rec.get("bowl_kind")
+    if not kind:
+        return None
+    if kind in PACE_KINDS:
+        return "left_pace" if rec.get("bowl_arm") == "left" else "pace"
+    return kind
 
 
 NORMAL_BARS = 5              # the middle of the 9 bars: the engine as calibrated
@@ -78,6 +103,19 @@ class TestSituation:
             m = {name: se[j] * st[j] * (we[j] * ag[j] if ty else 1.0) for j, name in enumerate(self.metrics)}
             self._cache[key] = m
         return m
+
+    def with_matchup(self, mult: dict, hand: str | None, bowler_id: str) -> dict:
+        """mult x the batting hand v bowling kind matchup (unchanged when either is not known)."""
+        kind = matchup_kind(bowler_id)
+        if not hand or not kind:
+            return mult
+        key = (id(mult), "matchup", hand, kind)
+        hit = self._cache.get(key)
+        if hit is None or hit[0] is not mult:
+            mu = (matchup_table().get(hand) or {}).get(kind)
+            hit = (mult, {name: v * mu.get(name, 1.0) for name, v in mult.items()} if mu else mult)
+            self._cache[key] = hit
+        return hit[1]
 
     def with_bars(self, mult: dict, bat_bars: int, bowl_bars: int) -> dict:
         """mult x the person's bars. Batting: d = step x (bars - 5) moves the runs rate by e^d and every other

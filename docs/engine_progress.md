@@ -1203,3 +1203,14 @@ Details and the differences from the plan are in `docs/test_design.md` ("Phase 6
   `tests/test_test_tournament.py` (7 tests); 22 of 22 scripts and the golden test pass. A two-player Test
   series was played to its end in the browser at phone width. Not done: Tests in careers and league seasons.
   Details: `docs/test_design.md` ("Tests in more modes").
+
+- 2026-11-16: **Eras, selection, careers and playing conditions for Tests.** The era suite
+  (`python -m engine.test_era`) with era factors and overs in a day fitted per decade (9 of 10 old decades within
+  3%; draws track the real record), Test matchups, the computer's new ball as real captains take it, a learned
+  Test XI (8.77 of the real eleven against 8.67 for the rule), two-player Test drafts and auctions, a Test
+  career (`engine/test_career.py`), Tests of three to six days and timeless Tests, day-night Tests (wickets
+  x1.20, fitted on the 25 played), a draw agreed in the last hour, injuries and replacements at the real rates.
+  Modern calibration: 28 of 32 gates. Weaker captains re-measured on two more sides (expert 50 to 54% against
+  Average, 58 to 64% against Easy). 25 of 25 test scripts and the golden test pass. Not built: 8-ball overs,
+  uncovered pitches, making up lost time, fielding quality (no data for the last three).
+  Details: `docs/test_design.md` ("Eras, selection, careers and playing conditions").

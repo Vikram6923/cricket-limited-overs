@@ -17,6 +17,10 @@ from .data import DATA
 # How a day's lost overs are placed and named. Cricsheet has no clock, so neither can be fitted:
 SMALL_LOSS = 10      # up to this many overs are an early close (bad light, slow over rate); more is rain
 REF_DAY = 90         # the fitted distribution is for a 90-over day; other day lengths are scaled
+# Playing conditions (rules, not fitted numbers):
+LAST_HOUR_OVERS = 15 # the last hour of the last day is 15 overs; a draw may be agreed in it
+TIMELESS_DAYS = 10   # a timeless Test is played to a finish; the longest (Durban 1939) was given up after its
+                     # tenth day, so a match still going then is left drawn
 
 
 @lru_cache(maxsize=None)
@@ -28,6 +32,47 @@ def tables() -> dict:
 def host_of(venue: str | None) -> str | None:
     """The country whose ground this is (None: unknown or neutral)."""
     return (tables().get("hosts") or {}).get(venue_key(venue)) if venue else None
+
+
+@lru_cache(maxsize=None)
+def era_table() -> dict:
+    p = DATA / "engine" / "test_era.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def era_factors(year: int) -> dict:
+    """Multipliers on the baseline of a year before ball-by-ball coverage, by decade (engine/fit/fit_test_era.py).
+    The engine's situation tables were learned from modern Tests; in a slower era batters stay in longer and
+    more innings are left unfinished, so the same tables give too many runs a wicket. These factors are fitted
+    so that the decade's Tests score what the era table says. "day_overs" is the decade's playing time in a
+    day, in overs: fitted so that as many Tests are drawn as really were (over rates and hours of play were not
+    today's; 90 overs a day gave the 1950s twice the draws they had). A covered year, or no table: 1 and None."""
+    t = era_table()
+    if not t or year >= t["until"]:
+        return {"runs": 1.0, "wkt": 1.0, "day_overs": None}
+    ds = t["decades"]
+    d = min(ds, key=lambda k: abs(int(k) - year // 10 * 10))
+    return ds[d]
+
+
+@lru_cache(maxsize=None)
+def day_night() -> dict:
+    """{"pace" | "spin": {"runs", "wkt"}}: multipliers on the baseline in a day-night Test (pink ball, a
+    session under lights), from the day-night Tests played so far against the same hosts' day Tests
+    (engine/fit/fit_test_daynight.py). No file: {} (a day-night Test then plays as a day Test)."""
+    p = DATA / "engine" / "test_daynight.json"
+    if not p.exists():
+        return {}
+    t = json.loads(p.read_text(encoding="utf-8"))
+    return {k: {"runs": t[k]["runs"], "wkt": t[k]["wkt"]} for k in ("pace", "spin")}
+
+
+@lru_cache(maxsize=None)
+def injuries() -> dict:
+    """How often a player is hurt and what follows (engine/fit/fit_test_injuries.py). No file: {} (nobody is
+    hurt)."""
+    p = DATA / "engine" / "test_injuries.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
 def home_factors() -> dict:

@@ -916,3 +916,125 @@ has 46 bowlers; Muralitharan is the 4th lot, Ambrose the 11th and McGrath the 16
 - The weaker-captain measurement used one pair of sides.
 - The Championship, the Test draft and the Test auction screens were checked in the browser by the session
   that built them, not again after the later fixes; the tests cover their server paths.
+
+# Eras, selection, careers and playing conditions (2026-11-16)
+
+## What was missing
+
+The plan's era suite had never been run, Test matchups were not fitted, the computer always took the new ball
+at 80 overs, the XI was picked by a rule, two-player Tests had no draft or auction, there was no Test career,
+and the plan's deferred playing conditions (length of a Test, day-night, the last hour, injuries) did not exist.
+
+## What was built
+
+- **Era suite** (`engine/test_era.py`, `python -m engine.test_era`). The nations of a decade meet on neutral
+  grounds in that decade's baseline; runs per wicket and run rate are compared with the era table (gate 3%).
+  Sides are drawn in proportion to caps, not the plan's "classic sides": the most-capped players score 13% above
+  the 2010s' real figure, where real-XI replays are within 2%, so that version is biased by design
+  (`--classic` still runs it). The 2010s are the control.
+- **Era factors** (`engine/fit/fit_test_era.py`, `data/engine/test_era.json`,
+  `test_conditions.era_factors`). The first run scored 20 to 35% too many runs per wicket in every old decade.
+  The cause was the engine, not the old players' ratings: 2010s players put on a 1950s baseline were 15% high
+  too, because the situation tables, learned from modern Tests, favour set batters and so lose too few
+  wickets when scoring is slow. Per decade before 2001 the fit finds a factor on runs and on wickets, and the
+  overs in a day, so that the decade's Tests score what the era table says and are drawn as often as they
+  really were.
+- **Real draw rates** (`scripts/build_test_results.py`, `data/raw_stats/test_results.json`): Tests played and
+  drawn by year since 1877, read from the old simulator's match list (read only). With 90 overs a day the
+  1950s drew 59% against a real 31%; the fitted day is 113 six-ball overs.
+- **Test matchups** (`engine/fit/fit_test_matchups.py`, `data/engine/test_matchups.json`): batting hand by
+  bowling kind, observed against what ratings and situation predict, shrunk and centred as in limited overs.
+  Example: a right-hander against off spin scores 5.5% faster and is out 4.5% less often.
+- **The computer's new ball** (`engine/fit/fit_test_newball.py`, `test_captain.take_new_ball`). Cricsheet
+  does not record it; it is read as the first two overs of pace in a row from the 80th. With no spinner on it
+  is taken at once 88% of the time, with spin at both ends 38%.
+- **Learned XI** (`engine/test_selection.py`, `engine/fit/fit_test_selection.py`,
+  `data/engine/selection_test.json`): the limited-overs model with the Test value. Out of sample it names 8.77
+  of the real eleven; the rule names 8.67 and caps alone 8.64. Separate batting and bowling weights were tried
+  once and dropped (they left out Bumrah and Lindwall). The attack is always one of the mixes real sides pick.
+- **Two-player Test draft and auction** (server and page): a room set to Test may draft or bid for squads.
+- **Test career** (`engine/test_career.py`, `engine/fit/fit_test_career.py`, `data/engine/career_test.json`,
+  server routes and the career page): the Test nations from 2005 on, a season of Tests on the Championship
+  table and a final, ageing, retirement, real then made-up newcomers.
+- **Length of a Test** (`days` 3 to 6; `timeless`). A timeless Test has no declarations and is left drawn
+  after `TIMELESS_DAYS` (10). The follow-on mark follows the Laws (150 for three and four days).
+- **Day-night Tests** (`engine/fit/fit_test_daynight.py`, `data/engine/test_daynight.json`, `day_night=True`).
+  The 25 day-night Tests to 2025 are listed by date and host (Cricsheet does not flag them; all 25 were found
+  in the data) and set against the same hosts' day Tests since 2015.
+- **The last hour** (`TestMatch.agreed_draw`). In the last 15 overs of the last day the captains shake hands
+  when no result is possible: a first innings is still going, or the side batting third leads by more than
+  `RR_CAP` (8) an over for the overs left. The same when a person captains, so a match played as the computer
+  would is still the same match.
+- **Injuries and replacements** (`engine/fit/fit_test_injuries.py`, `data/engine/test_injuries.json`,
+  `TestMatch.hurt`, `TestInnings.retire_hurt`). Their own random stream, drawn as balls until the next one,
+  so a match in which nobody is hurt is identical with injuries off (tested).
+- On the pages: Length of a Test and Day-night on Match / Series, Classic Series and the two-player room.
+  Fixed in passing: the setup card ran off the right edge between 760 and about 1,100 px (the Career form).
+
+## Measurements
+
+- Era suite, 240 Tests a decade, last run: within 3% on both measures in 9 of the 10 old decades (1930s runs
+  per wicket -5.2%; two runs of the 1930s differed by about that much, so tuning stopped). The 2010s control
+  misses on run rate (+4.9%); its runs per wicket is +2.3%. Draws, real / simulated: 1900s 24 / 25, 1920s
+  31 / 35, 1950s 31 / 33, 1960s 48 / 51, 1970s 42 / 50, 1990s 36 / 44. Draws were not gated.
+- Modern calibration (473 Tests, 4 replays): 28 of 32 gates after matchups and the new ball, and 28 of 32 after
+  the last hour and injuries, with the same four misses (draws 18.7% against 13.1%, wins by runs, follow-ons
+  enforced, five-fors). It was 29 before matchups and the new ball: follow-ons enforced fell just outside its
+  gate (0.079 a match against 0.091). The win / draw / loss table was not rebuilt: results moved by under half
+  a point.
+- Day-night: wickets x1.204 off pace (standard error 0.058) and x1.182 off spin (0.068); runs a ball x0.996
+  and x1.003. In the engine 150 Tests of one fixture gave 24.5 runs per wicket against 31.0 by day.
+- Injuries, 1.72 million balls: 47 retired hurt (one in 36,500 balls); Cricsheet records a retirement only
+  when the batter did not resume, so none return in the innings; 7 of the 47 played on later in the match. 38
+  more were absent hurt without retiring (one in 45,100 balls). Since 2019, 25 replacements for 33 players
+  lost: 0.76.
+- The last hour: in 150 five-day Tests 5 ended by agreement, and no result changed with it off.
+- Weaker captains again, 1,000 Tests a level, identical sides: Australia 2025, weaker side's share 46.1%
+  (Average) and 36.4% (Easy); England 2025, 49.8% and 41.7%. With India 2025 earlier (46.7%, 41.5%) the
+  expert's share is 50 to 54% against Average and 58 to 64% against Easy: Average is weak to nothing for some
+  sides.
+- Test career: ten seasons from 2019 keep the pool size and the average age steady. Starting a career takes
+  about 21 seconds on this laptop.
+
+## Constants that are not fitted
+
+- `LAST_HOUR_OVERS` 15 and the follow-on marks: the playing conditions. `TIMELESS_DAYS` 10: the longest
+  timeless Test was given up after its tenth day.
+- The agreed draw uses `RR_CAP` 8 runs an over as "out of reach".
+- Day-night: `SHRINK_BALLS` 3,000, `SHRINK_WKTS` 60, and the comparison is by host only (most of the 25 were
+  Australia's home Tests).
+- Injuries: who is hurt in the field is any fielder but the keeper, with equal chance; a replacement is the
+  best bench player of the same kind.
+- Test career: `SQUAD` 18, `IDLE_YEARS`, `OLDEST`, `NEWCOMER_YEARS`. Era suite: four to six bowlers in a drawn XI.
+- Learned XI: experience at half its fitted weight (the owner's limited-overs decision carried over).
+
+## Not built, and why
+
+- **8-ball overs.** Time is counted in six-ball overs and the fitted day lengths already carry each era's
+  playing time; eight-ball overs would change only how overs are written, across the scorebook and every page.
+- **Uncovered pitches.** No ball-by-ball data before 2001 to learn a wet pitch from; its average effect is in
+  the era factors.
+- **Making up lost time.** The weather fit is of net overs lost, so time made up is already in it; Cricsheet
+  has no clock to separate the two.
+- **Fielding quality.** Cricsheet records no dropped catches or misfields. Catches still go to a random fielder.
+- **Temporary injuries and hurt bowlers who bat on**: not visible in the data.
+- Test careers retire players by age alone. League seasons and the Mushtaq Ali Trophy stay T20.
+- Women's Tests and first-class cricket: set aside by the owner.
+
+## Checks
+
+- `tests/test_test_eras.py` (5), `tests/test_test_career.py`, `tests/test_test_conditions.py` (5: day-night,
+  length and timeless, the last hour, injuries and replacements at a forced rate, the server and room
+  settings); a Classic Tournament of Tests and Test draft and auction rooms in the existing scripts.
+  `check_card` now allows a side a man short. All 25 test scripts and the golden test pass.
+- Browser (port 5071): a four-day day-night Test from the Match / Series screen; a Test career started and a
+  season of 67 Tests played, results and honours shown; the two-player room's Length and Ball settings saved;
+  a captained three-Test series with only the Test questions on: the new-ball (4), nightwatchman (6) and
+  declaration (4) sheets opened and answered. No page errors.
+
+## Not verified
+
+- The follow-on sheet did not come up in that series, and none of these sheets was clicked in a two-player
+  game in the browser; the server tests cover both.
+- A two-player Test draft or auction was not played in the browser.
+- Day-night, timeless and injuries were not checked against anything but their own fits.

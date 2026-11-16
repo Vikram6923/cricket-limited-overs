@@ -22,7 +22,8 @@ and its historical, draft and league modes inspired the modes here. See [Credits
 > nation and years since 1877, e.g. West Indies 1980-85 v Australia 1999-2003) or a Two players game, in the
 > browser or from Python: declarations, the follow-on,
 > rain, home advantage, about 3,270 rated Test cricketers. They are calibrated against the 473 real Tests of
-> 2015-26 (29 of 32 targets met; it draws too often). Results come with Test records and a win / draw / loss
+> 2015-26 (28 of 32 targets met; it draws too often), and Tests of every decade since 1900 score as that decade
+> did. A Test can last three to six days or be timeless, can be a day-night Test, and players get hurt. Results come with Test records and a win / draw / loss
 > chart. You can captain a side: the toss, the XI, declarations, the follow-on, the new ball, the bowling, the
 > nightwatchman and the batting and bowling bars, with the win / draw / loss chances beside the big calls
 > ([`docs/test_design.md`](docs/test_design.md), plan: [`docs/test_match_plan.md`](docs/test_match_plan.md)).
@@ -153,7 +154,7 @@ on a phone too. Modes:
     India scored 2.98 an over at bar 1 and 4.21 at bar 9 with 29 to 31 runs a wicket throughout. Your bowlers
     have a workload limit (a spell no longer than 98% of real spells of that kind: 10 overs for a quick, 26
     for a spinner), because the data shows no tiredness in the rates and nothing else would stop two men
-    bowling all day. The other side is always the fitted captain; there are no Easy or Average Test captains.
+    bowling all day. The other side is the fitted captain, or a weaker one (Average, Easy).
   - **Ball by ball with aggression bars (League Season and Career, Cricket Captain style):** set each batter's
     aggression and each bowler's plan on 9 bars and play a ball, an over, to the next wicket or to the end of the
     innings (only the striker's bars show; a chip opens the non-striker's, and a toast says when the strike
@@ -404,20 +405,42 @@ won; each league Test is at the first-named side's home; a drawn knockout goes t
 innings, else to the higher-placed side), in a **Fantasy draft** (squads of 15 from the Test players of the
 years you choose, then a league of Tests) and in an **Auction** from a range of years. The **World Test
 Championship** mode plays a cycle: every side plays six series, three at home and three away (fewer with under
-seven sides), of 1, 2, 3 or 5 Tests, and the top two meet in a final at Lord's. A league season, the Mushtaq Ali
-Trophy and the careers are T20 competitions: there the chips do not offer Test.
+seven sides), of 1, 2, 3 or 5 Tests, and the top two meet in a final at Lord's. A league season and the Mushtaq
+Ali Trophy are T20 competitions: there the chips do not offer Test.
+
+**A Test career.** Under Career choose **Test cricket (the Test nations)**, a starting year from 2005 and your
+nation. Each season every nation plays every other (home and away, or once), the table is the Championship's
+and the top two play a final. Players age on curves fitted from real Test careers, retire at the real rate for
+their age, and are followed by the players who really made their debuts (made-up players once the real years run
+out). There is no auction. Starting one takes about 20 seconds. Retirement goes by age alone, so a great player
+can retire as early as an ordinary one.
+
+**Length of a Test, day-night Tests.** A Match / Series, a Classic Series and a two-player room can set a Test
+to three, four, five or six days, or timeless (played to a finish, nobody declares; left drawn if it is still
+going after ten days), and can make it a day-night Test: with the pink ball wickets fall about a fifth faster
+and the scoring rate is unchanged, as in the 25 day-night Tests played to 2025. On the last day the captains
+shake hands in the last hour (15 overs) when no result is possible.
+
+**Injuries.** A batter retires hurt about once in 20 Tests and a fielder goes off for good about once in 25, the
+rates in the real scorecards. Most take no further part: the side bats a man short, or, from 2019 and when it has
+a squad to choose from, a like-for-like replacement comes in (three times in four, as in real Tests).
+
+**Earlier eras.** A Test of a year before 2001 uses that decade's scoring and its length of day: the 1950s
+bowled about 113 six-ball overs a day, the 1980s 87. Sides of each decade from the 1900s to the 1990s score
+within 3% of that decade's real runs per wicket and run rate in 9 of 10 decades, and draw about as often as
+those Tests really did (1950s: 31% real, 33% simulated).
 
 **Opponent captains in a Test.** Expert / Average / Easy apply to Tests too. A weaker captain sometimes gives
 the over to the wrong bowler and misjudges a declaration or the follow-on. Measured over 1,500 Tests between
-two identical sides, the expert captain's share (wins plus half the draws) was 53% against Average and 58%
-against Easy.
+two identical sides, for three different sides, the expert captain's share (wins plus half the draws) was 50
+to 54% against Average and 58 to 64% against Easy.
 
 **Two players:** host a room with Format set to Test. Each person picks a Test side (a saved team or a nation
 from any era), the host chooses one Test or a series of 2, 3 or 5 and where it is played (neutral grounds, the
 host player's country or the guest's). Every Test of a series is played, unless the host sets the series to
 stop once it is decided. Each person makes their own side's calls; both
-choose their XI at the same time, and both see the result at the same time. There is no draft or auction for
-Tests.
+choose their XI at the same time, and both see the result at the same time. The host can also choose a draft
+or an auction of Test players, the length of a Test and day or day-night Tests.
 
 **Default Test teams:** nine "… Test 2025" squads come with the program. If your saved-teams file was made
 before they existed, they are added to it the next time the teams are loaded (once: one you delete stays
@@ -608,6 +631,9 @@ python tests/test_test_records.py      # Test records; win / draw / loss chances
 python tests/test_test_control.py      # captaining a Test: each decision, the bars, the pace, the report, the server
 python tests/test_test_two_players.py  # two people captain a Test, a Test room on the server, default Test teams, error messages
 python tests/test_test_tournament.py   # Test tournaments, the World Test Championship, weaker Test captains, Test drafts and auctions
+python tests/test_test_eras.py         # era factors, Test matchups, the computer's new ball, the learned Test XI
+python tests/test_test_career.py       # the Test career and its server routes
+python tests/test_test_conditions.py   # length of a Test, timeless and day-night Tests, the last hour, injuries
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through

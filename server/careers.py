@@ -1,5 +1,5 @@
 """Career: the routes of the career modes (a league career, engine/career.py; a state career,
-engine/state_career.py). Where careers are kept is in core.py."""
+engine/state_career.py; a Test career, engine/test_career.py). Where careers are kept is in core.py."""
 from __future__ import annotations
 
 from .runs import *  # noqa: F401,F403
@@ -28,7 +28,10 @@ def api_career_new():
         seed = int(d["seed"]) if str(d.get("seed") or "").strip() else None
         name = " ".join(str(d.get("name") or "").split())[:80] or None
         know = d.get("knowledge") or "realistic"  # what the person sees of the players (engine/career.py)
-        if d.get("league") == "sma":             # a state career (engine/state_career.py): Elite and Plate, no auction
+        if d.get("league") == "test":            # a Test career (engine/test_career.py): nations, no auction
+            c = TestCareer(d.get("season") or "", nations=d.get("nations") or None, user=d.get("user") or None,
+                           rounds=int(d.get("rounds") or 2), seed=seed, name=name)
+        elif d.get("league") == "sma":           # a state career (engine/state_career.py): Elite and Plate, no auction
             c = StateCareer(d.get("season") or "", user=d.get("user") or None, seed=seed, name=name, knowledge=know,
                             ipl=bool(d.get("ipl")))
         else:

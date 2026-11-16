@@ -292,6 +292,10 @@ replays is a few minutes on several processes. Timed the usual way (old v new in
 Phases 0-3 have no UI. Each phase ends with the golden test passing and `docs/engine_progress.md` updated.
 
 ### Deferred
+(Since built, see docs/test_design.md: the Championship, Test careers, two-player Tests, learned XI selection,
+weaker captains, era playing hours, timeless and three- to six-day Tests, day-night Tests, the last hour,
+injuries and replacements. Still open: 8-ball overs, uncovered pitches, making up lost time, fielding quality,
+women's Tests, domestic first-class cricket.)
 World Test Championship and careers; two-player Tests; learned XI selection for Tests; weaker computer captains
 for Test-only calls; era-specific playing hours, 8-ball overs, timeless and 6-day Tests, uncovered pitches;
 day-night Tests; making up lost time, last-hour rules; injuries and substitutes; fielding quality; women's

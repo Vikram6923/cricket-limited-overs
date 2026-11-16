@@ -40,7 +40,8 @@ function payload() {
   const base = {mode: MODE, fmt: $('c-fmt').value, comp: $('c-comp').value, year: +$('c-year').value,
     venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
     rain: $('c-rain').checked};
-  if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value, host: $('s-host').value};
+  if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value, host: $('s-host').value,
+    length: $('s-length').value, day_night: $('s-dn').checked};
   if (MODE === 'wtc') return {...base, fmt: 'test', teams: wtcTeams(), tests: +$('w-n').value, rain: false};
   if (MODE === 'league') return {mode: 'league', league: $('l-league').value, season: $('l-season').value, seed: $('l-seed').value.trim(), venues: [],
     rain: $('l-rain').checked, captain: $('l-captain').value, opponents: $('l-opp').value,
@@ -49,7 +50,8 @@ function payload() {
     venues: [], rain: $('dm-rain').checked, captain: $('dm-captain').value, opponents: $('dm-opp').value,
     manual: [...$('dm-manual').querySelectorAll('input:checked')].map(i => i.value)};
   if (MODE === 'classic') return {...base, mode: 'series', team1: $('cs-r1').firstChild.entry(),
-    team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, host: $('cs-host').value, squad_size: document.querySelector('.c-squad').value,
+    team2: $('cs-r2').firstChild.entry(), matches: +$('cs-n').value, host: $('cs-host').value,
+    length: $('cs-length').value, day_night: $('cs-dn').checked, squad_size: document.querySelector('.c-squad').value,
     years_mode: document.querySelector('.c-ymode').value};
   if (MODE === 'classic_t') return {...base, mode: 'tournament', squad_size: document.querySelector('.c-squad').value,
     years_mode: document.querySelector('.c-ymode').value,
@@ -128,7 +130,7 @@ async function poll() {
     showView('v-running');
     $('run-title').textContent = st.title || 'Simulating…';
     $('run-bar').style.width = (st.total ? Math.round(100 * st.done / st.total) : 0) + '%';
-    $('run-count').textContent = `${st.done} of ${st.total} ${/Test/.test(st.title || '') ? 'Tests' : 'matches'} · ${fmtTime(st.elapsed)} elapsed`;
+    $('run-count').textContent = `${st.done} of ${st.total} ${/Test/.test(st.title || '') || (CAR && CAR.kind === 'test' && /season/.test(st.title || '')) ? 'Tests' : 'matches'} · ${fmtTime(st.elapsed)} elapsed`;
     POLL_T = setTimeout(poll, 500);
   } else if (st.status === 'done') { $('last-btn').style.display = ''; showResults(); }
   else if (st.status === 'error') showError(st);
