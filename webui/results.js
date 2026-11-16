@@ -21,8 +21,8 @@ async function showResults(run) {
   const lead = R.kind === 'series' ? (R.winner || '') : R.winner;
   $('r-hero').setAttribute('style', lead ? tStyle(lead) : '');
   const single = R.fixtures.length === 1;
-  $('r-kick').textContent = `${fmt} · ${compName(R.format, R.competition)} conditions ${R.year}${R.best_of > 1 ? ` · best of ${R.best_of}` : ''}${single ? '' : ` · ${R.fixtures.length} ${tests ? 'Tests' : 'matches'}`}${tests && R.host ? ` · in ${R.host}` : ''}`;
-  $('r-title').innerHTML = R.kind === 'series' ? esc(dnText(R.result, RTEAMS)) : `${badge(R.winner)} ${esc(dn(R.winner))} win the tournament`;
+  $('r-kick').textContent = `${fmt} · ${compName(R.format, R.competition)} conditions ${R.year}${R.best_of > 1 ? (tests ? (R.fixtures.length < R.best_of ? ` · ${R.best_of}-Test series, stopped once decided` : '') : ` · best of ${R.best_of}`) : ''}${single ? '' : ` · ${R.fixtures.length} ${tests ? 'Tests' : 'matches'}`}${tests && R.host ? ` · in ${R.host}` : ''}`;
+  $('r-title').innerHTML = R.kind === 'series' ? esc(dnText(R.result, RTEAMS)) : `${badge(R.winner)} ${esc(dn(R.winner))} win the ${R.wtc ? 'World Test Championship' : 'tournament'}`;
   /* one match: the scoreboard below names the teams, so no "India v Australia" line (6.8) */
   $('r-sub').textContent = single ? '' : dnt(R.title || '');
   $('r-sub').style.display = single ? 'none' : '';
@@ -111,6 +111,8 @@ function renderSummary() {
     h += champBanner();
     for (const label of Object.keys(R.tables))
       h += `<div class="sec-h"><h2>${label === 'League' ? 'Points table' : 'Group ' + esc(label)}</h2></div><div class="tbl pts" data-table="${esc(label)}"></div>`;
+    if (R.format === 'test') h += `<div class="hint" style="margin:6px 0 0">12 points a win, 6 a tie, 4 a draw. PCT: the share of the points played for that were won. RpW: runs made a wicket over runs conceded a wicket (the tie-break).${R.knockouts.length ? ' A drawn knockout goes to the side ahead on first innings, else to the higher-placed side.' : ''}</div>`;
+    if (R.wtc) h += '<div class="sec-h"><h2>Series</h2></div><div class="tbl" id="wtc-series"></div>';
     for (const label of Object.keys(R.super_league || {}))
       h += `<div class="sec-h"><h2>${esc(label)}</h2></div><div class="tbl pts" data-table="${esc(label)}"></div>`;
     h += bracketHTML();
@@ -145,13 +147,21 @@ function renderSummary() {
         {k: 'pos', label: '#', num: true}, {k: 'team', label: 'Team', html: r => teamCell(r.team)}, {k: 'played', label: 'P', num: true},
         {k: 'won', label: 'W', num: true, html: r => `<span class="w">${r.won}</span>`},
         {k: 'lost', label: 'L', num: true, html: r => `<span class="l">${r.lost}</span>`},
-        {k: 'tied', label: 'T', num: true}, {k: 'nrr', label: 'NRR', num: true, f: r => (r.nrr >= 0 ? '+' : '') + r.nrr.toFixed(3)},
-        {k: 'points', label: 'Pts', num: true, html: r => `<b class="pts-n">${r.points}</b>`},
+        ...(R.format === 'test' ? [{k: 'drawn', label: 'D', num: true}, {k: 'tied', label: 'T', num: true},
+            {k: 'points', label: 'Pts', num: true, html: r => `<b class="pts-n">${r.points}</b>`},
+            {k: 'pct', label: 'PCT', num: true, f: r => r.pct.toFixed(1)}, {k: 'nrr', label: 'RpW', num: true, f: r => r.nrr.toFixed(3)}]
+          : [{k: 'tied', label: 'T', num: true}, {k: 'nrr', label: 'NRR', num: true, f: r => (r.nrr >= 0 ? '+' : '') + r.nrr.toFixed(3)},
+            {k: 'points', label: 'Pts', num: true, html: r => `<b class="pts-n">${r.points}</b>`}]),
         {k: 'form', label: 'Last 5', nosort: true, html: r => `<span class="formg">${formOf(r.team)}</span>`},
         {k: 'for', label: 'For', nosort: true}, {k: 'against', label: 'Against', nosort: true},
       ], rows, {rowClass: r => thru[label].has(r.team) ? 'q' : (r.team === R.relegated ? 'rel' : '')});
     }
   }
+  if (R.wtc && $('wtc-series')) table($('wtc-series'), [
+    {k: 'home', label: 'Home', html: r => teamCell(r.home)}, {k: 'away', label: 'Away', html: r => teamCell(r.away)},
+    {k: 'res', label: 'Result', nosort: true, html: r => { const [h, a] = r.score;
+      return esc(r.winner ? `${dn(r.winner)} won ${Math.max(h, a)}-${Math.min(h, a)}` : `Drawn ${h}-${a}`) + (r.draws ? ` <span class="muted small">(${r.draws} drawn)</span>` : ''); }},
+  ], R.wtc.series, {onRow: r => { CUR_MATCH = R.fixtures.findIndex(f => f.match_no === r.matches[0]); openTab('p-matches'); }});
   table($('res-table'), [
     {k: 'match_no', label: '#', num: true}, {k: 'stage', label: 'Stage'},
     {k: 'scores', label: 'Scores', nosort: true, html: r => r.scores.map(x => { const t = r.teams.find(t => x.startsWith(t + ' '));

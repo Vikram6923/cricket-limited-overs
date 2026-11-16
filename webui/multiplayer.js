@@ -177,10 +177,11 @@ function mpSeriesLine(sr, names, withMatch = true) {
   if (!sr || sr.of < 2) return '';
   const [a, b] = sr.wins, left = sr.of - sr.finished;
   const nm = i => esc(dn(names[i]));
-  if (sr.test) {                              // a Test series: every Test is played, and Tests can be drawn
-    const sc = left === 0 ? (a === b ? `series drawn ${a}-${b}` : `<b>${nm(a > b ? 0 : 1)}</b> win the series ${Math.max(a, b)}-${Math.min(a, b)}`)
+  if (sr.test) {                              // a Test series: every Test is played (unless the room stops once
+    const over = left === 0 || (sr.best_of && Math.abs(a - b) > left);        // it is decided); Tests can be drawn
+    const sc = over ? (a === b ? `series drawn ${a}-${b}` : `<b>${nm(a > b ? 0 : 1)}</b> win the series ${Math.max(a, b)}-${Math.min(a, b)}`)
       : a === b ? (a ? `level at ${a}-${b}` : 'series level') : `<b>${nm(a > b ? 0 : 1)}</b> lead ${Math.max(a, b)}-${Math.min(a, b)}`;
-    return [`${sr.of}-Test series`, withMatch && left ? `Test ${sr.match}` : '', sc].filter(Boolean).join(' · ');
+    return [`${sr.of}-Test series`, withMatch && !over ? `Test ${sr.match}` : '', sc].filter(Boolean).join(' · ');
   }
   const done = Math.abs(a - b) > left || left === 0;
   const score = done ? (a === b ? `series drawn ${a}-${b}` : `<b>${nm(a > b ? 0 : 1)}</b> win the series ${Math.max(a, b)}-${Math.min(a, b)}`)
@@ -244,7 +245,7 @@ function mpLobby(st) {
 }
 /* each player names a team (draft, auction from player-pool years) rather than picking one */
 const mpNamed = s => s.teams === 'draft' || (s.teams === 'auction' && s.a_pool !== 'season');
-const mpBuildKey = s => [s.fmt, s.teams || 'pick', s.a_pool, s.league, s.season].join('|');
+const mpBuildKey = s => [s.fmt, s.teams || 'pick', s.a_pool, s.league, s.season, (s.series || 1) > 1].join('|');
 const mpLeague = s => (META.leagues || []).find(l => l.id === s.league);
 function mpSeason(s) { const l = mpLeague(s); return l ? (l.seasons.find(x => x.season === s.season) || l.seasons[0]) : null; }
 
@@ -260,7 +261,7 @@ function mpPlayText(s) {
       : 'then ' + play + ' between the two of you';
     return `${what} · ${then}`;
   }
-  if (s.teams !== 'draft') return play;
+  if (s.teams !== 'draft') return play + (s.fmt === 'test' && s.best_of && (s.series || 1) > 1 ? ', stops once it is decided' : '');
   const k = 2 + (s.cpu || 0);
   return `draft squads from ${s.y1}–${s.y2} players · ` + (s.cpu ? `${s.cpu} computer teams draft too, then a ${k}-team league + ${k <= 4 ? 'final' : 'semi-finals'}` : play);
 }
@@ -273,6 +274,7 @@ function mpHostHTML(s) {
       <div class="fg" ${test ? 'style="display:none"' : ''}><label>Teams</label><select id="mh-teams"><option value="pick">Each player picks a team</option>${test ? '' : '<option value="draft">Draft squads</option><option value="auction">Auction</option>'}</select></div>
       <div class="fg" id="mh-play-box"><label>Play</label><select id="mh-series">${mpSeriesOpts(s).map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
       ${test ? `<div class="fg"><label>Played in</label><select id="mh-host">${MP_HOST_OPTS.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>` : ''}
+      ${test && (s.series || 1) > 1 ? '<div class="fg"><label>The series</label><select id="mh-bestof"><option value="">Every Test is played</option><option value="1">Stops once it is decided</option></select></div>' : ''}
     </div>
     ${test ? '<div class="hint" style="margin:0">The home side bats a little better than its ratings, as real home sides do; the country\'s grounds and weather are used.</div>' : ''}
     <div id="mh-auction" style="display:none">
@@ -302,7 +304,7 @@ function mpSyncHost(s) {
   if (!$('mh-teams')) return;
   const set = (id, v) => { const el = $(id); if (el && document.activeElement !== el && el.value !== String(v)) el.value = String(v); };
   set('mh-teams', s.teams || 'pick'); set('mh-series', s.series || 1); set('mh-y1', s.y1); set('mh-y2', s.y2);
-  set('mh-cpu', s.cpu || 0); set('mh-src', s.source || 'full'); set('mh-host', s.host || 'neutral');
+  set('mh-cpu', s.cpu || 0); set('mh-src', s.source || 'full'); set('mh-host', s.host || 'neutral'); set('mh-bestof', s.best_of ? '1' : '');
   const draft = (s.teams || 'pick') === 'draft', auction = s.teams === 'auction', season = auction && s.a_pool === 'season';
   set('mh-apool', s.a_pool || 'season'); set('mh-after', s.after || 'league'); set('mh-league', s.league || 'ipl');
   const l = mpLeague(s), seasons = l ? l.seasons.map(x => x.season) : [];
@@ -359,6 +361,7 @@ function mpBuildMine(st, seat) {
     $('mh-retain').onchange = () => send({retain: $('mh-retain').checked});
     $('mh-series').onchange = () => send({series: $('mh-series').value});
     if ($('mh-host')) $('mh-host').onchange = () => send({host: $('mh-host').value});
+    if ($('mh-bestof')) $('mh-bestof').onchange = () => send({best_of: !!$('mh-bestof').value});
     $('mh-cpu').onchange = () => send({cpu: $('mh-cpu').value});
     $('mh-src').onchange = () => send({source: $('mh-src').value});
     $('mh-y1').onchange = $('mh-y2').onchange = () => send({y1: $('mh-y1').value, y2: $('mh-y2').value});
@@ -568,10 +571,10 @@ function mpPlaying(st) {
     $('cap-opp').textContent = ''; $('cap-clock').textContent = '';
     capShowState(st.latest, null);
     capWait('Watching: the score updates at each decision');
-    document.querySelector('#v-captain .cap-ctl').style.display = 'none';
+    $('cap-more').style.display = 'none';   // by id: the More sheet takes the panel out of this view
     return;
   }
-  document.querySelector('#v-captain .cap-ctl').style.display = '';
+  $('cap-more').style.display = '';
   const me = st.me, opp = st.opp;
   MP.team = me.team;
   CAP.impact = st.settings.comp === 'ipl' && st.settings.year >= 2023;

@@ -64,7 +64,7 @@
       <div class="fg"><label>How many <span class="match-word-l">matches</span>?</label><select id="mp-series"><option value="1">1 match</option>
         <option value="3" selected>Best of 3</option><option value="5">Best of 5</option></select>
         <div class="hint full-only lo-only" style="margin:4px 0 0">A series stops as soon as it is decided. You can change it in the room.</div>
-        <div class="hint test-only" style="margin:4px 0 0">A Test each with your own team. Every Test of a series is played.</div></div>
+        <div class="hint test-only" style="margin:4px 0 0">A Test each with your own team. Every Test of a series is played, unless you choose in the room to stop once it is decided.</div></div>
     </div>
     <div class="mp-pane" id="mp-join-pane">
       <button class="lnk mp-back" data-mp-pane="">&lsaquo; Back</button>
@@ -94,6 +94,14 @@
     <div class="fg"><label>Knockouts</label><select id="t-ko"></select></div>
     </details>
     <div class="total" id="t-total"></div>
+  </div>
+
+  <!-- World Test Championship -->
+  <div class="form" id="f-wtc">
+    <p class="hint">Every side plays six series, three at home and three away (fewer with under seven sides), for 12 points a win, 4 a draw and 6 a tie. The two sides with the highest share of their points meet in the final at Lord's.</p>
+    <div class="fg"><label>Teams</label><div class="checklist" id="w-list"></div></div>
+    <div class="fg"><label>Tests in each series</label><input type="number" id="w-n" min="1" max="5" value="2" data-chips="1,2,3,5"></div>
+    <div class="total" id="w-total"></div>
   </div>
 
   <!-- Classic series -->
@@ -164,7 +172,8 @@
         <option value="expert">Expert - the engine's best calls (as before)</option>
         <option value="average">Average - a loose call now and then</option>
         <option value="easy">Easy - loose calls often, sometimes bad ones</option></select>
-        <div class="hint full-only" style="margin:4px 0 0">Applies to every computer-captained side. Measured over 900 IPL games: an expert side wins 51% against Expert, 56% against Average, 66% against Easy.</div></div></div>
+        <div class="hint full-only lo-only" style="margin:4px 0 0">Applies to every computer-captained side. Measured over 900 IPL games: an expert side wins 51% against Expert, 56% against Average, 66% against Easy.</div>
+        <div class="hint full-only test-only" style="margin:4px 0 0">Expert declares, enforces the follow-on and changes the bowling as real captains do. A weaker captain sometimes gives the over to the wrong bowler and misjudges a declaration or the follow-on. Measured over 1,500 Tests between two identical sides: the expert captain's share (wins plus half the draws) is 53% against Average and 58% against Easy.</div></div></div>
     <div class="fg"><label>Teams</label><div class="roster" id="l-teams"></div></div>
     <div class="fg"><label>Replay code (optional)</label><input type="text" id="l-seed" placeholder="random"></div>
     <div class="fg"><label><input type="checkbox" id="l-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint full-only" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (the league's home country).</div></div>
@@ -340,7 +349,7 @@
   <div class="box" id="cond">
     <div class="fg" id="c-fmt-box"><label>Format</label><select id="c-fmt"><option value="t20">T20</option><option value="odi">ODI</option><option value="test">Test</option></select>
       <div class="hint test-only" style="margin:4px 0 0">Five days, two innings a side: declarations, the follow-on, the new ball. You can captain a side.</div>
-      <div class="hint" id="c-fmt-note" style="margin:4px 0 0;display:none">Tests are played as a Match or series, a Classic series or a Two players game.</div></div>
+      <div class="hint" id="c-fmt-note" style="margin:4px 0 0;display:none"></div></div>
     <div id="cap-anchor"></div><div class="fg" id="g-cap-box"><label>You captain</label><select id="g-captain"></select>
       <div class="hint full-only" style="margin:4px 0 0">You make that side's decisions in its matches; every screen shows what the computer would do.</div></div>
     <details class="more" id="more-cond"><summary>More options</summary>
@@ -362,8 +371,7 @@
         <label class="test-only" title="Only asked when Next batter is left to the computer"><input type="checkbox" value="nightwatchman" checked> Nightwatchman</label>
       </div>
       <div class="hint" style="margin:4px 0 0">Unticked: the computer decides.</div>
-      <div class="hint test-only" style="margin:4px 0 0">The other side's captain declares, enforces the follow-on and changes the bowling as real captains do.</div>
-      <div class="fg lo-only" style="margin-top:8px"><label>Opponent captains</label><select id="g-opp">
+      <div class="fg" style="margin-top:8px"><label>Opponent captains</label><select id="g-opp">
         <option value="expert">Expert - the engine's best calls (as before)</option>
         <option value="average">Average - a loose call now and then</option>
         <option value="easy">Easy - loose calls often, sometimes bad ones</option></select>

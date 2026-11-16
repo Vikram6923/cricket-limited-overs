@@ -19,7 +19,7 @@ function testBugHTML(q) {
       <div class="tm r">${badge(b, 'md')}<div><div class="lbl">${b === q.team ? 'You' : 'Opponent'}</div><div class="nm">${esc(dn(b))}</div></div></div></div>`;
   }
   const bat = s.batting, bowl = bat === a ? b : a, w = s.wdl;
-  const time = `Day <b>${s.day}</b>, ${SESSION_NAME[s.session - 1]} · <b>${s.left_today}</b> ov left today`;
+  const time = `Day <b>${s.day}</b><span class="ses">, ${SESSION_NAME[s.session - 1]}</span> · <b>${s.left_today}</b> ov left today`;
   const where = s.target ? (s.need > 0 ? `Need <b>${s.need}</b> · ${s.left} overs left in the match` : `<b>${esc(tcol(bat).short)}</b> have won`)
     : s.margin ? esc(s.margin.charAt(0).toUpperCase() + s.margin.slice(1)) : '1st innings';
   const right = q.kind === 'result' && q.result ? esc(dnText(q.result, [a, b]))

@@ -192,6 +192,21 @@ def test_an_error_is_a_sentence_with_the_traceback_apart():
     assert d["error"] is None and d["detail"] is None
 
 
+def test_a_skip_ends_with_its_match():
+    """Sim to the end of a match is over once that match's result has been seen: the next match of a series is
+    the person's again, and the room no longer reports a skip."""
+    c = WaitingController("India", {"ball", "result"})
+    c.post({"kind": "ball", "match_key": "m1", "innings": 1})
+    assert c.answer(c.pending["id"], skip="match") and c.skip["scope"] == "match"
+    assert not c.manual("ball", "m1", 2) and c.manual("ball", "m2", 1)
+    c.post({"kind": "result", "match_key": "m1", "innings": 4})
+    assert c.answer(c.pending["id"]) and c.skip is None
+    c.post({"kind": "result", "match_key": "m2", "innings": 4})          # "the rest of the season" stays
+    assert c.answer(c.pending["id"], skip="all") and c.skip["scope"] == "all"
+    c.post({"kind": "result", "match_key": "m3", "innings": 4})
+    assert c.answer(c.pending["id"]) and c.skip["scope"] == "all"
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in tests:

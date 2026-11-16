@@ -58,8 +58,8 @@ def api_auction_start():
             pool = season_pool(d["league"], d["season"], d.get("knowledge") or "realistic")
         else:
             fmt = d.get("fmt")
-            if fmt not in LIMITED:
-                return jsonify(error=NOT_FOR_TESTS if fmt == "test" else "Choose T20 or ODI."), 400
+            if fmt not in FMTS:
+                return jsonify(error="Choose T20, ODI or Test."), 400
             y1, y2 = int(d.get("y1")), int(d.get("y2"))
             lo, hi = history.first_year(fmt), history.last_year(fmt)
             if y1 > y2 or y1 < lo or y2 > hi:

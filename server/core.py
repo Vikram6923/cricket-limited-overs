@@ -44,6 +44,7 @@ from engine.data import ratings
 from engine.render import full_text, match_report
 from engine.tournament import match_count, play_series, play_tournament, save
 from engine.test_series import SIZES as TEST_SIZES, nation_of, play_test_series
+from engine.test_tournament import WTC_TESTS, play_wtc, wtc_match_count
 
 ROOT = Path(__file__).resolve().parent.parent
 UI = ROOT / "webui"
@@ -69,13 +70,14 @@ def league_season(league: str | None, season: str | None) -> dict | None:
     s = next((x for x in lg["seasons"] if x["season"] == season), None) if season else lg["seasons"][0]
     return {**s, "label": lg["label"]} if s else None
 
-# The formats, in one place. Tests are played as a Match / Series or a Classic Series; every other mode (league
-# and domestic seasons, tournament, draft, auction, two players, careers) is limited overs only.
+# The formats, in one place. A league season, a domestic cup and a career are real T20 competitions; a two-player
+# draft or auction is limited overs only. Everything else can be a Test.
 LIMITED = ("t20", "odi")
 FMTS = LIMITED + ("test",)
 FMT_NAME = history.FMT_NAME
-NOT_FOR_TESTS = ("Tests can be played as a Match / Series, a Classic Series or a Two players game; "
-                 "this mode is for T20 and ODI.")
+TEST_MODES = ("series", "tournament", "draft", "auction", "wtc")       # the run modes a Test can be played in
+NOT_FOR_TESTS = ("Tests can be played as a Match / Series, a Tournament, the World Test Championship, a draft "
+                 "or auction league, or a Two players game with a team each; this mode is for T20 and ODI.")
 
 COMP_LABELS = {
     "t20i_full": "T20 internationals (full members)", "t20i": "T20 internationals (all teams)",

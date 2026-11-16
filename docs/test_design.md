@@ -815,3 +815,104 @@ format Test left the two T20 squads in place, and the run stopped inside the eng
 
 - Phone width for the new Format chips and the Test room.
 - A two-player Test played to its end in the browser (the server test plays one to the end).
+
+# Tests in more modes: tournaments, the World Test Championship, drafts, auctions, weaker captains (2026-11-16)
+
+## What was missing
+
+A Test could be a match, a series or a two-player game. A tournament, a draft and an auction refused the format,
+there was no World Test Championship, computer captains in a Test were always the fitted one, and a two-player
+Test series always played every Test.
+
+## What was built
+
+- **Test tournaments** (`engine/test_tournament.py`). `play_tournament(..., fmt="test")` builds a `TestRunner`
+  there (the one dispatch, as `simulate_match` sends a Test to `engine/test_match.py`); `_Runner` gained three
+  small methods (`table`, `stats`, `summary`) that the Test runner replaces. A league Test is at the first-named
+  side's home (its country's grounds in rotation, its weather, the home edge). The table gives 12 points a win,
+  6 a tie and 4 a draw and is ordered by the share of points won, then wins, then the runs-per-wicket ratio
+  (stored as `nrr`, so the code that seeds knockouts is unchanged).
+- **A drawn knockout** goes to the side ahead on first innings when both first innings were finished, else to
+  the higher-placed side. The card keeps `type: "draw"` and gains `winner`, `loser` and `by`.
+- **The World Test Championship** (`play_wtc`): the sides stand in a ring drawn from the seed; each is at home
+  to the next three and away to the three before (fewer with under seven sides, so that nobody meets twice).
+  Series of 1, 2, 3 or 5 Tests; the top two meet in a final at Lord's. The result has a tournament's shape plus
+  `wtc` (the series). A 9-side, 2-Test cycle is 55 Tests.
+- **Weaker Test captains** (`engine/test_captain.py` `Loose`). With the level's chance a bowling change is
+  drawn from the fitted weights flattened; once an innings, with the same chance, the captain misreads a
+  declaration or the follow-on by a draw from a normal distribution on the fitted model's scale. He draws from
+  his own stream, so a Test with expert captains is the same as before (tested). `simulate_match(..., skill=)`,
+  `play_test_series(..., skill=)`; the pages' Opponent captains setting now applies to Tests.
+- **Test drafts and auctions** (`engine/test_value.py`). A Test player's batting value is his expected average
+  above the era's, times the innings a player has in a Test; his bowling value is the balls he bowls a match
+  times what he saves a ball. The draft's pool takes Tests from `engine/history.py`'s years. A player whose
+  bowling comes from before ball-by-ball coverage has his overs per match from those Tests (it was divided by
+  the wrong match count).
+- **A two-player Test series can stop once it is decided** (`best_of` in `play_test_series`, a room setting).
+  The default is still every Test.
+- **Server and pages.** `/api/run` takes Tests for the modes series, tournament, draft, auction and wtc; a
+  league season, a domestic cup and a career stay T20. A new World Test Championship mode; the Test table (D,
+  PCT, RpW) and the Championship's series list on the results page.
+
+## Measurements
+
+**Weaker captains.** 1,500 Tests for each level between two identical sides (India 2025 v itself), the weaker
+captain alternating sides. Share = wins plus half the draws.
+
+| Run | Levels (chance of a loose call; slip) | Weaker side W / D / L | Weaker side's share |
+|---|---|---|---|
+| 1 | average 0.15; 1.5 | 571 / 353 / 576 | 49.8% |
+| 1 | easy 0.60; 2.5 | 490 / 389 / 621 | 45.6% |
+| 2 | average 0.35; 2.0 | 510 / 380 / 610 | 46.7% |
+| 2 | easy 0.80; 3.0 | 439 / 366 / 695 | 41.5% |
+
+Run 1 used the limited-overs levels and could not tell Average from Expert, so the levels were raised once and
+measured again (run 2). They are not tuned further. This was a second run for one feature: a departure from
+"one calibration run", recorded here.
+
+**The auction's bowlers.** A specialist bowler's batting was first valued against the average player's, so a
+great bowler who cannot bat was a late lot: of the 1990-2000 pool, McGrath was the 68th lot and 23 of the 120
+lots were bowlers. Now a specialist bowler with useful bowling is valued against the average specialist
+bowler's batting (0.59 of an average player's, read from the ratings, weighted by balls bowled). The same pool
+has 46 bowlers; Muralitharan is the 4th lot, Ambrose the 11th and McGrath the 16th. One change, checked once.
+
+## Constants that are not fitted
+
+- `LEVELS` and `SLIP` (weaker captains): the data has no label for a poor captain. Set by the measurement above.
+- `POINTS` 12 / 6 / 4 and three series at home and away: the World Test Championship's own rules.
+- `INNINGS` 1.5 in `engine/test_value.py`: a side loses about 16 wickets a Test, so a player is out about one
+  and a half times.
+- The final at Lord's.
+
+## Differences from the plan, and decisions the plan did not cover
+
+- The plan listed the World Test Championship and weaker captains as later work; they are built here.
+- A drawn knockout has a winner (first-innings lead, else the higher-placed side). The real Championship shares
+  the title after a drawn final.
+- Careers, league seasons and the domestic cup do not take Tests: they are real T20 competitions.
+- A two-player draft or auction is still limited overs only.
+- `engine/control.py`: a "sim to the end of the match" (or innings) is cleared when that match's result is
+  acknowledged. It never applied to the next match; the room went on reporting it, so the page said "Skipping
+  to the end" while the next Test's toss was being called. Limited-overs rooms get the same correction.
+
+## Checks
+
+- `tests/test_test_tournament.py` (7 tests): a Test tournament's table against its scorecards; a drawn final
+  has a winner and says why; the Championship's schedule (nobody meets twice, three at home, three away), its
+  series and final; a series that stops once decided; expert captains unchanged and a weaker captain
+  reproduced by his seed; the draft and auction pools; the Championship and a Test tournament through the server.
+- `tests/test_test_two_players.py` gained the skip test; `tests/test_test_series.py` no longer expects a
+  tournament, a draft, an auction or a best-of to refuse Tests.
+- All 22 test scripts and the golden test pass.
+- Browser at phone width (375 px), two tabs as two players: a 2-Test room set to stop once decided, played to
+  the series result (toss, both XIs, bars, the bowler and next-batter sheets by hand for about 110 overs, then
+  Sim to end of match on both sides). No page errors. Found and fixed there: the "YOU" tag ran into the day
+  line on the Test score bar; "Next match" now reads "Next Test"; a series that plays every Test no longer
+  offers "See the series results" early; the captaincy table's headings made the results page scroll sideways.
+
+## Not verified
+
+- The follow-on, new-ball and nightwatchman sheets were not clicked in a two-player game.
+- The weaker-captain measurement used one pair of sides.
+- The Championship, the Test draft and the Test auction screens were checked in the browser by the session
+  that built them, not again after the later fixes; the tests cover their server paths.

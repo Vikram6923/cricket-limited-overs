@@ -177,8 +177,13 @@ def first_cap() -> dict:
 
 
 def _lot(pid: str, p, fmt: str, base: dict, team: str, overseas: bool, capped: bool) -> Lot:
-    bat, bowl = value_parts(p, fmt, base)
-    bowler = bowler_mask([p], fmt)[0]
+    if FORMATS[fmt]["overs"] is None:          # a Test player: his own values (engine/test_value.py)
+        from . import test_value
+        bat, bowl = test_value.value_parts(p, base)
+        bowler = test_value.is_bowler(p)
+    else:
+        bat, bowl = value_parts(p, fmt, base)
+        bowler = bowler_mask([p], fmt)[0]
     if p.keeper:
         role = "WK"
     elif bowler and bat > 0 and bowl > 0:
@@ -187,6 +192,8 @@ def _lot(pid: str, p, fmt: str, base: dict, team: str, overseas: bool, capped: b
         role = "Spin" if p.bowl_type == "spin" else "Pace"
     else:
         role = "Batter"
+    if bowler and bowl > 0 and FORMATS[fmt]["overs"] is None:   # he takes a bowler's place: his batting against a bowler's
+        bat += test_value.bowler_place(base)
     p.overseas = overseas
     return Lot(pid, p.name, team, role, bat + bowl, bat, bowl, p.keeper, bowler, overseas, capped, p, ref=dict(p.ref))
 

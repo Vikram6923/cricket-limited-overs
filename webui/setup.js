@@ -12,6 +12,7 @@ function setMode(m, show = true) {
   if (m === 'mp') mpPane('');
   if (m === 'auction') aRefresh();
   testModeGuard();
+  if (m === 'wtc' && $('c-fmt').value !== 'test') { $('c-fmt').value = 'test'; $('c-fmt').dispatchEvent(new Event('change')); }
   capHome();
   capOptions();
   autoConds();
@@ -63,6 +64,7 @@ const teamFmt = n => / Test \d{4}$/.test(n) ? 'test' : / ODI \d{4}$/.test(n) ? '
 function condTeams() {
   if (MODE === 'series') return [$('s-t1').value, $('s-t2').value];
   if (MODE === 'tournament') return [...document.querySelectorAll('#t-list input:checked')].map(i => i.value);
+  if (MODE === 'wtc') return wtcTeams();
   return [];
 }
 function condYears() {
@@ -79,8 +81,8 @@ function autoConds() {
     if (!COND.user) { $('c-comp').value = i.id; $('c-year').value = i.last; checkYear(); }
     COND.auto = false; condLine(); return;
   }
-  if (!META || !['series', 'tournament', 'classic', 'classic_t', 'draft', 'auction'].includes(MODE)) { COND.auto = false; condLine(); return; }
-  const tt = condTeams(), fmts = [...new Set(tt.map(teamFmt).filter(Boolean))];
+  if (!META || !['series', 'tournament', 'wtc', 'classic', 'classic_t', 'draft', 'auction'].includes(MODE)) { COND.auto = false; condLine(); return; }
+  const tt = condTeams(), fmts = MODE === 'wtc' ? [] : [...new Set(tt.map(teamFmt).filter(Boolean))];
   if (!COND.fmt && fmts.length === 1 && fmts[0] !== $('c-fmt').value && (fmts[0] !== 'test' || TEST_MODES.includes(MODE))) { $('c-fmt').value = fmts[0]; $('c-fmt').dispatchEvent(new Event('change')); return; }
   if (COND.user) { COND.auto = false; condLine(); return; }
   const fmt = $('c-fmt').value, comps = META.formats[fmt].competitions;
@@ -155,12 +157,25 @@ function fillTeams() {
     taken.push(pick); $('s-t' + (i + 1)).value = pick;
   });
   showRoster('s-t1', 's-r1'); showRoster('s-t2', 's-r2');
-  const checked = new Set([...document.querySelectorAll('#t-list input:checked')].map(i => i.value));
+  // a tournament: a ticked nation's side of another format becomes its side for this one (or is unticked)
+  const checked = new Set([...document.querySelectorAll('#t-list input:checked')].map(i => i.value)
+    .map(n => !isNationPreset(n) || !teamFmt(n) || teamFmt(n) === fmt ? n : names.find(x => pre(x) && teamKey(x) === teamKey(n))).filter(Boolean));
   const first = !$('t-list').children.length;
   $('t-list').innerHTML = META.teams.map(t =>
     `<label data-name="${esc(t.name.toLowerCase())}"><input type="checkbox" value="${esc(t.name)}" ${checked.has(t.name) || (first && / T20 2024$/.test(t.name)) ? 'checked' : ''}> ${esc(pickName(t.name, names))} <span class="muted small full-only">(${t.players.length})</span></label>`).join('');
-  $('t-list').querySelectorAll('input').forEach(i => i.onchange = updateTournamentTotal);
-  updateTournamentTotal(); drawSavedTeams();
+  $('t-list').querySelectorAll('input').forEach(i => i.onchange = () => { updateTournamentTotal(); autoConds(); capOptions(); });
+  // the World Test Championship: the sides that can play a Test, the nations' Test sides ticked
+  const wAll = teamsFor('test'), wOn = new Set(wtcTeams()), wFirst = !$('w-list').children.length;
+  $('w-list').innerHTML = wAll.map(n =>
+    `<label><input type="checkbox" value="${esc(n)}" ${wOn.has(n) || (wFirst && teamFmt(n) === 'test') ? 'checked' : ''}> ${esc(pickName(n, wAll))}</label>`).join('');
+  $('w-list').querySelectorAll('input').forEach(i => i.onchange = () => { updateWtcTotal(); autoConds(); capOptions(); });
+  updateTournamentTotal(); updateWtcTotal(); drawSavedTeams();
+}
+const wtcTeams = () => [...document.querySelectorAll('#w-list input:checked')].map(i => i.value);
+function updateWtcTotal() {
+  const k = wtcTeams().length, each = Math.min(3, Math.floor((k - 1) / 2)), n = +$('w-n').value || 2;
+  $('w-total').textContent = k < 3 ? `${k} selected: pick at least 3`
+    : `${k} teams · ${2 * each} series each · ${k * each * n + 1} Tests`;
 }
 function showRoster(selId, outId) {
   const t = META.teams.find(t => t.name === $(selId).value);
@@ -178,7 +193,7 @@ function matchCount(k, rounds, groups, ko) {
 function updateTournamentTotal() {
   const k = document.querySelectorAll('#t-list input:checked').length;
   const n = matchCount(k, +$('t-rounds').value, +$('t-groups').value, $('t-ko').value);
-  $('t-total').textContent = k < 2 ? `${k} selected — pick at least 2` : `${k} teams · ${n} matches`;
+  $('t-total').textContent = k < 2 ? `${k} selected: pick at least 2` : `${k} teams · ${n} ${$('c-fmt').value === 'test' ? 'Tests' : 'matches'}`;
 }
 
 /* classic (historical) teams: rows of from / to / nation */
@@ -230,7 +245,7 @@ function refreshClassic() { document.querySelectorAll('#f-classic .hl-row, #f-cl
 function updateClassicTotal() {
   const k = $('ct-rows').children.length;
   const n = matchCount(k, +$('ct-rounds').value, +$('ct-groups').value, $('ct-ko').value);
-  $('ct-total').textContent = k < 2 ? 'Add at least 2 teams' : `${k} teams · ${n} matches`;
+  $('ct-total').textContent = k < 2 ? 'Add at least 2 teams' : `${k} teams · ${n} ${$('c-fmt').value === 'test' ? 'Tests' : 'matches'}`;
 }
 
 /* ───────────────────────── league season ───────────────────────── */

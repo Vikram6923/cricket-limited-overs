@@ -215,17 +215,6 @@ def test_classic_test_sides():
         assert len(c["xi"]["West Indies 1980-85"]) == 11
 
 
-def test_tournaments_and_best_of_refuse_tests():
-    ind, aus = _sides()
-    for call in (lambda: play_tournament([ind, aus], fmt="test"),
-                 lambda: play_series(ind, aus, n=3, fmt="test", best_of=True)):       # captaining: test_test_control.py
-        try:
-            call()
-            raise AssertionError("accepted")
-        except ValueError as e:
-            assert "Test" in str(e)
-
-
 def _wait(cl, timeout=120) -> dict:
     t = time.time()
     while time.time() - t < timeout:
@@ -254,8 +243,7 @@ def test_server_plays_a_test_series():
     base = {"fmt": "test", "comp": "test_full", "year": 2025, "venues": [], "seed": "7", "rain": True}
     two = {"team1": "India Test 2025", "team2": "Australia Test 2025"}
     # what a Test run may not be
-    for extra, words in (({"mode": "tournament", "teams": list(two.values())}, "Match / Series"),
-                         ({"mode": "draft"}, "Match / Series"), ({"mode": "auction"}, "Match / Series"),
+    for extra, words in (({"mode": "nonsense"}, "Match / Series"),
                          ({"mode": "series", **two, "matches": 7}, "1 to 6"),
                          ({"mode": "series", **two, "matches": 3, "host": "moon"}, "home, away or"),
                          ({"mode": "series", **two, "matches": 1, "captain_i": "5"}, "Choose a team from this run")):

@@ -99,8 +99,9 @@ def _mp_series(job, open_: list) -> dict:
     res_q = next((q for q in open_ if q and q.get("kind") == "result"), None)
     if res_q and res_q.get("context", {}).get("match_no") == len(winners) + 1:
         winners.append(res_q.get("winner"))
+    st = job.room["settings"]
     return {"of": job.total, "wins": [winners.count(n) for n in names], "match": len(job.winners) + 1,
-            "finished": len(winners), "test": job.room["settings"].get("fmt") == "test"}
+            "finished": len(winners), "test": st.get("fmt") == "test", "best_of": bool(st.get("best_of"))}
 
 
 def _mp_urls(r: dict) -> list[str]:
@@ -138,7 +139,8 @@ def _mp_start(r: dict) -> str | None:
                   match_count(len(d.teams), 1, None, ko))
     else:
         job = Job(f"{names[0]} v {names[1]} - two players" + (", drafted squads" if d else "")
-                  + ((f", {n}-Test series" if st["fmt"] == "test" else f", best of {n}") if n > 1 else ""), n)
+                  + ((f", {n}-Test series" + (", stops when decided" if st.get("best_of") else "")
+                      if st["fmt"] == "test" else f", best of {n}") if n > 1 else ""), n)
     job.controllers = ctl
     job.mp_league = league
     job.room = r
@@ -146,7 +148,7 @@ def _mp_start(r: dict) -> str | None:
     for s in r["seats"]:
         s["ready"] = False
     params = {"mode": "mp", **{k: st[k] for k in ("fmt", "comp", "year", "venues", "seed", "rain", "series",
-                                                    "host")}}
+                                                    "host", "best_of")}}
     if d:
         params.update(specs=d.team_specs(), knockout=_mp_ko(len(d.teams)),
                       draft_info={"teams": d.teams, "user": None, "board": d.state()["board"],
@@ -244,6 +246,7 @@ def _mp_settings(p: dict) -> dict | str:
             "series": int(p.get("series")) if str(p.get("series")) in map(str, MP_TESTS if test else MP_SERIES)
             else 1,
             "host": p.get("host") if test and p.get("host") in MP_HOSTS else "neutral",
+            "best_of": bool(test and p.get("best_of")),      # a Test series that stops once it is decided
             "teams": teams, "y1": y1, "y2": y2, "source": source,
             "years_mode": "only" if p.get("years_mode") == "only" else "blend",
             "cpu": int(p.get("cpu")) if str(p.get("cpu")) in map(str, MP_CPU) else 0,

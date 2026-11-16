@@ -41,6 +41,7 @@ function payload() {
     venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
     rain: $('c-rain').checked};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value, host: $('s-host').value};
+  if (MODE === 'wtc') return {...base, fmt: 'test', teams: wtcTeams(), tests: +$('w-n').value, rain: false};
   if (MODE === 'league') return {mode: 'league', league: $('l-league').value, season: $('l-season').value, seed: $('l-seed').value.trim(), venues: [],
     rain: $('l-rain').checked, captain: $('l-captain').value, opponents: $('l-opp').value,
     manual: [...$('l-manual').querySelectorAll('input:checked')].map(i => i.value).filter(k => k !== 'impact' || CAP.impact)};
@@ -62,6 +63,7 @@ const histName = e => e.y1 === e.y2 ? `${e.nation} ${e.y1}` : `${e.nation} ${e.y
 function capSides() {
   if (MODE === 'series') return [$('s-t1').value, $('s-t2').value];
   if (MODE === 'tournament') return [...document.querySelectorAll('#t-list input:checked')].map(i => i.value);
+  if (MODE === 'wtc') return wtcTeams();
   if (MODE === 'classic') return [$('cs-r1').firstChild, $('cs-r2').firstChild].map(r => r ? histName(r.entry()) : '');
   if (MODE === 'classic_t') return [...$('ct-rows').children].map(r => histName(r.entry()));
   if (MODE === 'draft') return DRAFT && DRAFT.done && DRAFT.user ? [DRAFT.user] : [];
@@ -69,7 +71,7 @@ function capSides() {
 }
 function capOptions() {
   const sides = capSides();
-  const show = ['series', 'tournament', 'classic', 'classic_t', 'draft'].includes(MODE) && sides.length > 0;   // a draft: once it is done
+  const show = ['series', 'tournament', 'wtc', 'classic', 'classic_t', 'draft'].includes(MODE) && sides.length > 0;   // a draft: once it is done
   $('g-cap-box').style.display = show ? '' : 'none';
   if (!show) { $('g-manual-box').style.display = 'none'; return; }
   const sel = $('g-captain'), keep = sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : '';
@@ -126,7 +128,7 @@ async function poll() {
     showView('v-running');
     $('run-title').textContent = st.title || 'Simulating…';
     $('run-bar').style.width = (st.total ? Math.round(100 * st.done / st.total) : 0) + '%';
-    $('run-count').textContent = `${st.done} of ${st.total} matches · ${fmtTime(st.elapsed)} elapsed`;
+    $('run-count').textContent = `${st.done} of ${st.total} ${/Test/.test(st.title || '') ? 'Tests' : 'matches'} · ${fmtTime(st.elapsed)} elapsed`;
     POLL_T = setTimeout(poll, 500);
   } else if (st.status === 'done') { $('last-btn').style.display = ''; showResults(); }
   else if (st.status === 'error') showError(st);

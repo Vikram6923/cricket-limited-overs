@@ -396,12 +396,26 @@ only sides that can play the format. Choose 1, 2, 3 or 5 Tests and where the ser
 the first side's country, the second's, or neutral grounds. The host's grounds are used in turn, with its weather,
 and the home side gets the edge real home sides have. The results show the series score with draws, each match's
 four innings, a day-by-day strip (lunch, tea, stumps), the lead over the match, and Test batting and bowling
-tables. Other modes (tournament, league, draft, auction, careers) are T20 and ODI only: there the Format
-chips do not offer Test.
+tables.
+
+**Tests in other modes.** The Format chips offer Test in a **Tournament** and a **Classic Tournament** (a league
+of Tests with a World Test Championship table: 12 points a win, 6 a tie, 4 a draw, ordered by the share of points
+won; each league Test is at the first-named side's home; a drawn knockout goes to the side ahead on first
+innings, else to the higher-placed side), in a **Fantasy draft** (squads of 15 from the Test players of the
+years you choose, then a league of Tests) and in an **Auction** from a range of years. The **World Test
+Championship** mode plays a cycle: every side plays six series, three at home and three away (fewer with under
+seven sides), of 1, 2, 3 or 5 Tests, and the top two meet in a final at Lord's. A league season, the Mushtaq Ali
+Trophy and the careers are T20 competitions: there the chips do not offer Test.
+
+**Opponent captains in a Test.** Expert / Average / Easy apply to Tests too. A weaker captain sometimes gives
+the over to the wrong bowler and misjudges a declaration or the follow-on. Measured over 1,500 Tests between
+two identical sides, the expert captain's share (wins plus half the draws) was 53% against Average and 58%
+against Easy.
 
 **Two players:** host a room with Format set to Test. Each person picks a Test side (a saved team or a nation
-from any era), the host chooses one Test or a series of 2, 3 or 5 (every Test is played) and where it is played
-(neutral grounds, the host player's country or the guest's). Each person makes their own side's calls; both
+from any era), the host chooses one Test or a series of 2, 3 or 5 and where it is played (neutral grounds, the
+host player's country or the guest's). Every Test of a series is played, unless the host sets the series to
+stop once it is decided. Each person makes their own side's calls; both
 choose their XI at the same time, and both see the result at the same time. There is no draft or auction for
 Tests.
 
@@ -593,6 +607,7 @@ python tests/test_test_series.py       # Test series: result, host and grounds, 
 python tests/test_test_records.py      # Test records; win / draw / loss chances, impact, turning point, rankings
 python tests/test_test_control.py      # captaining a Test: each decision, the bars, the pace, the report, the server
 python tests/test_test_two_players.py  # two people captain a Test, a Test room on the server, default Test teams, error messages
+python tests/test_test_tournament.py   # Test tournaments, the World Test Championship, weaker Test captains, Test drafts and auctions
 python tests/test_engine.py            # laws and bookkeeping invariants
 python tests/test_tournament.py        # points, net run rate, stats totals, knockout structure
 python tests/test_domestic.py          # Mushtaq Ali Trophy seasons are complete and play through
@@ -634,6 +649,8 @@ engine/            match engine (library)
   test_conditions.py  Test conditions: the host of a ground, overs lost in a day, the home edge
   test_calibrate.py  replay real Tests and compare, with the plan's gates
   test_series.py   Test series: host, grounds in turn, the result with draws, Test statistics
+  test_tournament.py  Test tournaments (the Test points table, a drawn knockout) and the World Test Championship
+  test_value.py    what a Test player is worth, for the draft and the auction
   test_report.py   a Test's report by days and its day-by-day strip
   test_records.py  Test records over a set of matches
   test_wdl.py      win / draw / loss chances from the state of a Test; the turning point
@@ -674,8 +691,9 @@ tests/             engine, tournament, mode and server tests; run_all.py runs th
 - [x] Captain a team in any mode (toss, XI, bowlers, batters, Impact Player)
 - [x] Test matches: data, ratings, the match engine, its calibration, series, the results pages, records,
       the win / draw / loss chart and captaincy ([`docs/test_match_plan.md`](docs/test_match_plan.md)).
-      Two-player Tests and Tests from the home page's Play button are in.
-      Still to come: a World Test Championship
+      Two-player Tests, Tests from the home page's Play button, Test tournaments, the World Test Championship,
+      Test drafts and auctions, and weaker computer captains for Tests are in.
+      Still to come: Tests in the careers
 - [x] IPL-style auction with retentions and Right to Match, then a league; saved runs
 - [x] Career mode: a franchise league season after season, with ageing, retirements, newcomers and auctions
 - [x] State career: a Mushtaq Ali Trophy state season after season, Elite and Plate with promotion and relegation

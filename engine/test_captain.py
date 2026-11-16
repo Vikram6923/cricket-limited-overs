@@ -11,6 +11,7 @@ import bisect
 import json
 import math
 import random
+import zlib
 from collections import defaultdict
 from functools import lru_cache
 
@@ -24,6 +25,11 @@ NEW_BALL_OVERS = 80         # the new ball is available, and taken at once (the 
 # Law 14.1: the lead needed to enforce the follow-on, by the length of the match in days
 FOLLOW_ON_LEAD = {1: 75, 2: 100, 3: 150, 4: 150}
 RR_CAP = 8.0                # cap on "runs an over the other side would need" as a model feature
+# Weaker computer captains. Not fitted (the data has no label for a poor captain). LEVELS: the chance that a
+# call is a loose one; SLIP: how far a loose call is from the fitted one. Set once, by the measurement in
+# docs/test_design.md ("Weaker Test captains").
+LEVELS = {"expert": 0.0, "average": 0.35, "easy": 0.8}
+SLIP = {"average": 2.0, "easy": 3.0}
 
 
 # ------------------------------------------------------------------------- model features (the fit imports these)
@@ -55,6 +61,41 @@ def _sigmoid(z: float) -> float:
 def _logit(p: float) -> float:
     p = min(max(p, 1e-4), 1 - 1e-4)
     return math.log(p / (1 - p))
+
+
+# ---------------------------------------------------------------------------------------------- weaker captains
+class Loose:
+    """A weaker computer captain for one side of one Test. His mistakes are the fitted captain's calls made
+    badly, so they are plausible ones:
+    - a bowling change: with the level's chance he picks from the same men with the fitted weights flattened
+      (raised to 1 / (1 + SLIP)), so the wrong bowler for the ball or the pitch, or a part-timer, gets the over;
+    - a declaration, the follow-on: in each innings, with the level's chance, he misreads the game by a draw
+      from N(0, SLIP) on the fitted model's scale (e times as ready, or as slow, per unit), so he declares too
+      early or bats on too long, and enforces or declines against the fitted call.
+    He draws from his own stream, so an expert captain's matches are the same with or without him."""
+
+    def __init__(self, level: str, rng: random.Random):
+        self.chance, self.slip, self.rng = LEVELS[level], SLIP[level], rng
+        self.flat = 1.0 / (1.0 + self.slip)
+        self.bias: dict = {}                   # innings number -> his misreading of it
+
+    def weights(self, ws: list) -> list:
+        return [w ** self.flat for w in ws] if self.rng.random() < self.chance else ws
+
+    def prob(self, innings: int, p: float) -> float:
+        """The fitted chance p of a call as this captain sees it."""
+        if innings not in self.bias:
+            self.bias[innings] = self.rng.gauss(0.0, self.slip) if self.rng.random() < self.chance else 0.0
+        b = self.bias[innings]
+        return p if not b or p <= 0.0 else _sigmoid(_logit(p) + b)
+
+
+def loose_captain(skill: dict | None, team: str, seed: int) -> Loose | None:
+    """The weaker captain of `team`, or None (expert, unknown level, or no skill mapping)."""
+    level = (skill or {}).get(team)
+    if level not in SLIP:
+        return None
+    return Loose(level, random.Random(zlib.crc32(f"test-loose|{seed}|{team}".encode())))
 
 
 # ---------------------------------------------------------------------------------------------- the side
@@ -135,9 +176,11 @@ class Bowling:
     predicted and whether the new ball is due; otherwise the captain picks from the others by the fitted weights
     (career overs per match x kind by ball age x kind by pitch wear x rest). Nobody bowls two overs running."""
 
-    def __init__(self, fielders: list[Player], keeper: Player | None, rng: random.Random):
+    def __init__(self, fielders: list[Player], keeper: Player | None, rng: random.Random,
+                 loose: Loose | None = None):
         self.t = t = tables()
         self.rng = rng
+        self.loose = loose                     # a weaker captain (his own stream: self.rng is drawn as always)
         self.cands = [p for p in fielders if p is not keeper] or list(fielders)
         self.grp = {p: group(p) for p in self.cands}
         c = t["choice"]
@@ -177,6 +220,8 @@ class Bowling:
             lb = self.last.get(p)
             rest = 0 if lb is None else 1 + bisect.bisect_right(c["rest_edges"], n - lb)
             ws.append(self.w0[p] * c["age"][g][ab] * c["wear"][g][wb] * c["rest"][g][rest])
+        if self.loose:
+            ws = self.loose.weights(ws)
         u, acc = self.rng.random() * sum(ws), 0.0
         pick = pool[-1]
         for p, w in zip(pool, ws):

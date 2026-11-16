@@ -116,6 +116,16 @@ class _Runner:
         self.skill = skill or {}      # team name -> "expert" | "average" | "easy" (computer captains, engine/judge.py)
         self.on_match = None          # optional callback(card) after every match (progress / cancel)
 
+    # what a format decides for itself (engine/test_tournament.py has the Test versions)
+    def table(self, cards: list[dict], names: list[str], win_points: int) -> list[dict]:
+        return points_table(cards, names, win_points)
+
+    def stats(self, cards: list[dict]) -> dict:
+        return tournament_stats(cards, _wins(cards))
+
+    def summary(self, card: dict) -> dict:
+        return _summary_card(card)
+
     def venue_for(self, home: str, knockout: bool) -> str | None:
         n = len(self.cards)
         if knockout and self.ko_venues:
@@ -454,9 +464,8 @@ def play_series(team_a: dict, team_b: dict, n: int = 3, fmt: str = "t20", comp: 
     engine/test_series.py (its host, grounds and weather; a person can captain a side, engine/test_control.py)."""
     if fmt == "test":
         from .test_series import play_test_series
-        if best_of:
-            raise ValueError("A Test series cannot be played as a best-of.")
-        return play_test_series(team_a, team_b, n, comp, year, venues, seed, on_match, control=control)
+        return play_test_series(team_a, team_b, n, comp, year, venues, seed, on_match, control=control,
+                                skill=skill, best_of=best_of)
     a, b = team_spec(fmt, team_a), team_spec(fmt, team_b)
     run = _Runner(fmt, comp, year, seed, venues, None, None, rain, control, skill)
     run.on_match = on_match
@@ -564,8 +573,9 @@ def _round_robin(run: "_Runner", by_name: dict, labels: list[str], group_lists: 
     run.play_league(fixtures)
 
 
-def _tables(cards: list[dict], labels: list[str], group_lists: list[list[str]], win_points: int) -> dict:
-    return {label: points_table([c for c in cards if set(c["teams"]) <= set(names)], names, win_points)
+def _tables(cards: list[dict], labels: list[str], group_lists: list[list[str]], win_points: int,
+            table=points_table) -> dict:
+    return {label: table([c for c in cards if set(c["teams"]) <= set(names)], names, win_points)
             for label, names in zip(labels, group_lists)}
 
 
@@ -670,7 +680,7 @@ def _knockouts(run: "_Runner", by_name: dict, tables: dict, labels: list[str], k
     sl_labels = ["Super League A", "Super League B"]
     start = len(run.cards)
     _round_robin(run, by_name, sl_labels, sl_lists, 1, lambda label: label)
-    sl_tables = _tables(run.cards[start:], sl_labels, sl_lists, win_points)
+    sl_tables = _tables(run.cards[start:], sl_labels, sl_lists, win_points, run.table)
     out["super_league"] = sl_tables
     A, B = (sl_tables[x] for x in sl_labels)
     if knockout == "super_league":
@@ -705,7 +715,8 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
               For the last four, qualifiers from several groups are ranked by group position, then points and NRR
               (every group winner before any runner-up), and ties keep sides from the same group apart where they
               can.
-    win_points: points for a win (a tie or no result gets half); 4 for India's domestic cups.
+    win_points: points for a win (a tie or no result gets half); 4 for India's domestic cups. A Test tournament
+              (fmt="test", engine/test_tournament.py) has its own: 12 a win, 6 a tie, 4 a draw.
     plate:    a second division played in the same run: {"teams": [team dicts], "rounds": 1, "groups": None,
               "knockout": "final" | "semis" | "none", "advance": 0}. advance: how many of its top sides (league
               table) join this knockout, seeded last. The result then has "plate" (its tables, knockouts, winner),
@@ -713,8 +724,6 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
     control:  {team name: engine.control.Controller} for sides a person captains (their decisions are asked).
     skill:    {team name: "expert" | "average" | "easy"} for computer captains (engine/judge.py; default expert).
     """
-    if FORMATS[fmt]["overs"] is None:
-        raise ValueError("Tests are played as a match or a series: there is no Test tournament yet.")
     if knockout not in KNOCKOUTS:
         raise ValueError(f"knockout must be one of {KNOCKOUTS}")
     plate = dict(plate) if plate else None
@@ -727,12 +736,18 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
         raise ValueError("team names must be unique")
     group_lists = _group_lists([t["name"] for t in specs], groups)
     labels = _labels(len(group_lists))
-    run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain, control, skill)
+    if FORMATS[fmt]["overs"] is None:
+        # a Test tournament: its own runner (home grounds and weather, a drawn knockout, the Test table)
+        from .test_tournament import TestRunner
+        run = TestRunner(comp, year, seed, venues, home_venues, knockout_venues, control, skill)
+        win_points = run.WIN_POINTS
+    else:
+        run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain, control, skill)
     run.on_match = on_match
 
     _round_robin(run, by_name, labels, group_lists, rounds,
                  lambda label: "League" if label == "League" else f"Group {label}")
-    tables = _tables(list(run.cards), labels, group_lists, win_points)
+    tables = _tables(list(run.cards), labels, group_lists, win_points, run.table)
 
     ko: list = []
     plate_out = None
@@ -743,7 +758,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
         start = len(run.cards)
         _round_robin(run, by_name, p_labels, p_lists, plate.get("rounds", rounds),
                      lambda label: label if label == "Plate" else f"Plate group {label[-1]}")
-        p_tables = _tables(run.cards[start:], p_labels, p_lists, win_points)
+        p_tables = _tables(run.cards[start:], p_labels, p_lists, win_points, run.table)
         n_up = int(plate.get("advance") or 0)
         if n_up:
             plate_q = [t for t, _ in _seeded(p_tables, p_labels, [n_up] * len(p_labels))][:n_up]
@@ -756,7 +771,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
         ko.extend(p_ko)
 
     res = _knockouts(run, by_name, tables, labels, knockout, advance, win_points, ko, extra=plate_q)
-    stats = tournament_stats(run.cards, _wins(run.cards))
+    stats = run.stats(run.cards)
     pos = stats["mvp"]["official"][0] if stats["mvp"]["official"] else None
     out = {"kind": "tournament", "format": fmt, "competition": run.comp, "year": year, "seed": run.seed,
            "settings": {"rounds": rounds, "groups": dict(zip(labels, group_lists)), "knockout": knockout,
@@ -764,7 +779,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
            "teams": [t["name"] for t in specs], "tables": tables, "knockouts": ko,
            "super_league": res["super_league"],
            "winner": res["champion"], "runner_up": res["runner_up"], "player_of_series": pos,
-           "fixtures": [_summary_card(c) for c in run.cards], "matches": run.cards, **stats}
+           "fixtures": [run.summary(c) for c in run.cards], "matches": run.cards, **stats}
     if plate:
         worst = min((r for rows in tables.values() for r in rows), key=lambda r: (r["points"], r["nrr"], r["team"]))
         out.update(plate=plate_out, promoted=plate_out["winner"], relegated=worst["team"])

@@ -192,6 +192,8 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         p.bowl_phase_share = {ph: (pb.get(ph, 0) + k * typ[ph]) / (tot + k) for ph in phases}
         car = rec.get("career") or {}
         inns = sum((c.get("m") or 0) for c in car.values() if isinstance(c, dict))
+        if early and pre.get("tests"):     # the balls are those of his Tests before coverage: so are the matches
+            inns = pre["tests"]
         p.bowl_overs_per_match = (p.bowl_balls / 6) / inns if inns else 0.0
     else:
         p.rated_bowl = False

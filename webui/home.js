@@ -16,12 +16,14 @@ const ICON = {
   draft: '<path d="M4 6h16M4 12h10M4 18h13"/>',
   classic: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   classic_t: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  wtc: '<path d="M8 3h8v5a4 4 0 0 1-8 0z"/><path d="M12 12v5M8 21h8M9 17h6"/><circle cx="12" cy="6.5" r="1"/>',
   builder: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 8v6M14 11h6"/>',
   saved: '<path d="M6 3h12v18l-6-4-6 4z"/>'};
 const MODES = {
   series: {t: 'Match or series', s: 'T20, ODI or Test: two saved teams, one to seven matches', g: 'Quick play', c: '#2ee88a'},
   mp: {t: 'Two players', s: 'You v a friend on another device: T20, ODI or Test', g: 'Quick play', c: '#3d8bff'},
-  tournament: {t: 'Tournament', s: 'Groups, points table with NRR, knockouts', g: 'Quick play', c: '#f6c453'},
+  tournament: {t: 'Tournament', s: 'Groups, a points table, knockouts: T20, ODI or Test', g: 'Quick play', c: '#f6c453'},
+  wtc: {t: 'World Test Championship', s: 'Test nations, home and away series, a final at Lord\'s', g: 'Quick play', c: '#ff4061'},
   league: {t: 'League season', s: 'Any IPL, BBL, PSL… season with the real squads', g: 'Seasons and careers', c: '#f6c453', feat: true},
   domestic: {t: 'Mushtaq Ali Trophy', s: "India's 38 states: a real season's groups, format and squads", g: 'Seasons and careers', c: '#ff9f43'},
   career: {t: 'Career', s: 'Run a franchise or a state for years: ageing, auctions, trophies', g: 'Seasons and careers', c: '#b26bff', feat: true},
@@ -210,11 +212,12 @@ const DOORS = [
   {t: 'Play a friend', s: 'on two phones, Tests too', ic: 'mp', modes: ['mp']},
   {t: 'Seasons & careers', ic: 'league', modes: ['league', 'domestic', 'career']},
   {t: 'Auction & draft', ic: 'auction', modes: ['auction', 'draft']},
-  {t: 'What-if sandbox', ic: 'classic', modes: ['series', 'tournament', 'classic', 'classic_t', 'builder']}];
+  {t: 'What-if sandbox', ic: 'classic', modes: ['series', 'tournament', 'wtc', 'classic', 'classic_t', 'builder']}];
 const DOOR_LINE = {league: 'Any season of 11 leagues, real squads.', career: 'Run a franchise or a state, year after year.',
   domestic: "India's domestic T20: captain a state.",
   auction: 'Bid for a squad, then play.', draft: 'Pick players in turns, then a league.',
-  series: 'Two teams, T20, ODI or Test.', tournament: 'Your own World Cup or league.',
+  series: 'Two teams, T20, ODI or Test.', tournament: 'Your own World Cup or league, Tests too.',
+  wtc: 'Series home and away, then a final.',
   classic: 'Great sides from any era, Tests too.', classic_t: 'Eras meet in one tournament.', builder: 'Make and save your own XI.'};
 function drawDoors() {
   $('home-doors').innerHTML = DOORS.map((d, i) => `<button class="card door" data-door="${i}">${modeIcon(d.ic)}
@@ -309,6 +312,7 @@ async function init() {
   $('t-search').oninput = filterTeams;
   fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initCareerForm(); initLeague(); initDomestic(); initBuilder(); initMatchNav();
   document.querySelectorAll('input[data-chips]').forEach(numChips);
+  $('w-n').addEventListener('change', updateWtcTotal);
   presetChips($('t-preset'), 't'); presetChips($('ct-preset'), 'ct');
   const teamsChanged = () => { capOptions(); autoConds(); };      // the captain chips list the teams chosen
   ['s-t1', 's-t2'].forEach(id => $(id).addEventListener('change', teamsChanged));

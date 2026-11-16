@@ -64,7 +64,7 @@ SOURCES = ("full", "intl", "leagues")
 
 def _appearances(fmt: str, y1: int, y2: int, source: str) -> dict:
     """pid -> (matches in the period that count for the pool, team shown: his nation, else his main league team)."""
-    files = ["players_odi.json"] if fmt == "odi" else ["players_t20.json"]
+    files = ["players_odi.json"] if fmt == "odi" else [] if fmt == "test" else ["players_t20.json"]
     if source == "leagues" and fmt == "t20":
         files.append("players_t20_league.json")
     intl: dict = {}
@@ -85,6 +85,14 @@ def _appearances(fmt: str, y1: int, y2: int, source: str) -> dict:
         for pid, by in _intl_years(fmt).items():
             for y, teams in by.items():
                 if y1 <= y <= y2 and y < 2002:
+                    c = intl.setdefault(pid, {})
+                    for t, n in teams.items():
+                        c[t] = c.get(t, 0) + n
+    if fmt == "test":  # Tests since 1877: covered matches and career totals spread over the years (engine/history.py)
+        from .history import _intl_years
+        for pid, by in _intl_years(fmt).items():
+            for y, teams in by.items():
+                if y1 <= y <= y2:
                     c = intl.setdefault(pid, {})
                     for t, n in teams.items():
                         c[t] = c.get(t, 0) + n
@@ -109,7 +117,11 @@ def build_pool(fmt: str, y1: int, y2: int, source: str = "full", min_matches: in
         raise ValueError(f"Unknown pool: {source}")
     apps = _appearances(fmt, y1, y2, source)
     base = baseline(fmt, FORMATS[fmt]["intl"], y2)
-    spec_opm = FORMATS[fmt]["quota"] * 0.5
+    test = FORMATS[fmt]["overs"] is None       # a Test pool: its own values (engine/test_value.py)
+    if test:
+        from . import test_value
+    else:
+        spec_opm = FORMATS[fmt]["quota"] * 0.5
     pool, bats, bowls = [], [], []
     for pid, (m, team) in apps.items():
         if m < min_matches:
@@ -117,14 +129,18 @@ def build_pool(fmt: str, y1: int, y2: int, source: str = "full", min_matches: in
         p = player(fmt, pid, years=(y1, y2), years_mode=years_mode)
         if not (p.rated_bat or p.rated_bowl):
             continue
-        bowler = p.rated_bowl and p.bowl_overs_per_match >= spec_opm
+        bowler = test_value.is_bowler(p) if test else p.rated_bowl and p.bowl_overs_per_match >= spec_opm
         roles = set()
         if p.keeper:
             roles.add("keeper")
         if bowler:
             roles.add("spin" if p.bowl_type == "spin" else "pace")
-        bv = batting_value(p)
-        wv = -sum(bowling_cost(p, ph, base[ph], fmt) for ph in PHASES) if bowler else None
+        if test:
+            bv, wv = test_value.value_parts(p, base)
+            wv = wv if bowler else None
+        else:
+            bv = batting_value(p)
+            wv = -sum(bowling_cost(p, ph, base[ph], fmt) for ph in PHASES) if bowler else None
         pp = PoolPlayer(pid, p.name, team, m, "", roles, ref=dict(p.ref))
         pp._bv, pp._wv = bv, wv
         pool.append(pp)

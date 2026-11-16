@@ -154,7 +154,8 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             where = params.get("host") or "neutral"
             host = "neutral" if where == "neutral" else (nation_of(b) or "neutral") if where == "away" else None
             res = play_test_series(a, b, n=int(params.get("series") or 1), comp=comp, year=year, venues=venues_,
-                                   seed=seed, on_match=on_match, host=host, control=control)
+                                   seed=seed, on_match=on_match, host=host, control=control,
+                                   best_of=bool(params.get("best_of")))
         elif params["mode"] == "mp":           # a single match or a best-of series between the two players
             a, b = params["specs"]
             res = play_series(a, b, n=int(params.get("series") or 1), best_of=True,
@@ -168,10 +169,14 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             t1, t2 = (team_spec(params[k], fmt, size, ym, v) for k in ("team1", "team2"))
             where = params.get("host") or "home"
             host = "neutral" if where == "neutral" else (nation_of(t2) or "neutral") if where == "away" else None
-            # a person may captain one side (engine/test_control.py); the other is always the fitted captain:
-            # there are no weaker computer captains for Tests, so `opponents` is not used
+            # a person may captain one side (engine/test_control.py); the other is the fitted captain, or a
+            # weaker one (engine/test_captain.py Loose)
             res = play_test_series(t1, t2, n=int(params["matches"]), comp=comp, year=year, venues=venues_, seed=seed,
-                                   on_match=on_match, host=host, control=control)
+                                   on_match=on_match, host=host, control=control, skill=skill)
+        elif params["mode"] == "wtc":          # the World Test Championship: home and away series, then a final
+            specs = [team_spec(t, fmt, size, ym, v) for t in params["teams"]]
+            res = play_wtc(specs, comp=comp, year=year, tests=int(params.get("tests") or 2), seed=seed,
+                           on_match=on_match, control=control, skill=skill)
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym, v), team_spec(params["team2"], fmt, size, ym, v),
                               n=int(params["matches"]),
@@ -180,7 +185,9 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
         else:
             groups = int(params.get("groups") or 1)
             specs = [team_spec(t, fmt, size, ym, v) for t in params["teams"]]
-            homes = {sp["name"]: h for t, sp in zip(params["teams"], specs) if (h := home_ground(t, fmt, v))}
+            # a Test side's home Tests go round its country's grounds (engine/test_tournament.py), not to one
+            homes = {} if fmt == "test" else {sp["name"]: h for t, sp in zip(params["teams"], specs)
+                                              if (h := home_ground(t, fmt, v))}
             res = play_tournament(specs, fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, home_venues=homes,
@@ -190,7 +197,7 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
         if job.controller:                     # how the person's calls compared with the computer's
             res["captaincy"] = season_report(res["matches"], job.controller.team)
             if res["captaincy"]:
-                res["captaincy"]["opponents"] = "expert" if fmt == "test" else params.get("opponents") or "expert"
+                res["captaincy"]["opponents"] = params.get("opponents") or "expert"
         if job.controllers:                    # each player's calls against the computer's
             res["captaincy_by"] = {t: season_report(res["matches"], t) for t in job.controllers}
             for r in res["captaincy_by"].values():
@@ -355,13 +362,15 @@ def api_run():
             return jsonify(error="A simulation is already running."), 409
         if err := _capacity_error():
             return jsonify(error=err), 503
-        if p.get("mode") in ("league", "domestic"):
+        if p.get("mode") in ("league", "domestic", "career"):
             p["fmt"] = "t20"
+        if p.get("mode") == "wtc":
+            p["fmt"] = "test"
         fmt = p.get("fmt")
         if fmt not in FMTS:
             return jsonify(error="Choose T20, ODI or Test."), 400
         test = fmt == "test"
-        if test and p.get("mode") != "series":
+        if test and p.get("mode") not in TEST_MODES:
             return jsonify(error=NOT_FOR_TESTS), 400
         label = lambda e: history.team_name(e["nation"], int(e["y1"]), int(e["y2"])) if isinstance(e, dict) else e
         if p.get("mode") == "series":
@@ -459,6 +468,19 @@ def api_run():
                 title += f" - you captain {car.user}"
             else:
                 p["captain"] = None
+        elif p.get("mode") == "wtc":
+            teams = p.get("teams") or []
+            if len(teams) < 3:
+                return jsonify(error="The World Test Championship needs at least three teams."), 400
+            err = check_entries(teams, fmt)
+            if err:
+                return jsonify(error=err), 400
+            if str(p.get("tests") or 2) not in map(str, WTC_TESTS):
+                return jsonify(error="A Championship series has 1, 2, 3 or 5 Tests."), 400
+            p["tests"] = int(p.get("tests") or 2)
+            total = wtc_match_count(len(teams), p["tests"])
+            title = f"World Test Championship - {len(teams)} teams, {p['tests']}-Test series"
+            sides = [label(e) for e in teams]
         elif p.get("mode") == "tournament":
             teams = p.get("teams") or []
             if len(teams) < 2:
@@ -483,7 +505,7 @@ def api_run():
         else:
             return jsonify(error="Unknown mode."), 400
         cap = p.get("captain") if p.get("mode") in ("league", "domestic", "auction", "career") else None
-        if p.get("mode") in ("series", "tournament", "draft") and str(p.get("captain_i", "")).strip() != "":
+        if p.get("mode") in ("series", "tournament", "draft", "wtc") and str(p.get("captain_i", "")).strip() != "":
             try:
                 cap = sides[int(p["captain_i"])]
             except (ValueError, IndexError):

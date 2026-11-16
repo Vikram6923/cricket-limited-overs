@@ -138,7 +138,7 @@ function testChartsHTML(c) {
 }
 
 /* ── the set-up form: what changes when the format is Test ── */
-const TEST_MODES = ['series', 'classic', 'mp'];
+const TEST_MODES = ['series', 'classic', 'mp', 'tournament', 'classic_t', 'draft', 'auction', 'wtc'];
 const MP_PLAY_OPTS = {lo: [[1, '1 match'], [3, 'Best of 3'], [5, 'Best of 5']],
   test: [[1, '1 Test'], [2, '2 Tests'], [3, '3 Tests'], [5, '5 Tests']]};
 function fmtChanged() {
@@ -158,12 +158,18 @@ function fmtChanged() {
   ser.value = list.some(([v]) => String(v) === keep) ? keep : test ? '1' : '3';
   ser.dispatchEvent(new Event('change'));
   if (test && $('mp-teams').value !== 'pick') { $('mp-teams').value = 'pick'; $('mp-teams').dispatchEvent(new Event('change')); }
+  updateTournamentTotal(); if ($('ct-rows').children.length) updateClassicTotal();
+  $('c-fmt-note').style.display = test && $('c-fmt-note').textContent ? '' : 'none';
 }
-/* Tests are a Match / Series, a Classic Series or a Two players game: any other mode goes back to T20 */
+/* a league season, a domestic cup and a career are T20 competitions: there the format goes back to T20. The World
+   Test Championship is Tests only. */
 function testModeGuard() {
-  const ok = TEST_MODES.includes(MODE), opt = $('c-fmt').querySelector('option[value="test"]');
-  if (opt) opt.disabled = !ok;
-  $('c-fmt-note').style.display = ok || !['tournament', 'classic_t', 'draft', 'auction'].includes(MODE) ? 'none' : '';
+  const ok = TEST_MODES.includes(MODE), only = MODE === 'wtc';
+  [...$('c-fmt').options].forEach(o => { o.disabled = o.value === 'test' ? !ok : only; });
+  const note = MODE === 'draft' ? 'A Test draft: squads of 15 from the Test players of those years, then a league of Tests.'
+    : MODE === 'auction' ? 'A Test auction needs "Players from a range of years" (a league season is T20).' : '';
+  $('c-fmt-note').textContent = note;
+  $('c-fmt-note').style.display = note && $('c-fmt').value === 'test' ? '' : 'none';
   if (!ok && $('c-fmt').value === 'test') { $('c-fmt').value = 't20'; $('c-fmt').dispatchEvent(new Event('change')); }
 }
 /* the format was changed by hand: a nation's preset follows it ("India T20 2024" -> "India Test 2025") */

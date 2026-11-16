@@ -433,7 +433,9 @@ function mpResultNext() {
   const sr = mpSeries();
   if (!sr) return 'Continue';
   const left = sr.of - sr.finished, [a, b] = sr.wins;
-  return Math.abs(a - b) > left || left === 0 ? 'See the series results' : `Next match (${sr.finished + 1} of ${sr.of}) →`;
+  // a Test series plays every Test unless the room stops once it is decided
+  const over = left === 0 || ((!sr.test || sr.best_of) && Math.abs(a - b) > left);
+  return over ? 'See the series results' : `Next ${sr.test ? 'Test' : 'match'} (${sr.finished + 1} of ${sr.of}) →`;
 }
 
 /* ball by ball: aggression bars (1-9, 5 = as real sides play this situation; docs/match_play_design.md). Only the

@@ -1193,3 +1193,13 @@ Details and the differences from the plan are in `docs/test_design.md` ("Phase 6
   Two-player rooms can be Test rooms (a team each, 1 / 2 / 3 / 5 Tests, all played; XI and result asked of
   both at once). `tests/test_test_two_players.py` (6 tests); 21 of 21 scripts and the golden test pass.
   Details: `docs/test_design.md` ("After Phase 6").
+
+- 2026-11-16: **Tests in more modes.** Test tournaments (`engine/test_tournament.py`: home grounds, the 12 / 6 /
+  4 points table ordered by share of points, a drawn knockout decided on first-innings lead), the World Test
+  Championship (`play_wtc`: home and away series, a final at Lord's), weaker Test captains
+  (`engine/test_captain.py` `Loose`; expert matches unchanged), Test drafts and auctions
+  (`engine/test_value.py`), a two-player Test series that can stop once decided. Measured: the expert
+  captain's share is 53% against Average and 58% against Easy (1,500 Tests each, identical sides).
+  `tests/test_test_tournament.py` (7 tests); 22 of 22 scripts and the golden test pass. A two-player Test
+  series was played to its end in the browser at phone width. Not done: Tests in careers and league seasons.
+  Details: `docs/test_design.md` ("Tests in more modes").

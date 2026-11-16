@@ -117,7 +117,7 @@ class TestInnings(Scorebook):
         self.declared = False
         self.ended: str | None = None                  # "all out" | "declared" | "target" | "time"
         self.ball_start = 0                            # the over at which the ball in use was new
-        self.bowling = test_captain.Bowling(bowl.players, bowl.keeper, m.crng)
+        self.bowling = test_captain.Bowling(bowl.players, bowl.keeper, m.crng, m.loose.get(bowl.name))
         self.mode: str | None = None                   # last innings: "chase" | "steady" | "save"
         self.nightwatchmen: list[str] = []
         self.ball_log: list[dict] = []                 # deliveries, for a person's field replay (engine/test_control.py)
@@ -264,6 +264,9 @@ class TestInnings(Scorebook):
         m = self.m
         p = test_captain.declare_prob(self.number, self.runs, self.lead(), self.wkts, m.clock.left - 1, nineties)
         call = p > 0 and m.crng.random() < p
+        loose = m.loose.get(self.bat.name)
+        if loose and p > 0:                           # a weaker captain: his own reading, his own stream
+            call = loose.rng.random() < loose.prob(self.number, p)
         if m.desk and m.desk.has(self.bat):           # a person's side: their call
             call = m.desk.declare(self, call, m.clock.left - 1, CHANGE_OVERS)
         if call:
@@ -312,14 +315,15 @@ class TestMatch:
                  use_pitch: bool = True, use_spin: bool = True, declare: bool = True,
                  follow_on: bool | None = None, nightwatchman: bool = True, host: str | None = None,
                  use_weather: bool = True, use_home: bool = True, use_wdl: bool = True,
-                 control: dict | None = None):
+                 control: dict | None = None, skill: dict | None = None):
         """toss: "a" | "b" (who wins it); decision: "bat" | "bowl"; days, day_overs: the match's length
         (default 5 x 90); declare: False = nobody declares; follow_on: True / False = always / never enforced when
         it is on offer, None = the captain's (fitted) choice; nightwatchman: False = never used; host: the
         country whose ground it is (default: looked up from the venue; None with no venue = neutral): it sets
         the overs lost to weather and, when one of the sides is the host, the home edge. use_wdl: False = no
         win / draw / loss chances on the card (they never change how the match is played). control: team name
-        -> engine.control.Controller for a side a person captains (engine/test_control.py)."""
+        -> engine.control.Controller for a side a person captains (engine/test_control.py). skill: team name ->
+        "expert" | "average" | "easy" for computer captains (engine/test_captain.py Loose; default expert)."""
         self.year, self.venue = year, venue
         self.comp = comp or FORMATS[FMT]["intl"]
         self.seed = seed if seed is not None else random.randrange(1 << 30)
@@ -378,6 +382,8 @@ class TestMatch:
         self.key = f"{self.seed}|{self.teams[0].name}|{self.teams[1].name}"
         self.desk = (test_control.Desk(self, control)
                      if control and any(t.name in control for t in self.teams) else None)
+        self.loose = {t.name: lc for t in self.teams if t.name not in (control or {})
+                      and (lc := test_captain.loose_captain(skill, t.name, self.seed))}
 
     # ------------------------------------------------------------------ helpers
     def credit(self, striker_id: str, bowler_id: str, d: float) -> None:
@@ -530,6 +536,9 @@ class TestMatch:
             if self.follow_on_spec is None:
                 p = test_captain.follow_on_prob(lead, self.clock.left, len(i2.overs), self.days)
                 enforce = self.crng.random() < p
+                loose = self.loose.get(first.name)
+                if loose:
+                    enforce = loose.rng.random() < loose.prob(0, p)
                 if self.desk:
                     enforce = self.desk.follow_on(first, lead, enforce, p, i2, CHANGE_OVERS)
             else:

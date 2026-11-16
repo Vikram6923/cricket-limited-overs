@@ -178,8 +178,11 @@ test_stats.__test__ = False            # not a test (the name starts with test_)
 
 def play_test_series(team_a: dict, team_b: dict, n: int = 3, comp: str | None = None, year: int = 2025,
                      venues: list | None = None, seed: int | None = None, on_match=None,
-                     host: str | None = None, control: dict | None = None, **kw) -> dict:
-    """A series of n Tests; all are played. host: the country it is played in: None = team_a's (the first
+                     host: str | None = None, control: dict | None = None, skill: dict | None = None,
+                     best_of: bool = False, **kw) -> dict:
+    """A series of n Tests; all are played, unless best_of: then it stops once one side cannot be caught (2-0
+    in a three-Test series; draws count for nobody). skill: {team name: "expert" | "average" | "easy"} for
+    computer captains (engine/test_captain.py). host: the country it is played in: None = team_a's (the first
     side is at home), "neutral" = nobody's, or a country's name. Its grounds are used in rotation (venues: use
     these instead; a ground's own country then decides the weather and the home side), it sets the weather, and
     the side whose nation it is gets the home edge. control: {team name: engine.control.Controller} for a
@@ -197,6 +200,8 @@ def play_test_series(team_a: dict, team_b: dict, n: int = 3, comp: str | None = 
     cards = []
     for i in range(n):
         args = dict(kw)
+        if skill:
+            args["skill"] = skill
         if host and not venues:
             args["host"] = host
         stage = "Only Test" if n == 1 else f"{ORDINALS[i]} Test"
@@ -210,13 +215,17 @@ def play_test_series(team_a: dict, team_b: dict, n: int = 3, comp: str | None = 
         cards.append(card)
         if on_match:
             on_match(card)
+        w = Counter(c["result"]["winner"] for c in cards if c["result"].get("winner"))
+        if best_of and abs(w.get(a["name"], 0) - w.get(b["name"], 0)) > n - i - 1:
+            break
     wins = Counter(c["result"]["winner"] for c in cards if c["result"].get("winner"))
     wa, wb = wins.get(a["name"], 0), wins.get(b["name"], 0)
     text = cards[0]["result"]["text"] if n == 1 else result_text(a["name"], b["name"], wa, wb, n)
     stats = test_stats(cards, dict(wins))
     return {"kind": "series", "format": FMT, "competition": cards[0]["competition"], "year": year, "seed": seed,
-            "teams": [a["name"], b["name"]], "score": {a["name"]: wa, b["name"]: wb}, "draws": n - wa - wb,
+            "teams": [a["name"], b["name"]], "score": {a["name"]: wa, b["name"]: wb}, "draws": len(cards) - wa - wb,
             "host": host, "home": cards[0]["conditions"].get("home"), "result": text,
             "winner": a["name"] if wa > wb else b["name"] if wb > wa else None,
             "player_of_series": stats["mvp"]["official"][0] if stats["mvp"]["official"] else None,
-            "fixtures": [summary_card(c) for c in cards], "matches": cards, "best_of": None, **stats}
+            "fixtures": [summary_card(c) for c in cards], "matches": cards, "best_of": n if best_of else None,
+            "tests": n, **stats}

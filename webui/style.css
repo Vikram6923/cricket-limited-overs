@@ -321,6 +321,7 @@ tr.gold td{background:rgba(246,196,83,.09)}
 .mvpbar .b1{background:var(--blue)}.mvpbar .b2{background:var(--green)}.mvpbar .b3{background:var(--amber)}.mvpbar .b4{background:#c678dd}
 .cap-report p{margin:6px 0}
 .cap-report .mini{max-width:680px}
+.cap-report .mini th{white-space:normal}      /* long headings wrap: the table fits a phone */
 
 /* ── match centre ── */
 .mnav{display:flex;gap:8px;align-items:center;margin-bottom:14px}
@@ -1067,6 +1068,10 @@ body.detail-full .bug.live{grid-template-rows:44px 12px 16px}
   #v-captain.live .cap-head:not(:has(span:not(:empty))){display:none}
   #v-captain.live #cap-bug{flex:0 0 auto}
   .bug.live{border-radius:0;border-width:0 0 1px;padding:9px 14px 6px}
+  /* a Test's bar on a phone: the score keeps its width, the day and the position wrap beside it */
+  .bug.live.test{grid-template-columns:auto minmax(0,1fr);grid-template-rows:minmax(38px,auto) 12px 16px}
+  body.detail-full .bug.live.test{grid-template-rows:minmax(44px,auto) 12px 16px}
+  .bug.live.test .bl{gap:7px}.bug.live.test .br{font-size:.78rem;line-height:1.25}.bug.live.test .br .ses{display:none}
   #v-captain.live .cap-live{display:flex;flex-direction:column;align-items:stretch;flex:1 1 auto;min-height:0;margin:0;gap:0}
   .cl-field{flex:1 1 auto;min-height:170px;padding:6px 6px 0;display:flex}
   .cl-field .hl-box{height:auto;flex:1 1 auto;border-radius:14px;padding:6px 8px}

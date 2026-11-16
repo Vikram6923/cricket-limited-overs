@@ -127,6 +127,9 @@ class WaitingController(Controller):
         for k, v in (auto or {}).items():
             if k in KINDS:
                 (self.manual_kinds.discard if v else self.manual_kinds.add)(k)
+        s = self.skip
+        if q.get("kind") == "result" and s and s["scope"] != "all" and s["match"] == q.get("match_key"):
+            self.skip = None               # that match is over: the skip no longer applies (nor is it reported)
         if skip in ("innings", "match", "all"):
             self.skip = {"scope": skip, "match": q.get("match_key"), "innings": q.get("innings")}
         self._reply = choice
