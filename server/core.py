@@ -44,7 +44,7 @@ from engine import domestic
 from engine.leagues import LEAGUES, ui_info as league_info
 from engine.data import ratings
 from engine.render import full_text, match_report
-from engine.tournament import match_count, play_series, play_tournament, save
+from engine.tournament import KO_NEED, match_count, play_series, play_tournament, save
 from engine.test_series import SIZES as TEST_SIZES, nation_of, play_test_series
 from engine.test_tournament import WTC_TESTS, play_wtc, wtc_match_count
 
@@ -78,7 +78,8 @@ LIMITED = ("t20", "odi")
 FMTS = LIMITED + ("test",)
 FMT_NAME = history.FMT_NAME
 TEST_MODES = ("series", "tournament", "draft", "auction", "wtc")       # the run modes a Test can be played in
-TEST_LENGTHS = ("3", "4", "5", "6", "timeless")       # days in a Test (a series or a two-player room chooses)
+TEST_LENGTHS = ("3", "4", "5", "6", "timeless")       # days in a Test (every mode that plays Tests chooses)
+SERIES_MAX = 10                # matches in a limited-overs series (a Test series: engine/test_series.py SIZES)
 
 
 def test_options(p: dict) -> dict:
@@ -94,6 +95,16 @@ def test_options(p: dict) -> dict:
     return kw
 
 
+def test_length_words(p: dict) -> str:
+    """", six-day Tests" / ", timeless Tests" / ", day-night": the conditions chosen, for a run's title."""
+    n = str(p.get("length") or "5")
+    words = {"3": "three-day Tests", "4": "four-day Tests", "6": "six-day Tests", "timeless": "timeless Tests"}
+    out = [words[n]] if n in words else []
+    if p.get("day_night"):
+        out.append("day-night")
+    return "".join(f", {w}" for w in out)
+
+
 NOT_FOR_TESTS = ("Tests can be played as a Match / Series, a Tournament, the World Test Championship, a draft "
                  "or auction league, a Test career, or a Two players game; this mode is for T20 and ODI.")
 
@@ -103,8 +114,33 @@ COMP_LABELS = {
     "odi_full": "ODIs (full members)", "odi": "ODIs (all teams)",
     "test_full": "Tests (full members)", "test": "Tests (all teams)",
 }
-KNOCKOUTS = {"semis": "Semi-finals + final", "ipl": "IPL playoffs (Q1, Eliminator, Q2, Final)",
+KNOCKOUTS = {"semis": "Semi-finals + final", "qf": "Quarter-finals, semi-finals + final",
+             "ipl": "IPL playoffs (Q1, Eliminator, Q2, Final)",
              "final": "Final (top two)", "none": "No knockouts (league winner)"}
+ROUNDS = (1, 2, 3, 4)          # times round the league (single, double, triple, quadruple round robin)
+GROUPS = (1, 2, 4)             # groups in a league stage
+
+
+def league_format_error(n_teams: int, rounds: int, groups: int, ko: str) -> str | None:
+    """Why n_teams cannot play this league stage and knockout, or None. Four groups send their best one (semi-
+    finals) or two (quarter-finals) on; each group needs at least two sides and as many as it sends on."""
+    if ko not in KNOCKOUTS:
+        return "Unknown knockout format."
+    if rounds not in ROUNDS:
+        return "A league is played once, twice, three or four times round."
+    if groups not in GROUPS:
+        return "A league stage has one, two or four groups."
+    need = KO_NEED.get(ko, 1)
+    if groups > 1 and ko == "ipl":
+        return "IPL playoffs need a single league (1 group)."
+    if groups == 4 and ko not in ("semis", "qf"):
+        return "Four groups need semi-finals or quarter-finals."
+    least = groups * max(2, need // groups)
+    if groups > 1 and n_teams < least:
+        return f"{'Two' if groups == 2 else 'Four'} groups need at least {least} teams."
+    if n_teams < need:
+        return f"This knockout format needs at least {need} teams."
+    return None
 
 app = Flask(__name__, static_folder=None)
 # MULTI (set by --public): every browser is its own visitor. Otherwise everyone shares LOCAL (one person, maybe

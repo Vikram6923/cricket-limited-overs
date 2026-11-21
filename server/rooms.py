@@ -13,8 +13,8 @@ from .runs import *  # noqa: F401,F403
 MP_GONE = 60          # seconds without a poll before the other player may hand that side to the computer
 MP_CLOCKS = {"off": None, "10": 10, "20": 20}
 MP_CAPTAIN_CLOCK = 60  # with a shot clock: toss, XI, bowler, batter, Impact Player decisions
-MP_SERIES = (1, 3, 5)  # a single match or best of 3 / 5 (stops once decided)
-MP_TESTS = (1, 2, 3, 5)  # a Test room: one Test or a series of 2, 3 or 5 (every Test is played)
+MP_SERIES = (1, 3, 5, 7)  # a single match or best of 3 / 5 / 7 (stops once decided)
+MP_TESTS = (1, 2, 3, 4, 5)  # a Test room: one Test or a series of 2 to 5 (every Test is played)
 MP_HOSTS = ("neutral", "home", "away")   # a Test room: neutral grounds, the host player's country, the guest's
 MP_CPU = (0, 2, 4, 6)  # draft / auction: computer teams that pick or bid too, then play a league with the two players
 MP_BID_CLOCK = 15     # auction with a shot clock: seconds per bid (then a pass); other auction questions 60 s

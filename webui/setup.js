@@ -9,6 +9,8 @@ function setMode(m, show = true) {
   if (m === 'career') drawCareers();
   $('go-wrap').style.display = b ? 'none' : ''; $('cond').style.display = b || m === 'league' || m === 'domestic' || m === 'career' ? 'none' : '';
   $('mp-clock-box').style.display = m === 'mp' ? '' : 'none';
+  // a Test's length: a series and the WTC choose it in their own form, a two-player room in the room
+  $('g-test-box').style.display = ['tournament', 'classic_t', 'draft', 'auction'].includes(m) ? '' : 'none';
   if (m === 'mp') mpPane('');
   if (m === 'auction') aRefresh();
   testModeGuard();
@@ -172,11 +174,24 @@ function fillTeams() {
   updateTournamentTotal(); updateWtcTotal(); drawSavedTeams();
 }
 const wtcTeams = () => [...document.querySelectorAll('#w-list input:checked')].map(i => i.value);
-function updateWtcTotal() {
-  const k = wtcTeams().length, each = Math.min(3, Math.floor((k - 1) / 2)), n = +$('w-n').value || 2;
-  $('w-total').textContent = k < 3 ? `${k} selected: pick at least 3`
-    : `${k} teams · ${2 * each} series each · ${k * each * n + 1} Tests`;
+/* series each side plays at home (as many away): the usual cycle (3, fewer with under seven sides), 1 to k - 1,
+   or every other side home and away */
+function drawWtcHome(k) {
+  const sel = $('w-home'), keep = sel.value, usual = Math.min(3, Math.floor((k - 1) / 2));
+  const opts = [{v: '', t: `${usual} at home, ${usual} away${usual === 3 ? ' (as the real cycle)' : ''}`}];
+  for (let i = 1; i < k - 1; i++) if (i !== usual) opts.push({v: String(i), t: `${i} at home, ${i} away`});
+  if (k > 2) opts.push({v: 'all', t: `Every other side at home and away (${k - 1} + ${k - 1})`});
+  sel.innerHTML = opts.map(o => `<option value="${o.v}">${o.t}</option>`).join('');
+  sel.value = opts.some(o => o.v === keep) ? keep : '';
 }
+function updateWtcTotal() {
+  const k = wtcTeams().length, n = +$('w-n').value || 2;
+  drawWtcHome(k);
+  const h = $('w-home').value, each = h === 'all' ? k - 1 : h ? +h : Math.min(3, Math.floor((k - 1) / 2));
+  $('w-total').textContent = k < 3 ? `${k} selected: pick at least 3`
+    : `${k} teams · ${2 * each} series each · ${k * each * n + 1} Tests${WTC_LEN[$('w-length').value] || ''}`;
+}
+const WTC_LEN = {3: ' · three days', 4: ' · four days', 6: ' · six days', timeless: ' · timeless'};
 function showRoster(selId, outId) {
   const t = META.teams.find(t => t.name === $(selId).value);
   $(outId).innerHTML = t ? `<div class="rhead">${badge(t.name)}<span class="muted small full-only">${t.players.length} players</span></div>
@@ -188,7 +203,7 @@ function filterTeams() {
 }
 function matchCount(k, rounds, groups, ko) {
   const sizes = groups > 1 ? [...Array(groups).keys()].map(g => Math.ceil((k - g) / groups)) : [k];
-  return rounds * sizes.reduce((a, s) => a + s * (s - 1) / 2, 0) + {semis: 3, ipl: 4, final: 1, none: 0}[ko];
+  return rounds * sizes.reduce((a, s) => a + s * (s - 1) / 2, 0) + {semis: 3, qf: 7, ipl: 4, final: 1, none: 0}[ko];
 }
 function updateTournamentTotal() {
   const k = document.querySelectorAll('#t-list input:checked').length;

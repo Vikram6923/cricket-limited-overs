@@ -43,7 +43,7 @@
   <div class="form on" id="f-series">
     <div class="fg"><label>Team 1</label><select id="s-t1"></select><div class="roster" id="s-r1"></div></div>
     <div class="fg"><label>Team 2</label><select id="s-t2"></select><div class="roster" id="s-r2"></div></div>
-    <div class="fg"><label class="match-word">Matches</label><input type="number" id="s-n" value="3" min="1" max="7" data-chips="1,3,5,7"></div>
+    <div class="fg"><label class="match-word">Matches</label><input type="number" id="s-n" value="3" min="1" max="10" data-chips="1,2,3,4,5,7,10"></div>
     <div class="fg test-only"><label>Played in</label><select id="s-host"><option value="home">Team 1's country (Team 1 at home)</option>
       <option value="away">Team 2's country (Team 2 at home)</option><option value="neutral">Neutral grounds (no home side)</option></select>
       <div class="hint full-only" style="margin:4px 0 0">The host's grounds are used in turn, with its weather; the home side bats a little better than its ratings, as real home sides do.</div></div>
@@ -91,8 +91,8 @@
     <div class="fg"><label>Format</label><div class="picker chips" id="t-preset"></div></div>
     <details class="more" id="more-tournament"><summary>More options</summary>
     <div class="seg2">
-      <div class="fg"><label>Rounds</label><select id="t-rounds"><option value="1">Single round robin</option><option value="2">Double (home and away)</option></select></div>
-      <div class="fg"><label>Groups</label><select id="t-groups"><option value="1">One league</option><option value="2">Two groups</option></select></div>
+      <div class="fg"><label>Rounds</label><select id="t-rounds"><option value="1">Single round robin</option><option value="2">Double (home and away)</option><option value="3">Triple round robin</option><option value="4">Quadruple round robin</option></select></div>
+      <div class="fg"><label>Groups</label><select id="t-groups"><option value="1">One league</option><option value="2">Two groups</option><option value="4">Four groups</option></select></div>
     </div>
     <div class="fg"><label>Knockouts</label><select id="t-ko"></select></div>
     </details>
@@ -103,7 +103,15 @@
   <div class="form" id="f-wtc">
     <p class="hint">Every side plays six series, three at home and three away (fewer with under seven sides), for 12 points a win, 4 a draw and 6 a tie. The two sides with the highest share of their points meet in the final at Lord's.</p>
     <div class="fg"><label>Teams</label><div class="checklist" id="w-list"></div></div>
-    <div class="fg"><label>Tests in each series</label><input type="number" id="w-n" min="1" max="5" value="2" data-chips="1,2,3,5"></div>
+    <div class="fg"><label>Tests in each series</label><input type="number" id="w-n" min="1" max="6" value="2" data-chips="1,2,3,4,5,6"></div>
+    <div class="fg"><label>Length of a Test</label><select id="w-length"><option value="5">Five days</option><option value="4">Four days</option><option value="3">Three days</option><option value="6">Six days</option><option value="timeless">Timeless (played to a finish)</option></select>
+      <div class="hint full-only" style="margin:4px 0 0">Every Test of the cycle and the final. A timeless Test is played to a finish, with no declarations.</div></div>
+    <div class="fg"><div class="checks"><label><input type="checkbox" id="w-dn"> Day-night Tests (pink ball)</label></div>
+      <div class="hint full-only" style="margin:4px 0 0">Wickets fall about a fifth faster, as they have in the 25 day-night Tests played so far.</div></div>
+    <details class="more" id="more-wtc"><summary>More options</summary>
+    <div class="fg"><label>Series for each side</label><select id="w-home"></select>
+      <div class="hint full-only" style="margin:4px 0 0">As many at home as away. More series than half the other sides means some meet twice, once at each one's home.</div></div>
+    </details>
     <div class="total" id="w-total"></div>
   </div>
 
@@ -115,7 +123,7 @@
       <li>Ratings are relative to each era, so any two eras meet fairly.</li></ul></details>
     <div class="fg"><label>Team 1 (from, to, nation)</label><div id="cs-r1"></div></div>
     <div class="fg"><label>Team 2 (from, to, nation)</label><div id="cs-r2"></div></div>
-    <div class="fg"><label class="match-word">Matches</label><input type="number" id="cs-n" value="3" min="1" max="7" data-chips="1,3,5,7"></div>
+    <div class="fg"><label class="match-word">Matches</label><input type="number" id="cs-n" value="3" min="1" max="10" data-chips="1,2,3,4,5,7,10"></div>
     <div class="fg test-only"><label>Played in</label><select id="cs-host"><option value="home">Team 1's country (Team 1 at home)</option>
       <option value="away">Team 2's country (Team 2 at home)</option><option value="neutral">Neutral grounds (no home side)</option></select>
       <div class="hint full-only" style="margin:4px 0 0">The host's grounds are used in turn, with its weather; the home side bats a little better than its ratings, as real home sides do.</div></div>
@@ -138,8 +146,8 @@
     <div class="fg"><label>Format</label><div class="picker chips" id="ct-preset"></div></div>
     <details class="more" id="more-classic_t"><summary>More options</summary>
     <div class="seg2">
-      <div class="fg"><label>Rounds</label><select id="ct-rounds"><option value="1">Single round robin</option><option value="2">Double (home and away)</option></select></div>
-      <div class="fg"><label>Groups</label><select id="ct-groups"><option value="1">One league</option><option value="2">Two groups</option></select></div>
+      <div class="fg"><label>Rounds</label><select id="ct-rounds"><option value="1">Single round robin</option><option value="2">Double (home and away)</option><option value="3">Triple round robin</option><option value="4">Quadruple round robin</option></select></div>
+      <div class="fg"><label>Groups</label><select id="ct-groups"><option value="1">One league</option><option value="2">Two groups</option><option value="4">Four groups</option></select></div>
     </div>
     <div class="fg"><label>Knockouts</label><select id="ct-ko"></select></div>
     <div class="fg"><label>Squad</label><select class="c-squad"></select></div>
@@ -228,7 +236,7 @@
       <li>Then the squads play a league.</li></ul></details>
     <div class="fg"><label>Player pool years</label>
       <div class="era"><input type="number" id="d-ya" value="2015"><span class="to">to</span><input type="number" id="d-yb" value="2025"></div><div class="err" id="d-e"></div></div>
-    <div class="fg"><label>Number of teams</label><input type="number" id="d-k" value="6" min="2" max="12"></div>
+    <div class="fg"><label>Number of teams</label><input type="number" id="d-k" value="6" min="2" max="16"></div>
     <div class="fg"><label>You draft for</label><select id="d-user"></select></div>
     <details class="more" id="more-draft"><summary>More options</summary>
     <div class="fg"><label>Team names</label><div id="d-names"></div></div>
@@ -241,7 +249,7 @@
       <option value="blend">Blended with the career (most accurate)</option>
       <option value="only">Those years only (closer to what they did then, noisier)</option></select></div>
     <div class="seg2">
-      <div class="fg"><label>Rounds</label><select id="d-rounds"><option value="1">Single round robin</option><option value="2">Double (home and away)</option></select></div>
+      <div class="fg"><label>Rounds</label><select id="d-rounds"><option value="1">Single round robin</option><option value="2">Double (home and away)</option><option value="3">Triple round robin</option><option value="4">Quadruple round robin</option></select></div>
       <div class="fg"><label>Knockouts</label><select id="d-ko"></select></div>
     </div>
     </details>
@@ -297,10 +305,10 @@
         <option value="only">Those years only (noisier)</option></select></div>
       <div class="fg"><label>Home nation (others are overseas)</label><select id="a-home"></select>
         <div class="hint full-only" style="margin:4px 0 0">Overseas limits apply only if the pool has enough home players to fill the squads.</div></div>
-      <div class="fg"><label>Number of teams</label><input type="number" id="a-k" value="8" min="2" max="12"></div>
+      <div class="fg"><label>Number of teams</label><input type="number" id="a-k" value="8" min="2" max="16"></div>
       <div class="fg"><label>Team names</label><div id="a-names"></div></div>
       <div class="seg2">
-        <div class="fg"><label>Rounds</label><select id="a-rounds"><option value="1">Single round robin</option><option value="2" selected>Double (home and away)</option></select></div>
+        <div class="fg"><label>Rounds</label><select id="a-rounds"><option value="1">Single round robin</option><option value="2" selected>Double (home and away)</option><option value="3">Triple round robin</option><option value="4">Quadruple round robin</option></select></div>
         <div class="fg"><label>Knockouts</label><select id="a-ko"></select></div>
       </div>
     </div>
@@ -397,6 +405,9 @@
       <div class="checklist vlist" id="c-vlist"></div>
       <div class="hint test-only" style="margin:4px 0 0">None ticked = the host's own grounds. Ticked grounds are used in turn; each brings its country's weather.</div>
       <div class="hint lo-only" style="margin:4px 0 0">None ticked = neutral. Ticked grounds are used in turn.<span class="full-only"> Tournaments: each side plays its home games at its home ground; these venues are used for knockouts and sides without one.</span></div></div>
+    <div id="g-test-box" class="test-only"><div class="fg"><label>Length of a Test</label><select id="g-length"><option value="5">Five days</option><option value="4">Four days</option><option value="3">Three days</option><option value="6">Six days</option><option value="timeless">Timeless (played to a finish)</option></select></div>
+      <div class="fg"><div class="checks"><label><input type="checkbox" id="g-dn"> Day-night Tests (pink ball)</label></div>
+        <div class="hint full-only" style="margin:4px 0 0">Wickets fall about a fifth faster, as they have in the 25 day-night Tests played so far.</div></div></div>
     <div class="fg"><label>Replay code (optional)</label><input type="text" id="c-seed" placeholder="random"></div>
     <div class="fg lo-only"><label><input type="checkbox" id="c-rain" checked style="width:auto;margin-right:6px">Rain (DLS)</label><div class="hint full-only" style="margin:4px 0 0">Interruptions as often as in real matches in the host country (from the venue; neutral = average).</div></div>
     </details>

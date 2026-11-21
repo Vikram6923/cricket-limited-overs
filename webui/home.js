@@ -312,7 +312,7 @@ async function init() {
   $('t-search').oninput = filterTeams;
   fillConditions(); fillTeams(); initClassic(); initDraftForm(); initAuctionForm(); initCareerForm(); initLeague(); initDomestic(); initBuilder(); initMatchNav();
   document.querySelectorAll('input[data-chips]').forEach(numChips);
-  $('w-n').addEventListener('change', updateWtcTotal);
+  $('w-n').addEventListener('change', updateWtcTotal); $('w-home').addEventListener('change', updateWtcTotal); $('w-length').addEventListener('change', updateWtcTotal);
   presetChips($('t-preset'), 't'); presetChips($('ct-preset'), 'ct');
   const teamsChanged = () => { capOptions(); autoConds(); };      // the captain chips list the teams chosen
   ['s-t1', 's-t2'].forEach(id => $(id).addEventListener('change', teamsChanged));

@@ -103,6 +103,7 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
         if job.controllers:                    # two players, each captaining a side
             control = dict(job.controllers)
         skill = AllBut(params.get("opponents") or "expert", job.controller.team) if job.controller else None
+        test_kw = test_options(params) if fmt == "test" else {}   # every Test's length and ball (a Test competition)
         if params["mode"] == "league":
             s = league_season(params["league"], params.get("season"))
             specs = [{"name": t["name"], "squad": t["players"], "overseas": t["overseas"],
@@ -123,7 +124,7 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             res = play_tournament(dr.team_specs(), fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, seed=seed, rain=rain_,
-                                  on_match=on_match, control=control, skill=skill)
+                                  on_match=on_match, control=control, skill=skill, match_kw=test_kw)
             res["draft"] = {"teams": dr.teams, "user": dr.user,
                             "board": dr.state()["board"], "years": [dr.y1, dr.y2]}
         elif params["mode"] == "auction":
@@ -135,7 +136,8 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             else:
                 res = play_tournament(a.team_specs(), fmt=fmt, comp=comp, year=year,
                                       rounds=int(params.get("rounds") or 1), knockout=params.get("knockout") or "semis",
-                                      venues=venues_, seed=seed, rain=rain_, on_match=on_match, control=control, skill=skill)
+                                      venues=venues_, seed=seed, rain=rain_, on_match=on_match, control=control, skill=skill,
+                                      match_kw=test_kw)
             sm = a.summary()
             res["draft"] = {"teams": sm["teams"], "user": sm["user"], "board": sm["board"], "auction": True,
                             "purse": sm["purse"]}
@@ -147,7 +149,7 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
         elif params["mode"] == "mp" and len(params.get("specs") or []) > 2:   # two players + computer teams
             res = play_tournament(params["specs"], fmt=fmt, comp=comp, year=year, rounds=int(params.get("rounds") or 1),
                                   knockout=params["knockout"], venues=venues_, home_venues=params.get("homes") or None,
-                                  seed=seed, rain=rain_, on_match=on_match, control=control)
+                                  seed=seed, rain=rain_, on_match=on_match, control=control, match_kw=test_kw)
             res["draft"] = params["draft_info"]
         elif params["mode"] == "mp" and fmt == "test":   # two players: a Test or a Test series, every Test played
             a, b = params["specs"]
@@ -179,7 +181,8 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
         elif params["mode"] == "wtc":          # the World Test Championship: home and away series, then a final
             specs = [team_spec(t, fmt, size, ym, v) for t in params["teams"]]
             res = play_wtc(specs, comp=comp, year=year, tests=int(params.get("tests") or 2), seed=seed,
-                           on_match=on_match, control=control, skill=skill)
+                           on_match=on_match, control=control, skill=skill,
+                           home_series=params.get("home_series") or None, **test_kw)
         elif params["mode"] == "series":
             res = play_series(team_spec(params["team1"], fmt, size, ym, v), team_spec(params["team2"], fmt, size, ym, v),
                               n=int(params["matches"]),
@@ -194,7 +197,8 @@ def _run(job: Job, params: dict, v: Visitor) -> None:
             res = play_tournament(specs, fmt=fmt, comp=comp, year=year,
                                   rounds=int(params.get("rounds") or 1), groups=groups if groups > 1 else None,
                                   knockout=params.get("knockout") or "semis", venues=venues_, home_venues=homes,
-                                  seed=seed, rain=rain_, on_match=on_match, control=control, skill=skill)
+                                  seed=seed, rain=rain_, on_match=on_match, control=control, skill=skill,
+                                  match_kw=test_kw)
         res["title"] = job.title
         res["mode"] = params["mode"]
         if job.controller:                     # how the person's calls compared with the computer's
@@ -385,6 +389,8 @@ def api_run():
         test = fmt == "test"
         if test and p.get("mode") not in TEST_MODES and not test_career_run:
             return jsonify(error=NOT_FOR_TESTS), 400
+        if test and str(p.get("length") or "5") not in TEST_LENGTHS:
+            return jsonify(error="A Test lasts three, four, five or six days, or is timeless."), 400
         label = lambda e: history.team_name(e["nation"], int(e["y1"]), int(e["y2"])) if isinstance(e, dict) else e
         if p.get("mode") == "series":
             a, b = p.get("team1"), p.get("team2")
@@ -399,11 +405,10 @@ def api_run():
                 return jsonify(error=f"A Test series has {TEST_SIZES[0]} to {TEST_SIZES[-1]} matches."), 400
             if test and p.get("host") not in (None, "", "home", "away", "neutral"):
                 return jsonify(error="The series is played at home, away or on neutral grounds."), 400
-            if test and str(p.get("length") or "5") not in TEST_LENGTHS:
-                return jsonify(error="A Test lasts three, four, five or six days, or is timeless."), 400
-            if not 1 <= n <= 7:
-                return jsonify(error="A series has 1 to 7 matches."), 400
+            if not 1 <= n <= SERIES_MAX:
+                return jsonify(error=f"A series has 1 to {SERIES_MAX} matches."), 400
             title = f"{a} v {b}" + (f" - {n}-{'Test' if test else 'match'} series" if n > 1 else "")
+            title += test_length_words(p) if test else ""
             sides = [a, b]
             total = n
         elif p.get("mode") == "league":
@@ -439,13 +444,11 @@ def api_run():
             teams = dr.teams
             groups = int(p.get("groups") or 1)
             ko = p.get("knockout") or "semis"
-            if ko not in KNOCKOUTS:
-                return jsonify(error="Unknown knockout format."), 400
-            need = {"semis": 4, "ipl": 4, "final": 2, "none": 1}[ko]
-            if len(teams) < need or (groups > 1 and (ko == "ipl" or len(teams) < 4)):
-                return jsonify(error="Not enough teams for these knockouts / groups."), 400
+            err = league_format_error(len(teams), int(p.get("rounds") or 1), groups, ko)
+            if err:
+                return jsonify(error=err), 400
             total = match_count(len(teams), int(p.get("rounds") or 1), groups if groups > 1 else None, ko)
-            title = f"Fantasy draft league - {len(teams)} teams, players from {dr.y1}-{dr.y2}"
+            title = f"Fantasy draft league - {len(teams)} teams, players from {dr.y1}-{dr.y2}" + (test_length_words(p) if test else "")
             sides = list(teams)
         elif p.get("mode") == "auction":
             a = v.auction
@@ -458,12 +461,11 @@ def api_run():
                 if a.fmt != fmt:
                     return jsonify(error=f"The squads were bought for {a.fmt.upper()}."), 400
                 ko = p.get("knockout") or "semis"
-                if ko not in KNOCKOUTS:
-                    return jsonify(error="Unknown knockout format."), 400
-                if len(a.teams) < {"semis": 4, "ipl": 4, "final": 2, "none": 1}[ko]:
-                    return jsonify(error="Not enough teams for these knockouts."), 400
+                err = league_format_error(len(a.teams), int(p.get("rounds") or 1), 1, ko)
+                if err:
+                    return jsonify(error=err), 400
                 total = match_count(len(a.teams), int(p.get("rounds") or 1), None, ko)
-            title = f"Auction league - {a.label}, {len(a.teams)} teams"
+            title = f"Auction league - {a.label}, {len(a.teams)} teams" + (test_length_words(p) if test else "")
             if p.get("captain") and p["captain"] != a.user:
                 return jsonify(error="You can captain the team you bought for."), 400
             if p.get("captain"):
@@ -491,10 +493,19 @@ def api_run():
             if err:
                 return jsonify(error=err), 400
             if str(p.get("tests") or 2) not in map(str, WTC_TESTS):
-                return jsonify(error="A Championship series has 1, 2, 3 or 5 Tests."), 400
+                return jsonify(error=f"A Championship series has {WTC_TESTS[0]} to {WTC_TESTS[-1]} Tests."), 400
             p["tests"] = int(p.get("tests") or 2)
-            total = wtc_match_count(len(teams), p["tests"])
-            title = f"World Test Championship - {len(teams)} teams, {p['tests']}-Test series"
+            hs = str(p.get("home_series") or "").strip()      # "" the usual cycle, a number, or "all"
+            if hs == "all":
+                p["home_series"] = len(teams) - 1
+            elif hs:
+                if not hs.isdigit() or not 1 <= int(hs) <= len(teams) - 1:
+                    return jsonify(error=f"With {len(teams)} teams each plays 1 to {len(teams) - 1} series at home."), 400
+                p["home_series"] = int(hs)
+            else:
+                p["home_series"] = None
+            total = wtc_match_count(len(teams), p["tests"], p["home_series"])
+            title = f"World Test Championship - {len(teams)} teams, {p['tests']}-Test series" + test_length_words(p)
             sides = [label(e) for e in teams]
         elif p.get("mode") == "tournament":
             teams = p.get("teams") or []
@@ -505,17 +516,11 @@ def api_run():
                 return jsonify(error=err), 400
             groups = int(p.get("groups") or 1)
             ko = p.get("knockout") or "semis"
-            if ko not in KNOCKOUTS:
-                return jsonify(error="Unknown knockout format."), 400
-            need = {"semis": 4, "ipl": 4, "final": 2, "none": 1}[ko]
-            if groups > 1 and ko == "ipl":
-                return jsonify(error="IPL playoffs need a single league (1 group)."), 400
-            if groups > 1 and len(teams) < 2 * max(2, need // groups):
-                return jsonify(error=f"Two groups need at least {2 * max(2, need // groups)} teams."), 400
-            if len(teams) < need:
-                return jsonify(error=f"This knockout format needs at least {need} teams."), 400
+            err = league_format_error(len(teams), int(p.get("rounds") or 1), groups, ko)
+            if err:
+                return jsonify(error=err), 400
             total = match_count(len(teams), int(p.get("rounds") or 1), groups if groups > 1 else None, ko)
-            title = f"Tournament - {len(teams)} teams"
+            title = f"Tournament - {len(teams)} teams" + (test_length_words(p) if test else "")
             sides = [label(e) for e in teams]
         else:
             return jsonify(error="Unknown mode."), 400

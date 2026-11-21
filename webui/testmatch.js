@@ -139,15 +139,15 @@ function testChartsHTML(c) {
 
 /* ── the set-up form: what changes when the format is Test ── */
 const TEST_MODES = ['series', 'classic', 'mp', 'tournament', 'classic_t', 'draft', 'auction', 'wtc'];
-const MP_PLAY_OPTS = {lo: [[1, '1 match'], [3, 'Best of 3'], [5, 'Best of 5']],
-  test: [[1, '1 Test'], [2, '2 Tests'], [3, '3 Tests'], [5, '5 Tests']]};
+const MP_PLAY_OPTS = {lo: [[1, '1 match'], [3, 'Best of 3'], [5, 'Best of 5'], [7, 'Best of 7']],
+  test: [[1, '1 Test'], [2, '2 Tests'], [3, '3 Tests'], [4, '4 Tests'], [5, '5 Tests']]};
 function fmtChanged() {
   const test = $('c-fmt').value === 'test';
   document.body.classList.toggle('fmt-test', test);
   ['s-n', 'cs-n'].forEach(id => {
     const inp = $(id);
-    inp.dataset.chips = test ? '1,2,3,5' : '1,3,5,7';
-    if (!inp.dataset.chips.split(',').includes(String(+inp.value))) inp.value = test ? (+inp.value > 5 ? 5 : 3) : 3;
+    inp.dataset.chips = test ? '1,2,3,4,5,6' : '1,2,3,4,5,7,10';
+    if (!inp.dataset.chips.split(',').includes(String(+inp.value))) inp.value = test ? (+inp.value > 6 ? 6 : 3) : 3;
     inp.dispatchEvent(new Event('change'));
   });
   document.querySelectorAll('.match-word').forEach(e => e.textContent = test ? 'Tests' : 'Matches');

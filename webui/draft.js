@@ -14,7 +14,7 @@ function initDraftForm() {
   buildDraftNames();
 }
 function buildDraftNames() {
-  const k = Math.max(2, Math.min(12, +$('d-k').value || 2));
+  const k = Math.max(2, Math.min(16, +$('d-k').value || 2));
   const box = $('d-names'), old = [...box.querySelectorAll('input')].map(i => i.value);
   box.innerHTML = '';
   for (let i = 0; i < k; i++) {

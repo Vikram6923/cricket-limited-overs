@@ -30,7 +30,7 @@ from .tournament import _Runner, _seed, _wins, team_spec
 FMT = "test"
 POINTS = {"win": 12, "tie": 6, "draw": 4}
 WTC_SERIES = 3                 # each side plays this many series at home and as many away (the real cycle: 3)
-WTC_TESTS = (1, 2, 3, 5)       # Tests in each series
+WTC_TESTS = (1, 2, 3, 4, 5, 6)  # Tests in each series
 WTC_FINAL = "Lord's"           # where the final is played, when the ground is known
 
 
@@ -96,9 +96,10 @@ class TestRunner(_Runner):
 
     def __init__(self, comp: str | None, year: int, seed: int | None, venues: list | None,
                  home_venues: dict | None, knockout_venues: list | None, control: dict | None = None,
-                 skill: dict | None = None):
+                 skill: dict | None = None, match_kw: dict | None = None):
         super().__init__(FMT, comp, year, seed, venues, home_venues, knockout_venues, False, control, skill)
         self.hosted: Counter = Counter()       # home Tests so far, by side (its grounds in rotation)
+        self.match_kw = dict(match_kw or {})   # every Test's conditions: days, timeless, day_night (test_match)
 
     def table(self, cards, names, win_points):
         return test_table(cards, names)
@@ -135,7 +136,7 @@ class TestRunner(_Runner):
         venue, host = self.ground(a, knockout)
         for ctl in self.control.values():
             ctl.context = {"stage": stage, "match_no": no, "knockout": knockout, "venue": venue}
-        args = {"host": host} if host else {}
+        args = {**self.match_kw, **({"host": host} if host else {})}
         card = simulate_match(a, b, fmt=FMT, comp=self.comp, year=self.year, venue=venue, seed=_seed(self.seed, no),
                               control=self.control or None, skill=self.skill or None, **args)
         if knockout and not card["result"].get("winner"):
@@ -154,42 +155,55 @@ class TestRunner(_Runner):
 
 # ------------------------------------------------------------------------------------- World Test Championship
 
-def wtc_series(names: list[str], seed: int) -> list[tuple[str, str]]:
+def wtc_home_series(n_teams: int, home_series: int | None = None) -> int:
+    """Series each side plays at home: home_series (at most one fewer than the sides), or by default
+    WTC_SERIES when there are enough sides (seven or more), else as many as let nobody meet twice."""
+    if home_series:
+        return min(home_series, n_teams - 1)
+    return min(WTC_SERIES, (n_teams - 1) // 2)
+
+
+def wtc_series(names: list[str], seed: int, home_series: int | None = None) -> list[tuple[str, str]]:
     """(home, away) for every series of a cycle. The sides stand in a ring in an order drawn from the seed; each
-    is at home to the next k and away to the k before, k = WTC_SERIES when there are enough sides (seven or
-    more), else as many as let nobody meet twice. Nine sides: six series each, three at home, and two sides
-    each never meets, as in the real cycle."""
+    is at home to the next k and away to the k before (k: wtc_home_series). Nine sides by default: six series
+    each, three at home, and two sides each never meets, as in the real cycle. With k above half the sides, some
+    pairs meet twice, once at each one's home; k = sides - 1 is every side home and away to every other."""
     ring = list(names)
     random.Random(_seed(seed, 0)).shuffle(ring)
     n = len(ring)
-    k = min(WTC_SERIES, (n - 1) // 2)
+    k = wtc_home_series(n, home_series)
     return [(ring[i], ring[(i + d) % n]) for d in range(1, k + 1) for i in range(n)]
 
 
-def wtc_match_count(n_teams: int, tests: int = 2) -> int:
-    return n_teams * min(WTC_SERIES, (n_teams - 1) // 2) * tests + 1
+def wtc_match_count(n_teams: int, tests: int = 2, home_series: int | None = None) -> int:
+    return n_teams * wtc_home_series(n_teams, home_series) * tests + 1
 
 
 def play_wtc(teams: list[dict], comp: str | None = None, year: int = 2025, tests: int = 2,
              seed: int | None = None, on_match=None, control: dict | None = None, skill: dict | None = None,
-             final_venue: str | None = WTC_FINAL) -> dict:
+             final_venue: str | None = WTC_FINAL, home_series: int | None = None, **kw) -> dict:
     """A World Test Championship cycle: every side plays series of `tests` Tests, half of them at home (three
     at home and three away with seven sides or more), for 12 points a win, 6 a tie and 4 a draw; the two sides
     with the highest share of their points won meet in a final (at final_venue; None: a neutral ground with no
-    name). The result has the shape of a tournament's (engine/tournament.py) with "wtc": the series played."""
+    name). home_series: series each side plays at home (and as many away) instead, up to one fewer than the
+    sides (then every side meets every other at home and away). kw goes to every Test (engine/test_match.py:
+    days, timeless, day_night). The result has the shape of a tournament's (engine/tournament.py) with "wtc":
+    the series played."""
     if tests not in WTC_TESTS:
-        raise ValueError(f"A Championship series has {', '.join(map(str, WTC_TESTS[:-1]))} or {WTC_TESTS[-1]} Tests.")
+        raise ValueError(f"A Championship series has {WTC_TESTS[0]} to {WTC_TESTS[-1]} Tests.")
+    if home_series is not None and home_series < 1:
+        raise ValueError("Each side plays at least one series at home.")
     specs = [team_spec(FMT, t) for t in teams]
     by_name = {t["name"]: t for t in specs}
     if len(by_name) != len(specs):
         raise ValueError("team names must be unique")
     if len(specs) < 3:
         raise ValueError("A World Test Championship needs at least three sides.")
-    run = TestRunner(comp, year, seed, None, None, [final_venue] if final_venue else None, control, skill)
+    run = TestRunner(comp, year, seed, None, None, [final_venue] if final_venue else None, control, skill, kw)
     run.on_match = on_match
     names = [t["name"] for t in specs]
     series = []
-    for home, away in wtc_series(names, run.seed):
+    for home, away in wtc_series(names, run.seed, home_series):
         start = len(run.cards)
         for j in range(tests):
             run.play(by_name[home], by_name[away], f"{home} v {away}, " + ("only Test" if tests == 1 else f"{ORDINALS[j]} Test"))
@@ -210,7 +224,8 @@ def play_wtc(teams: list[dict], comp: str | None = None, year: int = 2025, tests
     return {"kind": "tournament", "format": FMT, "competition": run.comp, "year": year, "seed": run.seed,
             "settings": {"rounds": 1, "groups": {"League": names}, "knockout": "final",
                          "win_points": POINTS["win"], "advance": None},
-            "wtc": {"tests": tests, "series": series, "final_venue": c.get("venue")},
+            "wtc": {"tests": tests, "home_series": wtc_home_series(len(names), home_series), "series": series,
+                    "final_venue": c.get("venue")},
             "teams": names, "tables": {"League": table}, "knockouts": ko, "super_league": {},
             "winner": c["result"]["winner"], "runner_up": c["result"]["loser"],
             "player_of_series": stats["mvp"]["official"][0] if stats["mvp"]["official"] else None,

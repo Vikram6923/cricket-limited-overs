@@ -149,6 +149,24 @@ def test_quarter_finals_from_four_groups():
         assert sum(r["points"] for r in rows) == 4 * sum(r["won"] for r in rows) + 2 * sum(r["tied"] for r in rows)
 
 
+def test_semi_finals_from_four_groups_and_more_rounds():
+    """The page's wider choices: four groups (the group winners meet in the semi-finals), a triple round robin, and
+    the server's checks on what a number of teams can play."""
+    from server.core import league_format_error
+    teams = _sides(8)
+    res = play_tournament(teams, fmt="t20", groups=4, rounds=3, knockout="semis", seed=4)
+    _check_count(res, 8, rounds=3, groups=4, knockout="semis")
+    assert len(res["tables"]) == 4 and all(r["played"] == 3 for rows in res["tables"].values() for r in rows)
+    winners = {rows[0]["team"] for rows in res["tables"].values()}
+    assert {t for k in res["knockouts"][:2] for t in k["teams"]} == winners
+    assert league_format_error(8, 3, 4, "semis") is None and league_format_error(8, 4, 4, "qf") is None
+    assert league_format_error(16, 1, 1, "qf") is None and "8 teams" in league_format_error(7, 1, 1, "qf")
+    assert "at least 8" in league_format_error(6, 1, 4, "semis")
+    assert "semi-finals or quarter-finals" in league_format_error(12, 1, 4, "final")
+    assert "once, twice" in league_format_error(8, 5, 1, "semis") and "groups" in league_format_error(9, 1, 3, "semis")
+    assert "single league" in league_format_error(8, 1, 2, "ipl") and "Unknown" in league_format_error(8, 1, 1, "x")
+
+
 def test_preliminary_quarter_finals():
     teams = _sides(15)
     res = play_tournament(teams, fmt="t20", comp="sma", year=2024, groups=5, knockout="pre_qf", win_points=4, seed=24)

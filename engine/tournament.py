@@ -699,7 +699,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
                     knockout: str = "semis", venues: list | None = None, home_venues: dict | None = None,
                     knockout_venues: list | None = None, seed: int | None = None, win_points: int = 2,
                     on_match=None, rain: bool = False, control: dict | None = None,
-                    skill: dict | None = None, plate: dict | None = None) -> dict:
+                    skill: dict | None = None, plate: dict | None = None, match_kw: dict | None = None) -> dict:
     """League stage (round robin, `rounds` times, optionally in groups) then knockouts.
 
     groups:   None/1 = one league; an int = that many groups, teams dealt in the order given (1st to group A,
@@ -723,6 +723,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
               "promoted" (the Plate winner) and "relegated" (the lowest side of all groups, by points then NRR).
     control:  {team name: engine.control.Controller} for sides a person captains (their decisions are asked).
     skill:    {team name: "expert" | "average" | "easy"} for computer captains (engine/judge.py; default expert).
+    match_kw: a Test tournament's conditions for every Test (engine/test_match.py: days, timeless, day_night).
     """
     if knockout not in KNOCKOUTS:
         raise ValueError(f"knockout must be one of {KNOCKOUTS}")
@@ -739,7 +740,7 @@ def play_tournament(teams: list[dict], fmt: str = "t20", comp: str | None = None
     if FORMATS[fmt]["overs"] is None:
         # a Test tournament: its own runner (home grounds and weather, a drawn knockout, the Test table)
         from .test_tournament import TestRunner
-        run = TestRunner(comp, year, seed, venues, home_venues, knockout_venues, control, skill)
+        run = TestRunner(comp, year, seed, venues, home_venues, knockout_venues, control, skill, match_kw)
         win_points = run.WIN_POINTS
     else:
         run = _Runner(fmt, comp, year, seed, venues, home_venues, knockout_venues, rain, control, skill)

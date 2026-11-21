@@ -167,8 +167,8 @@ async function mpPoll() {
 }
 
 /* ───────── the series between the two players ───────── */
-const MP_SERIES_OPTS = [[1, 'A single match'], [3, 'Best of 3'], [5, 'Best of 5']];
-const MP_TEST_OPTS = [[1, 'A single Test'], [2, 'A 2-Test series'], [3, 'A 3-Test series'], [5, 'A 5-Test series']];
+const MP_SERIES_OPTS = [[1, 'A single match'], [3, 'Best of 3'], [5, 'Best of 5'], [7, 'Best of 7']];
+const MP_TEST_OPTS = [[1, 'A single Test'], [2, 'A 2-Test series'], [3, 'A 3-Test series'], [4, 'A 4-Test series'], [5, 'A 5-Test series']];
 const MP_LENGTH_OPTS = [['5', 'Five days'], ['4', 'Four days'], ['3', 'Three days'], ['6', 'Six days'], ['timeless', 'Timeless']];
 const MP_HOST_OPTS = [['neutral', 'Neutral grounds'], ['home', "The host player's country"], ['away', "The guest player's country"]];
 const mpSeriesOpts = s => s.fmt === 'test' ? MP_TEST_OPTS : MP_SERIES_OPTS;

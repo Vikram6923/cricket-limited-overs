@@ -29,8 +29,8 @@ def api_draft_start():
     names = [str(x).strip() for x in d.get("teams") or []]
     if any(not n or len(n) > 40 for n in names):
         return jsonify(error="Every team needs a name (up to 40 characters)."), 400
-    if not 2 <= len(names) <= 12:
-        return jsonify(error="A draft has 2 to 12 teams."), 400
+    if not 2 <= len(names) <= 16:
+        return jsonify(error="A draft has 2 to 16 teams."), 400
     source = d.get("source") or "full"
     if source == "leagues" and fmt != "t20":
         source = "full"

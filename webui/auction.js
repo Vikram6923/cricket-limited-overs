@@ -27,7 +27,7 @@ function initAuctionForm() {
 const aLeague = () => META.leagues.find(x => x.id === $('a-league').value);
 function aSeasonIdx() { const l = aLeague(); return l ? l.seasons.findIndex(s => s.season === $('a-season').value) : -1; }
 function aNames() {
-  const k = Math.max(2, Math.min(12, +$('a-k').value || 2)), box = $('a-names');
+  const k = Math.max(2, Math.min(16, +$('a-k').value || 2)), box = $('a-names');
   const old = [...box.querySelectorAll('input')].map(i => i.value);
   box.innerHTML = '';
   for (let i = 0; i < k; i++) {

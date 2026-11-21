@@ -39,10 +39,11 @@ function drawSaved() {
 function payload() {
   const base = {mode: MODE, fmt: $('c-fmt').value, comp: $('c-comp').value, year: +$('c-year').value,
     venues: [...$('c-venues').selectedOptions].map(o => o.value), seed: $('c-seed').value.trim(),
-    rain: $('c-rain').checked};
+    rain: $('c-rain').checked, length: $('g-length').value, day_night: $('g-dn').checked};
   if (MODE === 'series') return {...base, team1: $('s-t1').value, team2: $('s-t2').value, matches: +$('s-n').value, host: $('s-host').value,
     length: $('s-length').value, day_night: $('s-dn').checked};
-  if (MODE === 'wtc') return {...base, fmt: 'test', teams: wtcTeams(), tests: +$('w-n').value, rain: false};
+  if (MODE === 'wtc') return {...base, fmt: 'test', teams: wtcTeams(), tests: +$('w-n').value, rain: false,
+    length: $('w-length').value, day_night: $('w-dn').checked, home_series: $('w-home').value};
   if (MODE === 'league') return {mode: 'league', league: $('l-league').value, season: $('l-season').value, seed: $('l-seed').value.trim(), venues: [],
     rain: $('l-rain').checked, captain: $('l-captain').value, opponents: $('l-opp').value,
     manual: [...$('l-manual').querySelectorAll('input:checked')].map(i => i.value).filter(k => k !== 'impact' || CAP.impact)};

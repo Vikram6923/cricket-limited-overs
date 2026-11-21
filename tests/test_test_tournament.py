@@ -101,6 +101,11 @@ def test_world_test_championship():
     assert all(v == 3 for v in Counter(a for _, a in sched).values()), "three away"
     assert len(wtc_series(names[:4], 5)) == 4 and len(wtc_series(names[:3], 5)) == 3      # one home series each
     assert wtc_match_count(9, 2) == 55 and wtc_match_count(4, 3) == 13
+    # more series: every side at home and away to every other (each pair meets twice, once at each home)
+    full = wtc_series(names[:5], 5, home_series=4)
+    assert len(full) == 20 and len(set(full)) == 20 and len({frozenset(s) for s in full}) == 10
+    assert all(v == 4 for v in Counter(h for h, _ in full).values())
+    assert wtc_match_count(5, 1, 4) == 21 and wtc_match_count(5, 1, 9) == 21 and len(wtc_series(names, 5, 2)) == 18
     seen = []
     r = play_wtc([side(n) for n in names[:5]], tests=2, year=2025, seed=3, on_match=lambda c: seen.append(c["match_no"]))
     cards = r["matches"]
@@ -118,7 +123,8 @@ def test_world_test_championship():
     final = cards[-1]
     assert final["knockout"] and final["teams"] == [table[0]["team"], table[1]["team"]]
     assert final["venue"] and "Lord's" in final["venue"] and r["winner"] == final["result"]["winner"]
-    for bad in (lambda: play_wtc([side(n) for n in names[:2]]), lambda: play_wtc([side(n) for n in names[:4]], tests=4)):
+    for bad in (lambda: play_wtc([side(n) for n in names[:2]]), lambda: play_wtc([side(n) for n in names[:4]], tests=7),
+                lambda: play_wtc([side(n) for n in names[:4]], home_series=0)):
         try:
             bad()
             raise AssertionError("accepted")
@@ -199,7 +205,10 @@ def test_server_runs():
     cl = web_ui.app.test_client()
     base = {"comp": "test_full", "year": 2025, "venues": [], "seed": "4", "rain": False}
     for extra, words in (({"mode": "wtc", "teams": NATIONS[:2]}, "at least three"),
-                         ({"mode": "wtc", "teams": NATIONS[:4], "tests": 4}, "1, 2, 3 or 5"),
+                         ({"mode": "wtc", "teams": NATIONS[:4], "tests": 7}, "1 to 6"),
+                         ({"mode": "wtc", "teams": NATIONS[:4], "home_series": "4"}, "1 to 3 series"),
+                         ({"mode": "wtc", "teams": NATIONS[:4], "length": "7"}, "timeless"),
+                         ({"mode": "tournament", "fmt": "test", "teams": NATIONS[:4], "length": "2"}, "timeless"),
                          ({"mode": "wtc", "teams": NATIONS[:3] + ["India T20 2024"]}, "Test")):
         r = cl.post("/api/run", json={**base, **extra})
         assert r.status_code == 400 and words in r.get_json()["error"], (extra, r.get_json())
@@ -212,6 +221,16 @@ def test_server_runs():
     assert res["format"] == "test" and len(res["fixtures"]) == 5 and len(res["wtc"]["series"]) == 4
     assert res["title"].startswith("World Test Championship - 4 teams") and res["winner"] in NATIONS[:4]
     assert {"drawn", "pct"} <= set(res["tables"]["League"][0])
+    # a longer Championship: timeless day-night Tests, every side home and away to every other
+    r = cl.post("/api/run", json={**base, "mode": "wtc", "teams": NATIONS[:3], "tests": 1, "home_series": "all",
+                                  "length": "timeless", "day_night": True})
+    assert r.status_code == 200, r.get_json()
+    assert _wait(cl)["status"] == "done"
+    res = cl.get("/api/results").get_json()
+    assert len(res["wtc"]["series"]) == 6 and len(res["fixtures"]) == 7 and res["wtc"]["home_series"] == 2
+    assert "timeless Tests, day-night" in res["title"]
+    card = cl.get("/api/match/7").get_json()["card"]
+    assert card["timeless"] and card["day_night"] and card["stage"] == "Final"
     # a Test tournament
     r = cl.post("/api/run", json={**base, "mode": "tournament", "fmt": "test", "teams": NATIONS[:4], "rounds": 1,
                                   "groups": 1, "knockout": "final"})
@@ -220,6 +239,14 @@ def test_server_runs():
     res = cl.get("/api/results").get_json()
     assert res["format"] == "test" and len(res["fixtures"]) == 7 and res["tables"]["League"][0]["pos"] == 1
     assert cl.get("/api/match/7").get_json()["card"]["stage"] == "Final"
+    # a Test tournament of six-day Tests
+    r = cl.post("/api/run", json={**base, "mode": "tournament", "fmt": "test", "teams": NATIONS[:3], "rounds": 1,
+                                  "groups": 1, "knockout": "final", "length": "6"})
+    assert r.status_code == 200, r.get_json()
+    assert _wait(cl)["status"] == "done"
+    res = cl.get("/api/results").get_json()
+    assert "six-day Tests" in res["title"]
+    assert all(cl.get(f"/api/match/{i}").get_json()["card"]["scheduled_days"] == 6 for i in (1, 4))
     # a Classic Tournament of Tests: nations over a range of years, played in that era
     classic = [{"nation": n, "y1": 1950, "y2": 1959} for n in ("Australia", "England", "West Indies")]
     r = cl.post("/api/run", json={**base, "mode": "tournament", "fmt": "test", "year": 1955, "teams": classic,

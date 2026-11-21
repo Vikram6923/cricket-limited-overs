@@ -232,9 +232,9 @@ def test_server_room_series():
     assert state(host)["settings"]["series"] == 3
     # the host changes it in the room: both must say ready again
     post("/api/mp/lobby", {"token": host, "team": "India T20 2024", "manual": ["toss"], "ready": True})
-    st = dict(state(host)["settings"], series=7)
+    st = dict(state(host)["settings"], series=9)
     post("/api/mp/lobby", {"token": host, "settings": st})
-    assert state(host)["settings"]["series"] == 1 and not state(host)["seats"][0]["ready"]   # 7 is not offered
+    assert state(host)["settings"]["series"] == 1 and not state(host)["seats"][0]["ready"]   # 9 is not offered (1, 3, 5 or 7)
     post("/api/mp/lobby", {"token": host, "settings": dict(st, series=3)})
     post("/api/mp/lobby", {"token": guest, "team": "Australia T20 2024", "manual": ["toss"], "ready": True})
     assert post("/api/mp/lobby", {"token": host, "ready": True}).status_code == 200
