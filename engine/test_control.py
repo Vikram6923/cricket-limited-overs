@@ -595,6 +595,8 @@ class Desk:
         last = self.m.innings[-1] if self.m.innings else None
         pause = {"result": card["result"]["text"], "winner": card["result"].get("winner"),
                  "pom": card.get("player_of_match"), "scores": innings_scores(card)}
+        for c in self.control.values():         # the full scorecard, while the result waits
+            c.last_card = card
         asked = []
         for t in self.m.teams:                  # two people: both see the result at once (post, then wait)
             if last is not None and self.manual(t, "result"):

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .runs import *  # noqa: F401,F403
 from engine.test_report import day_strip
+from .rooms import _seat
 
 @app.get("/api/saved")
 def api_saved():
@@ -61,9 +62,30 @@ def api_match(n: int):
     p = _run_dir(request.args.get("run")) / "matches" / f"{n:03d}.json"
     if not p.exists():
         abort(404)
-    card = json.loads(p.read_text(encoding="utf-8"))
+    return jsonify(_match_payload(json.loads(p.read_text(encoding="utf-8"))))
+
+
+def _match_payload(card: dict) -> dict:
     strip = day_strip(card) if card.get("days") else None        # Tests: lunch, tea and stumps of every day
-    return jsonify(card=card, text=full_text(card), report=match_report(card), strip=strip)
+    return {"card": card, "text": full_text(card), "report": match_report(card), "strip": strip}
+
+
+@app.get("/api/captain/card")
+def api_captain_card():
+    """The full card of the match a captain has just finished, while its result waits (before the next match of a
+    tournament or series starts). Two players pass their room token."""
+    tok = request.args.get("token")
+    if tok:
+        r, _ = _seat(tok)
+        job = r.get("job") if r else None
+        ctls = list((job.controllers or {}).values()) if job else []
+    else:
+        job = V().job
+        ctls = [job.controller] if job and job.controller else []
+    card = next((c.last_card for c in ctls if c.last_card), None)
+    if not card:
+        return jsonify(error="No finished match to show yet."), 404
+    return jsonify(_match_payload(card))
 
 
 __all__ = [n for n in dir() if not n.startswith("__")]      # everything, underscore names too: one program in several files

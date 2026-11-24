@@ -32,6 +32,8 @@ class RandomCaptain(Controller):
     def decide(self, q):
         self.asked.append(q["kind"])
         assert "state" in q and "default" in q or q["kind"] == "result"
+        if q["kind"] == "result":               # the full scorecard of the match just played waits with the result
+            assert self.last_card["result"]["text"] == q["result"] and self.last_card["innings"]
         r = self.rng
         k = q["kind"]
         if k == "toss":

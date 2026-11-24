@@ -1124,6 +1124,8 @@ class Match:
                                    "kind": "turning_point", "text": tp["text"]})
         pause = {"result": result["text"], "winner": result.get("winner"), "pom": card["player_of_match"],
                  "scores": [f"{i.bat.name} {i.score_str()} ({i.over_str()} ov)" for i in self.innings]}
+        for c in self.control.values():        # the full scorecard, while the result waits
+            c.last_card = card
         # both people see the result at once (two players), each says when to go on
         self.ask_all([(t, "result", pause, self.innings[-1]) for t in self.teams if t.name in self.control])
         return card

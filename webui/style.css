@@ -533,6 +533,7 @@ details>summary{cursor:pointer}
 .seen-tag{font-size:.6rem;color:var(--amber);border:1px solid var(--amber);border-radius:99px;padding:0 5px;margin-left:4px;white-space:nowrap}
 .ar-badge.seen{color:var(--amber);border-color:var(--amber)}
 .cap-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+.res-card{margin-top:10px}
 .bb-act .btn.go{flex:1 1 100%}
 .impact-box{margin-top:14px;border-top:1px dashed var(--border2);padding-top:12px}
 .impact-box .row{margin-top:6px}

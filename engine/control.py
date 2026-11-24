@@ -53,6 +53,7 @@ class Controller:
         self.manual_kinds = set(DEFAULT_KINDS if manual is None else manual)
         self.skip: dict | None = None          # {"scope": "innings"|"match"|"all", "match": key, "innings": n}
         self.context: dict = {}                # set by the tournament runner: stage, match number
+        self.last_card: dict | None = None     # the match just finished, for its full scorecard on the result pause
 
     def manual(self, kind: str, match_key=None, innings: int | None = None) -> bool:
         """Is this decision the person's, now? (not left to the computer, not skipped past)"""

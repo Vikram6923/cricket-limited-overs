@@ -406,6 +406,7 @@ def test_server_captains_a_test():
            "captain_i": 0, "manual": ["toss", "xi", "bowler", "ball", "declare", "follow_on", "new_ball",
                                       "nightwatchman", "result"]}
     assert cl.post("/api/run", json=run).status_code == 200
+    assert cl.get("/api/captain/card").status_code == 404     # nothing finished yet
     kinds, n, last = [], 0, None
     while True:
         s = _status(cl)
@@ -418,6 +419,9 @@ def test_server_captains_a_test():
         last = q["id"]
         assert s["captain"]["team"] == "India Test 2025" and q["team"] == "India Test 2025"
         kinds.append(q["kind"])
+        if q["kind"] == "result":                 # the full scorecard before going on
+            d = cl.get("/api/captain/card").get_json()
+            assert d["card"]["result"]["text"] == q["result"] and d["card"]["innings"] and d["strip"]
         n += 1
         choice = {"until": "session"} if q["kind"] == "ball" else None
         r = cl.post("/api/decide", json={"id": q["id"], "choice": choice})

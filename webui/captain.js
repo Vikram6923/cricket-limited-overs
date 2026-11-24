@@ -418,9 +418,29 @@ function qResult(q) {
     ${(q.scores || []).map(s => `<div class="sb-line">${esc(dnText(s, CAP.teams || []))}</div>`).join('')}
     ${q.pom && q.pom.name ? `<div class="sb-line">Player of the match: <b>${esc(q.pom.name)}</b> (${esc(dn(q.pom.team))})</div>` : ''}
     ${mpResultSeries()}
-    <div class="cap-actions"><button class="btn go" id="cap-cont">${mpResultNext()}</button></div>`, mpResultNext());
+    <div class="cap-actions"><button class="btn sec" id="cap-res-card">Full scorecard</button><button class="btn go" id="cap-cont">${mpResultNext()}</button></div>`, mpResultNext());
   $('cap-cont').onclick = () => capSend(null);
+  $('cap-res-card').onclick = () => resultCard(q);
   if ($('v-captain').classList.contains('live')) $('cap-main').onclick = () => capSend(null);
+}
+
+/* the result pause's full scorecard: every innings of the match just played, before the next one starts */
+async function resultCard(q) {
+  const box = $('v-captain').classList.contains('live') ? $('bsheet-in') : $('cap-q');
+  let d;
+  try { d = await api('/api/captain/card' + (mpOn() ? '?token=' + encodeURIComponent(MP.token) : '')); }
+  catch (e) { toast(e.message, true); return; }
+  if (CAP.q !== q || CAP.qid !== q.id) return;          // played on meanwhile
+  MC = {c: d.card, d, f: {}, inn: 0};
+  const draw = () => {
+    box.innerHTML = `<h3>${esc(dnText(q.result || 'Match over', CAP.teams || []))}</h3>
+      <div class="res-card">${mcScorecard()}</div>
+      <div class="cap-actions"><button class="btn sec" id="cap-card-back">Back</button><button class="btn go" id="cap-cont">${mpResultNext()}</button></div>`;
+    box.querySelectorAll('[data-inn]').forEach(b => b.onclick = () => { MC.inn = +b.dataset.inn; draw(); });
+    $('cap-card-back').onclick = () => qResult(q);
+    $('cap-cont').onclick = () => capSend(null);
+  };
+  draw();
 }
 
 /* two players, best of 3 / 5: the series score on the result pause (the match just played counts) */
