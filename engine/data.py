@@ -102,6 +102,7 @@ class Player:
     sel_opm: float | None = None                           # overs per match in the period (for XI selection)
     ref: dict = field(default_factory=dict)    # readable reference numbers from the ratings
     shown: dict = field(default_factory=dict)  # side -> metric -> factor on the rates a captain is shown (belief)
+    estimated_from: str | None = None          # no record in this format: rated from this one (engine/stand_in.py)
 
     def __hash__(self):
         return hash(self.id)
@@ -141,10 +142,14 @@ def _prior(fmt: str, side: str, group: str, team: str) -> dict:
 
 def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
            years: tuple[int, int] | list | None = None, years_mode: str = "blend") -> Player:
-    """Engine player from the ratings; unknown IDs get the role/team prior.
+    """Engine player from the ratings; a player with no record in fmt is estimated from another format he played
+    (engine/stand_in.py), and unknown IDs get the role/team prior.
     years = (first, last): rate him on those years (engine/periods.py; years_mode "blend" = shrunk toward his
     career, "only" = those years alone) and use his batting slots of then."""
     rec = ratings(fmt)["players"].get(pid)
+    if rec is None:
+        from .stand_in import record
+        rec = record(fmt, pid)
     if rec is None:
         p = Player(id=pid, name=name or pid, team=team or "unknown", rated_bat=False, rated_bowl=False)
         p.bat = _prior(fmt, "bat", "middle", p.team)
@@ -156,7 +161,7 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
                position=rec.get("position"), bat_role=rec.get("bat_role") or "middle",
                bowl_role=rec.get("bowl_role") or "part_unk", bat_hand=rec.get("bat_hand"),
                bowl_type=rec.get("bowl_type"), bowl_kind=rec.get("bowl_kind"),
-               keeper=pid in _keepers(fmt) or bool(rec.get("keeper")))
+               keeper=pid in _keepers(fmt) or bool(rec.get("keeper")), estimated_from=rec.get("estimated_from"))
     b, w = rec.get("bat"), rec.get("bowl")
     pre = rec.get("pre2002") or rec.get("pre")
     early = bool(pre and years and int(years[1]) <= pre["last"])
@@ -194,7 +199,7 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         inns = sum((c.get("m") or 0) for c in car.values() if isinstance(c, dict))
         if early and pre.get("tests"):     # the balls are those of his Tests before coverage: so are the matches
             inns = pre["tests"]
-        p.bowl_overs_per_match = (p.bowl_balls / 6) / inns if inns else 0.0
+        p.bowl_overs_per_match = (p.bowl_balls / 6) / inns if inns else float(rec.get("opm") or 0.0)
     else:
         p.rated_bowl = False
         p.bowl = _prior(fmt, "bowl", p.bowl_role, p.team)
@@ -202,8 +207,8 @@ def player(fmt: str, pid: str, name: str | None = None, team: str | None = None,
         p.bowl_phase_share = typical_phase_share(fmt, p.bowl_type)
     car = rec.get("career") or {}
     p.caps = sum((c.get("m") or 0) for c in car.values() if isinstance(c, dict))
-    hist = _positions(fmt).get(pid)
-    if years and not early and rec.get("source") not in ("wikipedia_pre2002", "career_totals"):
+    hist = _positions(fmt).get(pid) or (_positions(p.estimated_from).get(pid) if p.estimated_from else None)
+    if years and not early and rec.get("source") not in ("wikipedia_pre2002", "career_totals", "estimated"):
         _apply_period(p, fmt, int(years[0]), int(years[1]), years_mode)
     if years:
         hist = period_positions(fmt, pid, int(years[0]), int(years[1])) or hist
@@ -354,23 +359,17 @@ def competitions(fmt: str) -> list[str]:
 
 def resolve(fmt: str, name_or_id: str) -> str:
     """Cricsheet ID for a player given by ID or by exact name (case-insensitive; the most experienced player wins
-    if two share a name). Raises ValueError with suggestions if nothing matches."""
+    if two share a name). An ID rated only in another format is his (his ratings in fmt are estimated from it,
+    engine/stand_in.py). Raises ValueError with suggestions if nothing matches."""
     players = ratings(fmt)["players"]
     if name_or_id in players:
+        return name_or_id
+    from .stand_in import source
+    if source(fmt, name_or_id):
         return name_or_id
     exact = [h for h in search(fmt, name_or_id, 50) if h[1].lower() == name_or_id.lower()]
     if exact:
         return exact[0][0]
-    label = {"t20": "T20", "odi": "ODI", "test": "Test"}
-    for other in label:                          # known in another format: say who, not the ID
-        if other != fmt:
-            try:
-                row = ratings(other)["players"].get(name_or_id)
-            except (OSError, KeyError, ValueError):
-                row = None
-            if row:
-                raise ValueError(f"{row['name']} has no {label.get(fmt, fmt)} record, so he cannot be picked for "
-                                 f"{'an' if fmt == 'odi' else 'a'} {label.get(fmt, fmt)} side.")
     close = [h[1] for h in search(fmt, name_or_id.split()[-1], 5)]
     raise ValueError(f"no {fmt} player named {name_or_id!r}" + (f"; did you mean {close}?" if close else ""))
 

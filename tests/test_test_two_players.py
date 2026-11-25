@@ -4,8 +4,8 @@
 
 Two controllers in one Test keep the laws; both people get the XI question and the result at the same moment; a
 Test room runs through the server (a team each, every Test played, no draft or auction); default teams added to
-the program after a person's teams file was made are added to it once; a side that cannot play the format is
-refused before the run starts, in words; an error inside a run is reported as a sentence with the traceback apart.
+the program after a person's teams file was made are added to it once; a nation's side named for another
+format is refused before the run starts, in words; an error inside a run is reported as a sentence with the traceback apart.
 """
 from __future__ import annotations
 
@@ -234,14 +234,10 @@ def test_a_side_of_the_wrong_format_is_refused_in_words():
     assert err.startswith("India T20 2024 cannot play a Test match:") and "have no Test record (" in err
     assert "Choose India Test 2025 instead" in err and "Traceback" not in err and "a4cc" not in err
     assert cl.get("/api/status").get_json()["status"] != "running"
-    # the engine says who, not a player ID
+    # the engine itself takes a T20-only player in a Test (rated from his T20 record, tests/test_stand_in.py)
     t20_only = next(p for t in DEFAULTS if t["name"] == "India T20 2024" for p in t["players"]
                     if p["id"] not in web_ui.ratings("test")["players"])
-    try:
-        resolve("test", t20_only["id"])
-        raise AssertionError("a T20-only player was accepted for a Test")
-    except ValueError as e:
-        assert t20_only["name"] in str(e) and "no Test record" in str(e) and t20_only["id"] not in str(e)
+    assert resolve("test", t20_only["id"]) == t20_only["id"]
 
 
 def test_an_error_is_a_sentence_with_the_traceback_apart():

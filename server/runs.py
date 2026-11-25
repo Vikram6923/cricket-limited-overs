@@ -267,6 +267,17 @@ def ui(name):
     return send_from_directory(UI, name)
 
 
+def with_estimates(teams: list[dict]) -> list[dict]:
+    """The teams with, on each player who has no record in a format, est = {format: the format his ratings
+    there are estimated from} (the set-up screen marks them)."""
+    for t in teams:
+        for p in t["players"]:
+            est = {f: s for f in FMTS if (s := stand_in.source(f, p["id"]))}
+            if est:
+                p["est"] = est
+    return teams
+
+
 @app.get("/api/meta")
 def api_meta():
     return jsonify({
@@ -296,7 +307,7 @@ def api_meta():
                      for k, c in domestic.competitions().items()],
         "years": {f: [history.first_year(f), history.last_year(f)] for f in FMTS},
         "test_hosts": sorted(test_grounds()),          # nations with Test grounds (a series' host)
-        "teams": load_teams(), "has_results": (V().last / "summary.json").exists(), "saved": saved_runs(),
+        "teams": with_estimates(load_teams()), "has_results": (V().last / "summary.json").exists(), "saved": saved_runs(),
         "careers": careers_list(),
         "test_career": {"years": test_career.start_years(),
                         "nations": {str(y): test_career.nations_in(y) for y in test_career.start_years()}},

@@ -450,8 +450,15 @@ or an auction of Test players, the length of a Test and day or day-night Tests.
 
 **Default Test teams:** nine "… Test 2025" squads come with the program. If your saved-teams file was made
 before they existed, they are added to it the next time the teams are loaded (once: one you delete stays
-deleted). A team that cannot play a format (a T20 squad in a Test) is refused before the run starts, with the
-players that have no record in that format and the side to choose instead.
+deleted). A nation's side named for another format ("India T20 2024" in a Test) is refused before the run
+starts, with the players that have no record in that format and the side to choose instead.
+
+**IPL sides in ODIs and Tests:** a franchise (or your own team) can play any format. A player with no record in
+it is rated from another format he played: an ODI from his T20 record, a Test from his ODI record or else his
+T20 one (engine/stand_in.py). The estimate is learned from the players rated in both formats, so it keeps his
+place among players of his role but pulls him toward average, more for Tests, and XI selection treats it as
+uncertain. The set-up screen marks those players with a * and says how many there are. Only a side with a player
+rated in no format at all is refused.
 
 Every Test also shows **Win, draw or loss**: the chance of each result after every over, in three bands. It
 comes from a table made by playing 20,000 Tests between equal sides, so it knows the score, the wickets and the

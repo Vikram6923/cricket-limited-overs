@@ -22,6 +22,7 @@ import json
 import math
 from functools import lru_cache
 
+from . import stand_in
 from .data import DATA, ratings
 
 
@@ -67,7 +68,7 @@ PACE_KINDS = {"fast", "fast_medium", "medium_fast", "medium"}
 def matchup_kind(pid: str) -> str | None:
     """A bowler's name in the matchup table: pace by arm (the arm is in the ratings, not on engine.data.Player),
     spin by its kind. None: not known."""
-    rec = ratings("test")["players"].get(pid) or {}
+    rec = ratings("test")["players"].get(pid) or stand_in.record("test", pid) or {}
     kind = rec.get("bowl_kind")
     if not kind:
         return None

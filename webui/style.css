@@ -195,6 +195,8 @@ details.how p{margin-top:8px;max-width:760px;line-height:1.6}
 .rhead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .pchips{display:flex;flex-wrap:wrap;gap:5px}
 .pchips span{font-size:.76rem;padding:3px 9px;border-radius:99px;background:var(--panel2);border:1px solid var(--border);color:#c3cde0}
+.pchips span.est{border-style:dashed;font-style:italic}
+.est-note{margin:2px 0 6px}
 #l-teams{display:none}.fg:has(> #l-teams){display:none}
 select.picked{display:none}
 .picker{display:grid;gap:8px}

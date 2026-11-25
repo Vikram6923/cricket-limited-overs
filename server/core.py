@@ -42,6 +42,7 @@ from engine.test_career import TestCareer
 from engine.draft import DEFAULT_TEAMS, Draft
 from engine import domestic
 from engine.leagues import LEAGUES, ui_info as league_info
+from engine import stand_in
 from engine.data import ratings
 from engine.render import full_text, match_report
 from engine.tournament import KO_NEED, match_count, play_series, play_tournament, save
@@ -392,20 +393,35 @@ def team_spec(entry, fmt: str = "t20", squad_size: int | None = history.SQUAD_SI
 
 
 def wrong_format(team: dict, fmt: str, teams: list[dict]) -> str | None:
-    """Why a saved team cannot play this format (some of its players have no record in it), or None. Names
-    the same nation's side for the format when there is one."""
+    """Why a saved team cannot play this format, or None. A player with no record in the format is estimated
+    from another he played (engine/stand_in.py: an IPL side plays an ODI or a Test), so only a player rated in no
+    format stops it, and a nation's side named for another format ("India T20 2024" in a Test) when some of its
+    players have no record in this one: that side has a side of its own for the format, named in the message."""
     rows = ratings(fmt)["players"]
-    out = [p["name"] for p in team["players"] if p["id"] not in rows]
+    out = [p for p in team["players"] if p["id"] not in rows]
+    other = team_format(team["name"]) not in (None, fmt)
+    if not other:
+        out = [p for p in out if not stand_in.source(fmt, p["id"])]
     if not out:
         return None
+    out = [p["name"] for p in out]
     f = FMT_NAME[fmt]
+    a = "an" if fmt == "odi" else "a"
     who = ", ".join(out[:3]) + (f" and {len(out) - 3} more" if len(out) > 3 else "")
+    if not other:
+        return (f"{team['name']} cannot play {a} {f} match: {len(out)} of its {len(team['players'])} players have "
+                f"no record in any format ({who}). Rebuild it in Team builder.")
     nation = PRESET.sub("", team["name"])
     alt = next((t["name"] for t in teams if team_format(t["name"]) == fmt and PRESET.sub("", t["name"]) == nation),
-               None) if PRESET.search(team["name"]) else None
-    fix = f"Choose {alt} instead" if alt else f"Choose {'an' if fmt == 'odi' else 'a'} {f} side"
-    return (f"{team['name']} cannot play {'an' if fmt == 'odi' else 'a'} {f} match: {len(out)} of its "
+               None)
+    fix = f"Choose {alt} instead" if alt else f"Choose {a} {f} side"
+    return (f"{team['name']} cannot play {a} {f} match: {len(out)} of its "
             f"{len(team['players'])} players have no {f} record ({who}). {fix}, or build one in Team builder.")
+
+
+def estimated(team: dict, fmt: str) -> list[str]:
+    """Names of a saved team's players whose ratings in fmt are estimated from another format."""
+    return [p["name"] for p in team["players"] if stand_in.source(fmt, p["id"])]
 
 
 def friendly_error(e: Exception) -> str:

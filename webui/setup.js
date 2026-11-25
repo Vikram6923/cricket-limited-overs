@@ -132,10 +132,10 @@ function checkYear() {
 }
 
 /* teams (series + tournament) */
-/* the saved teams that can play a format: its nations' presets, franchises for T20, and your own teams (which
-   have no format in their name: the server says so if one cannot play it) */
+/* the saved teams that can play a format: its nations' presets, the franchises and your own teams (a player with
+   no record in the format is rated from another he played; the server says so if a side still cannot play it) */
 function teamsFor(fmt) {
-  const names = META.teams.map(t => t.name).filter(n => { const f = teamFmt(n); return !f || f === fmt; });
+  const names = META.teams.map(t => t.name).filter(n => !isNationPreset(n) || teamFmt(n) === fmt);
   return names.length ? names : META.teams.map(t => t.name);
 }
 /* the two teams of a match: the lists hold the format's sides; a side that is not one of them is replaced by the
@@ -192,10 +192,17 @@ function updateWtcTotal() {
     : `${k} teams · ${2 * each} series each · ${k * each * n + 1} Tests${WTC_LEN[$('w-length').value] || ''}`;
 }
 const WTC_LEN = {3: ' · three days', 4: ' · four days', 6: ' · six days', timeless: ' · timeless'};
+/* a side's squad; players with no record in the format are marked (their ratings are estimated from another) */
 function showRoster(selId, outId) {
-  const t = META.teams.find(t => t.name === $(selId).value);
-  $(outId).innerHTML = t ? `<div class="rhead">${badge(t.name)}<span class="muted small full-only">${t.players.length} players</span></div>
-    <div class="pchips full-only">${t.players.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : '';
+  const t = META.teams.find(t => t.name === $(selId).value), fmt = $('c-fmt').value;
+  if (!t) { $(outId).innerHTML = ''; return; }
+  const est = t.players.filter(p => p.est && p.est[fmt]);
+  const from = [...new Set(est.map(p => fmtLabel(p.est[fmt])))].join(' or ');
+  $(outId).innerHTML = `<div class="rhead">${badge(t.name)}<span class="muted small full-only">${t.players.length} players</span></div>
+    ${est.length ? `<div class="muted small est-note">${est.length} ${est.length === 1 ? 'player has' : 'players have'} no ${fmtLabel(fmt)} record: their ${fmtLabel(fmt)} ratings are estimated from ${from} (marked *)</div>` : ''}
+    <div class="pchips full-only">${t.players.map(p => p.est && p.est[fmt]
+      ? `<span class="est" title="No ${fmtLabel(fmt)} record: rated from ${fmtLabel(p.est[fmt])}">${esc(p.name)} *</span>`
+      : `<span>${esc(p.name)}</span>`).join('')}</div>`;
 }
 function filterTeams() {
   const q = $('t-search').value.toLowerCase();
