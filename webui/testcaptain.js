@@ -78,7 +78,7 @@ function qNight(q) {
 function testBowlerCard(p, sug, fig) {
   return `<button class="bopt ${sug ? 'sug' : ''}" data-id="${esc(p.id)}">${kindIcon(p.kind)}<div class="bo-m"><b>${esc(p.name)}${sug ? '<span class="tag-s">SUGGESTED</span>' : ''}</b>
     <span class="fig">${fig.overs}-${fig.maidens}-${fig.runs}-${fig.wkts}</span>
-    <span class="small">${esc(p.kind || p.role)} · today ${n1(p.exp_avg)} a wicket, ${n1(p.phase_econ)} an over<span class="full-only"> · career avg ${n1(p.bowl_avg)}</span>${p.rested !== null && p.rested !== undefined ? ` · rested ${p.rested} ov` : ''}</span></div>
+    <span class="small">${esc(p.kind || p.role)} · today ${n1(p.exp_avg)} a wicket, ${n1(p.phase_econ)} an over<span class="full-only"> · ${p.est ? 'est.' : 'career'} avg ${n1(p.bowl_avg)}</span>${p.rested !== null && p.rested !== undefined ? ` · rested ${p.rested} ov` : ''}</span></div>
     <span class="left"><b>${p.overs_today}</b> today</span></button>`;
 }
 

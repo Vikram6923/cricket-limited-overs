@@ -17,6 +17,7 @@ from . import rain
 from . import captain, conditions
 from .ballmodel import BallModel
 from .data import FORMATS, Player, baseline, basics, phase_at, player
+from .stand_in import estimate_info
 from .scorebook import BatInns, BowlFig, Scorebook, dismissal_text  # noqa: F401  (re-exported)
 from .situation import NORMAL_BARS, Situation, bat_quality, depth_table
 
@@ -817,7 +818,8 @@ class Match:
              "kind": (p.bowl_kind or "").replace("_", " "), "slot": p.usual_slot,
              "bat_avg": b.get("avg"), "bat_sr": b.get("sr"),
              "bowl_econ": w.get("econ") if p.rated_bowl else None, "bowl_avg": w.get("avg") if p.rated_bowl else None,
-             "overs_per_match": round(p.bowl_overs_per_match, 1)}
+             "overs_per_match": round(p.bowl_overs_per_match, 1),
+             **estimate_info(self.fmt, p)}
         if ph:
             bb, bw = self.base[ph], self.base_of(p)[ph]
             d["phase"] = ph

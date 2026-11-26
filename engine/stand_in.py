@@ -321,7 +321,61 @@ def _side(src: str, tgt: str, rec: dict, side: str, fit: dict, dom: dict) -> dic
         out["other_out_idx"] = shrink(r.get("other_out_idx"))
     else:
         out["wide_idx"], out["noball_idx"] = shrink(r.get("wide_idx")), shrink(r.get("noball_idx"))
+    out["ref"] = readable(tgt, side, out)
     return out
+
+
+def readable(fmt: str, side: str, r: dict) -> dict:
+    """What his indexes come to in the format's reference era (the "ref" numbers a rated player's row has, built
+    the same way as scripts/build_ratings.py's readable_bat / readable_bowl): batting average and strike rate,
+    or economy, average and strike rate. His phase mix is his hint from the other format, half typical."""
+    ref = ratings(fmt).get("reference") or {}
+    phases = [ph for ph in phase_names(fmt) if ph in ref]
+    if not phases:
+        return {}
+    pb = r.get("phase_balls") or {}
+    tot = sum(pb.values())
+    k = PHASE_HINT_BALLS
+    sh = {ph: (pb.get(ph, 0) + k * ref[ph]["share"]) / (tot + k) for ph in phases}
+    ix = r["phase"]
+    rpb = sum(sh[ph] * ref[ph]["runs"] * ix[ph]["runs"] for ph in phases)
+    if side == "bat":
+        opb = sum(sh[ph] * (ref[ph]["wkt"] * ix[ph]["wkt"] + ref[ph]["other_out"] * r.get("other_out_idx", 1.0))
+                  for ph in phases)
+        return {"avg": round(rpb / opb, 1) if opb else None, "sr": round(100 * rpb, 1)}
+    rpb += sum(sh[ph] * (ref[ph]["wide"] * r.get("wide_idx", 1.0) + ref[ph]["noball"] * r.get("noball_idx", 1.0))
+               for ph in phases)
+    wpb = sum(sh[ph] * ref[ph]["wkt"] * ix[ph]["wkt"] for ph in phases)
+    return {"econ": round(6 * rpb, 2), "avg": round(rpb / wpb, 1) if wpb else None,
+            "sr": round(1 / wpb, 1) if wpb else None}
+
+
+FMT_LABEL = {"t20": "T20", "odi": "ODI", "test": "Test"}
+
+
+def estimate_info(fmt: str, p) -> dict:
+    """For a captain's player card: est = the format his figures here are estimated from (None: his own record),
+    and dom = his domestic record that informed them, as text."""
+    if not getattr(p, "estimated_from", None):
+        return {"est": None}
+    return {"est": FMT_LABEL.get(p.estimated_from, p.estimated_from), "dom": domestic_line(fmt, p.id)}
+
+
+def domestic_line(fmt: str, pid: str) -> str | None:
+    """His domestic record that informs fmt, as the captain sees it: "First-class: 45 m, avg 45.3, 58 wkts at 21.7"
+    (from Wikipedia's infobox; None if it has no such column)."""
+    col = (_styles().get(pid) or {}).get(DOMESTIC.get(fmt, ""))
+    if not col:
+        return None
+    m, avg = _num(col.get("matches")), _num(col.get("bat_avg"), True)
+    wk, bav = _num(col.get("wkts")), _num(col.get("bowl_avg"), True)
+    bits = [f"avg {avg:g}"] if avg else []
+    if wk and bav:
+        bits.append(f"{int(wk)} wkts at {bav:g}")
+    if not bits:                          # matches alone say nothing
+        return None
+    label = {"first_class": "First-class", "list_a": "List A"}[DOMESTIC[fmt]]
+    return f"{label}: " + ", ".join(([f"{int(m)} m"] if m else []) + bits)
 
 
 @lru_cache(maxsize=None)

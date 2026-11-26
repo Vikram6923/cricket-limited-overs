@@ -13,8 +13,12 @@ const KIND_LABEL = {toss: 'Toss', xi: 'Playing XI', bowler: 'Bowlers', batter: '
 const TEST_ONLY_KINDS = ['declare', 'follow_on', 'new_ball', 'nightwatchman'];
 const CAP = {qid: null, q: null, auto: {}, manual: [], impact: true, view: 'st', vals: {}, land: null, striker: null};
 const n1 = v => v === null || v === undefined ? '–' : v;
-const statLine = p => [p.role + (p.kind && p.role !== 'Batter' && p.role !== 'WK' ? ` (${p.kind})` : ''),
-  p.bat_avg ? `bat avg ${p.bat_avg}, SR ${p.bat_sr}` : '', p.bowl_econ && p.overs_per_match >= 0.5 ? `bowl econ ${p.bowl_econ}, ${p.overs_per_match} ov/match` : ''].filter(Boolean).join(' · ');
+/* a player's line: role and figures; a player with no record in this format shows estimated figures (est.),
+   what they are estimated from, and his domestic record where Wikipedia has one (engine/stand_in.py) */
+const statLine = p => { const e = p.est ? 'est. ' : '';
+  return [p.role + (p.kind && p.role !== 'Batter' && p.role !== 'WK' ? ` (${p.kind})` : ''),
+    p.bat_avg ? `${e}bat avg ${p.bat_avg}, SR ${p.bat_sr}` : '', p.bowl_econ && p.overs_per_match >= 0.5 ? `${e}bowl econ ${p.bowl_econ}, ${p.overs_per_match} ov/match` : '',
+    p.est ? `no record in this format, estimated from ${p.est}` : '', p.dom || ''].filter(Boolean).join(' · '); };
 const osTag = p => p.overseas ? '<span class="os-tag">OS</span>' : '';
 /* how much the computer teams have seen of a player (engine/belief.py): p.seen = {bat: balls, bowl: balls} */
 const SEEN_LITTLE = 300;
@@ -357,12 +361,12 @@ function qPick(q, kind) {
       const f = fig(p);
       return `<button class="bopt ${sug ? 'sug' : ''}" data-id="${esc(p.id)}">${kindIcon(p.kind)}<div class="bo-m"><b>${esc(p.name)}${osTag(p)}${tag}</b>
         <span class="fig">${f.overs}-${f.maidens}-${f.runs}-${f.wkts}</span>
-        <span class="full-only small">${esc(p.kind || p.role)} · expected econ${ph ? ' (' + ph + ')' : ''} ${n1(p.phase_econ)} · career ${n1(p.bowl_econ)}</span></div>
+        <span class="full-only small">${esc(p.kind || p.role)} · expected econ${ph ? ' (' + ph + ')' : ''} ${n1(p.phase_econ)} · ${p.est ? 'est.' : 'career'} ${n1(p.bowl_econ)}</span></div>
         <span class="left"><b>${esc(p.quota_left)}</b> left</span></button>`;
     }
     return `<button class="bopt ${sug ? 'sug' : ''}" data-id="${esc(p.id)}"><div class="bo-m"><b>${esc(p.name)}${osTag(p)}${tag}${q.nightwatchman && p.id === q.nightwatchman ? '<span class="tag-s">NIGHTWATCHMAN</span>' : ''}</b>
       <span class="fig">${esc(p.role)}</span>
-      <span class="full-only small">avg ${n1(p.bat_avg)} · SR ${n1(p.bat_sr)} · expected SR${ph ? ' (' + ph + ')' : ''} ${n1(p.phase_sr)}</span></div>
+      <span class="full-only small">${p.est ? 'est. ' : ''}avg ${n1(p.bat_avg)} · SR ${n1(p.bat_sr)} · expected SR${ph ? ' (' + ph + ')' : ''} ${n1(p.phase_sr)}</span></div>
       ${p.slot ? `<span class="left full-only">#${p.slot}</span>` : ''}</button>`;
   };
   let all = false;

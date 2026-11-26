@@ -465,7 +465,9 @@ and a domestic measure is used only where it predicts players it wasn't fitted o
 it: first-class average and economy for Tests, List A average and economy for ODIs, but not domestic strike rates.
 Every estimate also gets a small correction for the player's home country (a Bangladeshi bowler takes fewer Test
 wickets than his T20 record suggests, an Indian or South African one more), which predicts better out of sample too. The set-up screen marks those players with a * and says how many there are and
-whose domestic records were used. Only a side with a player rated in no format at all is refused.
+whose domestic records were used. When you captain a side and pick its XI, their lines show what their estimate
+comes to ("est. bat avg 34.1, SR 52.5"), what it is estimated from, and their first-class or List A record. Only
+a side with a player rated in no format at all is refused.
 
 Every Test also shows **Win, draw or loss**: the chance of each result after every over, in three bands. It
 comes from a table made by playing 20,000 Tests between equal sides, so it knows the score, the wickets and the

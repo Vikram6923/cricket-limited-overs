@@ -38,6 +38,7 @@ import bisect
 
 from . import test_captain
 from .data import Player
+from .stand_in import estimate_info
 from .test_situation import NORMAL_BARS, tail_role, tail_table
 
 PHASE = "all"
@@ -185,7 +186,8 @@ class Desk:
              "kind": (p.bowl_kind or p.bowl_type or "").replace("_", " "), "slot": p.usual_slot,
              "bat_avg": b.get("avg"), "bat_sr": b.get("sr"),
              "bowl_econ": w.get("econ") if p.rated_bowl else None, "bowl_avg": w.get("avg") if p.rated_bowl else None,
-             "overs_per_match": round(p.bowl_overs_per_match, 1)}
+             "overs_per_match": round(p.bowl_overs_per_match, 1),
+             **estimate_info("test", p)}
         if inn is not None and inn.bowl is not None and p in inn.bowl.players:
             rr, ww = self.rates(p, inn)
             d["phase_econ"] = round(6 * rr, 2)

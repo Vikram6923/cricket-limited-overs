@@ -158,6 +158,23 @@ def test_a_thin_record_in_the_nearer_format_does_not_win():
     assert stand_in.source("test", pid) == "t20" and player("test", pid).bowl_overs_per_match > 20
 
 
+def test_the_captain_sees_estimated_figures_and_the_domestic_record():
+    """Picking an XI, a player with no Test record shows what his estimate comes to in Test numbers (built as a
+    rated player's are: a rated player's own indexes give back his stored figures), marked as estimated, with his
+    first-class record; a rated player's card is unchanged."""
+    warner = ratings("test")["players"]["dcce6f09"]["bat"]
+    assert stand_in.readable("test", "bat", warner) == {k: warner["ref"][k] for k in ("avg", "sr")}
+    from engine.test_control import Desk
+    from engine.match import Match
+    gaik = next(p["id"] for p in _team(CSK)["players"] if player("t20", p["id"]).name == "RD Gaikwad")
+    p = player("test", gaik)
+    assert 15 < p.ref["bat"]["avg"] < 60 and 30 < p.ref["bat"]["sr"] < 80
+    info = stand_in.estimate_info("test", p)
+    assert info["est"] in ("ODI", "T20") and info["dom"].startswith("First-class: ") and "avg 45.25" in info["dom"]
+    assert stand_in.estimate_info("test", player("test", "dcce6f09")) == {"est": None}
+    assert "estimate_info" in Desk.pinfo.__code__.co_names and "estimate_info" in Match.pinfo.__code__.co_names
+
+
 def test_an_ipl_side_plays_an_odi_and_a_test():
     cl = _client()
     for fmt, comp in (("odi", "odi"), ("test", "test")):
