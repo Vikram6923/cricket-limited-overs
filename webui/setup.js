@@ -198,10 +198,13 @@ function showRoster(selId, outId) {
   if (!t) { $(outId).innerHTML = ''; return; }
   const est = t.players.filter(p => p.est && p.est[fmt]);
   const from = [...new Set(est.map(p => fmtLabel(p.est[fmt])))].join(' or ');
+  const DOM = {first_class: 'first-class', list_a: 'List A'}, withOf = p => DOM[(p.est_with || {})[fmt]];
+  const nDom = est.filter(withOf).length, dom = DOM[{test: 'first_class', odi: 'list_a'}[fmt]];
+  const domNote = nDom ? `, and from ${nDom === est.length ? 'their' : `${nDom} players'`} ${dom} records` : '';
   $(outId).innerHTML = `<div class="rhead">${badge(t.name)}<span class="muted small full-only">${t.players.length} players</span></div>
-    ${est.length ? `<div class="muted small est-note">${est.length} ${est.length === 1 ? 'player has' : 'players have'} no ${fmtLabel(fmt)} record: their ${fmtLabel(fmt)} ratings are estimated from ${from} (marked *)</div>` : ''}
+    ${est.length ? `<div class="muted small est-note">${est.length} ${est.length === 1 ? 'player has' : 'players have'} no ${fmtLabel(fmt)} record: their ${fmtLabel(fmt)} ratings are estimated from ${from}${domNote} (marked *)</div>` : ''}
     <div class="pchips full-only">${t.players.map(p => p.est && p.est[fmt]
-      ? `<span class="est" title="No ${fmtLabel(fmt)} record: rated from ${fmtLabel(p.est[fmt])}">${esc(p.name)} *</span>`
+      ? `<span class="est" title="No ${fmtLabel(fmt)} record: rated from ${fmtLabel(p.est[fmt])}${withOf(p) ? ` and ${withOf(p)} cricket` : ''}">${esc(p.name)} *</span>`
       : `<span>${esc(p.name)}</span>`).join('')}</div>`;
 }
 function filterTeams() {

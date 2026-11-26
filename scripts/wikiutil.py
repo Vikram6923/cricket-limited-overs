@@ -201,10 +201,17 @@ def clean(v: str | None) -> str:
     return " ".join(v.split())
 
 
+# infobox column labels seen for each career column ("[[List A cricket|LA]]" cleans to "LA")
+COLUMN_ALIASES = {"LIST A": {"LIST A", "LA"}, "FC": {"FC", "FIRST-CLASS", "FIRST CLASS"}, "ODI": {"ODI", "ODIS"},
+                  "TEST": {"TEST", "TESTS"}, "T20I": {"T20I", "T20IS"}, "T20": {"T20", "TWENTY20"}}
+
+
 def wiki_career(fields: dict, column_name: str) -> dict | None:
-    """Career-table column (e.g. 'ODI', 'T20I', 'List A', 'T20') as strings, or None if absent."""
+    """Career-table column (e.g. 'ODI', 'T20I', 'List A', 'T20') as strings, or None if absent. Infoboxes label
+    columns in several ways ("[[List A cricket|LA]]", "First-class"), so each name also matches its aliases."""
+    names = COLUMN_ALIASES.get(column_name.upper(), {column_name.upper()})
     for n in range(1, 5):
-        if clean(fields.get(f"column{n}")).upper() == column_name.upper():
+        if clean(fields.get(f"column{n}")).upper() in names:
             g = lambda k: clean(fields.get(f"{k}{n}"))
             return {"matches": g("matches"), "runs": g("runs"), "bat_avg": g("bat avg"),
                     "100s/50s": g("100s/50s"), "hs": g("top score"), "balls": g("deliveries"),

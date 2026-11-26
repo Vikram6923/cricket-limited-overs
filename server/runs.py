@@ -269,12 +269,16 @@ def ui(name):
 
 def with_estimates(teams: list[dict]) -> list[dict]:
     """The teams with, on each player who has no record in a format, est = {format: the format his ratings
-    there are estimated from} (the set-up screen marks them)."""
+    there are estimated from} and est_with = {format: the domestic record that also informed them ("first_class",
+    "list_a")}, where one did (the set-up screen marks them)."""
     for t in teams:
         for p in t["players"]:
             est = {f: s for f in FMTS if (s := stand_in.source(f, p["id"]))}
             if est:
                 p["est"] = est
+                dom = {f: w for f in est if (w := (stand_in.record(f, p["id"]) or {}).get("estimated_with"))}
+                if dom:
+                    p["est_with"] = dom
     return teams
 
 

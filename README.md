@@ -455,10 +455,15 @@ starts, with the players that have no record in that format and the side to choo
 
 **IPL sides in ODIs and Tests:** a franchise (or your own team) can play any format. A player with no record in
 it is rated from another format he played: an ODI from his T20 record, a Test from his ODI record or else his
-T20 one (engine/stand_in.py). The estimate is learned from the players rated in both formats, so it keeps his
-place among players of his role but pulls him toward average, more for Tests, and XI selection treats it as
-uncertain. The set-up screen marks those players with a * and says how many there are. Only a side with a player
-rated in no format at all is refused.
+T20 one (engine/stand_in.py), using his ball-by-ball record ahead of a thin one known only from career totals. The
+estimate is learned from the players rated in both formats, so it keeps his place among players of his role but
+pulls him toward average, more for Tests, and XI selection treats it as uncertain. His first-class record (for a
+Test) or List A record (for an ODI), where his Wikipedia infobox shows one, sharpens it: a good first-class batting
+average means fewer dismissals, a tight first-class economy fewer runs conceded, and his overs a match come from his
+domestic ones. How much weight these get is learned from Test players' domestic records with their Tests taken out,
+with a small correction for the home country's domestic standard. First-class strike rate turned out to say nothing
+about Test wickets, so it isn't used. The set-up screen marks those players with a * and says how many there are and
+whose domestic records were used. Only a side with a player rated in no format at all is refused.
 
 Every Test also shows **Win, draw or loss**: the chance of each result after every over, in three bands. It
 comes from a table made by playing 20,000 Tests between equal sides, so it knows the score, the wickets and the
@@ -602,7 +607,7 @@ To rebuild everything from scratch, for example each season:
 python scripts/fetch_cricsheet.py      # downloads Cricsheet zips into data/raw/ (cached; --refresh to update)
 python scripts/build_raw_stats.py      # per-player raw stats with phase splits (ODI, T20, leagues, Tests)
 python scripts/build_afghanistan.py    # Afghanistan players from Wikipedia (Cricsheet withholds their matches)
-python scripts/fetch_styles.py         # batting hand / bowling type from Wikipedia (cached, ~10 min first time)
+python scripts/fetch_styles.py         # batting hand, bowling type, domestic records from Wikipedia (cached, ~10 min first time)
 python scripts/build_pre2002.py        # pre-2002 ODI players' career totals from Wikipedia lists
 python scripts/fetch_wiki_matches.py   # ODI match summaries (top scorers' runs and balls), cached
 python scripts/build_pre_tests.py      # Test career totals since 1877 and the era table; needs the old Test

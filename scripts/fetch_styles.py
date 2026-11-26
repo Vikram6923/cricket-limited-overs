@@ -2,14 +2,16 @@
 
 Cricsheet has no player attributes, so:
   ESPNcricinfo ID (Cricsheet register) -> Wikidata (SPARQL on P2697) -> English Wikipedia article + date of birth
-  -> {{Infobox cricketer}}: batting / bowling style, List A and T20 career columns (used as priors in the ratings).
+  -> {{Infobox cricketer}}: batting / bowling style, first-class, List A and T20 career columns (List A informs the
+  ODI priors in the ratings; first-class and List A inform engine/stand_in.py's estimates for a format a player has
+  no record in).
 
 Everything is cached (data/raw/wikidata_sparql/, data/raw/wikipedia/), so re-runs only fetch new players.
 
 Reads   data/raw_stats/players_{odi,t20,t20_league}.json
 Writes  data/raw_stats/styles.json   {cricsheet_id: {...}}
 
-    python scripts/fetch_styles.py                 # players with >=10 matches / 120 balls bowled / 200 faced
+    python scripts/fetch_styles.py                 # preset players, and >=10 matches / 120 balls bowled / 200 faced
     python scripts/fetch_styles.py --min-matches 3 # widen the net
 """
 from __future__ import annotations
@@ -45,7 +47,13 @@ def sparql_batch(cids: list[str]) -> list[dict]:
       OPTIONAL {{ ?item wdt:P569 ?dob . }}
     }}"""
     for attempt in range(5):
-        r = requests.post(SPARQL, data={"query": q, "format": "json"}, headers=HEADERS, timeout=120)
+        try:
+            r = requests.post(SPARQL, data={"query": q, "format": "json"}, headers=HEADERS, timeout=120)
+        except requests.RequestException:          # a dropped connection: wait and ask again
+            if attempt == 4:
+                raise
+            time.sleep(20 * (attempt + 1))
+            continue
         if r.status_code not in (429, 500, 502, 503, 504):
             break
         time.sleep(20 * (attempt + 1))
@@ -100,14 +108,20 @@ def classify_batting(text: str) -> str | None:
 
 
 def candidates(min_matches: int) -> dict[str, str]:
-    """cricsheet_id -> cricinfo_id for players worth looking up."""
-    out = {}
+    """cricsheet_id -> cricinfo_id for players worth looking up: enough matches, or in a preset side (their
+    domestic records inform the estimate when they play a format they have no record in)."""
+    out, ci_of = {}, {}
+    presets = {p["id"] for t in json.loads((ROOT / "data" / "teams_default.json").read_text(encoding="utf-8"))
+               for p in t.get("players", []) if p.get("id")}
     for f in ("odi", "t20", "t20_league"):
         P = json.loads((STATS / f"players_{f}.json").read_text(encoding="utf-8"))
         for k, r in P.items():
+            if r.get("cricinfo_id"):
+                ci_of[k] = r["cricinfo_id"]
             if r.get("cricinfo_id") and (r["matches"] >= min_matches or r["bowl"]["balls"] >= 120
                                          or r["bat"]["balls"] >= 200):
                 out[k] = r["cricinfo_id"]
+    out.update({k: ci_of[k] for k in presets if k in ci_of})
     afg = STATS / "afghanistan_players.json"
     if afg.exists():
         for p in json.loads(afg.read_text(encoding="utf-8")):
