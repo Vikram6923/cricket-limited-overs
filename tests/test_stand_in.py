@@ -5,8 +5,8 @@
 An IPL side's T20-only players get ODI and Test ratings from their T20 record: the fitted line keeps their order
 (a better T20 batter is a better ODI batter) but shrinks it, more for Tests; the estimate is uncertain; bowlers
 bowl their share of the longer format's overs. First-class (Test) and List A (ODI) records sharpen the estimate where
-Wikipedia has them: fitted without the records they predict, weighted only the sensible way round, and a bowler's
-overs come from his domestic overs. The side plays an ODI and a Test through the server, the set-up screen is told
+Wikipedia has them: fitted without the records they predict, weighted only the sensible way round, kept only where
+they predict better out of sample, and a bowler's overs come from his domestic overs. The side plays an ODI and a Test through the server, the set-up screen is told
 who is estimated (and with which domestic record), and only a side with a player rated in no format is refused.
 """
 from __future__ import annotations
@@ -99,6 +99,27 @@ def test_domestic_records_are_fitted_without_the_format_they_predict():
                 assert c * stand_in.DOM_X[side][m] > 0, (side, m, c)
                 assert r2 >= fit[side][m][2] - 1e-9, (side, m)
     assert 0.9 < dom["opm"] < 1.4                                            # a Test is much like a first-class match
+
+
+def test_only_domestic_lines_that_predict_out_of_sample_are_kept():
+    """Each domestic line must beat the plain line (with country corrections) on players it was not fitted on:
+    List A economy and average are kept for ODIs, List A wickets are not; every estimate gets a small correction
+    for the home country."""
+    dom = stand_in.mapping("t20", "odi")["dom"]
+    assert "wkt" in dom["bat"] and "runs" in dom["bowl"] and "wkt" not in dom["bowl"]
+    fix = stand_in.mapping("t20", "test")["country"]["bowl"]["wkt"]
+    assert fix and all(abs(v) < 0.2 for v in fix.values()), fix
+
+
+def test_bad_infobox_figures_are_read_or_left_out():
+    """An average typed with a decimal comma ("32,82") is 32.82, not 3,282; a domestic measure far outside its role
+    group's (balls not updated with wickets, say) is left out rather than trusted."""
+    assert stand_in._num("32,82", True) == 32.82 and stand_in._num("11,265", True) == 11265
+    assert stand_in._num("32,82") == 3282
+    means = {"spec_spin": 1.0}
+    assert stand_in._dom_x({"bowl": {"runs": (2.5, 40)}}, "bowl", "runs", "spec_spin", means) is None
+    assert abs(stand_in._dom_x({"bowl": {"runs": (1.8, 40)}}, "bowl", "runs", "spec_spin", means)
+               - stand_in.DOM_CLAMP * 40 / 60) < 1e-9
 
 
 def test_a_better_first_class_record_means_a_better_test_estimate():

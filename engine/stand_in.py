@@ -16,10 +16,13 @@ economy. For the runs and wicket indexes of a player with enough of them, a seco
 d being his domestic measure against his role group's. It is fitted on the players rated in both formats, with their
 domestic careers less their Tests (or ODIs), so it is not fitted on the records it predicts. The fit gives the
 domestic measure the weight it earns: first-class economy and batting average say a good deal about a Test bowler's
-economy and a batter's dismissal rate, first-class strike rate nothing about Test wickets (a weight with the wrong
-sign is dropped, and that index keeps the plain line). The fitted
-players' leftover differences by home country (domestic cricket is stronger in some than in others) are kept, shrunk,
-and applied by his. A bowler's overs a match then come from his domestic overs a match. Players whose infobox has no
+economy and a batter's dismissal rate, first-class strike rate nothing about Test wickets. A line is kept only if
+its weight points the sensible way and it predicts the fitted players better than the plain line does, each tenth
+judged from fits on the rest (List A wickets fail that for ODI wickets). A domestic figure far outside its role
+group's is a data error (an infobox's balls not updated with its wickets, an average typed "32,82") and is left out.
+Both lines carry a correction for his home country, the fitted players' mean leftover by country, shrunk: it
+predicts better out of sample too (Bangladesh's bowlers take fewer Test wickets than their T20 records suggest).
+A bowler's overs a match come from his domestic overs a match. Players whose infobox has no
 such column keep the plain estimate: it shows four columns, and many internationals' show ODI, T20I, List A and T20.
 
 record() returns a row shaped like one of data.ratings(fmt)["players"], marked "estimated_from" (and
@@ -54,6 +57,9 @@ DOM_MIN_FIT = 40                    # fitted players with a domestic record for 
 COUNTRY_SHRINK = 20                 # a country's mean leftover counts n / (n + this) (n: its fitted players)
 COUNTRY_MIN = 8                     # fitted players for a country to get its own correction
 DOM_MIN_MATCHES = 10                # domestic matches for his domestic overs a match to be used
+DOM_BAD = 1.0                       # a domestic measure this far (log) from his role group's is a data error: unused
+DOM_CLAMP = 0.5                     # and one within it counts at most this far
+CV_FOLDS = 10                       # folds for judging a domestic line out of sample
 
 
 def _role(rec: dict, side: str) -> str:
@@ -80,9 +86,12 @@ def _opm(rec: dict) -> float:
     return (w.get("balls") or 0) / 6 / n if n else 0.0
 
 
-def _num(v) -> float | None:
+def _num(v, decimal_comma: bool = False) -> float | None:
+    """A number from an infobox field ("11,265"). decimal_comma: an average written "32,82" is 32.82."""
     if isinstance(v, (int, float)):
         return float(v)
+    if decimal_comma and re.fullmatch(r"\s*\d+,\d{1,2}\s*", v or ""):
+        return float(v.strip().replace(",", "."))
     m = re.search(r"-?[\d,]+(?:\.\d+)?", v or "")
     return float(m.group().replace(",", "")) if m else None
 
@@ -109,8 +118,8 @@ def domestic(fmt: str, pid: str, rec: dict | None = None) -> dict:
     col = (_styles().get(pid) or {}).get(DOMESTIC.get(fmt, ""))
     if not col:
         return {}
-    m, runs, avg = _num(col.get("matches")), _num(col.get("runs")), _num(col.get("bat_avg"))
-    balls, wk, bav = _num(col.get("balls")), _num(col.get("wkts")), _num(col.get("bowl_avg"))
+    m, runs, avg = _num(col.get("matches")), _num(col.get("runs")), _num(col.get("bat_avg"), True)
+    balls, wk, bav = _num(col.get("balls")), _num(col.get("wkts")), _num(col.get("bowl_avg"), True)
     t = (rec or {}).get("totals") or {}
     t_runs, t_avg, t_wk, t_bav, t_balls = (_num(t.get(k)) for k in ("runs", "bat_avg", "wkts", "bowl_avg", "balls"))
     out: dict = {"opm": balls / 6 / m if balls and m and m >= DOM_MIN_MATCHES else None}
@@ -156,11 +165,46 @@ def _ols(rows: list[tuple]) -> tuple[list[float], float]:
     return beta, (1 - sse / sst if sst else 0.0)
 
 
-def _dom_x(dom: dict, side: str, m: str, role: str, means: dict) -> float:
-    """His domestic measure against his role group's, shrunk by how much of it there is."""
+def _dom_x(dom: dict, side: str, m: str, role: str, means: dict) -> float | None:
+    """His domestic measure against his role group's, kept within DOM_CLAMP and shrunk by how much of it there is;
+    None if it is so far off that the record must be wrong (an infobox whose balls were not updated with its
+    wickets, say)."""
     x, n = dom[side][m]
     mu = means[role] if role in means else sum(means.values()) / len(means)
-    return (x - mu) * n / (n + DOM_SHRINK)
+    if abs(x - mu) > DOM_BAD:
+        return None
+    return max(-DOM_CLAMP, min(DOM_CLAMP, x - mu)) * n / (n + DOM_SHRINK)
+
+
+def _country_fix(rows: list[tuple]) -> dict:
+    """{country: its fitted players' mean leftover, shrunk} from (country, leftover) rows."""
+    left: dict = {}
+    for k, e in rows:
+        left.setdefault(k, []).append(e)
+    return {k: sum(v) / (len(v) + COUNTRY_SHRINK) for k, v in left.items() if k and len(v) >= COUNTRY_MIN}
+
+
+def _beats_plain(full: list[tuple], dom: dict, sign: int) -> bool:
+    """Whether the domestic line (with its country corrections) predicts the players it covers better than the
+    plain line with its own does, judged out of sample: each tenth of the fitted players predicted from fits on
+    the rest, the plain line fitted on all of them as in use, the domestic one on those with a domestic record.
+    full: (pid, x, y, country) for every fitted player; dom: {pid: d}. Not every domestic measure that fits earns
+    its place this way (List A wickets for ODI wickets, for instance)."""
+    err_plain = err_dom = 0.0
+    for k in range(CV_FOLDS):
+        train = [r for i, r in enumerate(full) if i % CV_FOLDS != k]
+        (a1, b1), _ = _ols([(x, y) for _, x, y, _ in train])
+        fix1 = _country_fix([(c, y - a1 - b1 * x) for _, x, y, c in train])
+        dt = [(x, dom[p], y, c) for p, x, y, c in train if p in dom]
+        (a, b, cd), _ = _ols([(x, d, y) for x, d, y, _ in dt])
+        if cd * sign <= 0:
+            return False
+        fix = _country_fix([(c, y - a - b * x - cd * d) for x, d, y, c in dt])
+        for p, x, y, c in full[k::CV_FOLDS]:
+            if p in dom:
+                err_plain += (y - a1 - b1 * x - fix1.get(c, 0.0)) ** 2
+                err_dom += (y - a - b * x - cd * dom[p] - fix.get(c, 0.0)) ** 2
+    return err_dom < err_plain
 
 
 def _domestic_fit(src: str, tgt: str, S: dict, T: dict, both: list[str]) -> dict:
@@ -168,8 +212,9 @@ def _domestic_fit(src: str, tgt: str, S: dict, T: dict, both: list[str]) -> dict
     out: dict = {"bat": {}, "bowl": {}, "means": {"bat": {}, "bowl": {}}, "country": {"bat": {}, "bowl": {}}}
     doms = {p: domestic(tgt, p, T[p]) for p in both}
     for side in ("bat", "bowl"):
-        pairs = [(p, S[p], T[p]) for p in both if S[p].get(side) and T[p].get(side) and side in doms[p]
-                 and S[p][side]["balls"] >= FIT_BALLS and T[p][side]["balls"] >= FIT_BALLS]
+        fitted = [(p, S[p], T[p]) for p in both if S[p].get(side) and T[p].get(side)
+                  and S[p][side]["balls"] >= FIT_BALLS and T[p][side]["balls"] >= FIT_BALLS]
+        pairs = [(p, s, t) for p, s, t in fitted if side in doms[p]]
         if len(pairs) < DOM_MIN_FIT:
             continue
         for m, sign in DOM_X[side].items():
@@ -177,18 +222,21 @@ def _domestic_fit(src: str, tgt: str, S: dict, T: dict, both: list[str]) -> dict
             for p, s, _ in pairs:
                 by_role.setdefault(_role(s, side), []).append(doms[p][side][m][0])
             means = {r: sum(v) / len(v) for r, v in by_role.items()}
-            rows = [(_x(src, s, side, m), _dom_x(doms[p], side, m, _role(s, side), means), _x(tgt, t, side, m))
-                    for p, s, t in pairs]
+            rows, kept, ds = [], [], {}
+            for p, s, t in pairs:
+                d = _dom_x(doms[p], side, m, _role(s, side), means)
+                if d is not None:
+                    rows.append((_x(src, s, side, m), d, _x(tgt, t, side, m)))
+                    kept.append(t)
+                    ds[p] = d
             (a, b, c), r2 = _ols(rows)
-            if c * sign <= 0:
+            full = [(p, _x(src, s, side, m), _x(tgt, t, side, m), _country(t)) for p, s, t in fitted]
+            if c * sign <= 0 or not _beats_plain(full, ds, sign):
                 continue
-            left: dict = {}
-            for (_, _, t), (x, d, y) in zip(pairs, rows):
-                left.setdefault(_country(t), []).append(y - (a + b * x + c * d))
             out[side][m] = (a, b, c, r2, min(r[2] for r in rows), max(r[2] for r in rows))
             out["means"][side][m] = means
-            out["country"][side][m] = {k: sum(v) / (len(v) + COUNTRY_SHRINK) for k, v in left.items()
-                                       if k and len(v) >= COUNTRY_MIN}
+            out["country"][side][m] = _country_fix([(_country(t), y - (a + b * x + c * d))
+                                                    for t, (x, d, y) in zip(kept, rows)])
     bowlers = [(doms[p]["opm"], _opm(T[p])) for p in both if doms[p].get("opm") and _opm(T[p])
                and (T[p].get("bowl") or {}).get("balls", 0) >= FIT_BALLS]
     sd, st = sum(d for d, _ in bowlers), sum(t for _, t in bowlers)
@@ -202,17 +250,18 @@ def mapping(src: str, tgt: str) -> dict:
     None} from the players rated in both formats by ball-by-ball records."""
     S, T = ratings(src)["players"], ratings(tgt)["players"]
     both = [p for p in S if p in T and S[p].get("source") == T[p].get("source") == "ball_by_ball"]
-    out: dict = {}
+    out: dict = {"country": {}}
     for side in ("bat", "bowl"):
         pairs = [(S[p], T[p]) for p in both if S[p].get(side) and T[p].get(side)
                  and S[p][side]["balls"] >= FIT_BALLS and T[p][side]["balls"] >= FIT_BALLS]
-        out[side] = {}
+        out[side], out["country"][side] = {}, {}
         for m in METRICS:
             xs = [_x(src, s, side, m) for s, _ in pairs]
             ys = [_x(tgt, t, side, m) for _, t in pairs]
             n = len(xs)
             if n < 20:
                 out[side][m] = (0.0, 0.0, 0.0, 0.0, 0.0)
+                out["country"][side][m] = {}
                 continue
             mx, my = sum(xs) / n, sum(ys) / n
             sxx = sum((x - mx) ** 2 for x in xs)
@@ -221,6 +270,8 @@ def mapping(src: str, tgt: str) -> dict:
             b = sxy / sxx if sxx else 0.0
             r2 = sxy * sxy / (sxx * syy) if sxx and syy else 0.0
             out[side][m] = (my - b * mx, b, r2, min(ys), max(ys))
+            out["country"][side][m] = _country_fix([(_country(t), y - (my - b * mx) - b * x)
+                                                    for (_, t), x, y in zip(pairs, xs, ys)])
     bowlers = [(S[p], T[p]) for p in both if (S[p].get("bowl") or {}).get("balls", 0) >= FIT_BALLS
                and (T[p].get("bowl") or {}).get("balls", 0) >= FIT_BALLS and _opm(S[p]) and _opm(T[p])]
     so, to = sum(_opm(s) for s, _ in bowlers), sum(_opm(t) for _, t in bowlers)
@@ -245,13 +296,14 @@ def _side(src: str, tgt: str, rec: dict, side: str, fit: dict, dom: dict) -> dic
     idx, r2s = {}, []
     for m in METRICS:
         x = _x(src, rec, side, m)
-        if side in dom and m in dfit.get(side, {}):
+        d = (_dom_x(dom, side, m, role, dfit["means"][side][m])
+             if side in dom and m in dfit.get(side, {}) else None)
+        if d is not None:
             a, b, c, r2, lo, hi = dfit[side][m]
-            y = (a + b * x + c * _dom_x(dom, side, m, role, dfit["means"][side][m])
-                 + dfit["country"][side][m].get(_country(rec), 0.0))
+            y = a + b * x + c * d + dfit["country"][side][m].get(_country(rec), 0.0)
         else:
             a, b, r2, lo, hi = fit[side][m]
-            y = a + b * x
+            y = a + b * x + fit["country"][side][m].get(_country(rec), 0.0)
         y = min(max(y, lo), hi)
         idx[m] = round(_role_mean(tgt, m, side, role) * math.exp(y), 4)
         if m in ("runs", "wkt"):

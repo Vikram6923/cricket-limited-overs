@@ -461,8 +461,10 @@ pulls him toward average, more for Tests, and XI selection treats it as uncertai
 Test) or List A record (for an ODI), where his Wikipedia infobox shows one, sharpens it: a good first-class batting
 average means fewer dismissals, a tight first-class economy fewer runs conceded, and his overs a match come from his
 domestic ones. How much weight these get is learned from Test players' domestic records with their Tests taken out,
-with a small correction for the home country's domestic standard. First-class strike rate turned out to say nothing
-about Test wickets, so it isn't used. The set-up screen marks those players with a * and says how many there are and
+and a domestic measure is used only where it predicts players it wasn't fitted on better than the estimate without
+it: first-class average and economy for Tests, List A average and economy for ODIs, but not domestic strike rates.
+Every estimate also gets a small correction for the player's home country (a Bangladeshi bowler takes fewer Test
+wickets than his T20 record suggests, an Indian or South African one more), which predicts better out of sample too. The set-up screen marks those players with a * and says how many there are and
 whose domestic records were used. Only a side with a player rated in no format at all is refused.
 
 Every Test also shows **Win, draw or loss**: the chance of each result after every over, in three bands. It

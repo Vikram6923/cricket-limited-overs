@@ -769,13 +769,22 @@ def _ref_rates(ref: dict) -> tuple[float, float, float]:
     return rpb_bat / opb, rpb_bowl / wpb, 6 * rpb_bowl
 
 
+DOMESTIC_PRIOR = False   # the List A prior below (see its doc for why it is off)
+
+
 def domestic_prior(fmt: str, r: dict, ref: dict) -> dict:
     """ODI only: List A record minus ODI record (both from the Wikipedia infobox) informs the prior of players with
-    small ODI samples. The domestic -> ODI mapping is calibrated by weighted regression on well-measured players,
+    small ODI samples, measured against his role group's (the prior is already the group's mean). The domestic ->
+    ODI mapping is calibrated by weighted regression on well-measured players,
     so it learns both the level gap and how predictive domestic numbers are. Players are then re-shrunk toward the
-    domestic-informed prior (their data weight is unchanged, so established players barely move)."""
+    domestic-informed prior (their data weight is unchanged, so established players barely move).
+
+    Off (DOMESTIC_PRIOR): fitted on ODIs to 2022 and scored on the ODIs since, it made the dismissal rates of the
+    players it moves worse, not better (players with 60+ later balls: batting skill 29.6% -> 28.4%; it moved them
+    the right way about half the time). Those players are mostly associates', whose List A records say little about
+    their ODIs. Until 2026 it did nothing anyway: the infobox's List A column (labelled "LA") wasn't being read."""
     r["prior_shift"] = {"bat": defaultdict(dict), "bowl": defaultdict(dict)}
-    if fmt != "odi":
+    if fmt != "odi" or not DOMESTIC_PRIOR:
         return {}
     xs_bat, xs_bowl = {}, {}
     for pid, s in r["styles"].items():
@@ -819,17 +828,25 @@ def domestic_prior(fmt: str, r: dict, ref: dict) -> dict:
     for side, m, xs, fx in specs:
         f = r["fits"][m][0 if side == "bat" else 1]
         ids = r["bat_ids"] if side == "bat" else r["bowl_ids"]
-        pairs = [(fx(xs[pid]), math.log(f["idx"][i] / f["prior"][i]), f["w"][i])
-                 for i, pid in enumerate(ids) if pid in xs and f["w"][i] >= 0.6 and f["prior"][i] > 0]
+        roles = r["bat_role"] if side == "bat" else r["bowl_role"]
+        # his domestic measure against his role group's: the prior is already the role group's mean, so a
+        # tail-ender's low List A average must not count against him a second time
+        x_of = {i: fx(xs[pid]) for i, pid in enumerate(ids) if pid in xs}
+        by_role = defaultdict(list)
+        for i, x in x_of.items():
+            by_role[roles[i]].append(x)
+        x_of = {i: x - sum(by_role[roles[i]]) / len(by_role[roles[i]]) for i, x in x_of.items()}
+        pairs = [(x_of[i], math.log(f["idx"][i] / f["prior"][i]), f["w"][i])
+                 for i in x_of if f["w"][i] >= 0.6 and f["prior"][i] > 0]
         reg = regress(pairs)
         if not reg:
             continue
         calib[f"{side}_{m}"] = reg
         cur = r["bat" if side == "bat" else "bowl"][m]
-        for i, pid in enumerate(ids):
-            if pid not in xs or f["E"][i] <= 0:
+        for i, x in x_of.items():
+            if f["E"][i] <= 0:
                 continue
-            new_prior = f["prior"][i] * math.exp(reg["a"] + reg["b"] * fx(xs[pid]))
+            new_prior = f["prior"][i] * math.exp(reg["a"] + reg["b"] * x)
             raw = f["A"][i] / f["E"][i]
             new = new_prior + f["w"][i] * (raw - new_prior)
             r["prior_shift"][side][m][i] = new / cur[i]
